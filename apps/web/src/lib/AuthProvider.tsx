@@ -6,8 +6,7 @@ import {
 } from '@dynamic-labs/sdk-react-core'
 import { SolanaWalletConnectors } from '@dynamic-labs/solana'
 import { LazorkitProvider, useWallet as useLazorkitWallet } from '@lazorkit/wallet'
-import { Connection, PublicKey } from '@solana/web3.js'
-import { RPC_URL, KRYPTON_PROGRAM_ID } from '@krypton/sdk'
+import { RPC_URL } from '@krypton/sdk'
 
 /**
  * Krypton unified auth — Dynamic (social/email/embedded wallet) + Lazorkit (passkey smart wallet).
@@ -29,15 +28,6 @@ interface KryptonAuthProviderProps {
 }
 
 export function KryptonAuthProvider({ children }: KryptonAuthProviderProps) {
-  const connection = React.useMemo(
-    () => new Connection(RPC_URL, { commitment: 'confirmed' }),
-    [],
-  )
-  const programId = React.useMemo(
-    () => new PublicKey(KRYPTON_PROGRAM_ID),
-    [],
-  )
-
   return (
     <DynamicContextProvider
       settings={{
@@ -50,15 +40,8 @@ export function KryptonAuthProvider({ children }: KryptonAuthProviderProps) {
         },
       }}
     >
-      <LazorkitProvider
-        rpcUrl={RPC_URL}
-        customConnection={connection}
-        programId={programId}
-        chainId="devnet"
-      >
-        {children}
-        <DynamicUserProfile />
-      </LazorkitProvider>
+      <LazorkitProvider rpcUrl={RPC_URL}>{children}</LazorkitProvider>
+      <DynamicUserProfile />
     </DynamicContextProvider>
   )
 }
@@ -76,10 +59,10 @@ export function useKryptonAuth() {
     dynamic,
     lazorkit,
     // Any wallet connected (Dynamic OR Lazorkit)
-    isConnected: dynamic.isAuthenticated || lazorkit.isConnected,
+    isConnected: dynamic.primaryWallet != null || lazorkit.isConnected,
     // Primary wallet address
     primaryAddress:
-      dynamic.primaryWallet?.address ?? lazorkit.wallet?.publicKey?.toBase58() ?? null,
+      dynamic.primaryWallet?.address ?? lazorkit.wallet?.smartWallet ?? null,
   }
 }
 

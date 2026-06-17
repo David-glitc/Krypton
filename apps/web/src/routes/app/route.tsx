@@ -119,7 +119,7 @@ function AppGate() {
                 {primaryAddress.slice(0, 4)}...{primaryAddress.slice(-4)}
               </span>
             )}
-            {dynamic.isAuthenticated && (
+            {dynamic.primaryWallet != null && (
               <button
                 onClick={() => dynamic.setShowDynamicUserProfile?.(true)}
                 className="btn-ghost text-xs"

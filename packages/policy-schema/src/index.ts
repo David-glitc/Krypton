@@ -145,3 +145,223 @@ export const defaultPolicyBuilderForm: PolicyBuilderForm = {
   rebalanceFrequency: 'daily',
   permissionLevel: 2,
 }
+
+
+// ──────────────────────────────────────────
+// VaultGoal — user's stated target (non-binding optimization signal)
+// ──────────────────────────────────────────
+
+export const VAULT_GOAL_TARGET_TYPES = [
+  'multiple',
+  'apy',
+  'preservation',
+  'fixed_use_case',
+] as const
+
+export const VAULT_USE_CASES = [
+  'compound',
+  'save',
+  'collateral',
+  'onchain_deposit_box',
+  'speculative_growth',
+] as const
+
+export const vaultGoalSchema = z.object({
+  vault: z.string().optional(),
+  target_type: z.enum(VAULT_GOAL_TARGET_TYPES),
+  target_value: z.number().positive().optional(),
+  time_horizon_days: z.number().min(7).max(365),
+  use_case: z.enum(VAULT_USE_CASES).optional(),
+  created_from_prompt_hash: z.string().optional(),
+})
+
+export type VaultGoal = z.infer<typeof vaultGoalSchema>
+
+// ──────────────────────────────────────────
+// Feasibility — historical band reference for Policy Compiler
+// ──────────────────────────────────────────
+
+export type FeasibilityStatus = 'feasible' | 'infeasible' | 'feasible_with_conditions'
+
+export interface FeasibilityResult {
+  status: FeasibilityStatus
+  reference_band: {
+    min_historical_drawdown_pct: number
+    max_historical_drawdown_pct: number
+  }
+  negotiation_prompt?: string
+}
+
+// Historical reference bands per risk profile (from MVP §2.2)
+export const HISTORICAL_DRAWDOWN_BANDS: Record<string, { min: number; max: number }> = {
+  low: { min: 1, max: 5 },
+  'low-medium': { min: 5, max: 10 },
+  medium: { min: 10, max: 20 },
+  high: { min: 20, max: 40 },
+  extreme: { min: 30, max: 60 },
+}
+
+export const AGGRESSIVE_THRESHOLD_BPS = 2500 // 25% drawdown -> advisory-only lock
+export const PROTOCOL_MAX_LEVERAGE_BPS = 20_000
+
+export function assessFeasibility(
+  targetType: string,
+  targetValue: number,
+  drawdownLimitPct: number,
+  timeHorizonDays: number,
+): FeasibilityResult {
+  const requiredBand = determineRequiredBand(targetType, targetValue, timeHorizonDays)
+  const band = HISTORICAL_DRAWDOWN_BANDS[requiredBand]
+
+  if (!band) {
+    return {
+      status: 'feasible',
+      reference_band: { min_historical_drawdown_pct: 0, max_historical_drawdown_pct: 50 },
+    }
+  }
+
+  const feasible = drawdownLimitPct >= band.min
+
+  if (!feasible) {
+    return {
+      status: 'infeasible',
+      reference_band: { min_historical_drawdown_pct: band.min, max_historical_drawdown_pct: band.max },
+      negotiation_prompt:
+        `A ${targetValue}x target in ${timeHorizonDays} days historically requires strategies with ` +
+        `${band.min}-${band.max}%+ drawdown risk. Your ${drawdownLimitPct}% drawdown limit ` +
+        `and this target are not jointly achievable. Consider raising drawdown tolerance, ` +
+        `extending horizon, or advisory-only mode.`,
+    }
+  }
+
+  return {
+    status: 'feasible',
+    reference_band: { min_historical_drawdown_pct: band.min, max_historical_drawdown_pct: band.max },
+  }
+}
+
+function determineRequiredBand(targetType: string, targetValue: number, timeHorizonDays: number): string {
+  if (targetType === 'preservation' || targetType === 'fixed_use_case') {
+    return 'low'
+  }
+  if (targetType === 'apy') {
+    // APY → rough multiple: e.g., 10% APY over 1 year ≈ 1.1x
+    const impliedMultiple = 1 + (targetValue / 100) * (timeHorizonDays / 365)
+    if (impliedMultiple < 1.1) return 'low'
+    if (impliedMultiple < 1.3) return 'low-medium'
+    return 'medium'
+  }
+  // multiple target
+  const annualizedFactor = targetValue ** (365 / Math.max(timeHorizonDays, 1))
+  if (annualizedFactor < 1.5) return 'low'
+  if (annualizedFactor < 3) return 'low-medium'
+  if (annualizedFactor < 6) return 'medium'
+  if (annualizedFactor < 15) return 'high'
+  return 'extreme'
+}
+
+// ──────────────────────────────────────────
+// Preset Fund Managers (MVP §3.2)
+// ──────────────────────────────────────────
+
+export interface PresetFundManager {
+  id: string
+  name: string
+  description: string
+  targetType: (typeof VAULT_GOAL_TARGET_TYPES)[number]
+  riskProfile: string
+  executionMode: string
+  assets: string[]
+  protocols: string[]
+  maxDrawdownPct: number
+  maxLeverage: number
+  maxPositionPct: number
+  hardLockAdvisory: boolean
+}
+
+export const PRESET_FUND_MANAGERS: PresetFundManager[] = [
+  {
+    id: 'stable-saver',
+    name: 'Stable Saver',
+    description: 'Preservation-focused. Lend USDC/USDT across lending protocols. No swaps, no leverage.',
+    targetType: 'preservation',
+    riskProfile: 'low',
+    executionMode: 'constrained_auto',
+    assets: ['USDC', 'USDT'],
+    protocols: ['kamino', 'marginfi'],
+    maxDrawdownPct: 2,
+    maxLeverage: 1,
+    maxPositionPct: 50,
+    hardLockAdvisory: false,
+  },
+  {
+    id: 'steady-compounder',
+    name: 'Steady Compounder',
+    description: 'LST yield + lending blend for sustainable ~6-10% APY.',
+    targetType: 'apy',
+    riskProfile: 'low-medium',
+    executionMode: 'constrained_auto',
+    assets: ['SOL', 'USDC', 'USDT'],
+    protocols: ['sanctum', 'kamino'],
+    maxDrawdownPct: 8,
+    maxLeverage: 1,
+    maxPositionPct: 40,
+    hardLockAdvisory: false,
+  },
+  {
+    id: 'growth-allocator',
+    name: 'Growth Allocator',
+    description: 'Multi-asset growth with advisory → auto progression after track record.',
+    targetType: 'multiple',
+    riskProfile: 'medium',
+    executionMode: 'constrained_auto',
+    assets: ['SOL', 'ETH', 'BTC', 'USDC'],
+    protocols: ['jupiter', 'kamino', 'sanctum'],
+    maxDrawdownPct: 15,
+    maxLeverage: 1.5,
+    maxPositionPct: 35,
+    hardLockAdvisory: false,
+  },
+  {
+    id: 'aggressive-compounder',
+    name: 'Aggressive Compounder',
+    description: 'High-variance leveraged strategies. HARD-LOCKED to advisory mode regardless of permission level.',
+    targetType: 'multiple',
+    riskProfile: 'high',
+    executionMode: 'advisory',
+    assets: ['SOL', 'ETH', 'BTC', 'USDC'],
+    protocols: ['jupiter', 'drift'],
+    maxDrawdownPct: 30,
+    maxLeverage: 2,
+    maxPositionPct: 50,
+    hardLockAdvisory: true,
+  },
+  {
+    id: 'collateral-vault',
+    name: 'Collateral Vault',
+    description: 'Hold a single asset as collateral for external borrowing. No strategy pipeline.',
+    targetType: 'fixed_use_case',
+    riskProfile: 'low',
+    executionMode: 'constrained_auto',
+    assets: ['SOL', 'USDC'],
+    protocols: [],
+    maxDrawdownPct: 5,
+    maxLeverage: 1,
+    maxPositionPct: 100,
+    hardLockAdvisory: false,
+  },
+  {
+    id: 'onchain-deposit-box',
+    name: 'On-Chain Deposit Box',
+    description: 'Degenerate case — deposit and hold. No agent pipeline runs.',
+    targetType: 'fixed_use_case',
+    riskProfile: 'low',
+    executionMode: 'constrained_auto',
+    assets: [],
+    protocols: [],
+    maxDrawdownPct: 100,
+    maxLeverage: 1,
+    maxPositionPct: 100,
+    hardLockAdvisory: false,
+  },
+]

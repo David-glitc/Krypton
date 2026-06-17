@@ -8,14 +8,14 @@ Version 1.0 · Draft for internal review
 
 ### 1.1 What Krypton Is
 
-Krypton is infrastructure for deploying **Capital Policies** — machine-readable objectives, constraints, and permissions — that are interpreted by a multi-agent AI pipeline and executed on-chain through a constrained, auditable smart contract layer. A vault is not a strategy. A vault is an execution environment that holds capital, enforces a policy, and exposes encrypted state.
+Krypton is infrastructure for deploying **Capital Policies** — machine-readable objectives, constraints, and permissions — that are interpreted by a multi-agent AI pipeline and executed on-chain through a constrained, auditable smart contract layer. A vault is not a strategy. A vault is an execution environment that holds capital, enforces a policy, and enforces non-custodial threshold signing — no single party, including Krypton, ever holds a signing key.
 
 The protocol's job is not to promise superior returns. Its job is to provide:
 
 - a programmable policy language,
 - verifiable AI reasoning with an on-chain audit trail,
 - constrained autonomous or advisory execution,
-- confidential state via encrypted balances, allocations, and pending actions,
+- non-custodial signing via threshold MPC — no single party ever holds a signing key,
 - and optional prediction-market-based governance for policy changes.
 
 ### 1.2 Problem Statement
@@ -30,7 +30,7 @@ Krypton separates these concerns explicitly:
 | Policy Primitive | objectives, constraints, permissions | execution |
 | Agent Pipeline | research, strategy generation, risk scoring, simulation | custody, final authority beyond granted permission level |
 | Execution Primitive | routing, signing, settlement | strategy invention |
-| Privacy Primitive | encrypted state, selective disclosure | accounting logic |
+| Signing Primitive | non-custodial threshold MPC signing | execution-level authority |
 | Governance Primitive | policy amendment via prediction markets | day-to-day execution |
 
 ### 1.3 Target Users
@@ -38,7 +38,7 @@ Krypton separates these concerns explicitly:
 1. **Individual power users** who want a personal, policy-bound autonomous vault (e.g., "medium risk, SOL/ETH/stables, max 12% drawdown, advisory mode").
 2. **DAOs and treasuries** that want programmable, auditable treasury management with prediction-market-gated policy changes instead of low-turnout token votes.
 3. **Strategy designers / quant builders** (V2) who want to publish composable, tradable Capital Policies without writing smart contracts.
-4. **Institutions** (V2) requiring multi-signature vaults, confidential positions, and compliance-friendly audit proofs.
+4. **Institutions** (V2) requiring multi-signature vaults, non-custodially signed positions, and compliance-friendly audit proofs.
 
 ### 1.4 Non-Goals (V1)
 
@@ -115,7 +115,7 @@ Vault
 ├── PolicyAccount      (active policy hash + summary fields)
 ├── ConstraintState    (live exposure, drawdown tracker, leverage tracker)
 ├── PermissionAccount  (execution mode, agent authority level)
-├── EncryptedState     (IKA-encrypted balances/positions, see §6)
+├── SigningState       (threshold MPC key shares, see §6)
 ├── ExecutionLog       (append-only record of cycles, hashed)
 └── GovernanceAccount  (optional; DAO mode only)
 ```
@@ -178,7 +178,7 @@ Krypton uses **OpenRouter** as the LLM gateway, enabling per-agent model selecti
 | **Risk Agent** | Reject candidates violating policy or protocol-wide constraints | Candidates, `PolicyAccount`, `ConstraintState`, live oracle data | `{candidate_id, verdict: pass\|reject, violations: [...], adjusted_allocation?}` | high-reasoning tier, deterministic checks layered on top (non-LLM) |
 | **Simulation Agent** | Score surviving candidates via backtests + Monte Carlo + stress scenarios | Candidate allocation, historical price series, volatility surfaces | `{candidate_id, expected_return, expected_drawdown, var_95, stress_results: [...], composite_score}` | hybrid: numerical engine (Python/Rust) + LLM narrative summary |
 | **Execution Agent** | Choose routing, timing, batching, slippage tolerance, privacy path for the winning candidate | Winning candidate, DEX/aggregator quotes (Jupiter, Titan DART), gas state | `{transactions: [...], routing_rationale, expected_slippage}` | low-cost tier; deterministic routing logic dominant, LLM used for rationale/explanation only |
-| **Monitoring Agent** | Continuous post-execution checks: drawdown, oracle staleness, liquidation proximity, protocol incident feeds | `ExecutionLog`, live positions (encrypted, decrypted in TEE/MPC context), oracle health | `{alerts: [...], auto_pause_triggered: bool}` | low-cost tier, high frequency, runs every block/interval rather than per cycle |
+| **Monitoring Agent** | Continuous post-execution checks: drawdown, oracle staleness, liquidation proximity, protocol incident feeds | `ExecutionLog`, live positions (signed via threshold MPC, verifiable on-chain), oracle health | `{alerts: [...], auto_pause_triggered: bool}` | low-cost tier, high frequency, runs every block/interval rather than per cycle |
 
 ### 3.3 Permission Levels (enforced on-chain)
 
@@ -230,7 +230,7 @@ CapitalAccount {
   vault: Pubkey
   total_shares: u128
   deposit_mints: Vec<Pubkey>    // allowed deposit assets (capped list)
-  encrypted_balance_handle: [u8; 32] // pointer into IKA encrypted state
+  signing_key_handle: [u8; 32] // pointer into Ika threshold signing key shares
   withdrawal_queue: Vec<WithdrawalRequest>
   fee_accrued: u64
 }
@@ -276,7 +276,7 @@ GovernanceAccount (DAO vaults only) {
 |---|---|---|
 | `create_vault` | user | initializes CapitalAccount, PermissionAccount with defaults |
 | `submit_policy` | owner (or post-governance for DAO) | validates against protocol-wide caps, writes PolicyAccount, increments version |
-| `deposit` | user | mints shares, updates CapitalAccount, updates EncryptedState |
+| `deposit` | user | mints shares, updates CapitalAccount, updates SigningState |
 | `request_withdrawal` | user | enqueues withdrawal, subject to liquidity check |
 | `propose_action` | agent_signer | writes candidate to ExecutionLog as `advisory_pending`; emits event for UI |
 | `execute_action` | agent_signer (levels 3–4) or owner (level 2 approval) | re-validates against ConstraintState **in-contract**; on pass, executes via CPI to integrated protocol adapters; updates ConstraintState; writes `executed` to ExecutionLog |
@@ -319,34 +319,40 @@ The Constraint Engine is **not an agent** — it is deterministic on-chain logic
 
 ---
 
-## 6. Privacy Primitive (IKA Integration)
+## 6. Signing Primitive (Ika Threshold MPC Integration)
 
-### 6.1 What Is Encrypted
+### 6.1 What Is Non-Custodial
 
-| Data | Encrypted? | Disclosure |
+Krypton vaults do not store user positions under ciphertext on-chain. The privacy guarantee Krypton makes — and it is a strong one — is that **no single party, including Krypton, ever holds a signing key**. All vault signing authority is split across Ika's threshold MPC network. Key shares are distributed so that signing requires a threshold of independent parties to cooperate. No individual node, operator, or user device can unilaterally authorize a transaction.
+
+### 6.2 Disclosure Policy (Access Control, Not Ciphertext)
+
+Vaults expose certain aggregate data on-chain by design (NAV, fees, proof-of-reserves) while keeping per-position and per-action details undisclosed at the policy level. This is a **disclosure policy**, not a ciphertext-hiding mechanism:
+
+| Data | Disclosed by default? | Notes |
 |---|---|---|
-| Individual deposit/withdrawal amounts | Yes | Never disclosed individually |
-| Per-asset position breakdown | Yes | Aggregate NAV disclosed; breakdown hidden |
-| Pending action details (pre-execution) | Yes | Disclosed only after execution, and only as settlement record |
-| AI reasoning detail (full agent transcripts) | Yes (stored encrypted off-chain; hash on-chain) | Owner can decrypt; aggregate "decision summary" optionally disclosed |
-| Vault NAV (total value) | No | Public |
-| Proof of reserves | No (cryptographic proof, not raw data) | Public |
-| Proof of performance (return %, not absolute $ if user opts for full privacy) | Configurable | Public unless `privacy.level = full` |
-| Fees accrued | No | Public |
-| Settlement transaction hashes | No (on-chain by nature) | Public — but **what** was swapped for **what amount** within a batched/private execution path can be obscured via the privacy execution path |
+| Individual deposit/withdrawal amounts | Never disclosed individually | Aggregate flows may be inferable on-chain |
+| Per-asset position breakdown | Aggregate NAV disclosed; breakdown hidden | Set by `privacy.level` |
+| Pending action details (pre-execution) | Disclosed only after execution, and only as settlement record | — |
+| AI reasoning detail (full agent transcripts) | Owner can decrypt locally; aggregate "decision summary" optionally disclosed | Transcripts stored off-chain with on-chain hash |
+| Vault NAV (total value) | Public | — |
+| Proof of reserves | Public (cryptographic proof, not raw data) | — |
+| Proof of performance (return %, not absolute $ if `privacy.level = full`) | Public unless `privacy.level = full` | — |
+| Fees accrued | Public | — |
+| Settlement transaction hashes | Public (on-chain by nature) | — |
 
-### 6.2 Mechanism
+### 6.3 Threshold Signing Mechanism
 
-- Encrypted state managed via IKA's MPC/threshold-encryption network: balances and position vectors are stored as ciphertext commitments on Solana, with decryption keys split across an IKA threshold network such that no single party (including Krypton's own infrastructure) can unilaterally decrypt user positions.
-- **Proof of reserves**: zero-knowledge range proofs confirm `sum(encrypted_balances) == CapitalAccount.total_value` without revealing individual balances — verifiable on-chain.
-- **Proof of performance**: a ZK proof attests that the disclosed return % corresponds to the encrypted position history, without revealing the trades that produced it.
-- **Execution privacy path**: where supported by the underlying DEX/aggregator, batched or shielded routing is used so that the specific allocation change is not trivially inferable from a single isolated transaction (e.g., batching with other vaults' rebalances at the orchestrator level, subject to each vault's `privacy.level`).
+- **Key generation**: Ika threshold MPC network generates a vault signing key; no single party ever sees the full private key. Key shares are distributed across N parties with a signing threshold of T (e.g., 3-of-5).
+- **Transaction signing**: when the Execution Agent or user authorizes an action, a signing request is broadcast to the Ika network. Each threshold party independently verifies the action against a pre-agreed circuit (policy hash, action type, parameters) before contributing its share. Only when T shares are collected is the combined signature produced.
+- **Cross-chain signing**: Ika's network supports signature aggregation across chains, enabling Krypton vaults to execute on EVM or other ecosystems without ever moving raw private keys off Solana.
+- **Key rotation and recovery**: the vault owner can trigger a distributed key reshare (replacing compromised or retired nodes) without changing the vault's on-chain public key.
+- **Ika scope is signing only**: Krypton does not use Ika for ciphertext-based hiding of balances or positions. Ika is used exclusively for threshold signing — keeping signing authority non-custodial at the architectural level.
 
-### 6.3 Privacy Levels
+### 6.4 Privacy Levels (Disclosure Only)
 
-- `standard` (default): balances/positions encrypted; NAV, proof-of-reserves, proof-of-performance, fees public.
+- `standard` (default): NAV, proof-of-reserves, proof-of-performance, fees public; per-position breakdown hidden.
 - `full`: as above, plus absolute NAV is also hidden (only relative performance % disclosed), and execution batching is mandatory (may introduce minor execution delay, disclosed to user in UI).
-
 ---
 
 ## 7. Governance Primitive (Prediction-Market Policy Amendments)
@@ -373,7 +379,7 @@ Token votes measure sentiment and voting power, not expected outcomes, and suffe
 
 1. **Vault creation** — wizard: name vault → select governance mode (personal / DAO) → policy builder (form UI mapping to YAML schema, with live constraint validation) → review summary → sign `create_vault` + `submit_policy`.
 2. **Deposit** — connect wallet (Phantom, Solflare, Backpack via wallet-adapter) → select asset + amount → sign `deposit`.
-3. **Policy dashboard** — current policy summary, live `ConstraintState` (drawdown, leverage, concentration as progress bars relative to limits), encrypted NAV chart (showing only what `privacy.level` permits), execution log feed.
+3. **Policy dashboard** — current policy summary, live `ConstraintState` (drawdown, leverage, concentration as progress bars relative to limits), NAV chart (with disclosure per `privacy.level`), execution log feed.
 4. **Pending action review** (Levels 1–2) — card per `propose_action`: action description, agent rationale (plain-language summary generated from agent transcript), simulation results (expected return/drawdown/VaR), Approve / Reject / Modify-and-approve.
 5. **Auto-execution feed** (Levels 3–4) — read-only stream of `executed` actions with rationale, with the same constraint-bar visualization updating live.
 6. **Withdrawal** — request → queue position (if liquidity-constrained) → claim.
@@ -435,9 +441,9 @@ Token votes measure sentiment and voting power, not expected outcomes, and suffe
 - **Helius** — on-chain activity indexing for Research Agent inputs and Monitoring Agent incident detection.
 - **DefiLlama / Birdeye** — TVL, liquidity-floor checks (`liquidity.min_pool_liquidity_usd`), and broad market context.
 
-### 9.7 Privacy
+### 9.7 Non-Custodial Signing
 
-- **IKA** — threshold-encryption network for `EncryptedState`; ZK proof generation/verification for proof-of-reserves and proof-of-performance.
+- **IKA** — threshold MPC signing network for non-custodial vault signing; vault key generation, transaction signing, and cross-chain signature aggregation through distributed key shares.
 
 ### 9.8 Prediction Markets (Governance)
 
@@ -465,7 +471,7 @@ Token votes measure sentiment and voting power, not expected outcomes, and suffe
 ## 11. Open Items / Dependencies
 
 - Finalize selection of prediction market venue for §7 (governance) integration.
-- Confirm IKA SDK maturity for Solana-native threshold encryption at vault scale; identify fallback privacy approach (e.g., TEE-based execution with attestation) if IKA integration timeline slips.
+- Confirm Ika threshold signing network maturity for Solana-native vault signing at scale; identify fallback signing approach (e.g., centralized session key with rotation) if Ika integration timeline slips.
 - Determine correlation matrix source/refresh cadence for `max_correlated_exposure_bps` checks.
 - Define the canonical "decision summary" generation step (agent-transcript → plain-language rationale) — likely a dedicated lightweight summarization call, separate from the Strategy/Risk agents, to avoid mixing execution-relevant reasoning with user-facing explanation.
 - Decide on V1 protocol whitelist exact composition (Section 9 lists candidates; final list subject to audit availability).

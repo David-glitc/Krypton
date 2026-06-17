@@ -13,7 +13,7 @@
 A vault is not a strategy — it's an execution environment. The durable asset is the **Policy Layer**: composable, portable, auditable objects that describe *what* capital should do, not *how*. Strategies are ephemeral — generated fresh each cycle, simulated, scored, executed or discarded, and logged.
 
 ```
-Capital  →  Policy  →  Agent Pipeline  →  Constrained Execution  →  Encrypted State  →  Repeat
+Capital  →  Policy  →  Agent Pipeline  →  Constrained Execution  →  Non-Custodial State  →  Repeat
 ```
 
 ### Why Now
@@ -28,7 +28,7 @@ Capital  →  Policy  →  Agent Pipeline  →  Constrained Execution  →  Encr
 |---|---|---|
 | Strategy | Fixed, hard-coded or opaque | Ephemeral, regenerated each cycle |
 | Enforcement | Model's judgment | On-chain Constraint Engine — model cannot exceed policy even at full autonomy |
-| Privacy | Positions fully public | Encrypted balances/positions via IKA; proof-of-reserves & proof-of-performance disclosed via ZK |
+| Privacy | Positions fully public | Non-custodial signing via Ika threshold MPC; policy enforcement on-chain; proof-of-reserves & proof-of-performance disclosed via ZK |
 | Governance | Token vote or none | Prediction-market-gated policy amendments (DAO mode) |
 | Auditability | "Trust the operator" | Every cycle — proposed, simulated, executed or rejected — hashed and logged |
 
@@ -50,7 +50,7 @@ Krypton is **not** an AI hedge fund. It does not promise returns or take discret
 
 ### MVP Scope
 
-Anchor program (vault creation, deposits/withdrawals, share accounting, policy storage, permission management, on-chain constraint enforcement) · single orchestrator running three agents (Research, Strategy, Risk) plus simulation and execution services · execution limited to swap/lend/stake across a small audited protocol set · encrypted balances/allocations/pending actions via IKA · two governance modes (personal owner-controlled; DAO via prediction market) · policy builder + dashboard frontend.
+Anchor program (vault creation, deposits/withdrawals, share accounting, policy storage, permission management, on-chain constraint enforcement) · single orchestrator running three agents (Research, Strategy, Risk) plus simulation and execution services · execution limited to swap/lend/stake across a small audited protocol set · non-custodial signing via Ika threshold MPC; policy-enforced state · two governance modes (personal owner-controlled; DAO via prediction market) · policy builder + dashboard frontend.
 
 ### Roadmap Beyond V1
 

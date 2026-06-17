@@ -97,19 +97,18 @@ export function useAgentWallet(vaultId: string) {
       executeAction: async () => {
         throw new Error('No wallet connected')
       },
+    }
+  }
+
   const programId = new PublicKey(KRYPTON_PROGRAM_ID)
   const agentPda = resolveAgentAddress(
     programId,
-    wallet.publicKey,
+    new PublicKey(wallet.smartWallet),
     `agent:${vaultId}`,
   )
 
   const roles: AgentRole[] = ['swap', 'lend', 'stake', 'oracle', 'fee']
-  const addresses = deriveAddressesForRole(
-    programId,
-    agentPda,
-    roles,
-  )
+  const addresses = deriveAddressesForRole(programId, agentPda, roles)
 
   const agent: VaultAgent = {
     vaultId,
@@ -127,7 +126,6 @@ export function useAgentWallet(vaultId: string) {
 
     const sig = await signAndSendTransaction({
       instructions: [instruction],
-      // The Lazorkit smart wallet handles passkey signing
     })
 
     return { signature: sig, fromAddress: fromAddr.publicKey }

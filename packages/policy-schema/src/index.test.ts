@@ -6,6 +6,9 @@ import {
   RISK_PROFILES,
   policyBuilderFormSchema,
   validateCapitalPolicy,
+  vaultGoalSchema,
+  assessFeasibility,
+  PRESET_FUND_MANAGERS,
 } from './index.js'
 
 describe('CapitalPolicy schema', () => {
@@ -153,5 +156,77 @@ describe('validateCapitalPolicy helper', () => {
   it('returns failure for invalid input', () => {
     const result = validateCapitalPolicy({ not_a_policy: true })
     expect(result.success).toBe(false)
+  })
+})
+
+describe('VaultGoal schema', () => {
+  it('validates a multiple target type', () => {
+    const result = vaultGoalSchema.safeParse({
+      target_type: 'multiple',
+      target_value: 5.0,
+      time_horizon_days: 70,
+      use_case: 'speculative_growth',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('validates a preservation target type without value', () => {
+    const result = vaultGoalSchema.safeParse({
+      target_type: 'preservation',
+      time_horizon_days: 90,
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects time_horizon_days below minimum', () => {
+    const result = vaultGoalSchema.safeParse({
+      target_type: 'apy',
+      time_horizon_days: 1,
+    })
+    expect(result.success).toBe(false)
+  })
+})
+
+describe('Feasibility assessment', () => {
+  it('returns feasible for conservative target with high tolerance', () => {
+    const r = assessFeasibility('preservation', 1.0, 5, 365)
+    expect(r.status).toBe('feasible')
+    expect(r.reference_band).toBeDefined()
+  })
+
+  it('returns infeasible for aggressive target with tight drawdown limit', () => {
+    const r = assessFeasibility('multiple', 5.0, 5, 70)
+    expect(r.status).toBe('infeasible')
+    expect(r.negotiation_prompt).toBeDefined()
+  })
+
+  it('returns feasible for matching band', () => {
+    const r = assessFeasibility('multiple', 2.0, 15, 365)
+    expect(r.status).toBe('feasible')
+  })
+})
+
+describe('Preset Fund Managers', () => {
+  it('contains all expected presets', () => {
+    const ids = PRESET_FUND_MANAGERS.map((p) => p.id)
+    expect(ids).toContain('stable-saver')
+    expect(ids).toContain('steady-compounder')
+    expect(ids).toContain('growth-allocator')
+    expect(ids).toContain('aggressive-compounder')
+    expect(ids).toContain('collateral-vault')
+    expect(ids).toContain('onchain-deposit-box')
+  })
+
+  it('aggressive-compounder is hard-locked to advisory', () => {
+    const p = PRESET_FUND_MANAGERS.find((x) => x.id === 'aggressive-compounder')
+    expect(p).toBeDefined()
+    expect(p!.executionMode).toBe('advisory')
+    expect(p!.hardLockAdvisory).toBe(true)
+  })
+
+  it('stable-saver has zero leverage', () => {
+    const p = PRESET_FUND_MANAGERS.find((x) => x.id === 'stable-saver')
+    expect(p).toBeDefined()
+    expect(p!.maxLeverage).toBe(1)
   })
 })

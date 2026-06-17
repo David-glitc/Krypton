@@ -1,6 +1,5 @@
 import * as React from 'react'
-import { RPC_URL, KRYPTON_PROGRAM_ID } from '@krypton/sdk'
-import { Connection, PublicKey } from '@solana/web3.js'
+import { RPC_URL } from '@krypton/sdk'
 import {
   LazorkitProvider as LzProvider,
   useWallet as useLazorkitWallet,
@@ -16,23 +15,5 @@ export interface KryptonWalletProviderProps {
 }
 
 export function KryptonWalletProvider({ children }: KryptonWalletProviderProps) {
-  const connection = React.useMemo(
-    () => new Connection(RPC_URL, { commitment: 'confirmed' }),
-    [],
-  )
-  const programId = React.useMemo(
-    () => new PublicKey(KRYPTON_PROGRAM_ID),
-    [],
-  )
-
-  return (
-    <LzProvider
-      rpcUrl={RPC_URL}
-      customConnection={connection}
-      programId={programId}
-      chainId="devnet"
-    >
-      {children}
-    </LzProvider>
-  )
+  return <LzProvider rpcUrl={RPC_URL}>{children}</LzProvider>
 }
