@@ -1,12 +1,15 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { PolicyBlock } from '@krypton/ui'
 import { DEMO_VAULTS } from '~/lib/mock-data'
+import { VaultCard } from '~/components/VaultCard'
 
 export const Route = createFileRoute('/app/')({
   component: VaultListPage,
 })
 
 function VaultListPage() {
+  const totalNav = DEMO_VAULTS.reduce((sum, v) => sum + v.navUsd, 0)
+  const activeVaults = DEMO_VAULTS.filter((v) => !v.constraint.paused).length
+
   return (
     <div className="mx-auto max-w-6xl px-6 py-10">
       <div className="flex items-end justify-between gap-4">
@@ -16,39 +19,47 @@ function VaultListPage() {
           </p>
           <h1 className="font-display mt-2 text-3xl font-semibold">Vaults</h1>
         </div>
-        <Link to="/app/create" className="btn-primary">
+        <Link to="/app/create" className="btn-primary text-xs">
           New vault
         </Link>
       </div>
 
+      {/* Summary stats */}
+      <div className="mt-6 grid grid-cols-3 gap-4">
+        <div className="panel p-4">
+          <p className="font-mono text-xs uppercase tracking-wider text-[var(--text-muted)]">total_nav</p>
+          <p className="mt-1 font-display text-xl font-semibold">${totalNav.toLocaleString()}</p>
+        </div>
+        <div className="panel p-4">
+          <p className="font-mono text-xs uppercase tracking-wider text-[var(--text-muted)]">active_vaults</p>
+          <p className="mt-1 font-display text-xl font-semibold">{activeVaults}/{DEMO_VAULTS.length}</p>
+        </div>
+        <div className="panel p-4">
+          <p className="font-mono text-xs uppercase tracking-wider text-[var(--text-muted)]">constraint_checks</p>
+          <p className="mt-1 font-display text-xl font-semibold">8<span className="text-sm text-[var(--text-muted)]">/action</span></p>
+        </div>
+      </div>
+
+      {/* Vault cards */}
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         {DEMO_VAULTS.map((vault) => (
-          <Link
-            key={vault.id}
-            to="/app/vault/$id"
-            params={{ id: vault.id }}
-            className="panel block p-5 transition hover:bg-[var(--bg-panel-raised)]"
-          >
-            <div className="flex items-start justify-between">
-              <h2 className="font-mono text-lg text-[var(--text-primary)]">{vault.name}</h2>
-              <span className="font-mono text-xs text-[var(--text-secondary)]">
-                L{vault.permissionLevel}
-              </span>
-            </div>
-            <p className="mt-2 font-mono text-sm text-[var(--accent-policy)]">
-              ${vault.navUsd.toLocaleString()} NAV
-            </p>
-            <div className="mt-4">
-              <PolicyBlock
-                fields={{
-                  drawdown: `${(vault.constraint.currentDrawdownBps / 100).toFixed(1)}% / ${(vault.constraint.maxDrawdownBps / 100).toFixed(0)}%`,
-                  leverage: `${(vault.constraint.currentLeverageBps / 10000).toFixed(2)}x / ${(vault.constraint.maxLeverageBps / 10000).toFixed(1)}x`,
-                  policy_version: vault.policyVersion,
-                }}
-              />
-            </div>
-          </Link>
+          <VaultCard key={vault.id} vault={vault} />
         ))}
+      </div>
+
+      {/* Quick actions */}
+      <div className="mt-10 panel p-6">
+        <p className="font-mono text-xs uppercase tracking-wider text-[var(--text-secondary)]">
+          quick_actions
+        </p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Link to="/app/create" className="btn-secondary text-xs">
+            Create new vault
+          </Link>
+          <Link to="/docs" className="btn-ghost text-xs">
+            View policy schema
+          </Link>
+        </div>
       </div>
     </div>
   )

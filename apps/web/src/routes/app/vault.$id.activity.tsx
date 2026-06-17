@@ -1,17 +1,62 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { PendingActionCard } from '@krypton/ui'
+import { ActivityFeed, type ActivityEntry } from '~/components/ActivityFeed'
 import { DEMO_PENDING_ACTIONS, getVault } from '~/lib/mock-data'
 
 export const Route = createFileRoute('/app/vault/$id/activity')({
   component: VaultActivityPage,
 })
 
+const DEMO_ACTIVITY: ActivityEntry[] = [
+  {
+    id: 'act-1',
+    vaultId: 'vault-alpha',
+    type: 'executed',
+    description: 'Swap 500 USDC → SOL via Jupiter',
+    timestamp: new Date(Date.now() - 3600000).toISOString(),
+    details: { cycle: '4820', score: '74', impact: '+$1,240' },
+  },
+  {
+    id: 'act-2',
+    vaultId: 'vault-alpha',
+    type: 'rejected',
+    description: 'Leverage increase to 2.3x rejected by Constraint Engine',
+    timestamp: new Date(Date.now() - 7200000).toISOString(),
+    details: { cycle: '4819', reason: 'exceeds policy max 2.0x' },
+  },
+  {
+    id: 'act-3',
+    vaultId: 'vault-alpha',
+    type: 'executed',
+    description: 'Deposit 2,500 USDC',
+    timestamp: new Date(Date.now() - 86400000).toISOString(),
+    details: { shares: '2,450' },
+  },
+  {
+    id: 'act-4',
+    vaultId: 'vault-alpha',
+    type: 'policy_amended',
+    description: 'Policy updated to v2 — drawdown limit 10% → 12%',
+    timestamp: new Date(Date.now() - 172800000).toISOString(),
+    details: { v: '1 → 2' },
+  },
+  {
+    id: 'act-5',
+    vaultId: 'vault-alpha',
+    type: 'advisory_pending',
+    description: 'Rebalance 30% SOL → JitoSOL for yield optimization',
+    timestamp: new Date(Date.now() - 300000).toISOString(),
+    details: { score: '68', est_return: '+2.4%' },
+  },
+]
+
 function VaultActivityPage() {
   const { id } = Route.useParams()
   const vault = getVault(id)
   const [actions, setActions] = useState(DEMO_PENDING_ACTIONS[id] ?? [])
   const [message, setMessage] = useState<string | null>(null)
+  const [filter, setFilter] = useState<'all' | 'pending' | 'history'>('all')
 
   if (!vault) {
     return (
@@ -34,6 +79,12 @@ function VaultActivityPage() {
     setActions((prev) => prev.filter((a) => a.id !== actionId))
   }
 
+  const filteredActivity = DEMO_ACTIVITY.filter((a) => {
+    if (filter === 'pending') return a.type === 'advisory_pending'
+    if (filter === 'history') return a.type !== 'advisory_pending'
+    return true
+  })
+
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
       <Link
@@ -55,13 +106,12 @@ function VaultActivityPage() {
         </div>
       )}
 
-      <section className="mt-8">
-        <p className="font-mono text-xs uppercase tracking-wider text-[var(--accent-policy)]">
-          pending_actions
-        </p>
-        {actions.length === 0 ? (
-          <p className="mt-4 text-sm text-[var(--text-secondary)]">No pending actions.</p>
-        ) : (
+      {/* Pending actions */}
+      {actions.length > 0 && (
+        <section className="mt-8">
+          <p className="font-mono text-xs uppercase tracking-wider text-[var(--accent-policy)]">
+            pending_actions ({actions.length})
+          </p>
           <div className="mt-4 space-y-4">
             {actions.map((action) => (
               <PendingActionCard
@@ -72,22 +122,34 @@ function VaultActivityPage() {
               />
             ))}
           </div>
-        )}
-      </section>
+        </section>
+      )}
 
+      {/* Activity feed */}
       <section className="mt-10">
-        <p className="font-mono text-xs uppercase tracking-wider text-[var(--text-secondary)]">
-          recent_executions
-        </p>
-        <ul className="mt-4 space-y-2 font-mono text-sm text-[var(--text-secondary)]">
-          <li>
-            <span className="text-[var(--accent-positive)]">executed</span> · cycle 4820 · swap
-          </li>
-          <li>
-            <span className="text-[var(--accent-risk)]">rejected_onchain</span> · cycle 4819 ·
-            leverage 2.3x exceeds policy max 2.0x
-          </li>
-        </ul>
+        <div className="flex items-center justify-between">
+          <p className="font-mono text-xs uppercase tracking-wider text-[var(--text-secondary)]">
+            execution_log
+          </p>
+          <div className="flex gap-1">
+            {(['all', 'pending', 'history'] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`rounded px-2 py-1 font-mono text-[10px] uppercase tracking-wider transition ${
+                  filter === f
+                    ? 'bg-[var(--accent-policy)]/10 text-[var(--accent-policy)]'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                }`}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="mt-4">
+          <ActivityFeed entries={filteredActivity} />
+        </div>
       </section>
     </div>
   )

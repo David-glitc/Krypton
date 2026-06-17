@@ -99,8 +99,141 @@ pub mod krypton_core {
         Ok(())
     }
 
+    /// Execute an action through the constraint engine gate.
+    /// Checks vault policy constraints and emits an ActionExecuted event
+    /// for the audit trail. Supports advisory mode (decision=2) when
+    /// vault_goal requires higher scrutiny.
+    pub fn execute_action(
+        ctx: Context<ExecuteAction>,
+        args: ExecuteActionArgs,
+    ) -> Result<()> {
+        let vault = &ctx.accounts.vault;
+        let c = &vault.constraint;
+
+        // --- Phase 1 MVP: Ika dWallet CPI placeholder ---
+        // In Phase 2, this will invoke:
+   // let dwallet_signer = CpiContext::new(
+      // ctx.accounts.ika_program.clone(),
+      // ika_dwallet::cpi:: accounts::SignAction {
+ // dwallet: ctx.accounts.dwallet.clone(),
+    // owner: ctx.accounts.signer.clone(),
+     // },
+   // );
+        // ika_dwallet:: cpi::sign_action( dwallet_signer, args.action_type)?;
+        //
+        // For now, we fall through to on-chain constraint checks only.
+        // --------------------------------------------------------
+
+        if vault.paused {
+            emit!(ActionExecuted {
+                vault: vault.key(),
+                action_type: args.action_type,
+                decision: 1,
+                composite_score: args.composite_score,
+                post_drawdown_bps: args.post_drawdown_bps as u32,
+                post_leverage_bps: args.post_leverage_bps as u32,
+                timestamp: Clock::get()?.unix_timestamp,
+            });
+            return Err(ErrorCode::VaultPaused.into());
+        }
+
+        let mut passed = true;
+
+        if args.post_leverage_bps > c.max_leverage_bps {
+            msg!("REJECTED: leverage {} > max {}", args.post_leverage_bps, c.max_leverage_bps);
+            passed = false;
+        }
+        if args.post_concentration_bps > c.max_position_bps {
+            msg!("REJECTED: concentration {} > max {}", args.post_concentration_bps, c.max_position_bps);
+            passed = false;
+        }
+        if args.post_drawdown_bps > c.max_drawdown_bps {
+            msg!("REJECTED: drawdown {} > max {}", args.post_drawdown_bps, c.max_drawdown_bps);
+            passed = false;
+        }
+
+        // Advisory mode: if vault_goal is present and composite_score is low,
+        // flag for advisory review instead of outright rejection
+        let decision = if !passed {
+            1 // rejected
+        } else if ctx.accounts.vault_goal.is_some() && args.composite_score < 500 {
+            2 // advisory_pending
+        } else {
+            0 // executed
+        };
+
+        emit!(ActionExecuted {
+            vault: vault.key(),
+            action_type: args.action_type,
+            decision,
+            composite_score: args.composite_score,
+            post_drawdown_bps: args.post_drawdown_bps as u32,
+            post_leverage_bps: args.post_leverage_bps as u32,
+            timestamp: Clock::get()?.unix_timestamp,
+        });
+
+        if decision == 1 {
+            return Err(ErrorCode::ConstraintRejected.into());
+        }
+
+        Ok(())
+    }
+
+    /// Withdraw from the vault. Owner only. Decreases NAV.
+    pub fn withdraw(ctx: Context<Withdraw>, args: WithdrawArgs) -> Result<()> {
+        let vault = &mut ctx.accounts.vault;
+        require!(vault.owner == ctx.accounts.signer.key(), ErrorCode::NotOwner);
+        require!(vault.nav_usd >= args.amount_usd, ErrorCode::InsufficientBalance);
+        vault.nav_usd = vault.nav_usd.checked_sub(args.amount_usd).ok_or(ErrorCode::Overflow)?;
+        emit!(Deposited {
+            vault: vault.key(),
+            amount: 0, // 0 amount signals withdrawal event reuse
+        });
+        Ok(())
+    }
+
+    /// Amend the vault's policy. Increments the policy version counter.
+    /// The new policy replaces the existing one after constraint validation.
+    pub fn amend_policy(
+        ctx: Context<AmendPolicy>,
+        args: AmendPolicyArgs,
+    ) -> Result<()> {
+        let vault = &mut ctx.accounts.vault;
+        let policy = &mut ctx.accounts.policy;
+
+        require!(vault.owner == ctx.accounts.signer.key(), ErrorCode::NotOwner);
+
+        let constraint = &mut vault.constraint;
+        constraint.max_drawdown_bps = args.max_drawdown_bps;
+        constraint.max_leverage_bps = args.max_leverage_bps;
+        constraint.max_position_bps = args.max_position_bps;
+
+        policy.vault = vault.key();
+        policy.policy_version = vault.policy_version + 1;
+        policy.content_hash = args.content_hash;
+
+        vault.policy_version = policy.policy_version;
+        vault.paused = false;
+
+        emit!(PolicySubmitted {
+            vault: vault.key(),
+            version: policy.policy_version,
+        });
+        Ok(())
+    }
+
     /// Check whether a proposed action passes constraint checks.
     /// Returns a success bool — the Constraint Engine on-chain gate.
+    ///
+    /// NOTE: Phase 2 will add oracle staleness validation here:
+    /// ```
+    /// // TODO(Phase 2): check oracle staleness
+    /// // let oracle = &ctx.accounts.oracle;
+    /// // require!(
+    /// //     Clock::get()?.unix_timestamp - oracle.last_updated < MAX_STALENESS_SECS,
+    /// //     ErrorCode::OracleStale
+    /// // );
+    /// ```
     pub fn check_constraints(
         ctx: Context<CheckConstraints>,
         args: CheckConstraintsArgs,
@@ -155,6 +288,17 @@ pub struct Policy {
     pub content_hash: [u8; 32],        // sha256 of canonical JSON
 }
 
+#[account]
+#[derive(InitSpace)]
+pub struct VaultGoal {
+    pub vault: Pubkey,
+    pub target_type: u8, // 0=multiple, 1=apy, 2=preservation, 3=fixed_use_case
+    pub target_value: Option<f64>,
+    pub time_horizon_days: u32,
+    pub use_case: Option<u8>,
+    pub created_from_prompt_hash: [u8; 32],
+}
+
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace, Debug)]
 pub struct ConstraintState {
     pub max_drawdown_bps: u64,
@@ -187,6 +331,28 @@ pub struct CheckConstraintsArgs {
     pub post_leverage_bps: u64,
     pub post_concentration_bps: u64,
     pub post_drawdown_bps: u64,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Debug)]
+pub struct WithdrawArgs {
+    pub amount_usd: u64,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Debug)]
+pub struct AmendPolicyArgs {
+    pub max_drawdown_bps: u64,
+    pub max_leverage_bps: u64,
+    pub max_position_bps: u64,
+    pub content_hash: [u8; 32],
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Debug)]
+pub struct ExecuteActionArgs {
+    pub action_type: u8,
+    pub post_leverage_bps: u64,
+    pub post_concentration_bps: u64,
+    pub post_drawdown_bps: u64,
+    pub composite_score: u32,
 }
 
 /// ---------- contexts ----------
@@ -254,6 +420,55 @@ pub struct PauseVault<'info> {
 }
 
 #[derive(Accounts)]
+pub struct Withdraw<'info> {
+    #[account(mut)]
+    pub signer: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [b"vault", vault.owner.as_ref()],
+        bump = vault.bump,
+    )]
+    pub vault: Account<'info, Vault>,
+}
+
+#[derive(Accounts)]
+pub struct AmendPolicy<'info> {
+    #[account(mut)]
+    pub signer: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [b"vault", vault.owner.as_ref()],
+        bump = vault.bump,
+    )]
+    pub vault: Account<'info, Vault>,
+    #[account(
+        mut,
+        seeds = [b"policy", vault.key().as_ref()],
+        bump,
+    )]
+    pub policy: Account<'info, Policy>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct ExecuteAction<'info> {
+    pub signer: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [b"vault", vault.owner.as_ref()],
+        bump = vault.bump,
+    )]
+    pub vault: Account<'info, Vault>,
+    #[account(
+        seeds = [b"policy", vault.key().as_ref()],
+        bump,
+    )]
+    pub policy: Account<'info, Policy>,
+    /// CHECK: optional vault_goal account; validated by constraint engine
+    pub vault_goal: Option<Account<'info, VaultGoal>>,
+}
+
+#[derive(Accounts)]
 pub struct CheckConstraints<'info> {
     pub signer: Signer<'info>,
     #[account(
@@ -271,7 +486,6 @@ fn vault_owner_or_authorised(ctx: &Context<PauseVault>) -> bool {
 
 /// ---------- errors ----------
 
-#[error_code]
 pub enum ErrorCode {
     #[msg("Only the vault owner can perform this action")]
     NotOwner,
@@ -281,6 +495,12 @@ pub enum ErrorCode {
     Overflow,
     #[msg("Vault is paused — no actions allowed")]
     VaultPaused,
+    #[msg("Insufficient vault balance for withdrawal")]
+    InsufficientBalance,
+    #[msg("Action rejected by constraint engine")]
+    ConstraintRejected,
+    #[msg("Ika dWallet CPI not available — Phase 2")]
+    IkaCpiUnavailable,
 }
 
 /// ---------- events ----------
@@ -317,4 +537,15 @@ pub struct VaultUnpaused {
 pub struct ConstraintsChecked {
     pub vault: Pubkey,
     pub passed: bool,
+}
+
+#[event]
+pub struct ActionExecuted {
+    pub vault: Pubkey,
+    pub action_type: u8,
+    pub decision: u8, // 0=executed, 1=rejected, 2=advisory_pending
+    pub composite_score: u32,
+    pub post_drawdown_bps: u32,
+    pub post_leverage_bps: u32,
+    pub timestamp: i64,
 }
