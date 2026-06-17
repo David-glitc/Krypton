@@ -1,0 +1,39 @@
+services:
+  krypton-dev:
+    container_name: krypton-dev
+    image: node:22-alpine
+    working_dir: /workspace
+    command: >
+      sh -lc "corepack enable &&
+      corepack prepare pnpm@10 --activate &&
+      pnpm install &&
+      pnpm --filter @krypton/web dev --host 0.0.0.0 --port 3001"
+    networks:
+      - coolify
+      - default
+    environment:
+      NODE_ENV: development
+      CI: "true"
+      VITE_SOLANA_CLUSTER: devnet
+      VITE_SOLANA_RPC_URL: ${VITE_SOLANA_RPC_URL:-https://api.devnet.solana.com}
+      VITE_KRYPTON_PROGRAM_ID: ${VITE_KRYPTON_PROGRAM_ID:-KrYpT0nC0re1111111111111111111111111111111}
+    volumes:
+      - /home/david/Krypton:/workspace
+      - /workspace/node_modules
+      - krypton-pnpm-store:/root/.local/share/pnpm/store
+    expose:
+      - "3001"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/ >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+networks:
+  coolify:
+    external: true
+
+volumes:
+  krypton-pnpm-store:

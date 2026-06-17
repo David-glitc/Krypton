@@ -1,0 +1,19 @@
+[features]
+resolution = true
+skip-lint = false
+
+[toolchain]
+anchor_version = "0.32.1"
+[programs.localnet]
+krypton_core = "4Xs4pQ2vA9bv8dTxoe6cA9sQZBLZr6aKD4RrGnCdB1g6"
+
+[programs.devnet]
+krypton_core = "4Xs4pQ2vA9bv8dTxoe6cA9sQZBLZr6aKD4RrGnCdB1g6"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "devnet"
+wallet = "/tmp/krypton-deploy-keypair.json"
+

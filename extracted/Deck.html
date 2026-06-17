@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Krypton — Programmable Capital Policy Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-base:#0E1116;
+    --bg-panel:#161B22;
+    --bg-panel-raised:#1C232C;
+    --border:#2A323D;
+    --text-primary:#E6E9EE;
+    --text-secondary:#8B949E;
+    --accent-policy:#FFB02E;
+    --accent-privacy:#5EE6D9;
+    --accent-risk:#FF6B5E;
+    --accent-positive:#7CD992;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg-base);
+    color:var(--text-primary);
+    font-family:'IBM Plex Sans',sans-serif;
+    line-height:1.6;
+  }
+  .slide{
+    min-height:100vh;
+    width:100%;
+    padding:6vh 8vw;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    border-bottom:1px solid var(--border);
+    position:relative;
+  }
+  .slide:last-child{border-bottom:none;}
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    letter-spacing:0.08em;
+    text-transform:lowercase;
+    color:var(--accent-policy);
+    margin-bottom:1.2rem;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .eyebrow::before{content:"";display:inline-block;width:6px;height:6px;background:var(--accent-policy);border-radius:1px;}
+  .eyebrow.privacy{color:var(--accent-privacy);}
+  .eyebrow.privacy::before{background:var(--accent-privacy);}
+  h1,h2,h3{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    letter-spacing:-0.01em;
+    color:var(--text-primary);
+  }
+  h1{font-size:clamp(2.4rem,5vw,4rem);line-height:1.05;max-width:14ch;}
+  h2{font-size:clamp(1.8rem,3.4vw,2.6rem);line-height:1.15;max-width:18ch;margin-bottom:1.5rem;}
+  h3{font-size:1.15rem;font-weight:500;margin-bottom:0.5rem;}
+  p{color:var(--text-secondary);font-size:1.05rem;max-width:60ch;}
+  .lede{font-size:1.25rem;color:var(--text-primary);max-width:46ch;margin-top:1.5rem;}
+  .grid{display:grid;gap:1.5rem;margin-top:2.5rem;}
+  .grid-2{grid-template-columns:repeat(2,1fr);}
+  .grid-3{grid-template-columns:repeat(3,1fr);}
+  .grid-4{grid-template-columns:repeat(4,1fr);}
+  .panel{
+    background:var(--bg-panel);
+    border:1px solid var(--border);
+    border-radius:4px;
+    padding:1.6rem;
+  }
+  .panel h3{margin-bottom:0.6rem;color:var(--text-primary);}
+  .panel p{font-size:0.95rem;}
+  .mono{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.85rem;
+    color:var(--text-secondary);
+  }
+  .mono .key{color:var(--accent-policy);}
+  .mono .val{color:var(--text-primary);}
+  .mono .priv{color:var(--accent-privacy);}
+  .policy-block{
+    background:var(--bg-panel);
+    border:1px solid var(--border);
+    border-radius:4px;
+    padding:1.4rem 1.6rem;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.85rem;
+    line-height:1.9;
+    color:var(--text-secondary);
+    overflow-x:auto;
+  }
+  .policy-block .key{color:var(--accent-policy);}
+  .policy-block .val{color:var(--text-primary);}
+  .policy-block .priv{color:var(--accent-privacy);}
+  .policy-block .comment{color:#5A636E;}
+  table{width:100%;border-collapse:collapse;margin-top:2rem;font-size:0.95rem;}
+  th,td{text-align:left;padding:0.85rem 1rem;border-bottom:1px solid var(--border);}
+  th{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.75rem;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    color:var(--text-secondary);
+    font-weight:400;
+  }
+  td{color:var(--text-primary);}
+  td.muted{color:var(--text-secondary);}
+  .tag{
+    display:inline-block;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.7rem;
+    letter-spacing:0.06em;
+    padding:2px 8px;
+    border-radius:3px;
+    border:1px solid var(--border);
+    color:var(--text-secondary);
+    margin-right:4px;
+    margin-bottom:4px;
+  }
+  .tag.policy{border-color:var(--accent-policy);color:var(--accent-policy);}
+  .tag.privacy{border-color:var(--accent-privacy);color:var(--accent-privacy);}
+  .tag.risk{border-color:var(--accent-risk);color:var(--accent-risk);}
+
+  /* ---- Hero / signature pipeline ---- */
+  .hero-deck{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.7rem;
+    letter-spacing:0.06em;
+    color:var(--text-secondary);
+    margin-bottom:2rem;
+  }
+  .pipeline{
+    display:flex;
+    align-items:center;
+    gap:0;
+    margin:3rem 0 1rem;
+    flex-wrap:wrap;
+  }
+  .pipe-node{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.85rem;
+    padding:0.9rem 1.4rem;
+    border:1px solid var(--border);
+    border-radius:4px;
+    background:var(--bg-panel);
+    color:var(--text-primary);
+    white-space:nowrap;
+  }
+  .pipe-node.policy{border-color:var(--accent-policy);color:var(--accent-policy);}
+  .pipe-node.privacy{
+    border-color:var(--accent-privacy);
+    color:var(--accent-privacy);
+    position:relative;
+    backdrop-filter:blur(2px);
+    background:rgba(94,230,217,0.06);
+  }
+  .pipe-arrow{
+    color:var(--border);
+    font-size:1rem;
+    padding:0 0.6rem;
+  }
+  .pipe-caption{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.75rem;
+    color:var(--text-secondary);
+    margin-top:1.5rem;
+  }
+  .pipe-caption .priv{color:var(--accent-privacy);}
+
+  /* ---- footer / page number ---- */
+  .pagenum{
+    position:absolute;
+    bottom:2.5rem;
+    right:8vw;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.75rem;
+    color:var(--text-secondary);
+  }
+  .pagenum .total{color:#3A434F;}
+  .wordmark{
+    position:absolute;
+    bottom:2.5rem;
+    left:8vw;
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:0.9rem;
+    letter-spacing:0.04em;
+    color:var(--text-secondary);
+  }
+  .wordmark .dot{color:var(--accent-policy);}
+
+  .pill-row{display:flex;gap:0.6rem;flex-wrap:wrap;margin-top:1rem;}
+  .pill{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.78rem;
+    padding:0.35rem 0.9rem;
+    border-radius:20px;
+    border:1px solid var(--border);
+    color:var(--text-secondary);
+  }
+  .pill.on{border-color:var(--accent-policy);color:var(--accent-policy);}
+
+  .twocol{display:grid;grid-template-columns:1.1fr 1fr;gap:3rem;align-items:start;margin-top:2rem;}
+  .stat{font-family:'Space Grotesk',sans-serif;font-size:2.6rem;font-weight:600;color:var(--text-primary);}
+  .stat-label{font-family:'IBM Plex Mono',monospace;font-size:0.78rem;color:var(--text-secondary);letter-spacing:0.05em;margin-top:0.3rem;}
+
+  .divider-row{
+    display:flex;
+    align-items:center;
+    gap:1rem;
+    margin:2.5rem 0 1.5rem;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.78rem;
+    color:var(--text-secondary);
+    letter-spacing:0.05em;
+  }
+  .divider-row::after{content:"";flex:1;height:1px;background:var(--border);}
+
+  @media(max-width:860px){
+    .grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}
+    .twocol{grid-template-columns:1fr;}
+    .slide{padding:8vh 6vw;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ SLIDE 1 — COVER ============ -->
+<section class="slide" id="cover">
+  <div class="hero-deck">krypton_core · capital_policy_engine · v1.0</div>
+  <div class="eyebrow">policy_version: 1</div>
+  <h1>The vault is the execution environment. The policy is the product.</h1>
+  <p class="lede">Krypton is a programmable capital policy engine for Solana — autonomous, privacy-preserving capital execution governed by cryptographic guarantees and on-chain constraints, not by trust in an operator.</p>
+
+  <div class="pipeline">
+    <div class="pipe-node policy">policy</div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-node">agents</div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-node">constraints</div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-node privacy">vault</div>
+  </div>
+  <div class="pipe-caption">every cycle: <span class="priv">encrypted state</span> in, on-chain proof out — proof of reserves, proof of performance</div>
+
+  <div class="wordmark">krypton<span class="dot">.</span></div>
+  <div class="pagenum">01<span class="total"> / 12</span></div>
+</section>
+
+<!-- ============ SLIDE 2 — PROBLEM ============ -->
+<section class="slide">
+  <div class="eyebrow">objective:</div>
+  <h2>Vaults today are either fixed strategies you can't change, or black-box bots you have to trust.</h2>
+  <div class="twocol">
+    <div>
+      <p>Hard-coded vault strategies require a redeploy to adjust. Off-chain "AI vault" bots run opaque logic with no constraint layer and no audit trail beyond "trust the operator." Positions, allocations, and reasoning are fully public — or fully hidden behind a centralized dashboard.</p>
+      <div class="pill-row">
+        <span class="pill">fixed strategy</span>
+        <span class="pill">opaque execution</span>
+        <span class="pill">no constraint enforcement</span>
+        <span class="pill">public positions</span>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>What's documented in 2026</h3>
+      <p>Autonomous agents now account for a meaningful share of on-chain transaction volume. But narrowly-optimized agents have demonstrated reward-hacking behavior — finding technical loopholes when the only check is the model's own judgment, with no independent constraint layer.</p>
+    </div>
+  </div>
+  <div class="pagenum">02<span class="total"> / 12</span></div>
+</section>
+
+<!-- ============ SLIDE 3 — REFRAME ============ -->
+<section class="slide">
+  <div class="eyebrow">policy:</div>
+  <h2>The primitive isn't a vault. The primitive is a Capital Policy.</h2>
+  <p class="lede">A vault is simply the execution environment. The policy — objectives, constraints, permissions — is the durable, portable, auditable object. Strategies are ephemeral: generated each cycle, simulated, scored, executed or discarded, and logged.</p>
+
+  <div class="divider-row">capital_policy.yaml</div>
+  <div class="policy-block">
+<span class="comment"># excerpt — see PRD §2.1 for full schema</span>
+<span class="key">objective:</span>
+  <span class="key">type:</span> <span class="val">"maximize_risk_adjusted_return"</span>
+<span class="key">universe:</span>
+  <span class="key">assets:</span> <span class="val">[SOL, ETH, BTC, USDC, USDT]</span>
+  <span class="key">protocols_allowed:</span> <span class="val">[jupiter, drift, kamino, sanctum, marginfi]</span>
+<span class="key">risk:</span>
+  <span class="key">profile:</span> <span class="val">medium</span>   <span class="key">max_drawdown_pct:</span> <span class="val">12</span>   <span class="key">max_leverage:</span> <span class="val">2.0</span>
+<span class="key">execution:</span>
+  <span class="key">mode:</span> <span class="val">advisory</span>  <span class="comment"># advisory | constrained_auto | full_auto</span>
+<span class="key">privacy:</span>
+  <span class="key">level:</span> <span class="priv">standard</span>  <span class="comment"># balances + positions encrypted</span>
+  </div>
+  <div class="pagenum">03<span class="total"> / 12</span></div>
+</section>
+
+<!-- ============ SLIDE 4 — ARCHITECTURE ============ -->
+<section class="slide">
+  <div class="eyebrow">architecture:</div>
+  <h2>Seven primitives. One pipeline. The contract is the final enforcer.</h2>
+  <div class="grid grid-4">
+    <div class="panel"><h3>Capital</h3><p>Ownership, shares, withdrawal rights, treasury accounting. No intelligence.</p></div>
+    <div class="panel"><h3>Policy</h3><p>Versioned, signed objectives and constraints — stored as structured account data, hashed off-chain JSON.</p></div>
+    <div class="panel"><h3>Constraint Engine</h3><p>Deterministic on-chain hard rules. Leverage, concentration, drawdown, whitelist, liquidity floor, oracle staleness.</p></div>
+    <div class="panel"><h3>Strategy</h3><p>Ephemeral. Generated, simulated, scored, executed or archived — every cycle.</p></div>
+    <div class="panel"><h3>Execution</h3><p>Advisory (user signs) or constrained-auto (agent signs within on-chain limits).</p></div>
+    <div class="panel"><h3 class="mono" style="font-family:'IBM Plex Mono',monospace; color:var(--accent-privacy); font-size:1.05rem;">Privacy</h3><p>IKA threshold encryption. Balances, positions, pending actions hidden. Proof of reserves + performance disclosed via ZK.</p></div>
+    <div class="panel"><h3>Governance</h3><p>DAO vaults amend policy via prediction markets, not token votes — a falsifiable question, not a sentiment poll.</p></div>
+    <div class="panel" style="border-color:var(--accent-policy);"><h3 style="color:var(--accent-policy);">Constraint = contract</h3><p>The Risk Agent's verdict is advisory to the pipeline. The on-chain Constraint Engine is the actual gate — identical at every autonomy level.</p></div>
+  </div>
+  <div class="pagenum">04<span class="total"> / 12</span></div>
+</section>
+
+<!-- ============ SLIDE 5 — AGENT PIPELINE ============ -->
+<section class="slide">
+  <div class="eyebrow">agents:</div>
+  <h2>Six specialized agents, routed through OpenRouter, gated by on-chain constraints.</h2>
+  <table>
+    <tr><th>Agent</th><th>Role</th><th>Output contract</th></tr>
+    <tr><td>Research</td><td class="muted">Synthesizes market data, on-chain activity, governance signals into ranked hypotheses</td><td class="mono">{hypotheses: [...]}</td></tr>
+    <tr><td>Strategy</td><td class="muted">Converts top hypotheses into 1–3 candidate allocations within the policy universe</td><td class="mono">{candidates: [...]}</td></tr>
+    <tr><td>Risk</td><td class="muted">Rejects candidates violating policy or protocol-wide constraints</td><td class="mono">{verdict: pass|reject}</td></tr>
+    <tr><td>Simulation</td><td class="muted">Scores survivors via historical, forward, Monte Carlo, and stress tests</td><td class="mono">{composite_score}</td></tr>
+    <tr><td>Execution</td><td class="muted">Chooses routing, timing, batching, and privacy path for the winning candidate</td><td class="mono">{transactions: [...]}</td></tr>
+    <tr><td>Monitoring</td><td class="muted">Continuous checks — drawdown, oracle staleness, liquidation proximity</td><td class="mono">{alerts: [...]}</td></tr>
+  </table>
+  <p style="margin-top:1.5rem;">Every cycle — proposed, simulated, executed or rejected — is hashed and written to an append-only execution log. This is the audit trail that replaces "trust the operator."</p>
+  <div class="pagenum">05<span class="total"> / 12</span></div>
+</section>
+
+<!-- ============ SLIDE 6 — PERMISSION LEVELS ============ -->
+<section class="slide">
+  <div class="eyebrow">execution.mode:</div>
+  <h2>Four permission levels. The safety boundary doesn't move.</h2>
+  <table>
+    <tr><th>Level</th><th>Name</th><th>Agent authority</th><th>On-chain enforcement</th></tr>
+    <tr><td class="mono">1</td><td>Read-only</td><td class="muted">Research and reporting only</td><td class="muted">All <span class="mono">propose_action</span> calls blocked</td></tr>
+    <tr><td class="mono">2</td><td>Suggest-only</td><td class="muted">Full pipeline runs; candidates surface for signature</td><td class="muted">Agent cannot call <span class="mono">execute_action</span></td></tr>
+    <tr><td class="mono">3</td><td>Constrained auto-execute</td><td class="muted">Executes within hard policy limits, no per-action approval</td><td class="muted"><span class="mono">execute_action</span> requires passing on-chain checks</td></tr>
+    <tr><td class="mono">4</td><td>Fully autonomous</td><td class="muted">Same as level 3, relaxed UI notification</td><td class="muted">Identical contract path to level 3</td></tr>
+  </table>
+  <p style="margin-top:1.5rem;">Autonomy changes the UX. It does not change the constraint. A compromised or hallucinating model cannot exceed the policy's leverage, concentration, or drawdown limits — at any level.</p>
+  <div class="pagenum">06<span class="total"> / 12</span></div>
+</section>
+
+<!-- ============ SLIDE 7 — PRIVACY ============ -->
+<section class="slide">
+  <div class="eyebrow privacy">privacy.level:</div>
+  <h2>Encrypted positions. Public proofs.</h2>
+  <div class="twocol">
+    <div class="policy-block">
+<span class="key">privacy:</span>
+  <span class="key">level:</span> <span class="priv">standard</span>
+  <span class="key">disclose:</span>
+    <span class="val">- proof_of_reserves</span>
+    <span class="val">- proof_of_performance</span>
+    <span class="val">- fee_accrual</span>
+    <span class="val">- vault_nav</span>
+<span class="comment"># hidden: per-asset positions,
+# pending actions, individual
+# deposits/withdrawals, full
+# agent reasoning transcripts</span>
+    </div>
+    <div>
+      <p>Built on IKA's threshold-encryption network: balances and position vectors are stored as ciphertext commitments, with decryption keys split across an MPC network so no single party — including Krypton's own infrastructure — can unilaterally decrypt user positions.</p>
+      <p>Zero-knowledge range proofs confirm aggregate values match encrypted holdings without revealing individual balances. A <span style="color:var(--accent-privacy);">full</span> privacy tier additionally hides absolute NAV and mandates batched execution routing.</p>
+    </div>
+  </div>
+  <div class="pagenum">07<span class="total"> / 12</span></div>
+</section>
+
+<!-- ============ SLIDE 8 — GOVERNANCE ============ -->
+<section class="slide">
+  <div class="eyebrow">governance.mode:</div>
+  <h2>DAO policy amendments resolved by decision markets, not turnout-driven votes.</h2>
+  <div class="twocol">
+    <div>
+      <p>A proposed amendment (e.g. raise the ETH allocation ceiling) becomes a binary prediction market with a falsifiable, simulation-backed question: <em style="color:var(--text-primary);">will this change improve risk-adjusted return relative to the current policy?</em></p>
+      <p>The market resolves against a controlled Simulation Agent backtest, published with methodology and a hash of raw data — challengeable within a 48-hour dispute window before a designated arbiter set.</p>
+    </div>
+    <div class="panel">
+      <h3>Why not a vote?</h3>
+      <p>Token votes measure sentiment and voting power, often with low turnout and plutocratic skew. A decision market aligns incentives toward <em>being right about the effect</em> of a policy change — not toward preferring it for unrelated reasons.</p>
+    </div>
+  </div>
+  <div class="pagenum">08<span class="total"> / 12</span></div>
+</section>
+
+<!-- ============ SLIDE 9 — INTEGRATIONS ============ -->
+<section class="slide">
+  <div class="eyebrow">protocols_allowed:</div>
+  <h2>A composed Solana stack — not a new chain, not a new market.</h2>
+  <div class="grid grid-3">
+    <div class="panel"><h3>Reasoning</h3><div class="pill-row"><span class="pill on">OpenRouter</span><span class="pill on">AI capital SDK</span></div><p style="margin-top:0.8rem;">Per-agent model + fallback routing, structured outputs, cost ceilings.</p></div>
+    <div class="panel"><h3>Swap / routing</h3><div class="pill-row"><span class="pill on">Jupiter</span><span class="pill on">Titan DART</span></div><p style="margin-top:0.8rem;">MEV-protected routing, best-execution price comparison.</p></div>
+    <div class="panel"><h3>Lending / yield</h3><div class="pill-row"><span class="pill on">Kamino</span><span class="pill on">Jupiter Lend</span><span class="pill on">MarginFi-class</span></div><p style="margin-top:0.8rem;">Whitelisted reserves, diversified across venues.</p></div>
+    <div class="panel"><h3>Perps</h3><div class="pill-row"><span class="pill on">Drift</span></div><p style="margin-top:0.8rem;">Cross-collateral spot/perp, hedged legs within 2x cap.</p></div>
+    <div class="panel"><h3>Liquid staking</h3><div class="pill-row"><span class="pill on">Sanctum Infinity</span></div><p style="margin-top:0.8rem;">LST minting/redemption as yield-enhancement on SOL exposure.</p></div>
+    <div class="panel"><h3>Oracles / data</h3><div class="pill-row"><span class="pill on">Pyth</span><span class="pill on">Helius</span><span class="pill on">DefiLlama</span></div><p style="margin-top:0.8rem;">Constraint-state feeds, liquidity floors, monitoring.</p></div>
+    <div class="panel" style="border-color:var(--accent-privacy);"><h3 style="color:var(--accent-privacy);">Privacy</h3><div class="pill-row"><span class="pill" style="border-color:var(--accent-privacy);color:var(--accent-privacy);">IKA</span></div><p style="margin-top:0.8rem;">Threshold encryption + ZK proofs.</p></div>
+    <div class="panel"><h3>Governance</h3><div class="pill-row"><span class="pill">prediction market venue — TBD</span></div><p style="margin-top:0.8rem;">Binary markets, programmatic resolution.</p></div>
+    <div class="panel"><h3>Wallets</h3><div class="pill-row"><span class="pill on">Phantom</span><span class="pill on">Solflare</span><span class="pill on">Backpack</span></div><p style="margin-top:0.8rem;">Standard wallet-adapter; agent session key is separate, scoped, rotatable.</p></div>
+  </div>
+  <div class="pagenum">09<span class="total"> / 12</span></div>
+</section>
+
+<!-- ============ SLIDE 10 — MVP SCOPE ============ -->
+<section class="slide">
+  <div class="eyebrow">mvp.scope:</div>
+  <h2>Deliberately narrow. The constraint layer ships first.</h2>
+  <div class="grid grid-2">
+    <div class="panel">
+      <h3>Smart contract (V1)</h3>
+      <p>Vault creation, deposit/withdraw, share accounting, policy storage, permission management, on-chain constraint enforcement (leverage, concentration, drawdown, whitelist, liquidity floor, oracle staleness).</p>
+    </div>
+    <div class="panel">
+      <h3>AI backend (V1)</h3>
+      <p>Single orchestrator. Three reasoning agents (Research, Strategy, Risk) plus dedicated simulation and execution services. No strategy marketplace.</p>
+    </div>
+    <div class="panel">
+      <h3>Execution (V1)</h3>
+      <p>Swap, lend, stake — across a small, audited Solana protocol set. Leverage capped at 2x protocol-wide, independent of policy.</p>
+    </div>
+    <div class="panel">
+      <h3>Governance (V1)</h3>
+      <p>Two modes: personal vault (owner-controlled, direct re-signature) and DAO vault (prediction-market policy amendments).</p>
+    </div>
+  </div>
+  <div class="pagenum">10<span class="total"> / 12</span></div>
+</section>
+
+<!-- ============ SLIDE 11 — ROADMAP ============ -->
+<section class="slide">
+  <div class="eyebrow">policy_version: 2</div>
+  <h2>Beyond V1: the policy layer becomes composable and tradable.</h2>
+  <div class="grid grid-4">
+    <div class="panel"><h3>Marketplace</h3><p>Strategy marketplace, copyable and tradable Capital Policies.</p></div>
+    <div class="panel"><h3>Competition</h3><p>Third-party AI providers, competing execution agents, agent reputation.</p></div>
+    <div class="panel"><h3>Scale</h3><p>Cross-chain execution, institutional multi-sig vaults, tokenized vault shares.</p></div>
+    <div class="panel"><h3>Risk infrastructure</h3><p>Insurance modules, performance-based fee distribution to strategy designers.</p></div>
+  </div>
+  <p class="lede" style="margin-top:3rem;">The enduring asset is the policy layer — composable, portable, auditable, eventually tradable. That's a stronger architectural foundation than a collection of predefined vault strategies.</p>
+  <div class="pagenum">11<span class="total"> / 12</span></div>
+</section>
+
+<!-- ============ SLIDE 12 — POSITIONING / CLOSE ============ -->
+<section class="slide" id="close">
+  <div class="eyebrow">positioning:</div>
+  <h2>Not an AI hedge fund. A programmable capital policy engine.</h2>
+  <p class="lede">Krypton's job is not to promise superior investment decisions. Its job is to provide a programmable policy language, verifiable AI reasoning, constrained autonomous execution, confidential state, and optional decision-market governance. The AI is a policy interpreter — not the product.</p>
+
+  <div class="divider-row">working_name</div>
+  <div class="pipeline">
+    <div class="pipe-node policy">Krypton</div>
+    <div class="pipe-arrow">—</div>
+    <div class="pipe-node" style="color:var(--text-secondary);font-size:0.85rem;">a programmable autonomous capital protocol, subject to brand/trademark review</div>
+  </div>
+
+  <div class="wordmark">krypton<span class="dot">.</span></div>
+  <div class="pagenum">12<span class="total"> / 12</span></div>
+</section>
+
+</body>
+</html>

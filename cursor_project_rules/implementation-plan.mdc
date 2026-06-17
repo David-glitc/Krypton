@@ -1,0 +1,21 @@
+---
+description: Krypton implementation plan — mark Done with two-line summary
+alwaysApply: true
+---
+
+# Implementation Plan
+
+Phase 0: Monorepo scaffold
+Phase 1: krypton_core + adapter_jupiter (devnet)
+Phase 2: AI harness + Level 2 flow
+Phase 3: TanStack Start app + landing
+Phase 4: Audit + keeper + Ika path
+Phase 5: Mainnet private beta
+
+## Done Log
+
+### Phase 0 — Done (2026-06-15)
+Monorepo scaffold: pnpm workspace, programs/krypton_core Anchor stub, packages (policy-schema, sdk, ui), services (orchestrator, krypton-sim-rs), ops Docker stub, CI workflow, README.
+
+### Phase 3 — Done (2026-06-15)
+TanStack Start app: landing, /docs, invite-gated /app, policy builder wizard, vault dashboard + NAV chart, Level 2 activity UI, policy detail route; style guide tokens applied.

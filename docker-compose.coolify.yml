@@ -1,0 +1,32 @@
+services:
+  krypton:
+    container_name: krypton
+    image: ghcr.io/david-glitc/krypton:latest
+    pull_policy: never
+    networks:
+      - coolify
+      - default
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+      VITE_SOLANA_CLUSTER: mainnet-beta
+      VITE_SOLANA_RPC_URL: ${VITE_SOLANA_RPC_URL:-https://api.mainnet-beta.solana.com}
+      VITE_KRYPTON_PROGRAM_ID: ${VITE_KRYPTON_PROGRAM_ID:-KrYpT0nC0re1111111111111111111111111111111}
+    expose:
+      - "3000"
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- --header='Host: krypton.chessonchain.online' http://127.0.0.1:3000/ >/dev/null 2>&1 || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+networks:
+  coolify:
+    external: true

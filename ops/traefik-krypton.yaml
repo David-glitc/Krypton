@@ -1,0 +1,52 @@
+http:
+  middlewares:
+    krypton-gzip:
+      compress: true
+  routers:
+    krypton-http:
+      middlewares:
+        - redirect-to-https@file
+      entryPoints:
+        - http
+      service: krypton
+      rule: Host(`krypton.chessonchain.online`)
+      priority: 100
+    krypton-https:
+      middlewares:
+        - krypton-gzip
+      entryPoints:
+        - https
+      service: krypton
+      rule: Host(`krypton.chessonchain.online`)
+      priority: 100
+      tls:
+        certresolver: letsencrypt
+
+    krypton-dev-http:
+      middlewares:
+        - redirect-to-https@file
+      entryPoints:
+        - http
+      service: krypton-dev
+      rule: Host(`krypton-dev.chessonchain.online`)
+      priority: 100
+    krypton-dev-https:
+      middlewares:
+        - krypton-gzip
+      entryPoints:
+        - https
+      service: krypton-dev
+      rule: Host(`krypton-dev.chessonchain.online`)
+      priority: 100
+      tls:
+        certresolver: letsencrypt
+
+  services:
+    krypton:
+      loadBalancer:
+        servers:
+          - url: "http://krypton:3000"
+    krypton-dev:
+      loadBalancer:
+        servers:
+          - url: "http://krypton-dev:3001"

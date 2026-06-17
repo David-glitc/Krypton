@@ -1,0 +1,11 @@
+# Phase 4+ production stack — local preview stub
+services:
+  web:
+    build:
+      context: ..
+      dockerfile: ops/Dockerfile.web
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_SOLANA_CLUSTER: devnet
+      VITE_SOLANA_RPC_URL: https://api.devnet.solana.com

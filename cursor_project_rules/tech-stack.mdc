@@ -1,0 +1,13 @@
+---
+description: Binding technology stack for Krypton
+alwaysApply: true
+---
+
+# Krypton Tech Stack
+
+- Frontend: TanStack Start + React 19 + Tailwind (NOT Next.js)
+- Solana: Anchor (Rust) — krypton_core + adapters
+- Signing: Ika dWallet MPC (not confidential balances)
+- Orchestrator: TypeScript + OpenRouter
+- Simulation: Rust krypton-sim-rs
+- RPC: Helius; Oracles: Pyth; Storage: Arweave

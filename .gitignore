@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.output/
+.nitro/
+.anchor/
+target/
+.DS_Store
+*.log
+.env
+.env.*
+.pnpm-store/
+!.env.example
+test-ledger/
+.idea/
+.vscode/settings.json
