@@ -15,29 +15,32 @@ interface KryptonAuthProviderProps {
 }
 
 /**
- * Catches LzProvider render errors.
- * Normal: children render inside KryptonWalletProvider (with LzProvider).
- * Crashed: children render WITHOUT KryptonWalletProvider (safe mode).
+ * Catches errors from wallet SDK initialization.
+ * On error: renders children in safe mode (wallet hooks return defaults).
  */
-class SafeBoundary extends React.Component<
+class WalletBoundary extends React.Component<
   { children: React.ReactNode },
-  { crashed: boolean }
+  { hasError: boolean }
 > {
-  state = { crashed: false }
+  state = { hasError: false }
 
-  static getDerivedStateFromError(): { crashed: true } {
-    return { crashed: true }
+  static getDerivedStateFromError(): { hasError: true } {
+    return { hasError: true }
   }
 
   render() {
-    if (this.state.crashed) {
+    if (this.state.hasError) {
       return (
         <LazorkitSafeContext.Provider value={false}>
           {this.props.children}
         </LazorkitSafeContext.Provider>
       )
     }
-    return <KryptonWalletProvider>{this.props.children}</KryptonWalletProvider>
+    return (
+      <LazorkitSafeContext.Provider value={true}>
+        <KryptonWalletProvider>{this.props.children}</KryptonWalletProvider>
+      </LazorkitSafeContext.Provider>
+    )
   }
 }
 
@@ -49,7 +52,7 @@ export function KryptonAuthProvider({ children }: KryptonAuthProviderProps) {
         walletConnectors: [SolanaWalletConnectors],
       }}
     >
-      <SafeBoundary>{children}</SafeBoundary>
+      <WalletBoundary>{children}</WalletBoundary>
     </DynamicContextProvider>
   )
 }
