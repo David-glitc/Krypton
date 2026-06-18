@@ -13,6 +13,7 @@ import { ConstraintBars, PolicyBlock } from '@krypton/ui'
 import { getVault, NAV_HISTORY, constraintToBarInput } from '~/lib/mock-data'
 import { fetchVault } from '~/lib/vault-data'
 import { computeDrawdownBps, checkThresholds, DEFAULT_THRESHOLD_CONFIG } from '~/lib/telemetry-engine'
+import { LoadingSpinner } from '~/components/LoadingSpinner'
 import type { VaultSummary } from '@krypton/sdk'
 
 export const Route = createFileRoute('/app/vault/$id')({
@@ -22,11 +23,16 @@ export const Route = createFileRoute('/app/vault/$id')({
 function VaultDashboardPage() {
   const { id } = Route.useParams()
   const [vault, setVault] = useState<VaultSummary | undefined>(() => getVault(id))
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let cancelled = false
     fetchVault(id).then((result) => {
-      if (result) setVault(result)
-    }).catch(() => {})
+      if (!cancelled && result) setVault(result)
+    }).catch(() => {}).finally(() => {
+      if (!cancelled) setLoading(false)
+    })
+    return () => { cancelled = true }
   }, [id])
 
   const telemetry = useMemo(() => {
@@ -40,6 +46,13 @@ function VaultDashboardPage() {
     )
     return { liveDrawdownBps, alert }
   }, [vault, id])
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-6xl px-6">
+        <LoadingSpinner label="Loading vault data…" />
+      </div>
+    )
+  }
 
   if (!vault) {
     return (

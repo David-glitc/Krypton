@@ -1,66 +1,69 @@
 import * as React from 'react'
-import {
-  DynamicContextProvider,
-  DynamicUserProfile,
-  useDynamicContext,
-} from '@dynamic-labs/sdk-react-core'
+import { DynamicContextProvider, useDynamicContext } from '@dynamic-labs/sdk-react-core'
 import { SolanaWalletConnectors } from '@dynamic-labs/solana'
-import { LazorkitProvider, useWallet as useLazorkitWallet } from '@lazorkit/wallet'
-import { RPC_URL } from '@krypton/sdk'
-
-/**
- * Krypton unified auth — Dynamic (social/email/embedded wallet) + Lazorkit (passkey smart wallet).
- *
- * Flow:
- * 1. Dynamic modal: sign in with X, email, or embedded wallet
- * 2. Lazorkit passkey wallet: create/connect a passkey-based smart wallet
- * 3. Both wallets are available for different use cases:
- *    - Dynamic for easy onboarding (X, email)
- *    - Lazorkit for passkey-secured actions
- */
+import {
+  KryptonWalletProvider,
+  useLazorkitWallet,
+  LazorkitSafeContext,
+} from '~/lib/LazorkitProvider'
 
 const DYNAMIC_ENV_ID =
-  (import.meta as { env?: Record<string, string> }).env?.VITE_DYNAMIC_ENVIRONMENT_ID ??
-  'd388d3b0-2620-4ef0-8c09-3ace6d0ebbf6'
+  (import.meta as { env?: Record<string, string> }).env?.VITE_DYNAMIC_ENVIRONMENT_ID ?? ''
 
 interface KryptonAuthProviderProps {
   children: React.ReactNode
+}
+
+/**
+ * Catches LzProvider render errors.
+ * Normal: children render inside KryptonWalletProvider (with LzProvider).
+ * Crashed: children render WITHOUT KryptonWalletProvider (safe mode).
+ */
+class SafeBoundary extends React.Component<
+  { children: React.ReactNode },
+  { crashed: boolean }
+> {
+  state = { crashed: false }
+
+  static getDerivedStateFromError(): { crashed: true } {
+    return { crashed: true }
+  }
+
+  render() {
+    if (this.state.crashed) {
+      return (
+        <LazorkitSafeContext.Provider value={false}>
+          {this.props.children}
+        </LazorkitSafeContext.Provider>
+      )
+    }
+    return <KryptonWalletProvider>{this.props.children}</KryptonWalletProvider>
+  }
 }
 
 export function KryptonAuthProvider({ children }: KryptonAuthProviderProps) {
   return (
     <DynamicContextProvider
       settings={{
-        environmentId: DYNAMIC_ENV_ID,
+        environmentId: DYNAMIC_ENV_ID || '',
         walletConnectors: [SolanaWalletConnectors],
-        events: {
-          onAuthSuccess: () => {
-            console.debug('[KryptonAuth] Dynamic auth success')
-          },
-        },
       }}
     >
-      <LazorkitProvider rpcUrl={RPC_URL}>{children}</LazorkitProvider>
-      <DynamicUserProfile />
+      <SafeBoundary>{children}</SafeBoundary>
     </DynamicContextProvider>
   )
 }
 
-export type KryptonWallet = {
-  dynamic: ReturnType<typeof useDynamicContext>
-  lazorkit: ReturnType<typeof useLazorkitWallet>
-}
-
+/** Unified wallet access — never throws, always safe. */
 export function useKryptonAuth() {
   const dynamic = useDynamicContext()
   const lazorkit = useLazorkitWallet()
-
   return {
-    dynamic,
+    dynamic: DYNAMIC_ENV_ID ? dynamic : null,
     lazorkit,
-    isConnected: dynamic.primaryWallet != null || lazorkit.isConnected,
+    isConnected: (dynamic?.primaryWallet != null) || lazorkit.isConnected,
     primaryAddress:
-      dynamic.primaryWallet?.address ?? lazorkit.wallet?.smartWallet ?? null,
+      dynamic?.primaryWallet?.address ?? lazorkit.wallet?.smartWallet ?? null,
   }
 }
 

@@ -1,22 +1,40 @@
 import { createFileRoute, Link, Outlet, useParams } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { KryptonAuthProvider, useKryptonAuth } from '~/lib/AuthProvider'
 import { getInviteHint, isInviteAllowed } from '~/lib/invite'
 import { KryptonLogo } from '~/components/KryptonLogo'
+import { LoadingSpinner } from '~/components/LoadingSpinner'
+import { ErrorBoundary } from '~/components/ErrorBoundary'
 import { DEMO_VAULTS } from '~/lib/mock-data'
-
 export const Route = createFileRoute('/app')({
   component: AppLayout,
 })
-
 function AppLayout() {
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    // Give wallet SDKs a moment to initialize (or fail).
+    // This prevents a flash of blank content during startup.
+    const timer = setTimeout(() => setReady(true), 500)
+    return () => clearTimeout(timer)
+  }, [])
+
+  if (!ready) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center bg-[var(--bg-base)]">
+        <LoadingSpinner label="Initializing…" />
+      </div>
+    )
+  }
+
   return (
-    <KryptonAuthProvider>
-      <AppGate />
-    </KryptonAuthProvider>
+    <ErrorBoundary>
+      <KryptonAuthProvider>
+        <AppGate />
+      </KryptonAuthProvider>
+    </ErrorBoundary>
   )
 }
-
 function AppGate() {
   const { isConnected, primaryAddress, dynamic, lazorkit } = useKryptonAuth()
   const allowed = isInviteAllowed(primaryAddress)
@@ -138,9 +156,9 @@ function AppShell() {
                 {primaryAddress.slice(0, 6)}...{primaryAddress.slice(-4)}
               </p>
             )}
-            {dynamic.primaryWallet != null && (
+            {dynamic?.primaryWallet != null && (
               <button
-                onClick={() => dynamic.setShowDynamicUserProfile?.(true)}
+                onClick={() => dynamic?.setShowDynamicUserProfile?.(true)}
                 className="mt-1 font-mono text-[10px] uppercase tracking-wider text-[var(--accent-policy)] hover:underline"
               >
                 Manage profile

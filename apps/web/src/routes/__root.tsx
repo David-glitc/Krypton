@@ -6,25 +6,20 @@ import { NotFound } from '~/components/NotFound'
 import { KryptonLogo, FAVICON_SVG } from '~/components/KryptonLogo'
 import appCss from '~/styles/app.css?url'
 import { seo } from '~/utils/seo'
-
 export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
       ...seo({
-        title: 'Krypton — Agentic Capital Automation for Solana',
+        title: 'Krypton — Programmable Capital Policy Engine for Solana',
         description:
-          'Define a Capital Policy — objectives, risk envelope, execution mandate. AI agent pipeline proposes actions. On-chain Constraint Engine enforces every trade.',
+          'Deploy a fund manager. Keep the keys. Describe what you want your capital to do. Krypton compiles it into an enforced, on-chain policy.',
       }),
     ],
     links: [
+      { rel: 'icon', href: FAVICON_SVG },
       { rel: 'stylesheet', href: appCss },
-      {
-        rel: 'icon',
-        type: 'image/svg+xml',
-        href: `data:image/svg+xml,${encodeURIComponent(FAVICON_SVG)}`,
-      },
     ],
   }),
   errorComponent: DefaultCatchBoundary,
@@ -38,9 +33,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body className="min-h-dvh antialiased">
+      <body className="bg-[var(--bg-base)] text-[var(--text-primary)] antialiased">
         {children}
-        {import.meta.env.DEV && <TanStackRouterDevtools position="bottom-right" />}
+        <TanStackRouterDevtools position="bottom-right" />
         <Scripts />
       </body>
     </html>
@@ -51,19 +46,16 @@ export function SiteHeader() {
   return (
     <header className="border-b border-[var(--border)] bg-[var(--bg-base)]/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3">
-        <Link to="/" className="flex items-center gap-2 font-display text-lg font-semibold tracking-tight">
-          <KryptonLogo size="sm" />
-          <span className="gradient-text">Krypton</span>
-        </Link>
-        <nav className="flex items-center gap-5 font-mono text-xs uppercase tracking-wider text-[var(--text-secondary)]">
-          <Link to="/docs" className="hover:text-[var(--text-primary)] transition-colors">
-            Docs
+        <KryptonLogo />
+        <nav className="hidden items-center gap-6 md:flex">
+          <Link to="/" className="font-mono text-xs uppercase tracking-wider text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]">
+            Home
           </Link>
-          <Link to="/app" className="hover:text-[var(--text-primary)] transition-colors">
+          <Link to="/app" className="font-mono text-xs uppercase tracking-wider text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]">
             App
           </Link>
-          <Link to="/app/create" className="btn-primary text-xs">
-            Create vault
+          <Link to="/docs" className="font-mono text-xs uppercase tracking-wider text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]">
+            Docs
           </Link>
         </nav>
       </div>
@@ -75,18 +67,19 @@ export function SiteFooter() {
   return (
     <footer className="border-t border-[var(--border)] py-12">
       <div className="mx-auto max-w-6xl px-6">
-        <div className="flex items-center gap-3">
-          <KryptonLogo size="sm" />
-          <span className="font-display text-sm font-semibold text-[var(--text-secondary)]">
-            Krypton
-          </span>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <p className="font-mono text-xs text-[var(--text-muted)]">
+            © 2026 Krypton — The policy is the product.
+          </p>
+          <div className="flex gap-6">
+            <a href="https://github.com/David-glitc/Krypton" className="font-mono text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)]">
+              GitHub
+            </a>
+            <a href="https://x.com/krypton" className="font-mono text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)]">
+              X
+            </a>
+          </div>
         </div>
-        <p className="mt-4 text-sm leading-relaxed text-[var(--text-muted)]">
-          Krypton is infrastructure, not an investment adviser. Capital is at risk.
-        </p>
-        <p className="mt-1 font-mono text-xs text-[var(--text-muted)]">
-          Working name &middot; subject to brand review
-        </p>
       </div>
     </footer>
   )
