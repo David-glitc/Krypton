@@ -1,0 +1,12 @@
+node_modules
+**/node_modules
+.output
+.nitro
+.anchor
+target
+.git
+.cursor
+docker-server
+*.log
+.env
+.env.*
