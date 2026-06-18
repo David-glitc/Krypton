@@ -24,12 +24,6 @@ export default defineConfig({
   },
   ssr: {
     noExternal: ['@krypton/ui', '@krypton/sdk', '@krypton/policy-schema'],
-    external: [
-      '@coral-xyz/anchor',
-      '@lazorkit/wallet',
-      '@dynamic-labs/sdk-react-core',
-      '@dynamic-labs/solana',
-    ],
   },
   plugins: [
     tailwindcss(),
