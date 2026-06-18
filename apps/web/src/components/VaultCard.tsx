@@ -22,7 +22,7 @@ export function VaultCard({ vault }: { vault: VaultSummary }) {
         </div>
         <div className="flex items-center gap-2">
           {vault.constraint.paused && (
-            <span className="rounded bg-[var(--accent-risk)]/10 px-2 py-0.5 font-mono text-[10px] uppercase text-[var(--accent-risk)]">
+            <span className="rounded-sm bg-[var(--accent-risk)]/10 px-2 py-0.5 font-mono text-[10px] uppercase text-[var(--accent-risk)]">
               paused
             </span>
           )}
@@ -83,7 +83,7 @@ function ConstraintMiniBar({
       <div className="h-1.5 overflow-hidden rounded-sm bg-[var(--bg-panel-raised)]">
         <div
           className={`h-full transition-all ${
-            isDanger ? 'bg-[var(--accent-risk)]' : isWarning ? 'bg-[var(--accent-warning)]' : 'bg-[var(--accent-policy)]'
+            isDanger ? 'bg-[var(--accent-risk)]' : isWarning ? 'bg-[var(--accent-policy)]' : 'bg-[var(--accent-policy)]'
           }`}
           style={{ width: `${pct}%` }}
         />

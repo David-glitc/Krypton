@@ -28,8 +28,8 @@ function ActivityRow({ entry }: { entry: ActivityEntry }) {
   const color = typeColor[entry.type]
 
   return (
-    <div className="flex gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-panel)] p-3">
-      <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${color}`}>
+    <div className="flex gap-3 rounded-sm border border-[var(--border)] bg-[var(--bg-panel)] p-3">
+      <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-sm ${color}`}>
         {icon}
       </div>
       <div className="min-w-0 flex-1">
@@ -42,7 +42,7 @@ function ActivityRow({ entry }: { entry: ActivityEntry }) {
         {entry.details && (
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             {Object.entries(entry.details).map(([k, v]) => (
-              <span key={k} className="rounded bg-[var(--bg-panel-raised)] px-1.5 py-0.5 font-mono text-[9px] text-[var(--text-muted)]">
+              <span key={k} className="rounded-sm bg-[var(--bg-panel-raised)] px-1.5 py-0.5 font-mono text-[9px] text-[var(--text-muted)]">
                 {k}: {v}
               </span>
             ))}
@@ -65,14 +65,14 @@ const typeIcon: Record<ActivityEntry['type'], string> = {
 }
 
 const typeColor: Record<ActivityEntry['type'], string> = {
-  executed: 'bg-[var(--accent-secondary)]/10 text-[var(--accent-secondary)]',
+  executed: 'bg-[var(--accent-positive)]/10 text-[var(--accent-positive)]',
   rejected: 'bg-[var(--accent-risk)]/10 text-[var(--accent-risk)]',
-  advisory_pending: 'bg-[var(--accent-warning)]/10 text-[var(--accent-warning)]',
+  advisory_pending: 'bg-[var(--accent-policy)]/10 text-[var(--accent-policy)]',
   policy_amended: 'bg-[var(--accent-policy)]/10 text-[var(--accent-policy)]',
-  deposit: 'bg-[var(--accent-secondary)]/10 text-[var(--accent-secondary)]',
-  withdrawal: 'bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]',
-  paused: 'bg-[var(--accent-warning)]/10 text-[var(--accent-warning)]',
-  unpaused: 'bg-[var(--accent-secondary)]/10 text-[var(--accent-secondary)]',
+  deposit: 'bg-[var(--accent-positive)]/10 text-[var(--accent-positive)]',
+  withdrawal: 'bg-[var(--accent-policy)]/10 text-[var(--accent-policy)]',
+  paused: 'bg-[var(--accent-policy)]/10 text-[var(--accent-policy)]',
+  unpaused: 'bg-[var(--accent-positive)]/10 text-[var(--accent-positive)]',
 }
 
 function formatTime(timestamp: string): string {

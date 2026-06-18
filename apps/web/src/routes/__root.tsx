@@ -44,7 +44,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 
 export function SiteHeader() {
   return (
-    <header className="border-b border-[var(--border)] bg-[var(--bg-base)]/80 backdrop-blur-md">
+    <header className="border-b border-[var(--border)] bg-[var(--bg-base)]">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3">
         <KryptonLogo />
         <nav className="hidden items-center gap-6 md:flex">

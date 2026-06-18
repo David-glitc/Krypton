@@ -31,7 +31,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
       }
       return (
         <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 p-8 text-center">
-          <p className="font-mono text-xs uppercase tracking-wider text-[var(--accent-warning)]">
+          <p className="font-mono text-xs uppercase tracking-wider text-[var(--accent-policy)]">
             something went wrong
           </p>
           <p className="max-w-md text-sm text-[var(--text-secondary)]">

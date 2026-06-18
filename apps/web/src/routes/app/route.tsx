@@ -42,7 +42,7 @@ function AppGate() {
   if (!isConnected) {
     return (
       <div className="flex min-h-dvh flex-col bg-[var(--bg-base)]">
-        <header className="border-b border-[var(--border)] bg-[var(--bg-base)]/80 backdrop-blur-md">
+        <header className="border-b border-[var(--border)] bg-[var(--bg-base)]">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3">
             <KryptonLogo />
           </div>
@@ -60,13 +60,13 @@ function AppGate() {
   if (!allowed) {
     return (
       <div className="flex min-h-dvh flex-col bg-[var(--bg-base)]">
-        <header className="border-b border-[var(--border)] bg-[var(--bg-base)]/80 backdrop-blur-md">
+        <header className="border-b border-[var(--border)] bg-[var(--bg-base)]">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3">
             <KryptonLogo />
           </div>
         </header>
         <main className="mx-auto flex max-w-lg flex-1 flex-col items-center justify-center px-6 py-20 text-center">
-          <p className="font-mono text-xs uppercase tracking-wider text-[var(--accent-warning)]">access_denied</p>
+          <p className="font-mono text-xs uppercase tracking-wider text-[var(--accent-policy)]">access_denied</p>
           <h1 className="font-display mt-4 text-2xl font-semibold">Private beta</h1>
           <p className="mt-3 text-sm text-[var(--text-secondary)]">Your wallet is not in the beta allowlist. Request access to continue.</p>
         </main>
@@ -98,7 +98,7 @@ function AppShell() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-56 shrink-0 border-r border-[var(--border)] bg-[var(--bg-panel)]/95 backdrop-blur-md transition-transform lg:relative lg:z-auto lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-56 shrink-0 border-r border-[var(--border)] bg-[var(--bg-panel)] transition-transform lg:relative lg:z-auto lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -170,7 +170,7 @@ function AppShell() {
 
       {/* Main content area */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="shrink-0 border-b border-[var(--border)] bg-[var(--bg-base)]/80 backdrop-blur-md">
+        <header className="shrink-0 border-b border-[var(--border)] bg-[var(--bg-base)]">
           <div className="flex items-center justify-between gap-4 px-4 py-3 lg:px-6">
             <button onClick={() => setSidebarOpen(true)} className="lg:hidden">
               <span className="text-sm">☰</span>
@@ -207,13 +207,13 @@ function SidebarLink({
     <Link
       to={to}
       params={params}
-      className={`flex items-center justify-between rounded-lg px-2 py-1.5 font-mono text-xs transition ${
+      className={`flex items-center justify-between rounded px-2 py-1.5 font-mono text-xs transition ${
         active
           ? 'bg-[var(--accent-policy)]/10 text-[var(--accent-policy)]'
           : 'text-[var(--text-secondary)] hover:bg-[var(--bg-panel-raised)] hover:text-[var(--text-primary)]'
       }`}
       activeProps={{
-        className: 'flex items-center justify-between rounded-lg px-2 py-1.5 font-mono text-xs bg-[var(--accent-policy)]/10 text-[var(--accent-policy)]',
+        className: 'flex items-center justify-between rounded px-2 py-1.5 font-mono text-xs bg-[var(--accent-policy)]/10 text-[var(--accent-policy)]',
       }}
     >
       {children}
@@ -222,7 +222,7 @@ function SidebarLink({
           className={`rounded px-1 py-0.5 font-mono text-[8px] uppercase ${
             badge === 'danger'
               ? 'bg-[var(--accent-risk)]/10 text-[var(--accent-risk)]'
-              : 'bg-[var(--accent-warning)]/10 text-[var(--accent-warning)]'
+              : 'bg-[var(--accent-policy)]/10 text-[var(--accent-policy)]'
           }`}
         >
           {badge}

@@ -76,15 +76,13 @@ function VaultDashboardPage() {
           <div className="flex items-center gap-3">
             <h1 className="font-display text-2xl font-semibold">{vault.name}</h1>
             {vault.constraint.paused && (
-              <span className="rounded bg-[var(--accent-risk)]/10 px-2 py-0.5 font-mono text-xs uppercase text-[var(--accent-risk)]">paused</span>
+              <span className="rounded-sm bg-[var(--accent-risk)]/10 px-2 py-0.5 font-mono text-xs uppercase text-[var(--accent-risk)]">paused</span>
             )}
             {telemetry?.alert && (
-              <span className={`rounded px-2 py-0.5 font-mono text-xs uppercase ${
+              <span className={`rounded-sm px-2 py-0.5 font-mono text-xs uppercase ${
                 telemetry.alert.level === 'breach'
                   ? 'bg-[var(--accent-risk)]/10 text-[var(--accent-risk)]'
-                  : telemetry.alert.level === 'pre_breach'
-                    ? 'bg-[var(--accent-warning)]/10 text-[var(--accent-warning)]'
-                    : 'bg-[var(--accent-policy)]/10 text-[var(--accent-policy)]'
+                  : 'bg-[var(--accent-policy)]/10 text-[var(--accent-policy)]'
               }`}>
                 {telemetry.alert.level}
               </span>
@@ -104,10 +102,10 @@ function VaultDashboardPage() {
 
       {/* Alert banner */}
       {telemetry?.alert && telemetry.alert.level !== 'watch' && (
-        <div className={`mt-4 rounded border p-3 text-sm ${
+        <div className={`mt-4 rounded-sm border p-3 text-sm ${
           telemetry.alert.level === 'breach'
             ? 'border-[var(--accent-risk)]/40 bg-[var(--accent-risk)]/10 text-[var(--accent-risk)]'
-            : 'border-[var(--accent-warning)]/40 bg-[var(--accent-warning)]/10 text-[var(--accent-warning)]'
+            : 'border-[var(--accent-policy)]/40 bg-[var(--accent-policy)]/10 text-[var(--accent-policy)]'
         }`}>
           <p className="font-mono text-xs uppercase tracking-wider">{telemetry.alert.level}</p>
           <p className="mt-1 text-xs">{telemetry.alert.message}</p>
@@ -137,15 +135,15 @@ function VaultDashboardPage() {
               <AreaChart data={NAV_HISTORY}>
                 <defs>
                   <linearGradient id="navGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--accent-primary)" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="var(--accent-primary)" stopOpacity={0} />
+                    <stop offset="5%" stopColor="var(--accent-policy)" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="var(--accent-policy)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis dataKey="date" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} domain={['auto', 'auto']} />
-                <Tooltip contentStyle={{ background: 'var(--bg-panel)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '12px' }} />
-                <Area type="monotone" dataKey="nav" stroke="var(--accent-primary)" fill="url(#navGrad)" strokeWidth={2} />
+                <Tooltip contentStyle={{ background: 'var(--bg-panel)', border: '1px solid var(--border)', borderRadius: '4px', fontSize: '12px' }} />
+                <Area type="monotone" dataKey="nav" stroke="var(--accent-policy)" fill="url(#navGrad)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -154,7 +152,7 @@ function VaultDashboardPage() {
         <div className="panel p-5">
           <p className="font-mono text-xs uppercase tracking-wider text-[var(--text-secondary)]">constraint_utilization</p>
           <div className="mt-6"><ConstraintBars {...bars} /></div>
-          <div className="mt-6 rounded border border-[var(--border)] bg-[var(--bg-base)] p-3">
+          <div className="mt-6 rounded-sm border border-[var(--border)] bg-[var(--bg-base)] p-3">
             <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)]">status</p>
             <p className="mt-1 text-sm text-[var(--text-primary)]">
               {vault.constraint.paused
@@ -192,7 +190,7 @@ function ConstraintCard({ label, current, max, unit, utilization }: { label: str
     <div className="panel p-4">
       <div className="flex items-center justify-between">
         <p className="font-mono text-xs uppercase tracking-wider text-[var(--text-secondary)]">{label}</p>
-        <span className={`font-mono text-xs ${isDanger ? 'text-[var(--accent-risk)]' : isWarning ? 'text-[var(--accent-warning)]' : 'text-[var(--accent-secondary)]'}`}>
+        <span className={`font-mono text-xs ${isDanger ? 'text-[var(--accent-risk)]' : isWarning ? 'text-[var(--accent-policy)]' : 'text-[var(--accent-privacy)]'}`}>
           {utilization}%
         </span>
       </div>
@@ -200,7 +198,7 @@ function ConstraintCard({ label, current, max, unit, utilization }: { label: str
         {current.toFixed(1)}<span className="text-sm text-[var(--text-muted)]">/{max.toFixed(1)}{unit}</span>
       </p>
       <div className="mt-3 h-1.5 overflow-hidden rounded-sm bg-[var(--bg-panel-raised)]">
-        <div className={`h-full transition-all ${isDanger ? 'bg-[var(--accent-risk)]' : isWarning ? 'bg-[var(--accent-warning)]' : 'bg-[var(--accent-policy)]'}`} style={{ width: `${Math.min(100, utilization)}%` }} />
+        <div className={`h-full ${isDanger ? 'bg-[var(--accent-risk)]' : isWarning ? 'bg-[var(--accent-policy)]' : 'bg-[var(--accent-policy)]'}`} style={{ width: `${Math.min(100, utilization)}%` }} />
       </div>
     </div>
   )

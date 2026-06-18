@@ -207,7 +207,7 @@ function CreateVaultPage() {
                   key={preset.id}
                   type="button"
                   onClick={() => applyPreset(preset.id)}
-                  className={`rounded-xl border p-4 text-left transition-all hover:border-[var(--accent-policy)]/50 ${
+                  className={`rounded border p-4 text-left transition-colors hover:border-[var(--accent-policy)]/50 ${
                     selectedPreset === preset.id
                       ? 'border-[var(--accent-policy)] bg-[var(--accent-policy)]/5'
                       : 'border-[var(--border)] bg-[var(--bg-panel)]'
@@ -216,7 +216,7 @@ function CreateVaultPage() {
                   <div className="flex items-center justify-between">
                     <span className="font-display text-sm font-semibold">{preset.name}</span>
                     {preset.hardLockAdvisory && (
-                      <span className="rounded bg-[var(--accent-warning)]/10 px-1.5 py-0.5 font-mono text-[9px] uppercase text-[var(--accent-warning)]">
+                      <span className="rounded-sm bg-[var(--accent-policy)]/10 px-1.5 py-0.5 font-mono text-[9px] uppercase text-[var(--accent-policy)]">
                         advisory only
                       </span>
                     )}
@@ -285,18 +285,18 @@ function CreateVaultPage() {
               </label>
             ))}
             {feasibility?.status === 'infeasible' && (
-              <div className="rounded border border-[var(--accent-warning)]/40 bg-[var(--accent-warning)]/10 p-3 text-sm text-[var(--accent-warning)]">
+              <div className="rounded-sm border border-[var(--accent-policy)]/40 bg-[var(--accent-policy)]/10 p-3 text-sm text-[var(--accent-policy)]">
                 <p className="font-mono text-xs uppercase tracking-wider">feasibility_warning</p>
                 <p className="mt-1 text-xs">{feasibility.negotiation_prompt}</p>
               </div>
             )}
             {feasibility?.status === 'feasible' && (
-              <div className="rounded border border-[var(--accent-secondary)]/30 bg-[var(--accent-secondary)]/5 p-3 text-xs text-[var(--accent-secondary)]">
+              <div className="rounded-sm border border-[var(--accent-positive)]/30 bg-[var(--accent-positive)]/5 p-3 text-xs text-[var(--accent-positive)]">
                 ✓ Risk envelope is feasible for the selected profile.
               </div>
             )}
             {isAggressiveLocked && (
-              <div className="rounded border border-[var(--accent-warning)]/40 bg-[var(--accent-warning)]/10 p-3 text-sm text-[var(--accent-warning)]">
+              <div className="rounded-sm border border-[var(--accent-policy)]/40 bg-[var(--accent-policy)]/10 p-3 text-sm text-[var(--accent-policy)]">
                 <p className="font-mono text-xs uppercase tracking-wider">advisory_lock</p>
                 <p className="mt-1 text-xs">Drawdown ≥ 25% requires advisory-only mode per safety policy.</p>
               </div>
@@ -335,8 +335,8 @@ function CreateVaultPage() {
                     type="button"
                     onClick={() => toggleInList('assets', asset)}
                     className={form.assets.includes(asset)
-                      ? 'rounded border border-[var(--accent-policy)] bg-[var(--accent-policy)]/10 px-3 py-1 font-mono text-xs text-[var(--accent-policy)]'
-                      : 'rounded border border-[var(--border)] px-3 py-1 font-mono text-xs text-[var(--text-secondary)]'}
+                      ? 'rounded-sm border border-[var(--accent-policy)] bg-[var(--accent-policy)]/10 px-3 py-1 font-mono text-xs text-[var(--accent-policy)]'
+                      : 'rounded-sm border border-[var(--border)] px-3 py-1 font-mono text-xs text-[var(--text-secondary)]'}
                   >{asset}</button>
                 ))}
               </div>
@@ -350,8 +350,8 @@ function CreateVaultPage() {
                     type="button"
                     onClick={() => toggleInList('protocols', p)}
                     className={form.protocols.includes(p)
-                      ? 'rounded border border-[var(--accent-policy)] bg-[var(--accent-policy)]/10 px-3 py-1 font-mono text-xs text-[var(--accent-policy)]'
-                      : 'rounded border border-[var(--border)] px-3 py-1 font-mono text-xs text-[var(--text-secondary)]'}
+                      ? 'rounded-sm border border-[var(--accent-policy)] bg-[var(--accent-policy)]/10 px-3 py-1 font-mono text-xs text-[var(--accent-policy)]'
+                      : 'rounded-sm border border-[var(--border)] px-3 py-1 font-mono text-xs text-[var(--text-secondary)]'}
                   >{p}</button>
                 ))}
               </div>
@@ -377,7 +377,7 @@ function CreateVaultPage() {
               }}
             />
             {selectedPreset && (
-              <div className="rounded border border-[var(--accent-policy)]/30 bg-[var(--accent-policy)]/5 p-3">
+              <div className="rounded-sm border border-[var(--accent-policy)]/30 bg-[var(--accent-policy)]/5 p-3">
                 <p className="font-mono text-xs uppercase tracking-wider text-[var(--accent-policy)]">
                   preset: {selectedPreset}
                 </p>
@@ -393,7 +393,7 @@ function CreateVaultPage() {
               </div>
             )}
             {txSignature && (
-              <div className="rounded border border-[var(--accent-secondary)]/30 bg-[var(--accent-secondary)]/5 p-3 text-xs text-[var(--accent-secondary)]">
+              <div className="rounded-sm border border-[var(--accent-positive)]/30 bg-[var(--accent-positive)]/5 p-3 text-xs text-[var(--accent-positive)]">
                 <p className="font-mono text-xs uppercase tracking-wider">transaction_submitted</p>
                 <p className="mt-1 font-mono break-all">{txSignature}</p>
               </div>
