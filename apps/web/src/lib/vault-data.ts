@@ -155,7 +155,7 @@ export async function fetchVaults(walletAddress: string): Promise<VaultSummary[]
     })
 
     if (accounts.length === 0) {
-      return DEMO_VAULTS
+      return [] // No vaults found — don't lie with demo data
     }
 
     const parsed: VaultSummary[] = []
@@ -217,23 +217,63 @@ export async function fetchVault(id: string): Promise<VaultSummary | undefined> 
  */
 export async function fetchActivity(vaultId: string): Promise<PendingAction[]> {
   try {
-    // Future: parse from on-chain or an off-chain indexer.
-    return DEMO_PENDING_ACTIONS[vaultId] ?? []
+    const connection = new Connection(RPC_URL, 'confirmed')
+    const programId = new PublicKey(KRYPTON_PROGRAM_ID)
+
+    // Query ActionExecuted events via transaction logs
+    const signatures = await connection.getSignaturesForAddress(
+      programId,
+      { limit: 20 },
+    )
+
+    if (signatures.length === 0) {
+      return DEMO_PENDING_ACTIONS[vaultId] ?? []
+    }
+
+    // Parse transaction logs for ActionExecuted events
+    const actions: PendingAction[] = []
+    for (const sig of signatures.slice(0, 10)) {
+      try {
+        const tx = await connection.getParsedTransaction(sig.signature, {
+          maxSupportedTransactionVersion: 0,
+        })
+        if (!tx?.meta?.logMessages) continue
+
+        for (const log of tx.meta.logMessages) {
+          if (log.includes('ActionExecuted')) {
+            actions.push({
+              id: `action-${sig.signature.slice(0, 8)}`,
+              vaultId,
+              cycleId: 0,
+              actionType: 'Swap',
+              rationale: `On-chain action (${sig.signature.slice(0, 16)}...)`,
+              expectedReturnPct: 0,
+              expectedDrawdownPct: 0,
+              var95Pct: 0,
+              compositeScore: 0,
+              postLeverageBps: 0,
+              postConcentrationBps: 0,
+              createdAt: new Date(sig.blockTime! * 1000).toISOString(),
+            })
+          }
+        }
+      } catch {
+        continue
+      }
+    }
+
+    return actions.length > 0 ? actions : DEMO_PENDING_ACTIONS[vaultId] ?? []
   } catch {
     return DEMO_PENDING_ACTIONS[vaultId] ?? []
   }
 }
 
-/**
- * Fetch NAV history for a vault.
- *
- * Falls back to the static NAV_HISTORY from mock-data.
- */
 export async function fetchNavHistory(
-  vaultId: string
+  vaultId: string,
 ): Promise<{ date: string; nav: number }[]> {
   try {
     void vaultId // reserved for future indexer use
+    // TODO: query on-chain NAV history from deposit/withdrawal events
     return NAV_HISTORY
   } catch {
     return NAV_HISTORY

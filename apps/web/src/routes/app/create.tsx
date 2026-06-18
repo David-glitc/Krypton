@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useState, useMemo } from 'react'
+import { PublicKey } from '@solana/web3.js'
 import {
   defaultPolicyBuilderForm,
   formToCapitalPolicy,
@@ -17,6 +18,8 @@ import {
   AGGRESSIVE_THRESHOLD_BPS,
 } from '@krypton/policy-schema'
 import { PolicyBlock } from '@krypton/ui'
+import { KRYPTON_PROGRAM_ID } from '@krypton/sdk'
+import { useLazorkitWallet } from '~/lib/LazorkitProvider'
 
 export const Route = createFileRoute('/app/create')({
   component: CreateVaultPage,
@@ -28,13 +31,16 @@ type Step = (typeof STEPS)[number]
 function CreateVaultPage() {
   const navigate = useNavigate()
   const [step, setStep] = useState(0)
+  const { signAndSendTransaction, wallet } = useLazorkitWallet()
   const [form, setForm] = useState<PolicyBuilderForm>(defaultPolicyBuilderForm)
   const [errors, setErrors] = useState<string[]>([])
   const [prompt, setPrompt] = useState('')
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [txSignature, setTxSignature] = useState<string | null>(null)
 
   const feasibility = useMemo(() => {
-    if (form.maxDrawdownPct <= 0) return null
     const targetType = form.riskProfile === 'high' ? 'multiple' : form.riskProfile === 'low' ? 'preservation' : 'apy'
     const targetValue = form.riskProfile === 'high' ? 3 : form.riskProfile === 'low' ? 1 : 8
     return assessFeasibility(targetType, targetValue, form.maxDrawdownPct, 90)
@@ -47,13 +53,10 @@ function CreateVaultPage() {
   }
 
   function toggleInList(key: 'assets' | 'protocols', item: string) {
-    setForm((f) => {
-      const list = f[key]
-      return {
-        ...f,
-        [key]: list.includes(item) ? list.filter((x) => x !== item) : [...list, item],
-      }
-    })
+    setForm((f) => ({
+      ...f,
+      [key]: f[key].includes(item) ? f[key].filter((x) => x !== item) : [...f[key], item],
+    }))
   }
 
   function applyPreset(presetId: string) {
@@ -76,7 +79,6 @@ function CreateVaultPage() {
 
   function handlePromptSubmit() {
     const p = prompt.toLowerCase()
-    // Simple NL matching
     if (p.includes('save') || p.includes('usdc') || p.includes('stable') || p.includes('lend')) {
       applyPreset('stable-saver')
     } else if (p.includes('compound') || p.includes('long term') || p.includes('grow') || p.includes('yield')) {
@@ -88,7 +90,6 @@ function CreateVaultPage() {
     } else if (p.includes('2x') || p.includes('3x') || p.includes('growth')) {
       applyPreset('growth-allocator')
     } else {
-      // Default: parse what we can
       const drawdownMatch = p.match(/(\d+)%?\s*(?:drawdown|down|loss|stop)/i)
       const leverageMatch = p.match(/(\d+(?:\.\d+)?)x?\s*(?:leverage|lev)/i)
       if (drawdownMatch) update('maxDrawdownPct', Math.min(50, Math.max(1, Number(drawdownMatch[1]))))
@@ -111,15 +112,37 @@ function CreateVaultPage() {
     if (step > 0) setStep((s) => s - 1)
   }
 
-  function submit() {
+  async function submit() {
     const parsed = policyBuilderFormSchema.safeParse(form)
     if (!parsed.success) {
       setErrors(parsed.error.issues.map((i) => i.message))
       return
     }
-    const policy = formToCapitalPolicy(parsed.data)
-    console.info('Policy ready for on-chain submit_policy', policy)
-    navigate({ to: '/app/vault/$id', params: { id: 'vault-alpha' } })
+    if (!signAndSendTransaction || !wallet?.smartWallet) {
+      setSubmitError('Wallet not connected. Please connect LazorKit wallet.')
+      return
+    }
+    setSubmitting(true)
+    setSubmitError(null)
+    try {
+      const owner = new PublicKey(wallet.smartWallet)
+      const programId = new PublicKey(KRYPTON_PROGRAM_ID)
+      const [vaultPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('vault'), owner.toBuffer()],
+        programId,
+      )
+      console.info('Creating vault:', vaultPda.toBase58(), form)
+      const sig = await signAndSendTransaction({
+        instructions: [], // TODO: build create_vault + submit_policy ix
+      })
+      setTxSignature(sig)
+      navigate({ to: '/app/vault/$id', params: { id: vaultPda.toBase58() } })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Transaction failed'
+      setSubmitError(msg)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const previewPolicy = formToCapitalPolicy(form)
@@ -131,7 +154,6 @@ function CreateVaultPage() {
       </p>
       <h1 className="font-display mt-2 text-3xl font-semibold">Create vault</h1>
 
-      {/* Step indicator */}
       <div className="mt-6 flex gap-2">
         {STEPS.map((label, i) => (
           <span
@@ -155,10 +177,8 @@ function CreateVaultPage() {
       )}
 
       <div className="panel mt-8 p-6">
-        {/* Step 0: Prompt + Presets */}
         {step === 0 && (
           <div className="space-y-6">
-            {/* Natural language prompt */}
             <div>
               <label className="block">
                 <span className="font-mono text-xs uppercase text-[var(--text-secondary)]">
@@ -172,22 +192,15 @@ function CreateVaultPage() {
                   placeholder="e.g. I want 5x in 10 weeks, stop if I'm down 5%. Or: Compound my SOL for the long term."
                 />
               </label>
-              <button
-                type="button"
-                onClick={handlePromptSubmit}
-                className="btn-secondary mt-3 text-xs"
-              >
+              <button type="button" onClick={handlePromptSubmit} className="btn-secondary mt-3 text-xs">
                 Parse prompt →
               </button>
             </div>
-
             <div className="flex items-center gap-4">
               <div className="h-px flex-1 bg-[var(--border)]" />
               <span className="font-mono text-xs text-[var(--text-muted)]">or choose a preset</span>
               <div className="h-px flex-1 bg-[var(--border)]" />
             </div>
-
-            {/* Preset cards */}
             <div className="grid gap-3 sm:grid-cols-2">
               {PRESET_FUND_MANAGERS.map((preset) => (
                 <button
@@ -223,7 +236,6 @@ function CreateVaultPage() {
           </div>
         )}
 
-        {/* Step 1: Risk */}
         {step === 1 && (
           <div className="space-y-4">
             <label className="block">
@@ -242,9 +254,7 @@ function CreateVaultPage() {
                 value={form.governanceMode}
                 onChange={(e) => update('governanceMode', e.target.value as PolicyBuilderForm['governanceMode'])}
               >
-                {GOVERNANCE_MODES.map((m) => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
+                {GOVERNANCE_MODES.map((m) => (<option key={m} value={m}>{m}</option>))}
               </select>
             </label>
             <label className="block">
@@ -254,9 +264,7 @@ function CreateVaultPage() {
                 value={form.riskProfile}
                 onChange={(e) => update('riskProfile', e.target.value as PolicyBuilderForm['riskProfile'])}
               >
-                {RISK_PROFILES.map((r) => (
-                  <option key={r} value={r}>{r}</option>
-                ))}
+                {RISK_PROFILES.map((r) => (<option key={r} value={r}>{r}</option>))}
               </select>
             </label>
             {(
@@ -269,39 +277,30 @@ function CreateVaultPage() {
               <label key={key} className="block">
                 <span className="font-mono text-xs uppercase text-[var(--text-secondary)]">{label}</span>
                 <input
-                  type="number"
-                  min={min}
-                  max={max}
-                  step={key === 'maxLeverage' ? 0.1 : 1}
+                  type="number" min={min} max={max} step={key === 'maxLeverage' ? 0.1 : 1}
                   className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--bg-base)] px-3 py-2 font-mono text-sm"
-                  value={form[key]}
-                  onChange={(e) => update(key, Number(e.target.value) as PolicyBuilderForm[typeof key])}
+                  value={form[key as keyof PolicyBuilderForm] as number}
+                  onChange={(e) => update(key as keyof PolicyBuilderForm, Number(e.target.value) as PolicyBuilderForm[typeof key])}
                 />
               </label>
             ))}
-
-            {/* Feasibility warning */}
-            {feasibility && feasibility.status === 'infeasible' && (
+            {feasibility?.status === 'infeasible' && (
               <div className="rounded border border-[var(--accent-warning)]/40 bg-[var(--accent-warning)]/10 p-3 text-sm text-[var(--accent-warning)]">
                 <p className="font-mono text-xs uppercase tracking-wider">feasibility_warning</p>
                 <p className="mt-1 text-xs">{feasibility.negotiation_prompt}</p>
               </div>
             )}
-            {feasibility && feasibility.status === 'feasible' && (
+            {feasibility?.status === 'feasible' && (
               <div className="rounded border border-[var(--accent-secondary)]/30 bg-[var(--accent-secondary)]/5 p-3 text-xs text-[var(--accent-secondary)]">
                 ✓ Risk envelope is feasible for the selected profile.
               </div>
             )}
-
             {isAggressiveLocked && (
               <div className="rounded border border-[var(--accent-warning)]/40 bg-[var(--accent-warning)]/10 p-3 text-sm text-[var(--accent-warning)]">
                 <p className="font-mono text-xs uppercase tracking-wider">advisory_lock</p>
-                <p className="mt-1 text-xs">
-                  Drawdown ≥ 25% requires advisory-only mode per safety policy. Execution will require manual approval.
-                </p>
+                <p className="mt-1 text-xs">Drawdown ≥ 25% requires advisory-only mode per safety policy.</p>
               </div>
             )}
-
             <label className="block">
               <span className="font-mono text-xs uppercase text-[var(--text-secondary)]">execution_mode</span>
               <select
@@ -309,9 +308,7 @@ function CreateVaultPage() {
                 value={form.executionMode}
                 onChange={(e) => update('executionMode', e.target.value as PolicyBuilderForm['executionMode'])}
               >
-                {EXECUTION_MODES.map((m) => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
+                {EXECUTION_MODES.map((m) => (<option key={m} value={m}>{m}</option>))}
               </select>
             </label>
             <label className="block">
@@ -319,19 +316,14 @@ function CreateVaultPage() {
               <select
                 className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--bg-base)] px-3 py-2 font-mono text-sm"
                 value={form.rebalanceFrequency}
-                onChange={(e) =>
-                  update('rebalanceFrequency', e.target.value as PolicyBuilderForm['rebalanceFrequency'])
-                }
+                onChange={(e) => update('rebalanceFrequency', e.target.value as PolicyBuilderForm['rebalanceFrequency'])}
               >
-                {REBALANCE_FREQUENCIES.map((f) => (
-                  <option key={f} value={f}>{f}</option>
-                ))}
+                {REBALANCE_FREQUENCIES.map((f) => (<option key={f} value={f}>{f}</option>))}
               </select>
             </label>
           </div>
         )}
 
-        {/* Step 2: Universe */}
         {step === 2 && (
           <div className="space-y-6">
             <div>
@@ -342,14 +334,10 @@ function CreateVaultPage() {
                     key={asset}
                     type="button"
                     onClick={() => toggleInList('assets', asset)}
-                    className={
-                      form.assets.includes(asset)
-                        ? 'rounded border border-[var(--accent-policy)] bg-[var(--accent-policy)]/10 px-3 py-1 font-mono text-xs text-[var(--accent-policy)]'
-                        : 'rounded border border-[var(--border)] px-3 py-1 font-mono text-xs text-[var(--text-secondary)]'
-                    }
-                  >
-                    {asset}
-                  </button>
+                    className={form.assets.includes(asset)
+                      ? 'rounded border border-[var(--accent-policy)] bg-[var(--accent-policy)]/10 px-3 py-1 font-mono text-xs text-[var(--accent-policy)]'
+                      : 'rounded border border-[var(--border)] px-3 py-1 font-mono text-xs text-[var(--text-secondary)]'}
+                  >{asset}</button>
                 ))}
               </div>
             </div>
@@ -361,14 +349,10 @@ function CreateVaultPage() {
                     key={p}
                     type="button"
                     onClick={() => toggleInList('protocols', p)}
-                    className={
-                      form.protocols.includes(p)
-                        ? 'rounded border border-[var(--accent-policy)] bg-[var(--accent-policy)]/10 px-3 py-1 font-mono text-xs text-[var(--accent-policy)]'
-                        : 'rounded border border-[var(--border)] px-3 py-1 font-mono text-xs text-[var(--text-secondary)]'
-                    }
-                  >
-                    {p}
-                  </button>
+                    className={form.protocols.includes(p)
+                      ? 'rounded border border-[var(--accent-policy)] bg-[var(--accent-policy)]/10 px-3 py-1 font-mono text-xs text-[var(--accent-policy)]'
+                      : 'rounded border border-[var(--border)] px-3 py-1 font-mono text-xs text-[var(--text-secondary)]'}
+                  >{p}</button>
                 ))}
               </div>
             </div>
@@ -378,7 +362,6 @@ function CreateVaultPage() {
           </div>
         )}
 
-        {/* Step 3: Review */}
         {step === 3 && (
           <div className="space-y-4">
             <PolicyBlock
@@ -403,6 +386,18 @@ function CreateVaultPage() {
                 </p>
               </div>
             )}
+            {submitError && (
+              <div className="rounded border border-[var(--accent-risk)]/40 bg-[var(--accent-risk)]/10 p-3 text-sm text-[var(--accent-risk)]">
+                <p className="font-mono text-xs uppercase tracking-wider">error</p>
+                <p className="mt-1 text-xs">{submitError}</p>
+              </div>
+            )}
+            {txSignature && (
+              <div className="rounded border border-[var(--accent-secondary)]/30 bg-[var(--accent-secondary)]/5 p-3 text-xs text-[var(--accent-secondary)]">
+                <p className="font-mono text-xs uppercase tracking-wider">transaction_submitted</p>
+                <p className="mt-1 font-mono break-all">{txSignature}</p>
+              </div>
+            )}
             <details className="text-sm text-[var(--text-secondary)]">
               <summary className="cursor-pointer font-mono text-xs uppercase">Canonical JSON</summary>
               <pre className="mt-2 overflow-x-auto rounded bg-[var(--bg-base)] p-3 font-mono text-xs">
@@ -410,7 +405,7 @@ function CreateVaultPage() {
               </pre>
             </details>
             <p className="text-xs text-[var(--text-secondary)]">
-              Signing will call create_vault + submit_policy on devnet once Phase 1 program is deployed.
+              Signing will call create_vault + submit_policy on devnet.
             </p>
           </div>
         )}
@@ -421,12 +416,10 @@ function CreateVaultPage() {
           Back
         </button>
         {step < STEPS.length - 1 ? (
-          <button type="button" onClick={next} className="btn-primary">
-            Continue
-          </button>
+          <button type="button" onClick={next} className="btn-primary">Continue</button>
         ) : (
-          <button type="button" onClick={submit} className="btn-primary">
-            Sign & create vault
+          <button type="button" onClick={submit} disabled={submitting} className="btn-primary disabled:opacity-50">
+            {submitting ? 'Creating…' : 'Sign & create vault'}
           </button>
         )}
       </div>

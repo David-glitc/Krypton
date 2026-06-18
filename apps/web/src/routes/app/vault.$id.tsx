@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import {
   AreaChart,
   Area,
@@ -11,7 +11,9 @@ import {
 } from 'recharts'
 import { ConstraintBars, PolicyBlock } from '@krypton/ui'
 import { getVault, NAV_HISTORY, constraintToBarInput } from '~/lib/mock-data'
+import { fetchVault } from '~/lib/vault-data'
 import { computeDrawdownBps, checkThresholds, DEFAULT_THRESHOLD_CONFIG } from '~/lib/telemetry-engine'
+import type { VaultSummary } from '@krypton/sdk'
 
 export const Route = createFileRoute('/app/vault/$id')({
   component: VaultDashboardPage,
@@ -19,7 +21,13 @@ export const Route = createFileRoute('/app/vault/$id')({
 
 function VaultDashboardPage() {
   const { id } = Route.useParams()
-  const vault = getVault(id)
+  const [vault, setVault] = useState<VaultSummary | undefined>(() => getVault(id))
+
+  useEffect(() => {
+    fetchVault(id).then((result) => {
+      if (result) setVault(result)
+    }).catch(() => {})
+  }, [id])
 
   const telemetry = useMemo(() => {
     if (!vault) return null

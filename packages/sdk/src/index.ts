@@ -49,6 +49,44 @@ export interface VaultSummary {
   constraint: ConstraintState
 }
 
+export interface VaultGoal {
+  vaultId: string
+  targetType: 'multiple' | 'apy' | 'preservation' | 'fixed_use_case'
+  targetValue?: number
+  timeHorizonDays: number
+  useCase?: string
+}
+
+export interface PolicyAccount {
+  vault: string
+  policyVersion: number
+  contentHash: number[]
+  maxDrawdownBps: number
+  maxLeverageBps: number
+  maxPositionBps: number
+}
+
+export interface CreateVaultParams {
+  maxDrawdownBps: number
+  maxLeverageBps: number
+  maxPositionBps: number
+}
+
+export interface SubmitPolicyParams {
+  maxDrawdownBps: number
+  maxLeverageBps: number
+  maxPositionBps: number
+  contentHash: number[]
+}
+
+export interface ExecuteActionParams {
+  actionType: number
+  postLeverageBps: number
+  postConcentrationBps: number
+  postDrawdownBps: number
+  compositeScore: number
+}
+
 export const CLUSTER = (import.meta as { env?: Record<string, string> }).env
   ?.VITE_SOLANA_CLUSTER ?? 'devnet'
 
@@ -58,6 +96,8 @@ export const RPC_URL =
 
 export const KRYPTON_PROGRAM_ID =
   (import.meta as { env?: Record<string, string> }).env?.VITE_KRYPTON_PROGRAM_ID ??
-  '4Xs4pQ2vA9bv8dTxoe6cA9sQZBLZr6aKD4RrGnCdB1g6'
+  'DQVp9hnnU6zbyPCJbcEnS6F1fWZMQ2yCCH9jL6cFVPxF'
 
 export const PROTOCOL_MAX_LEVERAGE_BPS = 20_000
+export const AGGRESSIVE_THRESHOLD_BPS = 2500
+export const MAX_STALENESS_SECONDS = 300
