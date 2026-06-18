@@ -58,9 +58,7 @@ export function useKryptonAuth() {
   return {
     dynamic,
     lazorkit,
-    // Any wallet connected (Dynamic OR Lazorkit)
     isConnected: dynamic.primaryWallet != null || lazorkit.isConnected,
-    // Primary wallet address
     primaryAddress:
       dynamic.primaryWallet?.address ?? lazorkit.wallet?.smartWallet ?? null,
   }

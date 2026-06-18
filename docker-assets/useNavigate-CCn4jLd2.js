@@ -1,0 +1,1 @@
+import{s as e}from"./chunk-CJJwijRH.js";import{U as t,r as n}from"./link-CHECQpzJ.js";var r=e(t(),1);function i(e){let t=n();return r.useCallback(n=>t.navigate({...n,from:n.from??e?.from}),[e?.from,t])}export{i as t};

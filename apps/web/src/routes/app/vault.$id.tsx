@@ -1,16 +1,17 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { useMemo } from 'react'
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  Area,
-  AreaChart,
+  CartesianGrid,
 } from 'recharts'
 import { ConstraintBars, PolicyBlock } from '@krypton/ui'
-import { constraintToBarInput, getVault, NAV_HISTORY } from '~/lib/mock-data'
+import { getVault, NAV_HISTORY, constraintToBarInput } from '~/lib/mock-data'
+import { computeDrawdownBps, checkThresholds, DEFAULT_THRESHOLD_CONFIG } from '~/lib/telemetry-engine'
 
 export const Route = createFileRoute('/app/vault/$id')({
   component: VaultDashboardPage,
@@ -20,20 +21,31 @@ function VaultDashboardPage() {
   const { id } = Route.useParams()
   const vault = getVault(id)
 
+  const telemetry = useMemo(() => {
+    if (!vault) return null
+    const liveDrawdownBps = computeDrawdownBps(vault.navUsd, vault.navUsd * 1.15)
+    const maxDrawdownBps = vault.constraint.maxDrawdownBps
+    const alert = checkThresholds(
+      { vaultId: id, nav: vault.navUsd, peakNav: vault.navUsd * 1.15, liveDrawdownBps, positions: [], lastUpdated: Date.now() },
+      maxDrawdownBps,
+      DEFAULT_THRESHOLD_CONFIG,
+    )
+    return { liveDrawdownBps, alert }
+  }, [vault, id])
+
   if (!vault) {
     return (
       <div className="mx-auto max-w-6xl px-6 py-20 text-center">
         <p className="text-[var(--accent-risk)]">Vault not found — {id}</p>
-        <Link to="/app" className="btn-secondary mt-6 inline-flex">
-          Back to vaults
-        </Link>
+        <Link to="/app" className="btn-secondary mt-6 inline-flex">Back to vaults</Link>
       </div>
     )
   }
 
   const bars = constraintToBarInput(vault.constraint)
-  const drawdownUtilization = ((vault.constraint.currentDrawdownBps / vault.constraint.maxDrawdownBps) * 100).toFixed(0)
-  const leverageUtilization = ((vault.constraint.currentLeverageBps / vault.constraint.maxLeverageBps) * 100).toFixed(0)
+  const drawdownUtil = ((vault.constraint.currentDrawdownBps / vault.constraint.maxDrawdownBps) * 100).toFixed(0)
+  const leverageUtil = ((vault.constraint.currentLeverageBps / vault.constraint.maxLeverageBps) * 100).toFixed(0)
+  const concentrationUtil = ((vault.constraint.currentPositionConcentrationBps / vault.constraint.maxPositionBps) * 100).toFixed(0)
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-10">
@@ -43,8 +55,17 @@ function VaultDashboardPage() {
           <div className="flex items-center gap-3">
             <h1 className="font-display text-2xl font-semibold">{vault.name}</h1>
             {vault.constraint.paused && (
-              <span className="rounded bg-[var(--accent-risk)]/10 px-2 py-0.5 font-mono text-xs uppercase text-[var(--accent-risk)]">
-                paused
+              <span className="rounded bg-[var(--accent-risk)]/10 px-2 py-0.5 font-mono text-xs uppercase text-[var(--accent-risk)]">paused</span>
+            )}
+            {telemetry?.alert && (
+              <span className={`rounded px-2 py-0.5 font-mono text-xs uppercase ${
+                telemetry.alert.level === 'breach'
+                  ? 'bg-[var(--accent-risk)]/10 text-[var(--accent-risk)]'
+                  : telemetry.alert.level === 'pre_breach'
+                    ? 'bg-[var(--accent-warning)]/10 text-[var(--accent-warning)]'
+                    : 'bg-[var(--accent-policy)]/10 text-[var(--accent-policy)]'
+              }`}>
+                {telemetry.alert.level}
               </span>
             )}
           </div>
@@ -55,98 +76,77 @@ function VaultDashboardPage() {
           </div>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Link to="/app/vault/$id/activity" params={{ id }} className="btn-secondary text-xs">
-            Activity
-          </Link>
-          <Link to="/app/vault/$id/policy" params={{ id }} className="btn-secondary text-xs">
-            Policy
-          </Link>
+          <Link to="/app/vault/$id/activity" params={{ id }} className="btn-secondary text-xs">Activity</Link>
+          <Link to="/app/vault/$id/policy" params={{ id }} className="btn-secondary text-xs">Policy</Link>
         </div>
       </div>
 
-      {/* Constraint overview cards */}
+      {/* Alert banner */}
+      {telemetry?.alert && telemetry.alert.level !== 'watch' && (
+        <div className={`mt-4 rounded border p-3 text-sm ${
+          telemetry.alert.level === 'breach'
+            ? 'border-[var(--accent-risk)]/40 bg-[var(--accent-risk)]/10 text-[var(--accent-risk)]'
+            : 'border-[var(--accent-warning)]/40 bg-[var(--accent-warning)]/10 text-[var(--accent-warning)]'
+        }`}>
+          <p className="font-mono text-xs uppercase tracking-wider">{telemetry.alert.level}</p>
+          <p className="mt-1 text-xs">{telemetry.alert.message}</p>
+          {telemetry.alert.recommendedActions.length > 0 && (
+            <ul className="mt-2 space-y-1">
+              {telemetry.alert.recommendedActions.map((a, i) => (
+                <li key={i} className="text-xs">→ {a}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {/* Constraint cards */}
       <div className="mt-8 grid gap-4 sm:grid-cols-3">
-        <ConstraintCard
-          label="drawdown"
-          current={vault.constraint.currentDrawdownBps / 100}
-          max={vault.constraint.maxDrawdownBps / 100}
-          unit="%"
-          utilization={Number(drawdownUtilization)}
-        />
-        <ConstraintCard
-          label="leverage"
-          current={vault.constraint.currentLeverageBps / 10000}
-          max={vault.constraint.maxLeverageBps / 10000}
-          unit="x"
-          utilization={Number(leverageUtilization)}
-        />
-        <ConstraintCard
-          label="concentration"
-          current={vault.constraint.currentPositionConcentrationBps / 100}
-          max={vault.constraint.maxPositionBps / 100}
-          unit="%"
-          utilization={Number(((vault.constraint.currentPositionConcentrationBps / vault.constraint.maxPositionBps) * 100).toFixed(0))}
-        />
+        <ConstraintCard label="drawdown" current={vault.constraint.currentDrawdownBps / 100} max={vault.constraint.maxDrawdownBps / 100} unit="%" utilization={Number(drawdownUtil)} />
+        <ConstraintCard label="leverage" current={vault.constraint.currentLeverageBps / 10000} max={vault.constraint.maxLeverageBps / 10000} unit="x" utilization={Number(leverageUtil)} />
+        <ConstraintCard label="concentration" current={vault.constraint.currentPositionConcentrationBps / 100} max={vault.constraint.maxPositionBps / 100} unit="%" utilization={Number(concentrationUtil)} />
       </div>
 
       {/* Charts + Policy */}
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        {/* NAV chart */}
         <div className="panel p-5">
-          <p className="font-mono text-xs uppercase tracking-wider text-[var(--text-secondary)]">
-            nav_history
-          </p>
+          <p className="font-mono text-xs uppercase tracking-wider text-[var(--text-secondary)]">nav_history</p>
           <div className="mt-4 h-64">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={NAV_HISTORY}>
                 <defs>
-                  <linearGradient id="navGradient" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="navGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="var(--accent-primary)" stopOpacity={0.3} />
                     <stop offset="95%" stopColor="var(--accent-primary)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis dataKey="date" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} domain={['auto', 'auto']} />
-                <Tooltip
-                  contentStyle={{
-                    background: 'var(--bg-panel)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                  }}
-                />
-                <Area type="monotone" dataKey="nav" stroke="var(--accent-primary)" fill="url(#navGradient)" strokeWidth={2} />
+                <Tooltip contentStyle={{ background: 'var(--bg-panel)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '12px' }} />
+                <Area type="monotone" dataKey="nav" stroke="var(--accent-primary)" fill="url(#navGrad)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Constraint bars */}
         <div className="panel p-5">
-          <p className="font-mono text-xs uppercase tracking-wider text-[var(--text-secondary)]">
-            constraint_utilization
-          </p>
-          <div className="mt-6">
-            <ConstraintBars {...bars} />
-          </div>
+          <p className="font-mono text-xs uppercase tracking-wider text-[var(--text-secondary)]">constraint_utilization</p>
+          <div className="mt-6"><ConstraintBars {...bars} /></div>
           <div className="mt-6 rounded border border-[var(--border)] bg-[var(--bg-base)] p-3">
-            <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
-              status
-            </p>
+            <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)]">status</p>
             <p className="mt-1 text-sm text-[var(--text-primary)]">
               {vault.constraint.paused
                 ? 'Vault is paused. No actions will execute.'
-                : `All constraints within bounds. ${100 - Number(drawdownUtilization)}% drawdown headroom remaining.`}
+                : `All constraints within bounds. ${100 - Number(drawdownUtil)}% drawdown headroom remaining.`}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Policy summary */}
+      {/* Policy */}
       <div className="panel mt-6 p-5">
-        <p className="font-mono text-xs uppercase tracking-wider text-[var(--accent-policy)]">
-          active_policy
-        </p>
+        <p className="font-mono text-xs uppercase tracking-wider text-[var(--accent-policy)]">active_policy</p>
         <div className="mt-4">
           <PolicyBlock
             fields={{
@@ -164,45 +164,22 @@ function VaultDashboardPage() {
   )
 }
 
-function ConstraintCard({
-  label,
-  current,
-  max,
-  unit,
-  utilization,
-}: {
-  label: string
-  current: number
-  max: number
-  unit: string
-  utilization: number
-}) {
+function ConstraintCard({ label, current, max, unit, utilization }: { label: string; current: number; max: number; unit: string; utilization: number }) {
   const isDanger = utilization >= 90
   const isWarning = utilization >= 70
-
   return (
     <div className="panel p-4">
       <div className="flex items-center justify-between">
         <p className="font-mono text-xs uppercase tracking-wider text-[var(--text-secondary)]">{label}</p>
-        <span
-          className={`font-mono text-xs ${
-            isDanger ? 'text-[var(--accent-risk)]' : isWarning ? 'text-[var(--accent-warning)]' : 'text-[var(--accent-secondary)]'
-          }`}
-        >
+        <span className={`font-mono text-xs ${isDanger ? 'text-[var(--accent-risk)]' : isWarning ? 'text-[var(--accent-warning)]' : 'text-[var(--accent-secondary)]'}`}>
           {utilization}%
         </span>
       </div>
       <p className="mt-2 font-display text-2xl font-semibold">
-        {current.toFixed(1)}
-        <span className="text-sm text-[var(--text-muted)]">/{max.toFixed(1)}{unit}</span>
+        {current.toFixed(1)}<span className="text-sm text-[var(--text-muted)]">/{max.toFixed(1)}{unit}</span>
       </p>
       <div className="mt-3 h-1.5 overflow-hidden rounded-sm bg-[var(--bg-panel-raised)]">
-        <div
-          className={`h-full transition-all ${
-            isDanger ? 'bg-[var(--accent-risk)]' : isWarning ? 'bg-[var(--accent-warning)]' : 'bg-[var(--accent-policy)]'
-          }`}
-          style={{ width: `${Math.min(100, utilization)}%` }}
-        />
+        <div className={`h-full transition-all ${isDanger ? 'bg-[var(--accent-risk)]' : isWarning ? 'bg-[var(--accent-warning)]' : 'bg-[var(--accent-policy)]'}`} style={{ width: `${Math.min(100, utilization)}%` }} />
       </div>
     </div>
   )

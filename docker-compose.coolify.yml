@@ -1,6 +1,9 @@
 services:
   krypton:
     container_name: krypton
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: ghcr.io/david-glitc/krypton:latest
     pull_policy: never
     networks:
