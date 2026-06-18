@@ -1,1 +1,0 @@
-var e=!0;function t(e){return!!e}function n(){return`Connect an invited wallet to access /app during private beta.`}function r(){return e}export{t as n,r,n as t};
