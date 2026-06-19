@@ -1,11 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "pnpm --filter @krypton/web build",
+  "buildCommand": "cd apps/web && pnpm install && pnpm build",
   "installCommand": "cd apps/web && pnpm install",
   "framework": "nextjs",
   "build": {
     "env": {
-      "NODE_VERSION": "22"
+      "NODE_VERSION": "22",
+      "NEXT_TELEMETRY_DISABLED": "1"
     }
   }
 }
