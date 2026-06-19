@@ -1,20 +1,8 @@
-# Docker
-.dockerignore
-
-# ... rest follows
-node_modules/
-dist/
-.output/
-.nitro/
-.anchor/
-target/
-.DS_Store
-*.log
+node_modules
+.next
+out
 .env
-.env.*
-.pnpm-store/
-!.env.example
-test-ledger/
-.idea/
-.vscode/settings.json
+.env.local
+*.tsbuildinfo
+next-env.d.ts
 .vercel

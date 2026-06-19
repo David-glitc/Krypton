@@ -19,7 +19,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @krypton/web build
+      - run: pnpm build
       - run: pnpm --filter @krypton/policy-schema typecheck
       - run: pnpm --filter @krypton/sdk typecheck
       - run: pnpm --filter @krypton/ui typecheck
