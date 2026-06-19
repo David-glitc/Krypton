@@ -34,9 +34,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body className="bg-[var(--bg-base)] text-[var(--text-primary)] antialiased">
-        {children}
-        <TanStackRouterDevtools position="bottom-right" />
-        <Scripts />
+        <div suppressHydrationWarning>
+          {children}
+          <TanStackRouterDevtools position="bottom-right" />
+          <Scripts />
+        </div>
       </body>
     </html>
   )
