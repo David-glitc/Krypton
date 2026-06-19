@@ -13,7 +13,7 @@ function DocsPage() {
         <h1 className="font-display text-4xl font-semibold">Policy schema reference</h1>
         <p className="mt-4 text-[var(--text-secondary)]">
           Canonical Capital Policy fields stored off-chain (Arweave) with hash anchored on-chain in{' '}
-          <code className="font-mono text-[var(--accent-policy)]">PolicyAccount</code>.
+          <code className="font-mono text-[var(--accent)]">PolicyAccount</code>.
         </p>
 
         <div className="mt-10 space-y-6">

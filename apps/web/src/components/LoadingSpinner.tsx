@@ -9,7 +9,7 @@ export function LoadingSpinner({ label = 'Loading…', className = '' }: Loading
   return (
     <div className={`flex flex-col items-center justify-center gap-3 py-12 ${className}`}>
       <div
-        className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent-policy)]"
+        className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent)]"
         aria-label="Loading"
       />
       <p className="text-sm text-[var(--text-muted)]">{label}</p>

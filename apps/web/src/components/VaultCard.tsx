@@ -16,7 +16,7 @@ export function VaultCard({ vault }: { vault: VaultSummary }) {
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-mono text-lg text-[var(--text-primary)]">{vault.name}</h2>
-          <p className="mt-1 font-mono text-sm text-[var(--accent-policy)]">
+          <p className="mt-1 font-mono text-sm text-[var(--accent)]">
             ${vault.navUsd.toLocaleString()} NAV
           </p>
         </div>
@@ -83,7 +83,7 @@ function ConstraintMiniBar({
       <div className="h-1.5 overflow-hidden rounded-sm bg-[var(--bg-panel-raised)]">
         <div
           className={`h-full transition-all ${
-            isDanger ? 'bg-[var(--accent-risk)]' : isWarning ? 'bg-[var(--accent-policy)]' : 'bg-[var(--accent-policy)]'
+            isDanger ? 'bg-[var(--accent-risk)]' : isWarning ? 'bg-[var(--accent)]' : 'bg-[var(--accent)]'
           }`}
           style={{ width: `${pct}%` }}
         />

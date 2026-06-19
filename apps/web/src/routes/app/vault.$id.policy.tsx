@@ -26,7 +26,7 @@ function VaultPolicyPage() {
       <Link
         to="/app/vault/$id"
         params={{ id }}
-        className="font-mono text-xs uppercase tracking-wider text-[var(--text-secondary)] hover:text-[var(--accent-policy)]"
+        className="font-mono text-xs uppercase tracking-wider text-[var(--text-secondary)] hover:text-[var(--accent)]"
       >
         ← {vault.name}
       </Link>
@@ -37,7 +37,7 @@ function VaultPolicyPage() {
       </p>
 
       <div className="panel mt-8 p-6">
-        <p className="font-mono text-xs uppercase tracking-wider text-[var(--accent-policy)]">
+        <p className="font-mono text-xs uppercase tracking-wider text-[var(--accent)]">
           active_policy
         </p>
         <div className="mt-4">
@@ -61,7 +61,7 @@ function VaultPolicyPage() {
         </p>
         <p className="mt-3 text-sm text-[var(--text-secondary)]">
           Policy amendments hash canonical JSON off-chain and write a new version to{' '}
-          <code className="font-mono text-[var(--accent-policy)]">PolicyAccount</code>. Prior
+          <code className="font-mono text-[var(--accent)]">PolicyAccount</code>. Prior
           versions remain queryable for audit.
         </p>
         <Link to="/app/create" className="btn-secondary mt-6 inline-flex">

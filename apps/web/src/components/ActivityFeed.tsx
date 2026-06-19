@@ -67,11 +67,11 @@ const typeIcon: Record<ActivityEntry['type'], string> = {
 const typeColor: Record<ActivityEntry['type'], string> = {
   executed: 'bg-[var(--accent-positive)]/10 text-[var(--accent-positive)]',
   rejected: 'bg-[var(--accent-risk)]/10 text-[var(--accent-risk)]',
-  advisory_pending: 'bg-[var(--accent-policy)]/10 text-[var(--accent-policy)]',
-  policy_amended: 'bg-[var(--accent-policy)]/10 text-[var(--accent-policy)]',
+  advisory_pending: 'bg-[var(--accent)]/10 text-[var(--accent)]',
+  policy_amended: 'bg-[var(--accent)]/10 text-[var(--accent)]',
   deposit: 'bg-[var(--accent-positive)]/10 text-[var(--accent-positive)]',
-  withdrawal: 'bg-[var(--accent-policy)]/10 text-[var(--accent-policy)]',
-  paused: 'bg-[var(--accent-policy)]/10 text-[var(--accent-policy)]',
+  withdrawal: 'bg-[var(--accent)]/10 text-[var(--accent)]',
+  paused: 'bg-[var(--accent)]/10 text-[var(--accent)]',
   unpaused: 'bg-[var(--accent-positive)]/10 text-[var(--accent-positive)]',
 }
 

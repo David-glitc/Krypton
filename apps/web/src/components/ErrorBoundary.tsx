@@ -31,7 +31,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
       }
       return (
         <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 p-8 text-center">
-          <p className="font-mono text-xs uppercase tracking-wider text-[var(--accent-policy)]">
+          <p className="font-mono text-xs uppercase tracking-wider text-[var(--accent)]">
             something went wrong
           </p>
           <p className="max-w-md text-sm text-[var(--text-secondary)]">
@@ -39,7 +39,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
           </p>
           <button
             onClick={() => this.setState({ hasError: false, error: null })}
-            className="mt-2 rounded-sm bg-[var(--accent-policy)] px-4 py-2 text-xs font-semibold uppercase text-white"
+            className="mt-2 rounded-sm bg-[var(--accent)] px-4 py-2 text-xs font-semibold uppercase text-white"
           >
             Try again
           </button>

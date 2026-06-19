@@ -36,7 +36,7 @@ function VaultListPage() {
     <div className="mx-auto max-w-6xl px-6 py-10">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <p className="font-mono text-xs uppercase tracking-wider text-[var(--accent-policy)]">
+          <p className="font-mono text-xs uppercase tracking-wider text-[var(--accent)]">
             capital: your_vaults
           </p>
           <h1 className="font-display mt-2 text-3xl font-semibold">Vaults</h1>

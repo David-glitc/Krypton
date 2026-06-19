@@ -90,7 +90,7 @@ function VaultActivityPage() {
       <Link
         to="/app/vault/$id"
         params={{ id }}
-        className="font-mono text-xs uppercase tracking-wider text-[var(--text-secondary)] hover:text-[var(--accent-policy)]"
+        className="font-mono text-xs uppercase tracking-wider text-[var(--text-secondary)] hover:text-[var(--accent)]"
       >
         ← {vault.name}
       </Link>
@@ -109,7 +109,7 @@ function VaultActivityPage() {
       {/* Pending actions */}
       {actions.length > 0 && (
         <section className="mt-8">
-          <p className="font-mono text-xs uppercase tracking-wider text-[var(--accent-policy)]">
+          <p className="font-mono text-xs uppercase tracking-wider text-[var(--accent)]">
             pending_actions ({actions.length})
           </p>
           <div className="mt-4 space-y-4">
@@ -138,7 +138,7 @@ function VaultActivityPage() {
                 onClick={() => setFilter(f)}
                 className={`rounded px-2 py-1 font-mono text-[10px] uppercase tracking-wider transition ${
                   filter === f
-                    ? 'bg-[var(--accent-policy)]/10 text-[var(--accent-policy)]'
+                    ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
                     : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
                 }`}
               >
