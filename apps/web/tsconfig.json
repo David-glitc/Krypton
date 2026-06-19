@@ -19,8 +19,9 @@
       }
     ],
     "paths": {
+      "@krypton/policy-schema": ["../../packages/policy-schema/src/index.ts"],
       "@/*": ["./src/*"]
-    }
+    },
   },
   "include": [
     "next-env.d.ts",
