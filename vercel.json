@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "pnpm --filter @krypton/web build",
+  "installCommand": "pnpm install --no-frozen-lockfile",
+  "framework": "vite",
+  "outputDirectory": "apps/web/.output",
+  "build": {
+    "env": {
+      "NODE_VERSION": "22"
+    }
+  }
+}
