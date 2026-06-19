@@ -1,16 +1,11 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { PageShell } from './__root'
-import { isPrivateBetaActive } from '~/lib/invite'
-import { useKryptonAuth } from '~/lib/AuthProvider'
 
 export const Route = createFileRoute('/')({
   component: LandingPage,
 })
 
 function LandingPage() {
-  const betaActive = isPrivateBetaActive()
-  const { isConnected, primaryAddress, lazorkit } = useKryptonAuth()
-
   return (
     <PageShell>
       {/* Hero */}
@@ -19,9 +14,7 @@ function LandingPage() {
           <div className="inline-flex items-center gap-2 border border-[var(--accent-muted)] px-3 py-1">
             <span className="status-dot status-dot--active" />
             <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--accent)]">
-              {primaryAddress
-                ? `Connected: ${primaryAddress.slice(0, 6)}…${primaryAddress.slice(-4)}`
-                : 'Private beta — devnet'}
+              Private beta — devnet
             </span>
           </div>
 
@@ -36,22 +29,9 @@ function LandingPage() {
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
-            {isConnected ? (
-              <Link to="/app" className="btn-primary text-xs">
-                Go to vaults →
-              </Link>
-            ) : (
-              <button
-                onClick={() => {
-                  if (lazorkit?.connect) {
-                    lazorkit.connect()
-                  }
-                }}
-                className="btn-primary text-xs"
-              >
-                Connect wallet →
-              </button>
-            )}
+            <Link to="/app" className="btn-primary text-xs">
+              Connect wallet →
+            </Link>
             <Link to="/docs" className="btn-secondary text-xs">
               Read the policy spec
             </Link>
@@ -109,22 +89,9 @@ function LandingPage() {
             No seed phrase. No custodian. No black box.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            {isConnected ? (
-              <Link to="/app" className="btn-primary text-xs">
-                Go to vaults →
-              </Link>
-            ) : (
-              <button
-                onClick={() => {
-                  if (lazorkit?.connect) {
-                    lazorkit.connect()
-                  }
-                }}
-                className="btn-primary text-xs"
-              >
-                Connect wallet →
-              </button>
-            )}
+            <Link to="/app" className="btn-primary text-xs">
+              Connect wallet →
+            </Link>
           </div>
         </div>
       </section>
@@ -133,30 +100,10 @@ function LandingPage() {
 }
 
 const STEPS = [
-  {
-    num: '01',
-    tag: 'describe',
-    title: 'Describe your goal',
-    desc: '"Grow slowly and safely." "I want collateral." "Compound for ten years." Plain language in.',
-  },
-  {
-    num: '02',
-    tag: 'review',
-    title: 'Review the policy',
-    desc: 'Krypton compiles your intent into a structured policy — risk limits, asset universe, drawdown tolerance — shown back in plain English.',
-  },
-  {
-    num: '03',
-    tag: 'deploy',
-    title: 'Deploy and deposit',
-    desc: 'One signature creates your vault. A second funds it. Your policy is the law.',
-  },
-  {
-    num: '04',
-    tag: 'execute',
-    title: 'Agent executes, chain enforces',
-    desc: 'A multi-agent pipeline proposes every cycle. The model recommends. The on-chain constraint engine disposes.',
-  },
+  { num: '01', tag: 'describe', title: 'Describe your goal', desc: '"Grow slowly and safely." "I want collateral." "Compound for ten years." Plain language in.' },
+  { num: '02', tag: 'review', title: 'Review the policy', desc: 'Krypton compiles your intent into a structured policy — risk limits, asset universe, drawdown tolerance — shown back in plain English.' },
+  { num: '03', tag: 'deploy', title: 'Deploy and deposit', desc: 'One signature creates your vault. A second funds it. Your policy is the law.' },
+  { num: '04', tag: 'execute', title: 'Agent executes, chain enforces', desc: 'A multi-agent pipeline proposes every cycle. The model recommends. The on-chain constraint engine disposes.' },
 ] as const
 
 const USE_CASES = [
