@@ -1,231 +1,658 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useMemo } from 'react'
+import {
+  PRESET_FUND_MANAGERS,
+  assessFeasibility,
+  AGGRESSIVE_THRESHOLD_BPS,
+  formToCapitalPolicy,
+  DEFAULT_ASSETS,
+  DEFAULT_PROTOCOLS,
+  RISK_PROFILES,
+  EXECUTION_MODES,
+  REBALANCE_FREQUENCIES,
+} from '@krypton/policy-schema'
 
-const STEPS = ['Start', 'Risk', 'Universe', 'Review'] as const
+interface FormData {
+  vaultName: string
+  riskProfile: string
+  maxDrawdownPct: number
+  maxLeverage: number
+  maxPositionPct: number
+  executionMode: string
+  rebalanceFrequency: string
+  assets: string[]
+  protocols: string[]
+}
 
-const PRESETS = [
-  { id: 'stable-saver', name: 'Stable Saver', desc: 'Preservation-focused. Lend USDC/USDT. No swaps, no leverage.', maxDd: 2, maxLev: 1, assets: ['USDC', 'USDT'], protocols: ['kamino'] },
-  { id: 'steady-compounder', name: 'Steady Compounder', desc: 'LST yield + lending blend for sustainable ~6-10% APY.', maxDd: 8, maxLev: 1, assets: ['SOL', 'USDC'], protocols: ['sanctum', 'kamino'] },
-  { id: 'growth-allocator', name: 'Growth Allocator', desc: 'Multi-asset growth with advisory → auto progression.', maxDd: 15, maxLev: 1.5, assets: ['SOL', 'ETH', 'BTC', 'USDC'], protocols: ['jupiter', 'kamino'] },
-  { id: 'aggressive-compounder', name: 'Aggressive Compounder', desc: 'High-variance leveraged strategies. HARD-LOCKED to advisory.', maxDd: 30, maxLev: 2, assets: ['SOL', 'ETH', 'BTC'], protocols: ['jupiter', 'drift'] },
-  { id: 'collateral-vault', name: 'Collateral Vault', desc: 'Hold a single asset as collateral. No strategy pipeline.', maxDd: 5, maxLev: 1, assets: ['SOL', 'USDC'], protocols: [] },
-  { id: 'onchain-deposit-box', name: 'On-Chain Deposit Box', desc: 'Deposit and hold. No agent pipeline runs at all.', maxDd: 100, maxLev: 1, assets: [], protocols: [] },
-]
-
-const DEFAULT_FORM = {
+const emptyForm: FormData = {
   vaultName: '',
   riskProfile: 'medium',
   maxDrawdownPct: 12,
-  maxLeverage: 1.5,
+  maxLeverage: 1,
   maxPositionPct: 35,
-  assets: ['SOL', 'USDC'],
-  protocols: ['jupiter', 'kamino'],
   executionMode: 'advisory',
   rebalanceFrequency: 'daily',
+  assets: ['SOL', 'USDC', 'USDT'],
+  protocols: ['jupiter', 'kamino'],
 }
 
+const inputCls =
+  'w-full rounded border border-border bg-bg-base px-3 py-2 font-mono text-sm text-text-primary'
+const labelCls = 'font-mono text-xs uppercase text-text-secondary'
+const selectCls = inputCls
+
 export default function CreateVaultPage() {
-  const router = useRouter()
   const [step, setStep] = useState(0)
-  const [form, setForm] = useState(DEFAULT_FORM)
-  const [selectedPreset, setSelectedPreset] = useState<string | null>(null)
+  const [form, setForm] = useState<FormData>({ ...emptyForm })
   const [submitting, setSubmitting] = useState(false)
+  const [nlPrompt, setNlPrompt] = useState('')
 
-  const isAggressive = form.maxDrawdownPct * 100 >= 2500
+  const maxDrawdownBps = form.maxDrawdownPct * 100
+  const isAggressive = maxDrawdownBps >= AGGRESSIVE_THRESHOLD_BPS
 
-  function applyPreset(preset: typeof PRESETS[number]) {
-    setSelectedPreset(preset.id)
-    setForm((f) => ({
-      ...f,
-      vaultName: f.vaultName || preset.id.replace(/-/g, '_'),
-      riskProfile: preset.maxDd <= 5 ? 'low' : preset.maxDd <= 15 ? 'medium' : 'high',
-      maxDrawdownPct: preset.maxDd,
-      maxLeverage: preset.maxLev,
-      assets: [...preset.assets],
-      protocols: [...preset.protocols],
-      executionMode: preset.id === 'aggressive-compounder' ? 'advisory' : f.executionMode,
+  const feasibility = useMemo(() => {
+    if (step < 1) return null
+    return assessFeasibility('multiple', 2.0, form.maxDrawdownPct, 90)
+  }, [form.maxDrawdownPct, step])
+
+  const capitalPolicy = useMemo(() => {
+    if (step < 3) return null
+    return formToCapitalPolicy({
+      vaultName: form.vaultName || 'My Vault',
+      governanceMode: 'owner' as const,
+      riskProfile: form.riskProfile as 'low' | 'medium' | 'high' | 'custom',
+      maxDrawdownPct: form.maxDrawdownPct,
+      maxLeverage: form.maxLeverage,
+      maxPositionPct: form.maxPositionPct,
+      assets: form.assets,
+      protocols: form.protocols,
+      executionMode: form.executionMode as 'advisory' | 'constrained_auto' | 'full_auto',
+      rebalanceFrequency: form.rebalanceFrequency as 'event_driven' | 'hourly' | 'daily' | 'weekly',
+      permissionLevel: 2,
+    })
+  }, [form, step])
+
+  const applyPreset = (presetId: string) => {
+    const preset = PRESET_FUND_MANAGERS.find((p: (typeof PRESET_FUND_MANAGERS)[number]) => p.id === presetId)
+    if (!preset) return
+    setForm((prev) => ({
+      ...prev,
+      riskProfile: preset.riskProfile,
+      maxDrawdownPct: preset.maxDrawdownPct,
+      maxLeverage: preset.maxLeverage,
+      maxPositionPct: preset.maxPositionPct,
+      executionMode: preset.executionMode,
+      assets: preset.assets.length > 0 ? [...preset.assets] : prev.assets,
+      protocols: preset.protocols.length > 0 ? [...preset.protocols] : prev.protocols,
     }))
     setStep(1)
   }
 
-  function update(key: string, value: unknown) {
-    setForm((f) => ({ ...f, [key]: value }))
+  const handleSubmit = async () => {
+    setSubmitting(true)
+    await new Promise<void>((r) => setTimeout(r, 1500))
+    setSubmitting(false)
   }
 
-  function toggleListItem(key: 'assets' | 'protocols', item: string) {
-    setForm((f) => ({
-      ...f,
-      [key]: f[key].includes(item) ? f[key].filter((x: string) => x !== item) : [...f[key], item],
+  const toggleAsset = (sym: string) => {
+    setForm((prev) => ({
+      ...prev,
+      assets: prev.assets.includes(sym)
+        ? prev.assets.filter((a: string) => a !== sym)
+        : [...prev.assets, sym],
     }))
   }
 
-  async function submit() {
-    setSubmitting(true)
-    await new Promise((r) => setTimeout(r, 1500))
-    router.push('/app')
+  const toggleProtocol = (proto: string) => {
+    setForm((prev) => ({
+      ...prev,
+      protocols: prev.protocols.includes(proto)
+        ? prev.protocols.filter((p: string) => p !== proto)
+        : [...prev.protocols, proto],
+    }))
   }
 
-  return (
-    <div className="mx-auto max-w-3xl px-6 py-10">
-      <p className="label">policy: builder_wizard</p>
-      <h1 className="font-display mt-2 text-3xl font-semibold">Create vault</h1>
+  const stepLabels = ['Start', 'Risk', 'Universe', 'Review']
 
-      <div className="mt-6 flex gap-2">
-        {STEPS.map((label, i) => (
-          <span key={label} className={`font-mono text-xs uppercase tracking-wider ${i === step ? 'text-accent' : 'text-text-secondary'}`}>
-            {label}{i < STEPS.length - 1 && ' · '}
-          </span>
+  return (
+    <div className="mx-auto max-w-3xl px-6 py-10 lg:px-10">
+      {/* Step indicator */}
+      <div className="mb-8 flex items-center gap-2">
+        {stepLabels.map((label, i) => (
+          <div key={label} className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setStep(i)}
+              className={`inline-flex items-center gap-2 border px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider transition-colors ${
+                i === step
+                  ? 'border-accent bg-accent-muted text-accent'
+                  : i < step
+                    ? 'border-accent/40 bg-bg-panel text-accent hover:border-accent'
+                    : 'border-border bg-bg-panel text-text-muted hover:border-text-secondary'
+              }`}
+            >
+              <span
+                className={`flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold ${
+                  i <= step ? 'bg-accent text-white' : 'bg-bg-panel-raised text-text-muted'
+                }`}
+              >
+                {i + 1}
+              </span>
+              {label}
+            </button>
+            {i < stepLabels.length - 1 && (
+              <div
+                className={`h-px w-6 ${i < step ? 'bg-accent' : 'bg-border'}`}
+              />
+            )}
+          </div>
         ))}
       </div>
 
-      <div className="panel mt-8 p-6">
-        {step === 0 && (
-          <div className="space-y-6">
+      {/* ── Step 0: NL Prompt + Presets ─────────────────────────────────── */}
+      {step === 0 && (
+        <div className="space-y-8">
+          <div>
+            <h2 className="font-display text-xl font-semibold text-text-primary">
+              Create a new vault
+            </h2>
+            <p className="mt-1 font-mono text-xs text-text-secondary">
+              Describe your strategy in natural language, or pick a preset to start.
+            </p>
+          </div>
+
+          <div>
+            <label className={labelCls}>Strategy prompt</label>
+            <textarea
+              value={nlPrompt}
+              onChange={(e) => setNlPrompt(e.target.value)}
+              placeholder="e.g. I want to earn yield on SOL while limiting drawdown to 10%..."
+              rows={3}
+              className={`${inputCls} mt-1.5 resize-none`}
+            />
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-border" />
+            <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
+              or choose a preset
+            </span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {PRESET_FUND_MANAGERS.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => applyPreset(preset.id)}
+                className="group rounded border border-border bg-bg-panel p-4 text-left transition-colors hover:border-accent"
+              >
+                <div className="flex items-start justify-between">
+                  <span className="font-display text-sm font-semibold text-text-primary group-hover:text-accent">
+                    {preset.name}
+                  </span>
+                  {preset.hardLockAdvisory && (
+                    <span className="ml-2 inline-flex items-center rounded bg-accent-muted px-1.5 py-0.5 font-mono text-[9px] font-medium uppercase text-accent">
+                      advisory
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1.5 text-xs leading-relaxed text-text-secondary">
+                  {preset.description}
+                </p>
+                <div className="mt-3 flex gap-4 font-mono text-[10px] uppercase tracking-wider text-text-muted">
+                  <span>
+                    DD:{' '}
+                    <span className="text-text-secondary">
+                      {preset.maxDrawdownPct}%
+                    </span>
+                  </span>
+                  <span>
+                    Lev:{' '}
+                    <span className="text-text-secondary">
+                      {preset.maxLeverage}x
+                    </span>
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Step 1: Risk Form ───────────────────────────────────────────── */}
+      {step === 1 && (
+        <div className="space-y-6">
+          <div>
+            <h2 className="font-display text-xl font-semibold text-text-primary">
+              Risk parameters
+            </h2>
+            <p className="mt-1 font-mono text-xs text-text-secondary">
+              Define risk limits and execution mode.
+            </p>
+          </div>
+
+          <div>
+            <label className={labelCls}>Vault name</label>
+            <input
+              type="text"
+              value={form.vaultName}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, vaultName: e.target.value }))
+              }
+              placeholder="My Vault"
+              className={`${inputCls} mt-1.5`}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="block font-mono text-xs uppercase text-text-secondary">describe_your_goal</label>
-              <textarea
-                className="input-field mt-2"
-                rows={3}
-                placeholder="e.g. I want 5x in 10 weeks, stop if I'm down 5%. Or: Compound my SOL for the long term."
+              <label className={labelCls}>Risk profile</label>
+              <select
+                value={form.riskProfile}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    riskProfile: e.target.value,
+                  }))
+                }
+                className={`${selectCls} mt-1.5`}
+              >
+                {RISK_PROFILES.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Execution mode</label>
+              <select
+                value={form.executionMode}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    executionMode: e.target.value,
+                  }))
+                }
+                className={`${selectCls} mt-1.5`}
+                disabled={isAggressive}
+              >
+                {EXECUTION_MODES.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+              {isAggressive && (
+                <p className="mt-1 font-mono text-[10px] text-accent-risk">
+                  Advisory-only lock: max drawdown &ge; 25%
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div>
+              <label className={labelCls}>Max drawdown (%)</label>
+              <input
+                type="number"
+                min={1}
+                max={50}
+                value={form.maxDrawdownPct}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    maxDrawdownPct: Number(e.target.value),
+                  }))
+                }
+                className={`${inputCls} mt-1.5`}
               />
             </div>
-            <div className="flex items-center gap-4">
-              <div className="h-px flex-1 bg-border" />
-              <span className="font-mono text-xs text-text-muted">or choose a preset</span>
-              <div className="h-px flex-1 bg-border" />
+            <div>
+              <label className={labelCls}>Max leverage (x)</label>
+              <input
+                type="number"
+                min={1}
+                max={2}
+                step={0.1}
+                value={form.maxLeverage}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    maxLeverage: Number(e.target.value),
+                  }))
+                }
+                className={`${inputCls} mt-1.5`}
+              />
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {PRESETS.map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  onClick={() => applyPreset(preset)}
-                  className={`rounded border p-4 text-left transition hover:border-accent/50 ${
-                    selectedPreset === preset.id ? 'border-accent bg-accent-muted' : 'border-border bg-bg-panel'
+            <div>
+              <label className={labelCls}>Max position (%)</label>
+              <input
+                type="number"
+                min={5}
+                max={100}
+                value={form.maxPositionPct}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    maxPositionPct: Number(e.target.value),
+                  }))
+                }
+                className={`${inputCls} mt-1.5`}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className={labelCls}>Rebalance frequency</label>
+            <select
+              value={form.rebalanceFrequency}
+              onChange={(e) =>
+                setForm((prev) => ({
+                  ...prev,
+                  rebalanceFrequency: e.target.value,
+                }))
+              }
+              className={`${selectCls} mt-1.5 sm:w-48`}
+            >
+              {REBALANCE_FREQUENCIES.map((f) => (
+                <option key={f} value={f}>
+                  {f}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {feasibility && (
+            <div
+              className={`rounded border p-4 ${
+                feasibility.status === 'infeasible'
+                  ? 'border-accent-risk/40 bg-accent-risk/5'
+                  : feasibility.status === 'feasible_with_conditions'
+                    ? 'border-accent/40 bg-accent-muted'
+                    : 'border-accent-positive/30 bg-accent-positive/5'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span
+                  className={`inline-flex h-2 w-2 rounded-full ${
+                    feasibility.status === 'infeasible'
+                      ? 'bg-accent-risk'
+                      : feasibility.status === 'feasible_with_conditions'
+                        ? 'bg-accent'
+                        : 'bg-accent-positive'
+                  }`}
+                />
+                <span className="font-mono text-[10px] uppercase tracking-wider text-text-secondary">
+                  Feasibility &mdash; {feasibility.status}
+                </span>
+              </div>
+              {feasibility.negotiation_prompt && (
+                <p className="mt-2 text-sm leading-relaxed text-text-secondary">
+                  {feasibility.negotiation_prompt}
+                </p>
+              )}
+              {feasibility.status === 'feasible' && (
+                <p className="mt-2 text-xs text-text-muted">
+                  Reference band:{' '}
+                  {feasibility.reference_band.min_historical_drawdown_pct}&ndash;
+                  {feasibility.reference_band.max_historical_drawdown_pct}%
+                  historical drawdown.
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between pt-2">
+            <button
+              type="button"
+              onClick={() => setStep(0)}
+              className="inline-flex items-center border border-border bg-bg-panel px-4 py-2 font-mono text-[10px] uppercase tracking-wider text-text-secondary hover:border-text-secondary transition-colors"
+            >
+              &larr; Back
+            </button>
+            <button
+              type="button"
+              onClick={() => setStep(2)}
+              className="inline-flex items-center bg-accent px-4 py-2 font-mono text-[10px] uppercase tracking-wider text-white hover:bg-accent-hover transition-colors"
+            >
+              Next: Universe &rarr;
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Step 2: Universe ────────────────────────────────────────────── */}
+      {step === 2 && (
+        <div className="space-y-6">
+          <div>
+            <h2 className="font-display text-xl font-semibold text-text-primary">
+              Universe
+            </h2>
+            <p className="mt-1 font-mono text-xs text-text-secondary">
+              Select which assets and protocols the vault can interact with.
+            </p>
+          </div>
+
+          <div>
+            <label className={labelCls}>Assets</label>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {DEFAULT_ASSETS.map((sym) => {
+                const selected = form.assets.includes(sym)
+                return (
+                  <button
+                    key={sym}
+                    type="button"
+                    onClick={() => toggleAsset(sym)}
+                    className={`inline-flex items-center gap-1.5 border px-3 py-1.5 font-mono text-xs transition-colors ${
+                      selected
+                        ? 'border-accent bg-accent-muted text-accent'
+                        : 'border-border bg-bg-panel text-text-secondary hover:border-text-secondary'
+                    }`}
+                  >
+                    <span
+                      className={`flex h-3 w-3 items-center justify-center rounded-sm border text-[8px] ${
+                        selected
+                          ? 'border-accent bg-accent text-white'
+                          : 'border-text-muted bg-bg-panel-raised'
+                      }`}
+                    >
+                      {selected && '\u2713'}
+                    </span>
+                    {sym}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div>
+            <label className={labelCls}>Protocols</label>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {DEFAULT_PROTOCOLS.map((proto) => {
+                const selected = form.protocols.includes(proto)
+                return (
+                  <button
+                    key={proto}
+                    type="button"
+                    onClick={() => toggleProtocol(proto)}
+                    className={`inline-flex items-center gap-1.5 border px-3 py-1.5 font-mono text-xs transition-colors ${
+                      selected
+                        ? 'border-accent bg-accent-muted text-accent'
+                        : 'border-border bg-bg-panel text-text-secondary hover:border-text-secondary'
+                    }`}
+                  >
+                    <span
+                      className={`flex h-3 w-3 items-center justify-center rounded-sm border text-[8px] ${
+                        selected
+                          ? 'border-accent bg-accent text-white'
+                          : 'border-text-muted bg-bg-panel-raised'
+                      }`}
+                    >
+                      {selected && '\u2713'}
+                    </span>
+                    {proto}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-2">
+            <button
+              type="button"
+              onClick={() => setStep(1)}
+              className="inline-flex items-center border border-border bg-bg-panel px-4 py-2 font-mono text-[10px] uppercase tracking-wider text-text-secondary hover:border-text-secondary transition-colors"
+            >
+              &larr; Back
+            </button>
+            <button
+              type="button"
+              onClick={() => setStep(3)}
+              className="inline-flex items-center bg-accent px-4 py-2 font-mono text-[10px] uppercase tracking-wider text-white hover:bg-accent-hover transition-colors"
+            >
+              Next: Review &rarr;
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Step 3: Review ──────────────────────────────────────────────── */}
+      {step === 3 && (
+        <div className="space-y-6">
+          <div>
+            <h2 className="font-display text-xl font-semibold text-text-primary">
+              Review &amp; submit
+            </h2>
+            <p className="mt-1 font-mono text-xs text-text-secondary">
+              Verify your vault policy before deploying on-chain.
+            </p>
+          </div>
+
+          <div className="rounded border border-border bg-bg-panel p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="font-display text-sm font-semibold text-text-primary">
+                {form.vaultName || 'My Vault'}
+              </span>
+              <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
+                v1
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+              <div>
+                <span className={labelCls}>Risk profile</span>
+                <p className="mt-0.5 font-mono text-sm text-text-primary">
+                  {form.riskProfile}
+                </p>
+              </div>
+              <div>
+                <span className={labelCls}>Execution</span>
+                <p className="mt-0.5 font-mono text-sm text-text-primary">
+                  {form.executionMode}
+                </p>
+              </div>
+              <div>
+                <span className={labelCls}>Rebalance</span>
+                <p className="mt-0.5 font-mono text-sm text-text-primary">
+                  {form.rebalanceFrequency}
+                </p>
+              </div>
+              <div>
+                <span className={labelCls}>Max drawdown</span>
+                <p
+                  className={`mt-0.5 font-mono text-sm ${
+                    isAggressive ? 'text-accent-risk' : 'text-text-primary'
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-display text-sm font-semibold">{preset.name}</span>
-                    {preset.id === 'aggressive-compounder' && (
-                      <span className="rounded bg-accent/10 px-1.5 py-0.5 font-mono text-[9px] uppercase text-accent">advisory only</span>
-                    )}
-                  </div>
-                  <p className="mt-1 text-xs text-text-secondary">{preset.desc}</p>
-                  <div className="mt-2 flex gap-1">
-                    <span className="rounded bg-bg-panel-raised px-1.5 py-0.5 font-mono text-[9px] text-text-muted">max {preset.maxDd}% dd</span>
-                    <span className="rounded bg-bg-panel-raised px-1.5 py-0.5 font-mono text-[9px] text-text-muted">{preset.maxLev}x lev</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {step === 1 && (
-          <div className="space-y-4">
-            <label className="block">
-              <span className="font-mono text-xs uppercase text-text-secondary">vault_name</span>
-              <input type="text" className="input-field mt-1" placeholder="my-policy-vault" value={form.vaultName} onChange={(e) => update('vaultName', e.target.value)} />
-            </label>
-            <label className="block">
-              <span className="font-mono text-xs uppercase text-text-secondary">risk_profile</span>
-              <select className="input-field mt-1" value={form.riskProfile} onChange={(e) => update('riskProfile', e.target.value)}>
-                <option value="low">low</option>
-                <option value="medium">medium</option>
-                <option value="high">high</option>
-              </select>
-            </label>
-            <label className="block">
-              <span className="font-mono text-xs uppercase text-text-secondary">max_drawdown_pct</span>
-              <input type="number" min={1} max={50} className="input-field mt-1" value={form.maxDrawdownPct} onChange={(e) => update('maxDrawdownPct', Number(e.target.value))} />
-            </label>
-            <label className="block">
-              <span className="font-mono text-xs uppercase text-text-secondary">max_leverage</span>
-              <input type="number" min={1} max={2} step={0.1} className="input-field mt-1" value={form.maxLeverage} onChange={(e) => update('maxLeverage', Number(e.target.value))} />
-            </label>
-            <label className="block">
-              <span className="font-mono text-xs uppercase text-text-secondary">execution_mode</span>
-              <select className="input-field mt-1" value={form.executionMode} onChange={(e) => update('executionMode', e.target.value)}>
-                <option value="advisory">advisory</option>
-                <option value="constrained_auto">constrained_auto</option>
-              </select>
-            </label>
-            {isAggressive && (
-              <div className="rounded border border-accent/40 bg-accent-muted p-3 text-sm text-accent">
-                <p className="font-mono text-xs uppercase tracking-wider">advisory_lock</p>
-                <p className="mt-1 text-xs">Drawdown ≥ 25% requires advisory-only mode per safety policy.</p>
+                  {form.maxDrawdownPct}%
+                </p>
               </div>
-            )}
-          </div>
-        )}
+              <div>
+                <span className={labelCls}>Max leverage</span>
+                <p className="mt-0.5 font-mono text-sm text-text-primary">
+                  {form.maxLeverage}x
+                </p>
+              </div>
+              <div>
+                <span className={labelCls}>Max position</span>
+                <p className="mt-0.5 font-mono text-sm text-text-primary">
+                  {form.maxPositionPct}%
+                </p>
+              </div>
+            </div>
 
-        {step === 2 && (
-          <div className="space-y-6">
             <div>
-              <p className="font-mono text-xs uppercase text-text-secondary">universe.assets</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {['SOL', 'ETH', 'BTC', 'USDC', 'USDT'].map((asset) => (
-                  <button
-                    key={asset}
-                    type="button"
-                    onClick={() => toggleListItem('assets', asset)}
-                    className={`rounded border px-3 py-1 font-mono text-xs ${
-                      form.assets.includes(asset) ? 'border-accent bg-accent-muted text-accent' : 'border-border text-text-secondary'
-                    }`}
-                  >{asset}</button>
+              <span className={labelCls}>Assets</span>
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {form.assets.map((a) => (
+                  <span
+                    key={a}
+                    className="inline-flex border border-border bg-bg-panel-raised px-2 py-0.5 font-mono text-[11px] text-text-secondary"
+                  >
+                    {a}
+                  </span>
                 ))}
               </div>
             </div>
+
             <div>
-              <p className="font-mono text-xs uppercase text-text-secondary">protocols_allowed</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {['jupiter', 'kamino', 'sanctum', 'drift', 'marginfi'].map((p) => (
-                  <button
+              <span className={labelCls}>Protocols</span>
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {form.protocols.map((p) => (
+                  <span
                     key={p}
-                    type="button"
-                    onClick={() => toggleListItem('protocols', p)}
-                    className={`rounded border px-3 py-1 font-mono text-xs ${
-                      form.protocols.includes(p) ? 'border-accent bg-accent-muted text-accent' : 'border-border text-text-secondary'
-                    }`}
-                  >{p}</button>
+                    className="inline-flex border border-border bg-bg-panel-raised px-2 py-0.5 font-mono text-[11px] text-text-secondary"
+                  >
+                    {p}
+                  </span>
                 ))}
               </div>
             </div>
-          </div>
-        )}
 
-        {step === 3 && (
-          <div className="space-y-4">
-            <div className="panel p-4">
-              <p className="label">policy_summary</p>
-              <div className="mt-3 space-y-2 text-sm">
-                <div className="flex justify-between"><span className="text-text-secondary">Risk profile</span><span className="font-mono">{form.riskProfile}</span></div>
-                <div className="flex justify-between"><span className="text-text-secondary">Max drawdown</span><span className="font-mono">{form.maxDrawdownPct}%</span></div>
-                <div className="flex justify-between"><span className="text-text-secondary">Max leverage</span><span className="font-mono">{form.maxLeverage}x</span></div>
-                <div className="flex justify-between"><span className="text-text-secondary">Assets</span><span className="font-mono">{form.assets.join(', ')}</span></div>
-                <div className="flex justify-between"><span className="text-text-secondary">Protocols</span><span className="font-mono">{form.protocols.join(', ')}</span></div>
-                <div className="flex justify-between"><span className="text-text-secondary">Execution</span><span className="font-mono">{form.executionMode}</span></div>
-              </div>
-            </div>
-            {selectedPreset && (
-              <div className="rounded border border-accent/30 bg-accent-muted p-3">
-                <p className="label">preset: {selectedPreset}</p>
+            {isAggressive && (
+              <div className="rounded border border-accent-risk/30 bg-accent-risk/5 px-3 py-2 font-mono text-xs text-accent-risk">
+                &#9888; Advisory-only lock active: max drawdown &ge;25% requires
+                advisory execution mode.
               </div>
             )}
           </div>
-        )}
-      </div>
 
-      <div className="mt-6 flex justify-between">
-        <button type="button" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0} className="btn-secondary disabled:opacity-40">Back</button>
-        {step < STEPS.length - 1 ? (
-          <button type="button" onClick={() => setStep((s) => Math.min(STEPS.length - 1, s + 1))} className="btn-primary">Continue</button>
-        ) : (
-          <button type="button" onClick={submit} disabled={submitting} className="btn-primary disabled:opacity-50">{submitting ? 'Creating...' : 'Sign & create vault →'}</button>
-        )}
-      </div>
+          {capitalPolicy && (
+            <div>
+              <label className={labelCls}>Policy JSON</label>
+              <pre className="mt-1.5 max-h-64 overflow-auto rounded border border-border bg-bg-panel p-4 font-mono text-[11px] leading-relaxed text-text-secondary">
+                {JSON.stringify(capitalPolicy, null, 2)}
+              </pre>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between pt-2">
+            <button
+              type="button"
+              onClick={() => setStep(2)}
+              className="inline-flex items-center border border-border bg-bg-panel px-4 py-2 font-mono text-[10px] uppercase tracking-wider text-text-secondary hover:border-text-secondary transition-colors"
+            >
+              &larr; Back
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={submitting}
+              className={
+                submitting
+                  ? 'inline-flex items-center cursor-not-allowed border border-border bg-bg-panel px-5 py-2.5 font-mono text-xs font-medium uppercase tracking-wider text-text-muted'
+                  : 'inline-flex items-center bg-accent px-5 py-2.5 font-mono text-xs font-medium uppercase tracking-wider text-white hover:bg-accent-hover transition-colors'
+              }
+            >
+              {submitting ? 'Creating\u2026' : 'Sign & create vault \u2192'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
