@@ -4,28 +4,23 @@
 
 @layer base {
   :root {
-    /* ── Backgrounds ─────────────────────────────────────── */
     --bg-base: #0E1116;
     --bg-panel: #161B22;
     --bg-panel-raised: #1C232C;
-
-    /* ── Borders ─────────────────────────────────────────── */
     --border: #2A323D;
 
-    /* ── Text ────────────────────────────────────────────── */
     --text-primary: #E6E9EE;
     --text-secondary: #8B949E;
     --text-muted: #484F58;
 
-    /* ── Accents (semantic only) ─────────────────────────── */
-    --accent-policy: #FFB02E;    /* amber — active/policy state */
-    --accent-privacy: #5EE6D9;   /* teal — encrypted/private state */
-    --accent-risk: #FF6B5E;      /* red — constraint violations only */
-    --accent-positive: #7CD992;  /* green — executed/passed only */
+    --accent: #9945FF;
+    --accent-hover: #A855F7;
+    --accent-muted: rgba(153, 69, 255, 0.12);
+    --accent-risk: #FF6B5E;
+    --accent-positive: #7CD992;
   }
 
   html { color-scheme: dark; }
-
   * { border-color: var(--border); }
 
   html, body {
@@ -37,17 +32,15 @@
   .font-display { font-family: 'Space Grotesk', system-ui, sans-serif; }
   .font-mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
 
-  ::selection { background: var(--accent-policy); color: #000; }
-
+  ::selection { background: var(--accent); color: #fff; }
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: var(--bg-panel); }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 }
 
 @layer components {
-  /* ── Buttons ─────────────────────────────────────────── */
   .btn-primary {
-    @apply inline-flex items-center justify-center border border-[var(--accent-policy)] bg-[var(--accent-policy)] px-5 py-2.5 font-mono text-xs font-medium uppercase tracking-wider text-[#0E1116] transition-colors hover:brightness-110 active:brightness-90;
+    @apply inline-flex items-center justify-center border border-[var(--accent)] bg-[var(--accent)] px-5 py-2.5 font-mono text-xs font-medium uppercase tracking-wider text-white transition-colors hover:bg-[var(--accent-hover)] active:brightness-90;
     border-radius: 4px;
   }
 
@@ -61,23 +54,19 @@
     border-radius: 4px;
   }
 
-  /* ── Panels ──────────────────────────────────────────── */
   .panel {
     @apply border border-[var(--border)] bg-[var(--bg-panel)];
     border-radius: 4px;
   }
 
-  /* ── Policy block label ──────────────────────────────── */
-  .policy-label {
-    @apply font-mono text-[10px] uppercase tracking-[0.08em] text-[var(--accent-policy)];
+  .label {
+    @apply font-mono text-[10px] uppercase tracking-[0.08em] text-[var(--accent)];
   }
 
-  /* ── Status indicators ───────────────────────────────── */
   .status-dot {
     @apply inline-block h-1.5 w-1.5 rounded-full;
   }
-  .status-dot--active { background: var(--accent-policy); }
-  .status-dot--safe { background: var(--accent-privacy); }
+  .status-dot--active { background: var(--accent); }
   .status-dot--risk { background: var(--accent-risk); }
   .status-dot--positive { background: var(--accent-positive); }
 }
