@@ -16,12 +16,12 @@
 }
 
 * {
-  border-color: var(--border);
+  border-color: var(--color-border);
 }
 
 body {
-  background: var(--bg-base);
-  color: var(--text-primary);
+  background: var(--color-bg-base);
+  color: var(--color-text-primary);
   font-family: 'IBM Plex Sans', system-ui, sans-serif;
 }
 
