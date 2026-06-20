@@ -1,116 +1,88 @@
 import Link from 'next/link'
-import { DEMO_VAULTS, constraintToBarInput } from '@/lib/mock-data'
+import { DEMO_VAULTS } from '@/lib/mock-data'
 
 function formatUsd(n: number) {
   return '$' + n.toLocaleString('en-US')
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const color =
-    status === 'active'
-      ? 'text-accent-positive'
-      : status === 'paused'
-        ? 'text-amber-500'
-        : 'text-text-muted'
-  return (
-    <span className={`font-mono text-[10px] uppercase ${color}`}>
-      ● {status}
-    </span>
-  )
-}
-
-function ConstraintBar({ current, max, unit }: { current: number; max: number; unit: string }) {
-  const { pct, color } = constraintToBarInput({
-    label: '',
-    current,
-    max,
-    unit,
-  })
-  return (
-    <div className="flex items-center gap-2">
-      <div className="flex-1 h-1.5 rounded-sm bg-bg-panel-raised overflow-hidden">
-        <div className={`h-full rounded-sm ${color}`} style={{ width: `${pct}%` }} />
-      </div>
-      <span className="font-mono text-[10px] text-text-muted shrink-0">
-        {current}{unit} / {max}{unit}
-      </span>
-    </div>
-  )
-}
-
 export default function VaultsPage() {
-  const totalNav = DEMO_VAULTS.reduce((s: number, v: { nav: number }) => s + v.nav, 0)
-  const activeCount = DEMO_VAULTS.filter((v: { status: string }) => v.status === 'active').length
+  const totalNav = DEMO_VAULTS.reduce((s, v) => s + v.nav, 0)
+  const activeCount = DEMO_VAULTS.filter((v) => v.status === 'active').length
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
-        <h1 className="font-mono text-lg font-semibold text-text-primary">Vaults</h1>
+        <div>
+          <p className="label mb-1">capital</p>
+          <h1 className="font-display text-2xl font-semibold text-text-primary">Your vaults</h1>
+        </div>
         <Link
-          href="/app/deploy"
-          className="font-mono text-xs text-text-secondary border border-border px-3 py-1.5 rounded-sm hover:text-text-primary hover:border-text-muted transition-colors"
+          href="/app/create"
+          className="inline-flex items-center justify-center bg-accent text-white px-4 py-2 font-mono text-[10px] font-medium uppercase tracking-wider hover:bg-accent-hover transition-colors rounded"
         >
-          + New vault
+          New vault →
         </Link>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
-        <div className="bg-bg-panel border border-border rounded-sm p-4">
-          <span className="font-mono text-[10px] text-text-muted uppercase">Total NAV</span>
-          <p className="font-mono text-lg font-semibold text-text-primary mt-1">
-            {formatUsd(totalNav)}
-          </p>
+      <div className="grid grid-cols-3 gap-3 mb-8">
+        <div className="panel p-4 rounded-md border border-border bg-bg-panel">
+          <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">total_nav</p>
+          <p className="font-display text-xl font-semibold text-text-primary mt-1 tabular-nums">{formatUsd(totalNav)}</p>
         </div>
-        <div className="bg-bg-panel border border-border rounded-sm p-4">
-          <span className="font-mono text-[10px] text-text-muted uppercase">Active vaults</span>
-          <p className="font-mono text-lg font-semibold text-text-primary mt-1">
-            {activeCount}
-          </p>
+        <div className="panel p-4 rounded-md border border-border bg-bg-panel">
+          <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">active</p>
+          <p className="font-display text-xl font-semibold text-text-primary mt-1 tabular-nums">{activeCount}/{DEMO_VAULTS.length}</p>
         </div>
-        <div className="bg-bg-panel border border-border rounded-sm p-4">
-          <span className="font-mono text-[10px] text-text-muted uppercase">Constraint checks</span>
-          <p className="font-mono text-lg font-semibold text-text-primary mt-1">
-            8 / action
-          </p>
+        <div className="panel p-4 rounded-md border border-border bg-bg-panel">
+          <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">checks/action</p>
+          <p className="font-display text-xl font-semibold text-accent mt-1 tabular-nums">8</p>
         </div>
       </div>
 
-      {/* Vault cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {DEMO_VAULTS.map((vault) => (
-          <Link
-            key={vault.id}
-            href={`/app/vault/${vault.id}`}
-            className="bg-bg-panel border border-border rounded-sm p-5 hover:border-text-muted transition-colors group"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <h2 className="font-mono text-sm font-medium text-text-primary group-hover:text-accent transition-colors">
-                  {vault.name}
-                </h2>
-                <StatusBadge status={vault.status} />
-              </div>
-              <span className="font-mono text-sm font-semibold text-text-primary">
-                {formatUsd(vault.nav)}
-              </span>
-            </div>
+        {DEMO_VAULTS.map((vault) => {
+          const ddPct = Math.min(100, (vault.constraints.drawdown.current / vault.constraints.drawdown.max) * 100)
+          const ddColor = ddPct >= 90 ? 'bg-accent-risk' : ddPct >= 70 ? 'bg-amber-500' : 'bg-accent-positive'
 
-            <div className="space-y-2.5">
-              <ConstraintBar
-                current={vault.constraints.drawdown.current}
-                max={vault.constraints.drawdown.max}
-                unit="%"
-              />
-              <ConstraintBar
-                current={vault.constraints.leverage.current}
-                max={vault.constraints.leverage.max}
-                unit="x"
-              />
-            </div>
-          </Link>
-        ))}
+          return (
+            <Link
+              key={vault.id}
+              href={`/app/vault/${vault.id}`}
+              className="panel block p-5 rounded-lg border border-border bg-bg-panel hover:border-accent/30 transition-colors group"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h2 className="font-mono text-base text-text-primary group-hover:text-accent transition-colors">{vault.name}</h2>
+                  <p className="font-mono text-sm text-accent mt-0.5 tabular-nums">{formatUsd(vault.nav)} NAV</p>
+                </div>
+                <span className={`font-mono text-[9px] uppercase px-1.5 py-0.5 rounded ${
+                  vault.status === 'active'
+                    ? 'bg-accent-positive/10 text-accent-positive'
+                    : 'bg-amber-500/10 text-amber-500'
+                }`}>
+                  ● {vault.status}
+                </span>
+              </div>
+
+              <div>
+                <div className="flex justify-between mb-1">
+                  <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted">drawdown</span>
+                  <span className="font-mono text-[9px] text-text-muted">
+                    {vault.constraints.drawdown.current}% / {vault.constraints.drawdown.max}%
+                  </span>
+                </div>
+                <div className="h-1 rounded-sm bg-bg-panel-raised overflow-hidden">
+                  <div className={`h-full rounded-sm ${ddColor}`} style={{ width: `${ddPct}%` }} />
+                </div>
+              </div>
+
+              <div className="mt-3 flex items-center gap-4 text-text-muted">
+                <span className="font-mono text-[9px]">Policy v{vault.policyVersion}</span>
+                <span className="font-mono text-[9px]">Level {vault.level}</span>
+              </div>
+            </Link>
+          )
+        })}
       </div>
     </div>
   )
