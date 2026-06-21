@@ -18,12 +18,6 @@ export default function Home() {
           </span>
         </div>
         <div className="flex items-center gap-3">
-          <Link
-            href="/docs"
-            className="font-mono text-[11px] uppercase tracking-wider text-text-secondary hover:text-text-primary transition-colors"
-          >
-            Docs
-          </Link>
           <WalletButton />
         </div>
       </header>
@@ -61,12 +55,6 @@ export default function Home() {
               className="inline-flex items-center justify-center bg-accent text-white px-6 py-3 font-mono text-xs font-medium uppercase tracking-wider hover:bg-accent-hover transition-colors rounded-md shadow-[0_0_20px_rgba(153,69,255,0.15)]"
             >
               Create a vault →
-            </Link>
-            <Link
-              href="/docs"
-              className="inline-flex items-center justify-center border border-border bg-bg-panel px-6 py-3 font-mono text-xs font-medium uppercase tracking-wider text-text-primary hover:border-text-secondary transition-colors rounded-md"
-            >
-              Read the policy spec
             </Link>
           </div>
 
@@ -256,12 +244,6 @@ export default function Home() {
               className="inline-flex items-center justify-center bg-accent text-white px-6 py-3 font-mono text-xs font-medium uppercase tracking-wider hover:bg-accent-hover transition-colors rounded-md shadow-[0_0_20px_rgba(153,69,255,0.15)]"
             >
               Create a vault →
-            </Link>
-            <Link
-              href="/docs"
-              className="inline-flex items-center justify-center border border-border bg-bg-panel px-6 py-3 font-mono text-xs font-medium uppercase tracking-wider text-text-primary hover:border-text-secondary transition-colors rounded-md"
-            >
-              Read the policy spec
             </Link>
           </div>
         </div>
