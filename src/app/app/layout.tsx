@@ -5,8 +5,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const NAV_LINKS = [
-  { href: '/app', label: 'Vaults' },
-  { href: '/app/create', label: 'Deploy vault' },
+  { href: '/app', label: 'Vaults', icon: '◻' },
+  { href: '/app/create', label: 'Create vault', icon: '+' },
 ]
 
 export default function AppLayout({ children }: { children: ReactNode }) {
@@ -29,22 +29,30 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
         <nav className="flex flex-col gap-0.5 px-2 py-3">
           {NAV_LINKS.map((link) => {
-            const active = pathname === link.href
+            const active = pathname === link.href || (link.href !== '/app' && pathname.startsWith(link.href))
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`font-mono text-xs px-2 py-1.5 rounded transition-colors ${
+                className={`font-mono text-xs px-2 py-1.5 rounded transition-colors flex items-center gap-2 ${
                   active
                     ? 'bg-accent-muted text-accent'
                     : 'text-text-secondary hover:text-text-primary hover:bg-bg-panel-raised'
                 }`}
               >
+                <span className="text-[10px] opacity-60">{link.icon}</span>
                 {link.label}
               </Link>
             )
           })}
         </nav>
+
+        <div className="mt-auto px-3 py-3 border-t border-border">
+          <div className="flex items-center gap-2 px-2 py-1.5">
+            <div className="h-2 w-2 rounded-full bg-accent-positive" />
+            <span className="font-mono text-[10px] text-text-muted">devnet</span>
+          </div>
+        </div>
       </aside>
 
       {/* Main */}
@@ -59,7 +67,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                 key={link.href}
                 href={link.href}
                 className={`font-mono text-[10px] uppercase tracking-wider px-2 py-1 rounded transition-colors ${
-                  pathname === link.href
+                  pathname === link.href || (link.href !== '/app' && pathname.startsWith(link.href))
                     ? 'bg-accent-muted text-accent'
                     : 'text-text-secondary hover:text-text-primary'
                 }`}

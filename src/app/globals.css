@@ -91,3 +91,14 @@ body {
   outline: none;
 }
 .input-field:focus { border-color: var(--color-accent); }
+.status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+}
+.status-dot--active {
+  background: var(--color-accent-positive);
+  box-shadow: 0 0 6px rgba(124, 217, 146, 0.4);
+}

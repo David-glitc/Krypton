@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { DEMO_VAULTS } from '@/lib/mock-data'
+import { DEMO_VAULTS, levelName } from '@/lib/mock-data'
 
 function formatUsd(n: number) {
   return '$' + n.toLocaleString('en-US')
@@ -55,13 +55,15 @@ export default function VaultsPage() {
                   <h2 className="font-mono text-base text-text-primary group-hover:text-accent transition-colors">{vault.name}</h2>
                   <p className="font-mono text-sm text-accent mt-0.5 tabular-nums">{formatUsd(vault.nav)} NAV</p>
                 </div>
-                <span className={`font-mono text-[9px] uppercase px-1.5 py-0.5 rounded ${
-                  vault.status === 'active'
-                    ? 'bg-accent-positive/10 text-accent-positive'
-                    : 'bg-amber-500/10 text-amber-500'
-                }`}>
-                  ● {vault.status}
-                </span>
+                <div className="flex flex-col items-end gap-1">
+                  <span className={`font-mono text-[9px] uppercase px-1.5 py-0.5 rounded ${
+                    vault.status === 'active'
+                      ? 'bg-accent-positive/10 text-accent-positive'
+                      : 'bg-amber-500/10 text-amber-500'
+                  }`}>
+                    ● {vault.status}
+                  </span>
+                </div>
               </div>
 
               <div>
@@ -76,9 +78,14 @@ export default function VaultsPage() {
                 </div>
               </div>
 
-              <div className="mt-3 flex items-center gap-4 text-text-muted">
-                <span className="font-mono text-[9px]">Policy v{vault.policyVersion}</span>
-                <span className="font-mono text-[9px]">Level {vault.level}</span>
+              <div className="mt-3 flex items-center gap-3 flex-wrap">
+                <span className="font-mono text-[9px] text-text-muted">Policy v{vault.policyVersion}</span>
+                <span className="font-mono text-[9px] text-text-muted">L{vault.level} — {levelName(vault.level)}</span>
+                <span className="font-mono text-[9px] text-text-muted">{vault.executionMode}</span>
+                {vault.governanceMode === 'dao_prediction_market' && (
+                  <span className="font-mono text-[9px] text-amber-500 border border-amber-500/30 px-1.5 py-0.5 rounded-sm">governance — coming soon</span>
+                )}
+                <span className="font-mono text-[9px] text-text-muted">{vault.privacyLevel}</span>
               </div>
             </Link>
           )
