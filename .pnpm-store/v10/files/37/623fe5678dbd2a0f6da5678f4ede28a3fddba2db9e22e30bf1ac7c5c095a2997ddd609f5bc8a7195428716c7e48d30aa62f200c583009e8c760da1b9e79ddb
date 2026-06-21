@@ -1,0 +1,95 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var ViewContext = require('../../../context/ViewContext/ViewContext.cjs');
+var DynamicWidgetContext = require('../../../widgets/DynamicWidget/context/DynamicWidgetContext.cjs');
+var useIsMfaEnabled = require('../useIsMfaEnabled/useIsMfaEnabled.cjs');
+var useIsTotpMfaEnabled = require('../useIsTotpMfaEnabled/useIsTotpMfaEnabled.cjs');
+
+const useMfaModals = () => {
+    const { setShowAuthFlow, setShowDynamicUserProfile } = useInternalDynamicContext.useInternalDynamicContext();
+    const { setDynamicWidgetView } = DynamicWidgetContext.useWidgetContext();
+    const { clearStackAndPush } = ViewContext.useViewContext();
+    const isMfaEnabled = useIsMfaEnabled.useIsMfaEnabled();
+    const isTotpMfaEnabled = useIsTotpMfaEnabled.useIsTotpMfaEnabled();
+    const setShowTotpMfaManage = React.useCallback((value) => {
+        if (value) {
+            if (!isTotpMfaEnabled) {
+                return;
+            }
+            setDynamicWidgetView('manage-totp-mfa-no-footer');
+        }
+        setShowDynamicUserProfile(value);
+    }, [isTotpMfaEnabled, setShowDynamicUserProfile, setDynamicWidgetView]);
+    const setShowMfaChooseType = React.useCallback((value) => {
+        if (value) {
+            if (!isMfaEnabled) {
+                return;
+            }
+            clearStackAndPush('mfa-choose-device');
+        }
+        setShowAuthFlow(value, { emitCancelAuth: true });
+    }, [isMfaEnabled, setShowAuthFlow, clearStackAndPush]);
+    const setShowMfaQRCode = React.useCallback((value) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        if (value) {
+            if (!isTotpMfaEnabled) {
+                return;
+            }
+            clearStackAndPush('mfa-secure-device', { isInitialSetup: true });
+        }
+        setShowAuthFlow(value, { emitCancelAuth: true });
+    }), [isTotpMfaEnabled, setShowAuthFlow, clearStackAndPush]);
+    const setShowOTPVerification = React.useCallback((value) => {
+        if (value) {
+            if (!isTotpMfaEnabled) {
+                return;
+            }
+            // creating the mfa token in case the customer is using
+            // otp verification to delete the device
+            // this is mainly for backwards compatibility with the
+            // suggested flow before passkeys were introduced
+            clearStackAndPush('mfa-verification', {
+                createMfaToken: true,
+            });
+        }
+        setShowAuthFlow(value, { emitCancelAuth: true });
+    }, [isTotpMfaEnabled, setShowAuthFlow, clearStackAndPush]);
+    const setShowMfaViewBackupCodes = React.useCallback((value) => {
+        if (value) {
+            if (!isMfaEnabled) {
+                return;
+            }
+            clearStackAndPush('mfa-display-backup-codes');
+        }
+        setShowAuthFlow(value, { emitCancelAuth: true });
+    }, [isMfaEnabled, setShowAuthFlow, clearStackAndPush]);
+    const setShowMfaEnterBackupCodes = React.useCallback((value) => {
+        if (value) {
+            if (!isMfaEnabled) {
+                return;
+            }
+            clearStackAndPush('mfa-recovery');
+        }
+        setShowAuthFlow(value, { emitCancelAuth: true });
+    }, [isMfaEnabled, setShowAuthFlow, clearStackAndPush]);
+    return {
+        /**
+         * @deprecated use setShowTotpMfaManage instead
+         */
+        setShowMFAManage: setShowTotpMfaManage,
+        setShowMfaChooseType,
+        setShowMfaEnterBackupCodes,
+        setShowMfaQRCode,
+        setShowMfaViewBackupCodes,
+        setShowOTPVerification,
+        setShowTotpMfaManage,
+    };
+};
+
+exports.useMfaModals = useMfaModals;

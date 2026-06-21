@@ -1,0 +1,59 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+require('@dynamic-labs-sdk/client');
+require('@dynamic-labs/utils');
+require('@dynamic-labs/sdk-api-core');
+require('@dynamic-labs-sdk/client/core');
+require('eventemitter3');
+require('../../../config/ApiEndpoint.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+require('../../../context/ViewContext/ViewContext.cjs');
+require('../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('../../constants/colors.cjs');
+require('../../constants/values.cjs');
+require('../../../shared/consts/index.cjs');
+require('@dynamic-labs/multi-wallet');
+require('react-international-phone');
+require('../../../store/state/nonce/nonce.cjs');
+var dynamicContextProps = require('../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../store/state/primaryWalletId/primaryWalletId.cjs');
+require('../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+require('../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+require('../../../events/dynamicEvents.cjs');
+require('@dynamic-labs/locale');
+var user = require('../../../data/api/user/user.cjs');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+
+const useDeleteUserAccount = () => {
+    const environmentId = dynamicContextProps.useEnvironmentId();
+    const { handleLogOutWithReason } = useInternalDynamicContext.useInternalDynamicContext();
+    const [isLoading, setIsLoading] = React.useState(false);
+    const [error, setError] = React.useState(null);
+    const deleteUser = () => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        try {
+            setIsLoading(true);
+            setError(null);
+            yield user.hardDeleteUser(environmentId);
+            yield handleLogOutWithReason('user-deleted');
+        }
+        catch (err) {
+            setError(err);
+            throw err;
+        }
+        finally {
+            setIsLoading(false);
+        }
+    });
+    return { deleteUser, error, isLoading };
+};
+
+exports.useDeleteUserAccount = useDeleteUserAccount;

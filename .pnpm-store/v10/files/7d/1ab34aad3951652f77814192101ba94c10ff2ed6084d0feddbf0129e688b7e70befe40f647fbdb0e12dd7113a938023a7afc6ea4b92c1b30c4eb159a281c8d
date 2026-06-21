@@ -1,0 +1,16 @@
+import * as z from 'zod/mini';
+import type { Chain } from '../../chain';
+export declare const unverifiedWalletAccountSchema: z.ZodMiniObject<{
+    address: z.ZodMiniString<string>;
+    addressesWithTypes: z.ZodMiniOptional<z.ZodMiniArray<z.ZodMiniObject<{
+        address: z.ZodMiniString<string>;
+        publicKey: z.ZodMiniOptional<z.ZodMiniString<string>>;
+        type: z.ZodMiniCustom<"ordinals" | "payment" | "cosmos" | "evm" | "stellar" | "ton" | "midnight_unshielded" | "midnight_dust" | "midnight_shielded", "ordinals" | "payment" | "cosmos" | "evm" | "stellar" | "ton" | "midnight_unshielded" | "midnight_dust" | "midnight_shielded">;
+    }, z.core.$strip>>>;
+    chain: z.ZodMiniCustom<Chain, Chain>;
+    hardwareWalletVendor: z.ZodMiniOptional<z.ZodMiniCustom<"ledger", "ledger">>;
+    id: z.ZodMiniString<string>;
+    lastSelectedAt: z.ZodMiniNullable<z.ZodMiniDate<Date>>;
+    walletProviderKey: z.ZodMiniString<string>;
+}, z.core.$strip>;
+//# sourceMappingURL=schema.d.ts.map

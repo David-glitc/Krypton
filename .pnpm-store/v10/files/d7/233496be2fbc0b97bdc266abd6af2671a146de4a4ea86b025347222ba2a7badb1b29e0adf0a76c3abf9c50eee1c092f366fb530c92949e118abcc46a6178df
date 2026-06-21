@@ -1,0 +1,30 @@
+import { exists } from '../runtime.js';
+import { ChainEnumFromJSON, ChainEnumToJSON } from './ChainEnum.js';
+
+/* tslint:disable */
+function SwapStatusRequestChainFromJSON(json) {
+    return SwapStatusRequestChainFromJSONTyped(json);
+}
+function SwapStatusRequestChainFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'chainId': !exists(json, 'chainId') ? undefined : json['chainId'],
+        'chainName': !exists(json, 'chainName') ? undefined : ChainEnumFromJSON(json['chainName']),
+    };
+}
+function SwapStatusRequestChainToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'chainId': value.chainId,
+        'chainName': ChainEnumToJSON(value.chainName),
+    };
+}
+
+export { SwapStatusRequestChainFromJSON, SwapStatusRequestChainFromJSONTyped, SwapStatusRequestChainToJSON };

@@ -1,0 +1,15 @@
+/**
+ * Type-guard for Google Drive backup failures caused by missing or
+ * insufficient OAuth scopes (or otherwise denied access).
+ *
+ * Recover by having the user re-link their Google account and retrying the
+ * backup once the granted scopes include
+ * `GOOGLE_DRIVE_BACKUP_REQUIRED_SCOPES`.
+ *
+ * @param err - The unknown value to check.
+ * @returns `true` when `err` is an `Error` whose message indicates Google
+ *   Drive access was denied.
+ * @not-instrumented
+ */
+export declare const isInsufficientGoogleDriveScopesError: (err: unknown) => err is Error;
+//# sourceMappingURL=isInsufficientGoogleDriveScopesError.d.ts.map

@@ -1,0 +1,148 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+var sdkApiCore = require('@dynamic-labs/sdk-api-core');
+require('@dynamic-labs-sdk/client/core');
+require('eventemitter3');
+require('@dynamic-labs/utils');
+require('@dynamic-labs-sdk/client');
+require('../../../config/ApiEndpoint.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+require('../../../context/ViewContext/ViewContext.cjs');
+var logger = require('../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('../../constants/colors.cjs');
+require('../../constants/values.cjs');
+require('../../../shared/consts/index.cjs');
+var errors = require('../../constants/errors.cjs');
+require('@dynamic-labs/multi-wallet');
+require('react-international-phone');
+require('../../../store/state/nonce/nonce.cjs');
+var utils$1 = require('../../../data/api/utils.cjs');
+require('@dynamic-labs/locale');
+var dynamicContextProps = require('../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../store/state/primaryWalletId/primaryWalletId.cjs');
+require('../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+require('../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+require('../../../events/dynamicEvents.cjs');
+var getUserProfile = require('../../../client/extension/user/getUserProfile/getUserProfile.cjs');
+var getProjectSettings = require('../../../client/extension/projectSettings/getProjectSettings/getProjectSettings.cjs');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var balances = require('../../../data/api/chains/balances.cjs');
+var authMode = require('../../../store/state/authMode/authMode.cjs');
+var tokenBalances = require('../../../store/state/tokenBalances.cjs');
+var useDynamicEvents = require('../events/useDynamicEvents/useDynamicEvents.cjs');
+var utils = require('./utils.cjs');
+
+// Hook exposed to customers and used internally to fetch account balances
+const useTokenBalances = ({ accountAddress, networkId, chainName, tokenAddresses, includeFiat = false, includeNativeBalance = false, filterSpamTokens = true, forceRefresh = false, whitelistedContracts, } = {}) => {
+    var _a;
+    const tokenBalancesState = tokenBalances.useTokenBalancesState();
+    const { tokenBalances: tokenBalances$1, isLoading, error } = tokenBalancesState;
+    const { primaryWallet, network } = useInternalDynamicContext.useInternalDynamicContext();
+    const walletConnector = primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.connector;
+    const requestAccount = accountAddress !== null && accountAddress !== void 0 ? accountAddress : primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.address;
+    const requestChainName = (_a = chainName !== null && chainName !== void 0 ? chainName : walletConnector === null || walletConnector === void 0 ? void 0 : walletConnector.connectedChain) !== null && _a !== void 0 ? _a : sdkApiCore.ChainEnum.Evm;
+    const fetchAccountBalances = React.useCallback((...args_1) => _tslib.__awaiter(void 0, [...args_1], void 0, function* (forceRefresh = false) {
+        var _b;
+        const user = getUserProfile.getUserProfile();
+        const authMode$1 = authMode.getAuthMode();
+        if (authMode$1 !== 'connect-only' && !user) {
+            tokenBalances.setTokenBalanceVariable('error', errors.USER_NOT_LOGGED_IN);
+            return;
+        }
+        const projectSettings = getProjectSettings.getProjectSettings();
+        if (authMode$1 === 'connect-only' &&
+            !((_b = projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.sdk.featureFlags) === null || _b === void 0 ? void 0 : _b.connectOnlyMultiAsset)) {
+            return;
+        }
+        // the reason why we need to get the network here again instead of using the value
+        // from DynamicContext is because this function might run before the network state is
+        // properly set when switching wallets, so we want to make sure we have the latest network
+        const rawNetworkId = networkId !== null && networkId !== void 0 ? networkId : (yield (walletConnector === null || walletConnector === void 0 ? void 0 : walletConnector.getNetwork(true)));
+        const requestNetwork = utils.resolveNetworkIdForRequest(requestChainName, rawNetworkId);
+        const isValidRequest = requestNetwork !== undefined;
+        logger.logger.logVerboseTroubleshootingMessage('[useTokenBalances] will try to fetch token balances', {
+            isLoading,
+            isValidRequest,
+            networkId,
+            requestAccount,
+            requestChainName,
+            requestNetwork,
+        });
+        if (isLoading || !requestAccount || !isValidRequest) {
+            tokenBalances.setTokenBalanceVariable('tokenBalances', undefined);
+            return;
+        }
+        tokenBalances.setTokenBalanceVariable('isLoading', true);
+        let response = [];
+        try {
+            response = yield balances.getAccountTokenBalances({
+                accountAddress: requestAccount,
+                chainName: requestChainName,
+                environmentId: dynamicContextProps.getEnvironmentId(),
+                filterSpamTokens,
+                forceRefresh,
+                includeNative: includeNativeBalance,
+                includePrices: includeFiat,
+                networkId: requestNetwork,
+                whitelistedContracts,
+            });
+            if (!response) {
+                tokenBalances.setTokenBalanceVariable('error', 'No token balances found');
+                return;
+            }
+            tokenBalances.setTokenBalanceVariable('error', undefined);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        }
+        catch (e) {
+            const logLevel = (e === null || e === void 0 ? void 0 : e.code) >= 500 || (e === null || e === void 0 ? void 0 : e.code) < 400 ? 'error' : 'warn';
+            yield utils$1.logResponseError(e, 'Error getting token balances', logLevel);
+            const errorMessage = utils.getTokenBalanceErrorMessage(e);
+            tokenBalances.setTokenBalanceVariable('error', errorMessage);
+        }
+        finally {
+            // remove tokens with 0 balance.
+            // This is needed because native tokens, unlike other tokens,
+            // are returned in the response even if the balance is 0
+            const filteredResponse = response === null || response === void 0 ? void 0 : response.filter((token) => token.balance !== 0);
+            tokenBalances.setTokenBalanceVariable('tokenBalances', filteredResponse);
+            tokenBalances.setTokenBalanceVariable('isLoading', false);
+        }
+    }), [
+        requestChainName,
+        isLoading,
+        requestAccount,
+        includeNativeBalance,
+        includeFiat,
+        filterSpamTokens,
+        networkId,
+        walletConnector,
+    ]);
+    useDynamicEvents.useInternalDynamicEvents('tokenBalancesChanged', () => fetchAccountBalances(true));
+    React.useEffect(() => {
+        fetchAccountBalances(forceRefresh);
+    }, [requestAccount, network, networkId, forceRefresh]);
+    const { tokensFilter } = dynamicContextProps.useDynamicSettings();
+    const lowerTokenAddresses = React.useMemo(() => tokenAddresses === null || tokenAddresses === void 0 ? void 0 : tokenAddresses.map((address) => address.toLowerCase()), [tokenAddresses]);
+    const initialTokenBalances = React.useMemo(() => lowerTokenAddresses
+        ? tokenBalances$1 === null || tokenBalances$1 === void 0 ? void 0 : tokenBalances$1.filter((token) => lowerTokenAddresses === null || lowerTokenAddresses === void 0 ? void 0 : lowerTokenAddresses.includes(token.address.toLowerCase()))
+        : tokenBalances$1, [lowerTokenAddresses, tokenBalances$1]);
+    const filteredTokenBalances = React.useMemo(() => (initialTokenBalances ? tokensFilter(initialTokenBalances) : []), [initialTokenBalances, tokensFilter]);
+    return {
+        error,
+        fetchAccountBalances,
+        isError: Boolean(error),
+        isLoading,
+        tokenBalances: filteredTokenBalances,
+    };
+};
+
+exports.useTokenBalances = useTokenBalances;

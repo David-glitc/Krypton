@@ -1,0 +1,143 @@
+'use client'
+// Default safety-net stale window for optimistic entries. Tuned to
+//  comfortably outlast the post-shield polling schedule (~106s) so
+//  reconciliation has a chance to fire on the real server-side state
+//  before the safety net trips.
+const OPTIMISTIC_SHIELD_STALE_MS = 180000;
+const matches = (entry, token) => {
+    if (entry.isNative)
+        return Boolean(token.isNative);
+    return !token.isNative && entry.tokenAddress === token.address;
+};
+/**
+ * Reduce each unshielded token's `rawBalance` by the sum of pending
+ * optimistic shields for the same `(address, isNative)`, clamped to 0.
+ * `balance` and `marketValue` scale by the same ratio so the fiat
+ * column doesn't disagree with the optimistic raw balance.
+ *
+ * Rows that are zeroed by the deduction are dropped from the returned
+ * array so they disappear immediately from the unshielded list instead
+ * of lingering as a `<$0.01` ghost (the per-row fiat formatter renders
+ * any non-positive-but-non-undefined `marketValue` as `<$0.01`, which
+ * looks broken when the optimistic deduction has already taken the row
+ * to exactly 0). Rows untouched by the optimistic shield pass through
+ * by reference (no copy) so downstream memos / identity comparisons
+ * don't churn on every render.
+ */
+const applyOptimisticUnshieldedDeductions = (balances, optimisticShields) => {
+    var _a, _b;
+    if (optimisticShields.length === 0)
+        return balances;
+    const result = [];
+    for (const token of balances) {
+        const adjustments = optimisticShields.filter((o) => matches(o, token));
+        if (adjustments.length === 0) {
+            result.push(token);
+            continue;
+        }
+        const currentRaw = BigInt(Math.round((_a = token.rawBalance) !== null && _a !== void 0 ? _a : 0));
+        const totalAdjustment = adjustments.reduce((sum, o) => sum + o.amount, BigInt(0));
+        const newRaw = currentRaw > totalAdjustment ? currentRaw - totalAdjustment : BigInt(0);
+        // Zero-out drop: the optimistic deduction took this row to (or
+        //  below) zero, so there is nothing useful to display. Filter it
+        //  out rather than emit a synthetic 0-balance row — otherwise the
+        //  `<$0.01` formatter renders it as a misleading dust value until
+        //  the server catches up and reconciliation drops the entry.
+        if (newRaw <= BigInt(0))
+            continue;
+        // Ratio-scale display-units balance + fiat so they stay consistent
+        //  with the optimistic raw value. `currentRaw === 0n` is
+        //  unreachable here (already handled by the zero-out drop above
+        //  via `newRaw <= 0`), but the guard remains as defence-in-depth.
+        const ratio = currentRaw > BigInt(0) ? Number(newRaw) / Number(currentRaw) : 0;
+        result.push(Object.assign(Object.assign({}, token), { balance: ((_b = token.balance) !== null && _b !== void 0 ? _b : 0) * ratio, marketValue: token.marketValue !== undefined ? token.marketValue * ratio : undefined, rawBalance: Number(newRaw), rawBalanceString: newRaw.toString() }));
+    }
+    return result;
+};
+/**
+ * Apply optimistic shield additions to the shielded balance list. For
+ * each optimistic shield with a matching `(address, isNative)` entry
+ * already in `shielded`, bump that entry; otherwise prepend a fresh
+ * synthesized row built from the entry's captured metadata.
+ *
+ * Returns a fresh array only when at least one optimistic shield
+ * applies. When `optimisticShields` is empty we pass through the
+ * input array by reference so consumers that compare by identity
+ * don't churn.
+ */
+const applyOptimisticShieldedAdditions = (shielded, optimisticShields) => {
+    if (optimisticShields.length === 0)
+        return shielded;
+    const consumedIndices = new Set();
+    const merged = shielded.map((token) => {
+        var _a, _b;
+        const adjustments = optimisticShields.filter((o, idx) => {
+            if (!matches(o, token))
+                return false;
+            consumedIndices.add(idx);
+            return true;
+        });
+        if (adjustments.length === 0)
+            return token;
+        const totalAtomic = adjustments.reduce((sum, o) => sum + o.amount, BigInt(0));
+        const newRaw = BigInt(Math.round((_a = token.rawBalance) !== null && _a !== void 0 ? _a : 0)) + totalAtomic;
+        const decimals = (_b = token.decimals) !== null && _b !== void 0 ? _b : 0;
+        const denominator = Math.pow(10, decimals);
+        const newDisplay = Number(newRaw) / denominator;
+        return Object.assign(Object.assign({}, token), { balance: newDisplay, marketValue: token.price !== undefined
+                ? newDisplay * token.price
+                : token.marketValue, rawBalance: Number(newRaw), rawBalanceString: newRaw.toString() });
+    });
+    // Prepend synthesized rows for any optimistic shield that didn't
+    //  fold into an existing shielded row above. New rows go to the top
+    //  of the list so the just-shielded token is immediately visible.
+    const synthesized = [];
+    optimisticShields.forEach((entry, idx) => {
+        if (consumedIndices.has(idx))
+            return;
+        const denominator = Math.pow(10, entry.decimals);
+        const display = Number(entry.amount) / denominator;
+        const marketValue = entry.price !== undefined ? display * entry.price : undefined;
+        synthesized.push(Object.assign(Object.assign({ address: entry.tokenAddress, balance: display, decimals: entry.decimals, isNative: entry.isNative, logoURI: entry.logoURI, name: entry.name, rawBalance: Number(entry.amount), rawBalanceString: entry.amount.toString(), symbol: entry.symbol }, (entry.price !== undefined ? { price: entry.price } : {})), (marketValue !== undefined ? { marketValue } : {})));
+    });
+    return [...synthesized, ...merged];
+};
+/**
+ * Filter the optimistic shield list down to entries that are still
+ * relevant. An entry is dropped when any of:
+ *
+ *  - the unshielded server feed reports a `rawBalance` strictly less
+ *    than `preShieldUnshieldedRaw` for that token (the burn was
+ *    observed on-chain),
+ *  - the shielded server feed reports a `rawBalance` strictly greater
+ *    than `preShieldShieldedRaw` for that token (the new record was
+ *    indexed),
+ *  - the unshielded server no longer lists the token at all (rare,
+ *    but means the public balance is effectively zero — our
+ *    optimistic deduct is moot),
+ *  - the entry is older than `staleMs` (safety net for shields whose
+ *    on-chain effect is masked by parallel inbound credits).
+ *
+ * Pure / module-scope so it's trivially unit-testable; the widget
+ * just calls it on every server-side balance update.
+ */
+const reconcileOptimisticShields = (optimisticShields, unshieldedTokenBalances, shieldedTokenBalances, nowMs, staleMs = OPTIMISTIC_SHIELD_STALE_MS) => optimisticShields.filter((entry) => {
+    var _a, _b;
+    if (nowMs - entry.createdAtMs > staleMs)
+        return false;
+    const unshielded = unshieldedTokenBalances.find((t) => matches(entry, t));
+    if (!unshielded)
+        return false;
+    const serverUnshielded = BigInt(Math.round((_a = unshielded.rawBalance) !== null && _a !== void 0 ? _a : 0));
+    if (serverUnshielded < entry.preShieldUnshieldedRaw)
+        return false;
+    const shielded = shieldedTokenBalances.find((t) => matches(entry, t));
+    const serverShielded = shielded
+        ? BigInt(Math.round((_b = shielded.rawBalance) !== null && _b !== void 0 ? _b : 0))
+        : BigInt(0);
+    if (serverShielded > entry.preShieldShieldedRaw)
+        return false;
+    return true;
+});
+
+export { OPTIMISTIC_SHIELD_STALE_MS, applyOptimisticShieldedAdditions, applyOptimisticUnshieldedDeductions, reconcileOptimisticShields };

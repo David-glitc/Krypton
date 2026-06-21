@@ -1,0 +1,98 @@
+'use client'
+import { __awaiter } from '../../../../../../_virtual/_tslib.js';
+import { useRef, useCallback } from 'react';
+import { DynamicError, pipe, DeferredPromise } from '@dynamic-labs/utils';
+import '../../../../../index.js';
+import '../../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { useViewContext } from '../../../../context/ViewContext/ViewContext.js';
+import { rejectPromiseRef } from '../../../functions/rejectPromiseRef/rejectPromiseRef.js';
+import { resolvePromiseRef } from '../../../functions/resolvePromiseRef/resolvePromiseRef.js';
+import { useInternalDynamicEvents } from '../../events/useDynamicEvents/useDynamicEvents.js';
+import { useFundingHelpers } from '../../useFundingHelpers/useFundingHelpers.js';
+import { FilterWalletsForExternalFunding } from '../utils/FilterWalletsForExternalFunding.js';
+import { FilterChain } from '../../../functions/walletFilters/index.js';
+import { publicDynamicEvents } from '../../../../events/dynamicEvents.js';
+
+const useConnectWalletForFunding = () => {
+    const { primaryWallet, setShowAuthFlow } = useInternalDynamicContext();
+    const { clearStackAndPush } = useViewContext();
+    const { initiatedByWidgetRef, getWalletAddress, resetWalletConnectSession } = useFundingHelpers();
+    const connectWalletPromiseRef = useRef(null);
+    useInternalDynamicEvents('authFlowClose', () => {
+        rejectPromiseRef(connectWalletPromiseRef, new DynamicError('User cancelled'));
+    });
+    const openWalletList = useCallback((initiatedByWidget) => {
+        const onSelectWallet = (_a) => __awaiter(void 0, [_a], void 0, function* ({ walletConnector, }) {
+            if (!connectWalletPromiseRef.current)
+                return;
+            let isDuplicate = false;
+            try {
+                initiatedByWidgetRef.current = initiatedByWidget;
+                const walletAddress = yield getWalletAddress(walletConnector);
+                if (!walletAddress) {
+                    rejectPromiseRef(connectWalletPromiseRef, new DynamicError('No wallet address found'));
+                    return;
+                }
+                if (walletAddress === (primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.address)) {
+                    isDuplicate = true;
+                    clearStackAndPush('duplicate-wallet', {
+                        initiatedByWidget,
+                        onReturn: openWalletList,
+                    });
+                    return;
+                }
+                const wallet = walletConnector.createWallet({
+                    address: walletAddress,
+                    chain: walletConnector.connectedChain,
+                    connector: walletConnector,
+                    id: 'external-funding-wallet',
+                    isAuthenticated: false,
+                    key: walletConnector.key,
+                });
+                resolvePromiseRef(connectWalletPromiseRef, wallet);
+                publicDynamicEvents.emit('walletConnectedForFunding', {
+                    initiatedByWidget,
+                    isPhantomRedirect: false,
+                    wallet,
+                });
+            }
+            catch (error) {
+                rejectPromiseRef(connectWalletPromiseRef, error);
+            }
+            finally {
+                if (!isDuplicate)
+                    setShowAuthFlow(false);
+            }
+        });
+        clearStackAndPush('external-funding-wallet-list', {
+            onSelectWallet,
+            showDefaultFooter: true,
+            viewWalletsFilter: pipe(FilterWalletsForExternalFunding).pipe(FilterChain(primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.chain)),
+        });
+    }, [
+        clearStackAndPush,
+        getWalletAddress,
+        initiatedByWidgetRef,
+        primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.address,
+        primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.chain,
+        setShowAuthFlow,
+    ]);
+    return useCallback((_a) => __awaiter(void 0, [_a], void 0, function* ({ initiatedByWidget, }) {
+        if (connectWalletPromiseRef.current) {
+            return connectWalletPromiseRef.current.promise;
+        }
+        resetWalletConnectSession();
+        connectWalletPromiseRef.current = new DeferredPromise();
+        openWalletList(initiatedByWidget);
+        setShowAuthFlow(true, {
+            emitCancelAuth: false,
+            ignoreIfIsEmbeddedWidget: true,
+            initializeWalletConnect: true,
+            performMultiWalletChecks: false,
+        });
+        return connectWalletPromiseRef.current.promise;
+    }), [openWalletList, resetWalletConnectSession, setShowAuthFlow]);
+};
+
+export { useConnectWalletForFunding };

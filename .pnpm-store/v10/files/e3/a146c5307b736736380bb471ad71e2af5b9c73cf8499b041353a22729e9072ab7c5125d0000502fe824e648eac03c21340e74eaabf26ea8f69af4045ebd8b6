@@ -1,0 +1,27 @@
+import { ChainDestinationConfigFromJSON, ChainDestinationConfigToJSON } from './ChainDestinationConfig.js';
+
+/* tslint:disable */
+function DestinationConfigInputFromJSON(json) {
+    return DestinationConfigInputFromJSONTyped(json);
+}
+function DestinationConfigInputFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'destinations': (json['destinations'].map(ChainDestinationConfigFromJSON)),
+    };
+}
+function DestinationConfigInputToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'destinations': (value.destinations.map(ChainDestinationConfigToJSON)),
+    };
+}
+
+export { DestinationConfigInputFromJSON, DestinationConfigInputFromJSONTyped, DestinationConfigInputToJSON };

@@ -1,0 +1,23 @@
+import type { CloudBackupProvider } from './types';
+import type { WalletToBackup } from './useWalletBackup';
+type BackupErrorOptions = {
+    provider: CloudBackupProvider;
+    successfulWallets: WalletToBackup[];
+    failedWallets: {
+        wallet: WalletToBackup;
+        cause: unknown;
+    }[];
+};
+export declare class BackupError extends AggregateError {
+    readonly operation: 'backup';
+    readonly provider: CloudBackupProvider;
+    readonly successfulWallets: WalletToBackup[];
+    readonly failedWallets: {
+        wallet: WalletToBackup;
+        cause: unknown;
+    }[];
+    constructor({ provider, successfulWallets, failedWallets, }: BackupErrorOptions);
+    get successCount(): number;
+    get failureCount(): number;
+}
+export {};

@@ -1,0 +1,86 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+require('../../../context/ViewContext/ViewContext.cjs');
+var logger = require('../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('@dynamic-labs/utils');
+require('../../constants/colors.cjs');
+require('../../constants/values.cjs');
+require('@dynamic-labs/sdk-api-core');
+require('../../../shared/consts/index.cjs');
+var store = require('../../../store/internalImplementation/store.cjs');
+var walletOptions = require('../../../store/state/walletOptions/walletOptions.cjs');
+var dynamicContextProps = require('../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+
+const DYNAMIC_WAAS_KEY = 'dynamicwaas';
+const DYNAMIC_WALLET_IFRAME_TITLE_PREFIX = 'Dynamic Wallet';
+/**
+ * Hook that returns a function to atomically tear down the current WaaS session.
+ *
+ * Intended for integrations where the host app swaps the authenticated user within
+ * a single tab (for example, when a product layers multiple identities on top of a
+ * single Dynamic SDK instance). Calling the returned function:
+ *
+ *   1. Ends every active WaaS wallet-connector session, which triggers per-chain
+ *      `dynamicWaasClient` cleanup and iframe ref-count decrement.
+ *   2. Removes all Dynamic Wallet iframes (main + storage) from the DOM as a
+ *      belt-and-suspenders step in case a consumer failed to decrement the ref count.
+ *   3. Clears the persisted zustand store from localStorage so the next SDK load
+ *      does not hydrate stale user/wallet state.
+ *
+ * After this resolves, the next `useExternalAuth`/auth flow starts from a clean
+ * slate — new iframe, no cached keyshares, no stale store.
+ *
+ * Concurrent calls while a teardown is already in progress are ignored — the
+ * callback is guarded by an in-flight flag so only one teardown runs at a time.
+ */
+const useResetWaasSession = () => {
+    const walletConnectorOptions = walletOptions.useWalletConnectorOptions();
+    const { localStorageSuffix } = dynamicContextProps.useDynamicSettings();
+    // Refs keep the callback stable (deps: []) while always reading the latest values.
+    const walletConnectorOptionsRef = React.useRef(walletConnectorOptions);
+    walletConnectorOptionsRef.current = walletConnectorOptions;
+    const localStorageSuffixRef = React.useRef(localStorageSuffix);
+    localStorageSuffixRef.current = localStorageSuffix;
+    const inFlightRef = React.useRef(false);
+    return React.useCallback(() => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        if (inFlightRef.current)
+            return;
+        inFlightRef.current = true;
+        try {
+            const waasConnectors = walletConnectorOptionsRef.current
+                .filter((option) => option.key.includes(DYNAMIC_WAAS_KEY))
+                .map((option) => option.walletConnector);
+            yield Promise.all(waasConnectors.map((connector) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    yield connector.endSession('user-intent');
+                }
+                catch (error) {
+                    logger.logger.warn('[useResetWaasSession] connector endSession failed', {
+                        connector: connector.key,
+                        error,
+                    });
+                }
+            })));
+            if (typeof document !== 'undefined') {
+                document
+                    .querySelectorAll(`iframe[title^="${DYNAMIC_WALLET_IFRAME_TITLE_PREFIX}"]`)
+                    .forEach((el) => el.remove());
+            }
+            store.clearPersistedStore(localStorageSuffixRef.current);
+        }
+        finally {
+            inFlightRef.current = false;
+        }
+    }), []);
+};
+
+exports.useResetWaasSession = useResetWaasSession;

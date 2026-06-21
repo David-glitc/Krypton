@@ -1,0 +1,45 @@
+'use client'
+import { __awaiter } from '../../../../_virtual/_tslib.js';
+import { jsx } from 'react/jsx-runtime';
+import { useState, useRef, useEffect } from 'react';
+import { OTPVerificationView } from '../../components/OTPVerificationView/OTPVerificationView.js';
+import { EmailIcon } from '../../components/EmailIcon/EmailIcon.js';
+import { PhoneIcon } from '../../components/PhoneIcon/PhoneIcon.js';
+import { useStepUpAuthentication } from '../../utils/hooks/useStepUpAuthentication/useStepUpAuthentication.js';
+
+const StepUpReauthOtpView = ({ credentialId, displayLabel, requestedScopes, type, onSuccess, }) => {
+    const { sendOtp, verifyOtp, state } = useStepUpAuthentication({
+        credentialId,
+    });
+    const [verificationSuccess, setVerificationSuccess] = useState(false);
+    const hasSentInitialOtpRef = useRef(false);
+    const MainIcon = type === 'sms' ? PhoneIcon : EmailIcon;
+    const { error, isLoading } = state;
+    useEffect(() => {
+        if (hasSentInitialOtpRef.current)
+            return;
+        hasSentInitialOtpRef.current = true;
+        sendOtp();
+    }, [sendOtp]);
+    const handlePinComplete = (verificationToken) => __awaiter(void 0, void 0, void 0, function* () {
+        const response = yield verifyOtp({
+            requestedScopes,
+            verificationToken,
+        });
+        if (!response) {
+            // Verification failed but the user can retry — the error is surfaced
+            // via state.error from useStepUpAuthentication. Do NOT call onError here
+            // because that permanently rejects the deferred promise, making subsequent
+            // retries unable to resolve it.
+            return;
+        }
+        setVerificationSuccess(true);
+        onSuccess();
+    });
+    const displayError = error ? new Error(error) : undefined;
+    return (jsx(OTPVerificationView, { MainIcon: MainIcon, displayedDestination: displayLabel, error: displayError, isLoading: isLoading, isValid: verificationSuccess, onPinComplete: handlePinComplete, retryHandler: () => {
+            void sendOtp();
+        }, successBannerTextKey: 'dyn_otp_verification.verification_succeeded' }));
+};
+
+export { StepUpReauthOtpView };

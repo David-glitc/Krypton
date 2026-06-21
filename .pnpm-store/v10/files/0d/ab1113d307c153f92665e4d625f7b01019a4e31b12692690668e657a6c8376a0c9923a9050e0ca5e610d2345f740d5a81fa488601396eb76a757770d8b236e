@@ -1,0 +1,36 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+var ChainEnum = require('./ChainEnum.cjs');
+
+/* tslint:disable */
+function SwapStatusRequestChainFromJSON(json) {
+    return SwapStatusRequestChainFromJSONTyped(json);
+}
+function SwapStatusRequestChainFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'chainId': !runtime.exists(json, 'chainId') ? undefined : json['chainId'],
+        'chainName': !runtime.exists(json, 'chainName') ? undefined : ChainEnum.ChainEnumFromJSON(json['chainName']),
+    };
+}
+function SwapStatusRequestChainToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'chainId': value.chainId,
+        'chainName': ChainEnum.ChainEnumToJSON(value.chainName),
+    };
+}
+
+exports.SwapStatusRequestChainFromJSON = SwapStatusRequestChainFromJSON;
+exports.SwapStatusRequestChainFromJSONTyped = SwapStatusRequestChainFromJSONTyped;
+exports.SwapStatusRequestChainToJSON = SwapStatusRequestChainToJSON;

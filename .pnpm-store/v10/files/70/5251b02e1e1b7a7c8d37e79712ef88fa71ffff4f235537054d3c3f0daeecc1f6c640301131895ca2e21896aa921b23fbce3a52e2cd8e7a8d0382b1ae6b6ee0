@@ -1,0 +1,26 @@
+import type { WalletProvider } from '../walletProvider';
+type HasWalletProviderConnectMethodParams = {
+    walletProvider: WalletProvider;
+};
+/**
+ * Returns true when the given wallet provider exposes a `connect` method,
+ * which is the signal we use to decide whether it belongs in the external
+ * wallet picker as an `available provider`.
+ *
+ * Providers that don't expose `connect` (embedded wallets,
+ * account-abstraction wrappers, MetaMask SDK / WalletConnect-backed
+ * providers) are still sign-in capable, but via different SDK entry
+ * points — they should not appear in the external picker as a
+ * `withWalletProvider`-style option.
+ *
+ * Centralizing the predicate means future tweaks (e.g. a registry of
+ * provider keys to exclude) land in one place and every consumer stays
+ * in lockstep.
+ *
+ * @param params.walletProvider - The wallet provider to test.
+ * @returns True when the provider exposes a `connect` method.
+ * @not-instrumented
+ */
+export declare const hasWalletProviderConnectMethod: ({ walletProvider, }: HasWalletProviderConnectMethodParams) => boolean;
+export {};
+//# sourceMappingURL=hasWalletProviderConnectMethod.d.ts.map

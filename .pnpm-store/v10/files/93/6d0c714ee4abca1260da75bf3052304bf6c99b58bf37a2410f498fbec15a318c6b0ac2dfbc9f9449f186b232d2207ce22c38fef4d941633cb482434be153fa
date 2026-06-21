@@ -1,0 +1,20 @@
+import type { CheckoutTransaction } from '../../checkout.types';
+export type RequiresConversionParams = {
+    transaction: CheckoutTransaction;
+};
+/**
+ * Determines whether a token conversion (swap/bridge) is required for a checkout transaction.
+ *
+ * Returns `true` when the from token does not match any settlement token defined in
+ * the checkout's settlement config for the given chain — meaning the asset must be
+ * converted before it can settle.
+ * Returns `false` when the from token already matches a settlement token, so no
+ * conversion is needed.
+ *
+ * @param params - The from token details and the checkout's settlement config.
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns Whether a token conversion is required
+ * @not-instrumented
+ */
+export declare const requiresConversion: ({ transaction }: RequiresConversionParams, client?: import("../../../../exports").DynamicClient) => Promise<boolean>;
+//# sourceMappingURL=requiresConversion.d.ts.map

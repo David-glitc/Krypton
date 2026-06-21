@@ -1,0 +1,16 @@
+import { FC } from 'react';
+import { TransactionModeOption } from '@dynamic-labs/types';
+export type TransactionModeSegmentedControlProps = {
+    options: TransactionModeOption[];
+    selectedId: string | undefined;
+    onChange: (modeId: string) => void;
+    disabled?: boolean;
+};
+/**
+ * Generic 2+ option segmented control rendered inside the SDK's send form
+ * when an `IUITransaction` exposes `transactionModes`. Aleo is the first
+ * caller (Individual / Exchange = private vs. public transfer); the
+ * component is intentionally chain-agnostic so any future chain can opt
+ * in by populating the same field on its UI transaction.
+ */
+export declare const TransactionModeSegmentedControl: FC<TransactionModeSegmentedControlProps>;

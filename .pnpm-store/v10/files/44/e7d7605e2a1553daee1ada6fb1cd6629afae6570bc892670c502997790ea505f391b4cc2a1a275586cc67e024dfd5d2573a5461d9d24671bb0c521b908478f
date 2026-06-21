@@ -1,0 +1,2 @@
+export { withDatabase } from './withDatabase';
+//# sourceMappingURL=index.d.ts.map

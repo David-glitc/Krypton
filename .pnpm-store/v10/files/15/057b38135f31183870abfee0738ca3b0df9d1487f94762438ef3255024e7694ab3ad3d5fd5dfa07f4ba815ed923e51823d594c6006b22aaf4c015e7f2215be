@@ -1,0 +1,21 @@
+import type { WalletSchema } from '../../legacyWalletBook/legacyWalletBook.types';
+import type { InstallationUrls } from '../walletOptionsCatalogue.types';
+type BuildInstallationUrlsParams = {
+    wallet: WalletSchema;
+};
+/**
+ * Builds the install/download URL bag for a wallet book entry. Returns the
+ * concrete URLs assembled from each store's ID field — Play Store, App
+ * Store, Chrome Web Store, Firefox Add-ons, Edge Add-ons — plus the wallet's
+ * own `desktop.universal` / `desktop.native` URLs when set.
+ *
+ * Fields the wallet book does not carry are left undefined; callers should
+ * skip emitting an installation option for a wallet whose URL bag is empty.
+ *
+ * @param params.wallet - The wallet book entry.
+ * @returns The URL bag, omitting fields the wallet does not provide.
+ * @not-instrumented
+ */
+export declare const buildInstallationUrls: ({ wallet, }: BuildInstallationUrlsParams) => InstallationUrls;
+export {};
+//# sourceMappingURL=buildInstallationUrls.d.ts.map

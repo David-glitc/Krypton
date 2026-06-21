@@ -1,0 +1,47 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var React = require('react');
+require('../../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+require('../../../../context/ViewContext/ViewContext.cjs');
+var logger = require('../../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('@dynamic-labs/utils');
+require('../../../constants/colors.cjs');
+require('../../../constants/values.cjs');
+require('@dynamic-labs/sdk-api-core');
+require('../../../../shared/consts/index.cjs');
+var utils = require('../utils/utils.cjs');
+
+const useBaseTransactionSimulation = (hookName) => {
+    const { primaryWallet, environmentId, networkConfigurations } = useInternalDynamicContext.useInternalDynamicContext();
+    const [simulationState, setSimulationState] = React.useState({
+        isLoading: false,
+    });
+    const nativeTokenDecimals = React.useMemo(() => utils.getNativeTokenDecimals(primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.chain, networkConfigurations), [primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.chain, networkConfigurations]);
+    const handleSimulationError = React.useCallback((e, type) => {
+        const errorPrefix = type ? `${type} ` : '';
+        logger.logger.error(`[${hookName}] ${errorPrefix}simulation failed:`, e);
+        setSimulationState({
+            error: e instanceof Error ? e.message : `${errorPrefix}simulation failed`,
+            isLoading: false,
+        });
+    }, [hookName]);
+    return {
+        environmentId,
+        handleSimulationError,
+        nativeTokenDecimals,
+        networkConfigurations,
+        primaryWallet,
+        setSimulationState,
+        simulationState,
+    };
+};
+
+exports.useBaseTransactionSimulation = useBaseTransactionSimulation;

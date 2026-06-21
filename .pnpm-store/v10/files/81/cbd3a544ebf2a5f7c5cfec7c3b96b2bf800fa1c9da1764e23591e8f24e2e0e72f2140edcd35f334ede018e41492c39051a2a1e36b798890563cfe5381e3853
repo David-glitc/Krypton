@@ -1,0 +1,1 @@
+export declare const getSessionKeys: () => import("@dynamic-labs-sdk/client/core").SessionKeys | undefined;

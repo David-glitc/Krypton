@@ -1,0 +1,29 @@
+type AppendConnectionUriToDeeplinkParams = {
+    connectionUri: string;
+    deeplinkUrl: string;
+};
+/**
+ * Appends a wallet connection URI to a deeplink URL.
+ *
+ * Generic across URI-deeplink connection options — works for both
+ * WalletConnect pairing URIs and MetaMask SDK URIs. Determines the
+ * appropriate query parameter separator based on whether the deeplink
+ * already contains query parameters.
+ *
+ * @param params.deeplinkUrl - The base deeplink URL (e.g., `walletapp://wc` or `walletapp://wc?param=value`).
+ * @param params.connectionUri - The connection URI to append.
+ * @returns The deeplink URL with the connection URI appended as a query parameter.
+ *
+ * @example
+ * ```ts
+ * appendConnectionUriToDeeplink({ deeplinkUrl: 'walletapp://wc', connectionUri: 'wc:123-456' })
+ * // Returns: 'walletapp://wc?uri=wc%3A123-456'
+ *
+ * appendConnectionUriToDeeplink({ deeplinkUrl: 'walletapp://wc?param=value', connectionUri: 'wc:123-456' })
+ * // Returns: 'walletapp://wc?param=value&uri=wc%3A123-456'
+ * ```
+ * @not-instrumented
+ */
+export declare const appendConnectionUriToDeeplink: ({ connectionUri, deeplinkUrl, }: AppendConnectionUriToDeeplinkParams) => string;
+export {};
+//# sourceMappingURL=appendConnectionUriToDeeplink.d.ts.map

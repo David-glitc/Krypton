@@ -1,0 +1,35 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+
+/* tslint:disable */
+function InlineResponse2001AllowedProgramsFromJSON(json) {
+    return InlineResponse2001AllowedProgramsFromJSONTyped(json);
+}
+function InlineResponse2001AllowedProgramsFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'programId': !runtime.exists(json, 'program_id') ? undefined : json['program_id'],
+        'allowedFunctions': !runtime.exists(json, 'allowed_functions') ? undefined : json['allowed_functions'],
+    };
+}
+function InlineResponse2001AllowedProgramsToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'program_id': value.programId,
+        'allowed_functions': value.allowedFunctions,
+    };
+}
+
+exports.InlineResponse2001AllowedProgramsFromJSON = InlineResponse2001AllowedProgramsFromJSON;
+exports.InlineResponse2001AllowedProgramsFromJSONTyped = InlineResponse2001AllowedProgramsFromJSONTyped;
+exports.InlineResponse2001AllowedProgramsToJSON = InlineResponse2001AllowedProgramsToJSON;

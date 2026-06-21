@@ -1,0 +1,30 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var jsxRuntime = require('react/jsx-runtime');
+var walletBook = require('@dynamic-labs/wallet-book');
+require('../../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var useConnectedAccountWallet = require('../../../../utils/hooks/useConnectedAccountWallet/useConnectedAccountWallet.cjs');
+var PromptModal = require('../../components/PromptModal/PromptModal.cjs');
+var WidgetPortal = require('../../components/WidgetPortal/WidgetPortal.cjs');
+var DefaultPromptModal = require('../DefaultPromptModal/DefaultPromptModal.cjs');
+var SwitchAccountView = require('./SwitchAccountView/SwitchAccountView.cjs');
+var SwitchOrUseActiveAccountView = require('./SwitchOrUseActiveAccountView/SwitchOrUseActiveAccountView.cjs');
+
+const PendingAccountSwitchContent = () => {
+    var _a, _b, _c, _d;
+    const { selectedWalletWithAction, primaryWallet, secondaryWallets } = useInternalDynamicContext.useInternalDynamicContext();
+    const selectedConnector = (_a = selectedWalletWithAction === null || selectedWalletWithAction === void 0 ? void 0 : selectedWalletWithAction.wallet) === null || _a === void 0 ? void 0 : _a.connector;
+    const isSameWallet = (selectedConnector === null || selectedConnector === void 0 ? void 0 : selectedConnector.key) === (primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.connector.key);
+    const { data: connectedWallet } = useConnectedAccountWallet.useConnectedAccountWallet((_b = selectedWalletWithAction === null || selectedWalletWithAction === void 0 ? void 0 : selectedWalletWithAction.wallet) === null || _b === void 0 ? void 0 : _b.connector, secondaryWallets);
+    const selectedWalletToSwitchTo = (_d = (_c = selectedWalletWithAction === null || selectedWalletWithAction === void 0 ? void 0 : selectedWalletWithAction.wallet) !== null && _c !== void 0 ? _c : primaryWallet) !== null && _d !== void 0 ? _d : undefined;
+    return (jsxRuntime.jsx(DefaultPromptModal.DefaultPromptLayout, { dataTestId: 'pending-account-switch', icon: jsxRuntime.jsx(walletBook.WalletIcon, { icon: selectedConnector === null || selectedConnector === void 0 ? void 0 : selectedConnector.metadata.icon, walletKey: selectedConnector === null || selectedConnector === void 0 ? void 0 : selectedConnector.key }), title: `Switch wallet in ${selectedWalletToSwitchTo === null || selectedWalletToSwitchTo === void 0 ? void 0 : selectedWalletToSwitchTo.connector.name}`, children: isSameWallet || !connectedWallet ? (jsxRuntime.jsx(SwitchAccountView.SwitchAccountView, { selectedWalletToSwitchTo: selectedWalletToSwitchTo })) : (jsxRuntime.jsx(SwitchOrUseActiveAccountView.SwitchOrUseActiveAccountView, { connectedWallet: connectedWallet, selectedWalletToSwitchTo: selectedWalletToSwitchTo })) }));
+};
+const PendingAccountSwitchWidgetPortal = () => (jsxRuntime.jsx(WidgetPortal.WidgetPortal, { children: jsxRuntime.jsx(PendingAccountSwitchContent, {}) }));
+const PendingAccountSwitchModal = () => (jsxRuntime.jsx(PromptModal.PromptModal, { children: jsxRuntime.jsx(PendingAccountSwitchContent, {}) }));
+
+exports.PendingAccountSwitchModal = PendingAccountSwitchModal;
+exports.PendingAccountSwitchWidgetPortal = PendingAccountSwitchWidgetPortal;

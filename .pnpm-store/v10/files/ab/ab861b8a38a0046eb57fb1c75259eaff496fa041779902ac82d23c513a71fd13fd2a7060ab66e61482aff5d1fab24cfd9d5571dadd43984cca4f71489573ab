@@ -1,0 +1,18 @@
+/** Parameters for {@link getNativeLinkScheme}. */
+export type GetNativeLinkSchemeParams = {
+    /** A native link, e.g. `myapp://wallet/connect`. */
+    nativeLink: string | undefined;
+};
+/**
+ * Reduces a native link to just its URL scheme (e.g.
+ * `myapp://wallet/connect` -> `myapp://`), dropping anything after the scheme
+ * separator. A native link may be configured with an in-app route, but a
+ * consumer that only needs to deep link back into the app (rather than a
+ * specific route) should use the scheme alone. Links without a scheme
+ * separator are returned unchanged (they cannot carry a route), and
+ * `undefined` passes through.
+ *
+ * @not-instrumented
+ */
+export declare const getNativeLinkScheme: ({ nativeLink, }: GetNativeLinkSchemeParams) => string | undefined;
+//# sourceMappingURL=getNativeLinkScheme.d.ts.map

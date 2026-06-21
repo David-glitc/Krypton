@@ -1,0 +1,43 @@
+import { exists } from '../runtime.js';
+import { EIP7702AuthorizationFromJSON, EIP7702AuthorizationToJSON } from './EIP7702Authorization.js';
+import { SponsorEVMTransactionRequestCallsFromJSON, SponsorEVMTransactionRequestCallsToJSON } from './SponsorEVMTransactionRequestCalls.js';
+
+/* tslint:disable */
+function SponsorEVMTransactionRequestFromJSON(json) {
+    return SponsorEVMTransactionRequestFromJSONTyped(json);
+}
+function SponsorEVMTransactionRequestFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'authorization': !exists(json, 'authorization') ? undefined : EIP7702AuthorizationFromJSON(json['authorization']),
+        'calls': (json['calls'].map(SponsorEVMTransactionRequestCallsFromJSON)),
+        'chainId': json['chainId'],
+        'deadline': json['deadline'],
+        'nonce': json['nonce'],
+        'signature': json['signature'],
+        'relayer': json['relayer'],
+        'walletAddress': json['walletAddress'],
+    };
+}
+function SponsorEVMTransactionRequestToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'authorization': EIP7702AuthorizationToJSON(value.authorization),
+        'calls': (value.calls.map(SponsorEVMTransactionRequestCallsToJSON)),
+        'chainId': value.chainId,
+        'deadline': value.deadline,
+        'nonce': value.nonce,
+        'signature': value.signature,
+        'relayer': value.relayer,
+        'walletAddress': value.walletAddress,
+    };
+}
+
+export { SponsorEVMTransactionRequestFromJSON, SponsorEVMTransactionRequestFromJSONTyped, SponsorEVMTransactionRequestToJSON };

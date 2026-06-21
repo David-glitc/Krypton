@@ -1,0 +1,4 @@
+import type { CreateKeychainService } from './createKeychainService.types';
+/** @not-instrumented */
+export declare const createKeychainService: CreateKeychainService;
+//# sourceMappingURL=createKeychainService.d.ts.map

@@ -1,0 +1,43 @@
+'use client'
+import { __awaiter } from '../../../../../../_virtual/_tslib.js';
+import { useCallback } from 'react';
+import '../../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+
+const useFund = () => {
+    const { primaryWallet } = useInternalDynamicContext();
+    return useCallback((_a) => __awaiter(void 0, [_a], void 0, function* ({ amount, fromWallet, token, toWallet }) {
+        if (!amount || !fromWallet) {
+            throw new Error('Amount and fromWallet are required');
+        }
+        if (!primaryWallet && !toWallet) {
+            throw new Error('No destination wallet found');
+        }
+        const fromWalletNetwork = yield fromWallet.getNetwork();
+        let network;
+        if (toWallet) {
+            // eslint-disable-next-line prefer-destructuring
+            network = toWallet.network;
+        }
+        else {
+            network = yield (primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.getNetwork());
+        }
+        if (!fromWalletNetwork || !network) {
+            throw new Error('Wallet network not found');
+        }
+        if (fromWalletNetwork !== network) {
+            yield fromWallet.switchNetwork(network);
+        }
+        const toAddress = toWallet ? toWallet.address : primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.address;
+        if (!toAddress) {
+            throw new Error('No destination address found');
+        }
+        return fromWallet.sendBalance({
+            amount: amount.toString(),
+            toAddress,
+            token,
+        });
+    }), [primaryWallet]);
+};
+
+export { useFund };

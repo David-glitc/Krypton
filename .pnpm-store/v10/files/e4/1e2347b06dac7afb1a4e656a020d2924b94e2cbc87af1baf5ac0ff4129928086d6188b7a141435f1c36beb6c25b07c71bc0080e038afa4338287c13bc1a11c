@@ -1,0 +1,101 @@
+#import "DynamicClientKeychain.h"
+#import <React/RCTBridgeModule.h>
+#import <DynamicClientSpec/DynamicClientSpec.h>
+#if __has_include(<dynamic_labs_sdk_client/dynamic_labs_sdk_client-Swift.h>)
+#import <dynamic_labs_sdk_client/dynamic_labs_sdk_client-Swift.h>
+#else
+#import "dynamic_labs_sdk_client-Swift.h"
+#endif
+
+@interface DynamicClientKeychain () <NativeKeychainSpec> {
+  SecureEnclaveKeyManager *_keyManager;
+}
+@end
+
+@implementation DynamicClientKeychain
+
+RCT_EXPORT_MODULE()
+
+- (instancetype)init {
+  self = [super init];
+  if (self) {
+    _keyManager = [[SecureEnclaveKeyManager alloc] init];
+  }
+  return self;
+}
+
+#pragma mark - NativeKeychainSpec
+
+- (void)isAvailable:(RCTPromiseResolveBlock)resolve
+             reject:(RCTPromiseRejectBlock)reject {
+  resolve(@([_keyManager isAvailable]));
+}
+
+- (void)hasKey:(NSString *)key
+       resolve:(RCTPromiseResolveBlock)resolve
+        reject:(RCTPromiseRejectBlock)reject {
+  resolve(@([_keyManager hasKey:key]));
+}
+
+- (void)generateKeyPair:(NSString *)key
+                resolve:(RCTPromiseResolveBlock)resolve
+                 reject:(RCTPromiseRejectBlock)reject {
+  NSError *error = nil;
+  NSString *publicKey = [_keyManager generateKeyPair:key error:&error];
+  if (error) {
+    reject(@"ERR_KEYCHAIN", error.localizedDescription, error);
+    return;
+  }
+  resolve(@{@"publicKey": publicKey});
+}
+
+- (void)getPublicKey:(NSString *)key
+             resolve:(RCTPromiseResolveBlock)resolve
+              reject:(RCTPromiseRejectBlock)reject {
+  NSError *error = nil;
+  NSString *publicKey = [_keyManager getPublicKey:key error:&error];
+  if (error) {
+    reject(@"ERR_KEYCHAIN", error.localizedDescription, error);
+    return;
+  }
+  // Empty string signals "key not found" from Swift (which can't return
+  // Optional from a throwing @objc method)
+  if (publicKey.length == 0) {
+    resolve([NSNull null]);
+    return;
+  }
+  resolve(@{@"publicKey": publicKey});
+}
+
+- (void)sign:(NSString *)key
+     payload:(NSString *)payload
+     resolve:(RCTPromiseResolveBlock)resolve
+      reject:(RCTPromiseRejectBlock)reject {
+  NSError *error = nil;
+  NSString *signature = [_keyManager sign:key payload:payload error:&error];
+  if (error) {
+    reject(@"ERR_KEYCHAIN", error.localizedDescription, error);
+    return;
+  }
+  resolve(@{@"signature": signature});
+}
+
+- (void)deleteKey:(NSString *)key
+          resolve:(RCTPromiseResolveBlock)resolve
+           reject:(RCTPromiseRejectBlock)reject {
+  [_keyManager deleteKey:key];
+  resolve([NSNull null]);
+}
+
+#pragma mark - TurboModule
+
+- (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:
+    (const facebook::react::ObjCTurboModule::InitParams &)params {
+  return std::make_shared<facebook::react::NativeKeychainSpecJSI>(params);
+}
+
++ (BOOL)requiresMainQueueSetup {
+  return NO;
+}
+
+@end

@@ -1,0 +1,31 @@
+'use client'
+import { useCallback } from 'react';
+import { StorageService } from '@dynamic-labs/utils';
+import { EMBEDDED_WALLET_SESSION_SETTINGS, EMBEDDED_WALLET_SECURE_BANNER } from '../../constants/localStorage.js';
+
+// SignClient is a clerk; its `wc@2:*` / `walletconnect-*` localStorage entries
+// are the clerk's notebook of which sessions exist on WalletConnect's relay
+// (the post office). Wiping the notebook here without first telling the clerk
+// to send a disconnect leaves those sessions alive on the relay until natural
+// expiry — exactly the leak this hook used to cause. Disconnect already runs
+// through `connector.endSession()`, which goes through the clerk and the
+// post office gets the memo. This hook now only handles the unrelated
+// embedded-wallet (turnkey) cleanup.
+const useClearWalletConnectSessions = ({ connectors }) => {
+    const clearAllWalletConnectSessions = useCallback(() => {
+        if (typeof window === 'undefined')
+            return;
+        connectors === null || connectors === void 0 ? void 0 : connectors.forEach((connector) => {
+            var _a, _b, _c;
+            if ((_b = (_a = connector === null || connector === void 0 ? void 0 : connector.name) === null || _a === void 0 ? void 0 : _a.toLowerCase()) === null || _b === void 0 ? void 0 : _b.startsWith('turnkey')) {
+                (_c = connector
+                    .getAuthenticatorHandler()) === null || _c === void 0 ? void 0 : _c.clear();
+                StorageService.removeItem(EMBEDDED_WALLET_SESSION_SETTINGS);
+                StorageService.removeItem(EMBEDDED_WALLET_SECURE_BANNER);
+            }
+        });
+    }, [connectors]);
+    return { clearAllWalletConnectSessions };
+};
+
+export { useClearWalletConnectSessions };

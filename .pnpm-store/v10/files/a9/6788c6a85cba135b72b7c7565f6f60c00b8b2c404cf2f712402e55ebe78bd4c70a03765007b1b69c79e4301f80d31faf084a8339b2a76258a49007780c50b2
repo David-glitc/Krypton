@@ -1,0 +1,10 @@
+import { WalletBookSchema } from '@dynamic-labs/wallet-book';
+import { WalletConnectorConstructor } from '@dynamic-labs/wallet-connector-core';
+/**
+ * Stops the active wallet-standard discovery (register listener + poll).
+ * @internal - Exposed for test cleanup.
+ */
+export declare const stopSuiWalletStandardDiscovery: () => void;
+export declare const fetchSuiInjectedWalletConnectors: ({ walletBook, }: {
+    walletBook?: WalletBookSchema;
+}) => WalletConnectorConstructor[];

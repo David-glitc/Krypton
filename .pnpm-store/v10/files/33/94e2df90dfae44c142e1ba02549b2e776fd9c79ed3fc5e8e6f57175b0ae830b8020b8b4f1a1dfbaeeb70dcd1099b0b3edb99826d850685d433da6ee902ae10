@@ -1,0 +1,66 @@
+'use client'
+import { __awaiter } from '../../../../_virtual/_tslib.js';
+import { RATE_LIMIT_ERROR_CODE, UNKNOWN_ERROR_CODE } from '@dynamic-labs/utils';
+import '@dynamic-labs/iconic';
+import '@dynamic-labs/wallet-connector-core';
+import 'react';
+import 'react/jsx-runtime';
+import '../../context/ViewContext/ViewContext.js';
+import { logger } from '../../shared/logger.js';
+import '@dynamic-labs/wallet-book';
+import '../../utils/constants/colors.js';
+import '../../utils/constants/values.js';
+import '@dynamic-labs/sdk-api-core';
+import '../../shared/consts/index.js';
+import { sdkApi } from './api.js';
+
+const RATE_LIMIT_MESSAGE = 'Too many requests. Please try again later.';
+const NETWORK_ERROR_MESSAGE = 'Request failed. You may be sending too many requests — please wait a moment and try again.';
+const logResponseError = (e_1, message_1, ...args_1) => __awaiter(void 0, [e_1, message_1, ...args_1], void 0, function* (e, message, logLevel = 'error') {
+    var _a, _b, _c, _d, _e, _f, _g;
+    if (e instanceof Response) {
+        const requestId = (_b = (_a = e.headers) === null || _a === void 0 ? void 0 : _a.get('x-dyn-request-id')) !== null && _b !== void 0 ? _b : undefined;
+        const cfRay = (_d = (_c = e.headers) === null || _c === void 0 ? void 0 : _c.get('cf-ray')) !== null && _d !== void 0 ? _d : undefined;
+        let data;
+        try {
+            data = yield e.json();
+        }
+        catch (_h) {
+            data = {};
+        }
+        // Normalize 429 responses regardless of body content
+        if (e.status === 429) {
+            data.code = RATE_LIMIT_ERROR_CODE;
+            data.error = (_e = data.error) !== null && _e !== void 0 ? _e : RATE_LIMIT_MESSAGE;
+        }
+        data.code = (_f = data.code) !== null && _f !== void 0 ? _f : UNKNOWN_ERROR_CODE;
+        data.error = (_g = data.error) !== null && _g !== void 0 ? _g : `Request failed with status ${e.status}`;
+        logger[logLevel](message, {
+            cfRay,
+            error: data.error,
+            requestId,
+            status: e.status,
+        });
+        return data;
+    }
+    if (e instanceof Error) {
+        logger[logLevel](message, e);
+    }
+    return {
+        code: UNKNOWN_ERROR_CODE,
+        error: NETWORK_ERROR_MESSAGE,
+    };
+});
+const getNonce = (environmentId) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const res = yield sdkApi().getNonce({
+            environmentId,
+        });
+        return res.nonce;
+    }
+    catch (e) {
+        return undefined;
+    }
+});
+
+export { getNonce, logResponseError };

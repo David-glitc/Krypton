@@ -1,0 +1,1 @@
+{"version":3,"file":"events.d.ts","sourceRoot":"","sources":["../../../src/modules/deviceRegistration/events.ts"],"names":[],"mappings":"AAAA,OAAO,CAAC,MAAM,CAAC;IACb,UAAU,aAAa;QACrB;;;;;WAKG;QACH,2BAA2B,EAAE,MAAM,IAAI,CAAC;QAExC;;;;;;WAMG;QACH,uCAAuC,EAAE,MAAM,IAAI,CAAC;KACrD;CACF;AAED,OAAO,EAAE,CAAC"}

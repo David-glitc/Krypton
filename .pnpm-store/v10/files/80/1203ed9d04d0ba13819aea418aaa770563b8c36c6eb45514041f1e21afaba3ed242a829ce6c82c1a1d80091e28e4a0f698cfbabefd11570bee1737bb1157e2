@@ -1,0 +1,31 @@
+import type { HardwareWalletVendor } from '../hardwareWallet/hardwareWallet.types';
+type ConnectAndVerifyWithWalletProviderParams = {
+    hardwareWalletVendor?: HardwareWalletVendor;
+    walletProviderKey: string;
+};
+/**
+ * Connects to a wallet provider and verifies ownership through message signing.
+ *
+ * This function combines wallet connection and verification in a single step,
+ * requiring the user to sign a message to prove wallet ownership before
+ * the wallet account is added to their profile.
+ *
+ * @throws {DeeplinkConnectAndVerifyUnsupportedError} On mobile with deep link
+ * wallet providers (e.g. Phantom redirect). This function triggers two sequential
+ * deeplinks — one to connect and another to sign for verification. iOS will not
+ * honor the second deeplink because it is no longer tied to a user gesture.
+ * Android may handle sequential deeplinks differently, but this guard applies to
+ * all mobile platforms to ensure a stable experience and prevent production-only
+ * errors. Use `connectWithWalletProvider` first and then invoke
+ * `verifyWalletAccount` separately from a new user gesture (e.g. a "Verify
+ * Ownership" button).
+ *
+ * @param params.walletProviderKey - The unique key identifying the wallet provider to connect to.
+ * @param [params.hardwareWalletVendor] - The hardware wallet vendor, if connecting via a hardware wallet (e.g. 'ledger').
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns A promise that resolves to the connected and verified wallet account.
+  * @instrumented
+ */
+export declare const connectAndVerifyWithWalletProvider: ({ walletProviderKey, hardwareWalletVendor }: ConnectAndVerifyWithWalletProviderParams, client?: import("../../../exports").DynamicClient) => Promise<import("../walletAccount").BaseWalletAccount<import("../../chain").Chain>>;
+export {};
+//# sourceMappingURL=connectAndVerifyWithWalletProvider.d.ts.map

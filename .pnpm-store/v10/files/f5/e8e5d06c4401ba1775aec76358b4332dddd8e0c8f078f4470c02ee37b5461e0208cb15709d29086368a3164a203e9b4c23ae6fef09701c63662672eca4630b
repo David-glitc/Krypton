@@ -1,0 +1,14 @@
+import type { SwapQuoteRequestOrderEnum, SwapSigningPayload, SwapStatusResponseStatusEnum } from '@dynamic-labs/sdk-api-core';
+export type { SwapQuoteResponse } from '@dynamic-labs/sdk-api-core';
+export type SwapQuoteOrder = `${SwapQuoteRequestOrderEnum}`;
+export type SwapTransactionSigningPayload = SwapSigningPayload;
+export type SwapStatus = `${SwapStatusResponseStatusEnum}`;
+export type SwapSubstatusPending = 'WAIT_SOURCE_CONFIRMATIONS' | 'WAIT_DESTINATION_TRANSACTION' | 'BRIDGE_NOT_AVAILABLE' | 'CHAIN_NOT_AVAILABLE' | 'REFUND_IN_PROGRESS' | 'UNKNOWN_ERROR';
+export type SwapSubstatusDone = 'COMPLETED' | 'PARTIAL' | 'REFUNDED';
+export type SwapSubstatusFailed = 'INSUFFICIENT_ALLOWANCE' | 'INSUFFICIENT_BALANCE' | 'OUT_OF_GAS' | 'EXPIRED' | 'SLIPPAGE_EXCEEDED' | 'UNKNOWN_FAILED_ERROR';
+export type SwapSubstatus = SwapSubstatusPending | SwapSubstatusDone | SwapSubstatusFailed;
+export type SwapStatusResponse = {
+    status: SwapStatus;
+    substatus?: SwapSubstatus | string;
+};
+//# sourceMappingURL=swap.types.d.ts.map

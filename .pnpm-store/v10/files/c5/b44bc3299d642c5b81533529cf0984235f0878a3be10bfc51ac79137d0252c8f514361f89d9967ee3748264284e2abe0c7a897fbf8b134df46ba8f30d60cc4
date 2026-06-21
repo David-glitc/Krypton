@@ -1,0 +1,3 @@
+export { getNativeLinkScheme } from './getNativeLinkScheme';
+export type { GetNativeLinkSchemeParams } from './getNativeLinkScheme';
+//# sourceMappingURL=index.d.ts.map

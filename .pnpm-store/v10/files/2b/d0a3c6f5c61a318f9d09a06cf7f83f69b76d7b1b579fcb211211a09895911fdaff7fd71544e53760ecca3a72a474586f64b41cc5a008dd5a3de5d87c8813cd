@@ -1,0 +1,57 @@
+import Foundation
+import Security
+
+/// Abstracts the Security/CryptoKit framework C calls that
+/// `SecureEnclaveKeyManager` depends on, so they can be substituted
+/// in unit tests.
+///
+/// Why this exists: the underlying calls (`SecKeyCreateRandomKey`,
+/// `SecKeyCreateSignature`, etc.) require a real Secure Enclave and
+/// therefore cannot run on the iOS Simulator where unit tests execute.
+/// Tests inject a fake; production uses `LiveSecKeyAPI`.
+///
+/// IMPORTANT: covering this seam with mocks gives line coverage, not
+/// security confidence. A manual on-device smoke test of
+/// `generateKeyPair` and `sign` remains required before any release.
+protocol SecKeyAPI {
+  /// Returns true if the device has a Secure Enclave (real hardware
+  /// only; always false on Simulator).
+  func isSecureEnclaveAvailable() -> Bool
+
+  /// Wraps `SecItemCopyMatching`. Returns the status code and, on
+  /// success, the matching keychain item reference.
+  func itemCopyMatching(query: CFDictionary) -> (status: OSStatus, item: CFTypeRef?)
+
+  /// Wraps `SecItemDelete`. The original call site discards the
+  /// result, so this signature mirrors that.
+  func itemDelete(query: CFDictionary) -> OSStatus
+
+  /// Wraps `SecAccessControlCreateWithFlags`. Returns nil only on
+  /// invalid flag combinations, which never happen with the inputs
+  /// this codebase uses — the caller force-unwraps.
+  func createAccessControl(
+    protection: CFTypeRef,
+    flags: SecAccessControlCreateFlags
+  ) -> SecAccessControl?
+
+  /// Wraps `SecKeyCreateRandomKey`. Throws an `NSError` whose
+  /// `localizedDescription` is the underlying `CFError`'s string
+  /// representation; the caller re-wraps with its own domain/code.
+  func createRandomKey(attributes: CFDictionary) throws -> SecKey
+
+  /// Wraps `SecKeyCopyPublicKey`. Returns nil if the platform cannot
+  /// derive the public key from the given private key.
+  func copyPublicKey(_ key: SecKey) -> SecKey?
+
+  /// Wraps `SecKeyCreateSignature`. Returns the raw signature bytes
+  /// or throws if the underlying call fails.
+  func createSignature(
+    key: SecKey,
+    algorithm: SecKeyAlgorithm,
+    data: CFData
+  ) throws -> Data
+
+  /// Wraps `SecKeyCopyExternalRepresentation`. For Secure Enclave
+  /// P-256 keys this returns uncompressed SEC1 (04 || x || y).
+  func copyExternalRepresentation(_ key: SecKey) throws -> Data
+}

@@ -1,0 +1,4 @@
+import EventEmitter from 'eventemitter3';
+export declare const storageEvents: EventEmitter<{
+    parseFailure: (error: unknown, key: string) => void;
+}, any>;

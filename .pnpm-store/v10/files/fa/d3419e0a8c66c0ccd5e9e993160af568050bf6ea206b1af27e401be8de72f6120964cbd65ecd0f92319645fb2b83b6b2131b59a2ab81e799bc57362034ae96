@@ -1,0 +1,7 @@
+import { FC } from 'react';
+import './ActiveMidnightWalletBalance.scss';
+type Props = {
+    isLoading?: boolean;
+};
+export declare const ActiveMidnightWalletBalance: FC<Props>;
+export {};

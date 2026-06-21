@@ -1,0 +1,11 @@
+import * as anchor from '@coral-xyz/anchor';
+import { Buffer } from 'buffer';
+export declare const SMART_WALLET_SEED: Buffer<ArrayBuffer>;
+export declare const SMART_WALLET_CONFIG_SEED: Buffer<ArrayBuffer>;
+export declare const WALLET_DEVICE_SEED: Buffer<ArrayBuffer>;
+export declare const CHUNK_SEED: Buffer<ArrayBuffer>;
+export declare function deriveSmartWalletPda(programId: anchor.web3.PublicKey, walletId: anchor.BN): anchor.web3.PublicKey;
+export declare function deriveSmartWalletConfigPda(programId: anchor.web3.PublicKey, smartWallet: anchor.web3.PublicKey): anchor.web3.PublicKey;
+export declare function deriveWalletDevicePda(programId: anchor.web3.PublicKey, smartWallet: anchor.web3.PublicKey, credentialHash: number[]): [anchor.web3.PublicKey, number];
+export declare function deriveChunkPda(programId: anchor.web3.PublicKey, smartWallet: anchor.web3.PublicKey, lastNonce: anchor.BN): anchor.web3.PublicKey;
+//# sourceMappingURL=lazorkit.d.ts.map

@@ -1,0 +1,15 @@
+type ScrubResolvedValueParams = {
+    piiFields: string[];
+    redactAll?: boolean;
+    value: unknown;
+};
+/**
+ * Scrubs a resolved return value of any type before logging it.
+ * Routes through `scrubParameters` by wrapping the value so that strings,
+ * arrays, Dates, Errors, and all other types are handled identically to
+ * nested object fields.
+  * @not-instrumented
+ */
+export declare const scrubResolvedValue: ({ piiFields, redactAll, value, }: ScrubResolvedValueParams) => unknown;
+export {};
+//# sourceMappingURL=scrubResolvedValue.d.ts.map

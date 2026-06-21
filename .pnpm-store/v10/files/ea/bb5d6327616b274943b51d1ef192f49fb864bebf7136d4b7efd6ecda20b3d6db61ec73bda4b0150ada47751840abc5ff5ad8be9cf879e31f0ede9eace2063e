@@ -1,0 +1,5 @@
+import * as anchor from '@coral-xyz/anchor';
+import { Buffer } from 'buffer';
+export declare const POLICY_SEED: Buffer<ArrayBuffer>;
+export declare function derivePolicyPda(programId: anchor.web3.PublicKey, smartWallet: anchor.web3.PublicKey): anchor.web3.PublicKey;
+//# sourceMappingURL=defaultPolicy.d.ts.map

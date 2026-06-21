@@ -1,0 +1,30 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var React = require('react');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var ViewContext = require('../../../context/ViewContext/ViewContext.cjs');
+
+/**
+ * Opens a view that allows the user to upgrade to MPC v3 wallets.
+ *
+ */
+const useUpgradeToDynamicWaasFlow = () => {
+    const { setShowAuthFlow } = useInternalDynamicContext.useInternalDynamicContext();
+    const { pushView } = ViewContext.useViewContext();
+    const promptUpgradeToDynamicWaasFlow = React.useCallback(() => {
+        // Show the auth flow modal
+        setShowAuthFlow(true, {
+            ignoreIfIsEmbeddedWidget: false,
+            performMultiWalletChecks: false,
+        });
+        // Navigate to the WaaS upgrade view
+        pushView('waas-upgrade-view');
+    }, [setShowAuthFlow, pushView]);
+    return { promptUpgradeToDynamicWaasFlow };
+};
+
+exports.useUpgradeToDynamicWaasFlow = useUpgradeToDynamicWaasFlow;

@@ -1,0 +1,318 @@
+import { C as emitEvent, D as setCookie, H as isCookieEnabled, K as instrumentFunction, Q as CLIENT_SDK_NAME, U as assertDefined, at as getCore, c as getWalletProviderFromWalletAccount, it as BaseError, k as createApiClient, p as getWalletAccounts, s as DYNAMIC_AUTH_COOKIE_NAME, tt as getDefaultClient } from "./InvalidParamError-c1J0Vmze.esm.js";
+import * as z from "zod/mini";
+
+//#region src/utils/retryOnFail/InvalidRetryOnFailCallError.ts
+/**
+* This error is thrown when the `retryOnFail` function is called with an invalid
+* number of retries (i.e. less than 0).
+*/
+var InvalidRetryOnFailCallError = class extends BaseError {
+	constructor(maxRetries) {
+		super({
+			cause: null,
+			code: "invalid_retry_on_fail_call_error",
+			docsUrl: null,
+			name: "InvalidRetryOnFailCallError",
+			shortMessage: `Invalid retries parameter for retryOnFail call: ${maxRetries}`
+		});
+	}
+};
+
+//#endregion
+//#region src/utils/retryOnFail/retryOnFail.ts
+/** @not-instrumented */
+const retryOnFail = async ({ delay = 0, fn, maxRetries }) => {
+	for (let retry = 0; retry <= maxRetries; retry++) try {
+		return await fn();
+	} catch (error) {
+		if (retry >= maxRetries) throw error;
+		if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay));
+	}
+	/**
+	* Reaching this point should never happen and this
+	* error is thrown to help us debug the issue.
+	*/
+	throw new InvalidRetryOnFailCallError(maxRetries);
+};
+
+//#endregion
+//#region src/modules/auth/isSignedIn/isSignedIn.ts
+/**
+* Checks if the user is currently signed in to the Dynamic client.
+*
+* The client is considered to be in a signed in state if a user has
+* authenticated or if the client has at least one wallet connected.
+*
+* @deprecated What counts as "signed in" is your app's business logic, not the
+* SDK's. This helper bakes in one opinion (a user OR any connected wallet),
+* which rarely matches every app and forces a dependency on us for every
+* variation. Compose your own check from the underlying primitives instead —
+* e.g. `Boolean(client.user) || isAnyWalletAccountConnected(client)` — and
+* layer in whatever your app requires (device registration, completed
+* onboarding, satisfied MFA, a required embedded wallet, …). See the
+* "Check if signed in" guide:
+* https://www.dynamic.xyz/docs/javascript/user-session-management
+*
+* @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+* @returns True if the user is signed in, false otherwise.
+* @not-instrumented
+*/
+const isSignedIn = (client = getDefaultClient()) => Boolean(client.user || getWalletAccounts(client).length > 0);
+
+//#endregion
+//#region src/services/storage/createStorageKeySchema/createStorageKeySchema.ts
+/** @not-instrumented */
+const createStorageKeySchema = (params) => {
+	return params;
+};
+
+//#endregion
+//#region src/modules/projectSettings/fetchProjectSettings/projectSettingsExpirationScheme.ts
+/**
+* The schema to track the expiration time of the project settings.
+*/
+const projectSettingsExpirationStorageKeySchema = createStorageKeySchema({
+	key: "projectSettingsExpiration",
+	schema: z.number()
+});
+
+//#endregion
+//#region src/modules/projectSettings/fetchProjectSettings/fetchProjectSettings.ts
+/**
+* Expiration time of the project settings in milliseconds.
+*/
+const PROJECT_SETTINGS_EXPIRATION_TIME = 1e3 * 60 * 5;
+/**
+* Fetches and updates the project settings from the API.
+*
+* This function retrieves the latest project configuration settings
+* from Dynamic's servers, including authentication options, enabled chains,
+* and security configurations. The settings are cached for performance.
+*
+* @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+* @returns A promise that resolves to the updated project settings.
+* @not-instrumented
+*/
+const fetchProjectSettings = async (client = getDefaultClient()) => {
+	const core = getCore(client);
+	const currentExpiration = await core.storage.getItem(projectSettingsExpirationStorageKeySchema);
+	if (Boolean(client.projectSettings) && !(currentExpiration && currentExpiration < Date.now()) && isSignedIn(client)) return client.projectSettings;
+	const apiClient = createApiClient({}, client);
+	core.logger.debug("[fetchProjectSettings] Fetching project settings...");
+	const doFetch = async () => apiClient.getEnvironmentSettings({
+		environmentId: core.environmentId,
+		sdkVersion: `${CLIENT_SDK_NAME}/${core.version}`
+	}, { credentials: "omit" });
+	const projectSettings = await retryOnFail({
+		fn: doFetch,
+		maxRetries: 2
+	});
+	core.state.set({ projectSettings: projectSettings ?? null });
+	await core.storage.setItem(projectSettingsExpirationStorageKeySchema, Date.now() + PROJECT_SETTINGS_EXPIRATION_TIME);
+	return projectSettings;
+};
+
+//#endregion
+//#region src/modules/sessionKeys/generateSessionKeys/generateSessionKeys.ts
+/** @not-instrumented */
+const generateSessionKeys = async (client) => {
+	const core = getCore(client);
+	await core.keychain.removeKey("session");
+	const publicKey = await core.keychain.generateKey("session");
+	assertDefined(publicKey, "Public key not found");
+	core.state.set({ sessionKeys: publicKey });
+	return { publicKey };
+};
+
+//#endregion
+//#region src/modules/wallets/utils/getAvailableWalletProvidersFromWalletAccounts/getAvailableWalletProvidersFromWalletAccounts.ts
+/** @not-instrumented */
+const getAvailableWalletProvidersFromWalletAccounts = (client) => {
+	const core = getCore(client);
+	const walletProvidersMap = /* @__PURE__ */ new Map();
+	getWalletAccounts(client).forEach((walletAccount) => {
+		if (walletProvidersMap.has(walletAccount.walletProviderKey)) return;
+		try {
+			const walletProvider = getWalletProviderFromWalletAccount({ walletAccount }, client);
+			walletProvidersMap.set(walletAccount.walletProviderKey, walletProvider);
+		} catch (error) {
+			core.logger.debug("Wallet provider not found for wallet account", {
+				error,
+				walletAccount: walletAccount.address
+			});
+		}
+	});
+	return Array.from(walletProvidersMap.values());
+};
+
+//#endregion
+//#region src/modules/wallets/destroyWalletProviders/destroyWalletProviders.ts
+/**
+* Tear down every wallet provider on the client.
+*
+* Each provider's `destroy` is responsible for its own local + remote
+* cleanup. We swallow errors so a failing destroy on one provider does not
+* block teardown of the others (e.g. during logout).
+*
+* @not-instrumented
+*/
+const destroyWalletProviders = async ({ reason }, client) => {
+	const core = getCore(client);
+	const walletProviders = getAvailableWalletProvidersFromWalletAccounts(client);
+	await Promise.all(walletProviders.map(async (walletProvider) => {
+		if (!walletProvider.destroy) return;
+		try {
+			await walletProvider.destroy({ reason });
+		} catch (err) {
+			core.logger.error(`Error destroying wallet provider ${walletProvider.key}`, err);
+		}
+	}));
+};
+
+//#endregion
+//#region src/modules/auth/logoutWithReason/logoutWithReason.ts
+/**
+* Logs the user out with an explicit reason.
+*
+* Revokes the session, clears auth state, terminates wallet providers, and
+* emits the `logout` client event with the given reason. The reason is also
+* captured as an argument on the function-instrumentation event, which is
+* how Datadog distinguishes between different logout causes.
+*
+* Use this instead of the public `logout` when triggering a logout from
+* internal or extension code — the caller owns the reason string, so the
+* telemetry correctly attributes *why* the logout happened.
+*
+* @param params - The logout params.
+* @param params.reason - Why the logout is being triggered. Extension authors
+*   needing a reason outside the SDK catalog can cast with `as LogoutReason`.
+* @param client - The Dynamic client instance.
+* @instrumented
+*/
+const logoutWithReason = async ({ reason }, client) => {
+	const core = getCore(client);
+	core.logger.debug("[logoutWithReason] Logging out...", { reason });
+	await destroyWalletProviders({ reason }, client);
+	if (client.user !== null) {
+		const apiClient = createApiClient({}, client);
+		try {
+			await apiClient.revokeSession({ environmentId: core.environmentId });
+		} catch (error) {
+			core.logger.error("Failed to revoke session", error);
+		}
+		/**
+		* This deletes the auth cookie if it exists.
+		* If the cookie doesn't exist, this sets a new cookie that expires immediately.
+		*/
+		if (isCookieEnabled(client)) setCookie(`${DYNAMIC_AUTH_COOKIE_NAME}=; Max-Age=-99999999; path=/; SameSite=Lax`);
+	}
+	await core.keychain.removeKey("session");
+	core.state.set({
+		captchaToken: null,
+		elevatedAccessTokens: [],
+		legacyToken: null,
+		mfaToken: null,
+		sessionExpiresAt: null,
+		sessionKeys: null,
+		token: null,
+		unverifiedWalletAccounts: [],
+		user: null
+	});
+	emitEvent({
+		args: { reason },
+		event: "logout"
+	}, client);
+	fetchProjectSettings(client);
+	generateSessionKeys(client);
+};
+const __logoutWithReason_impl = logoutWithReason;
+const __logoutWithReason_wrapped = instrumentFunction({
+	fn: __logoutWithReason_impl,
+	functionName: "logoutWithReason",
+	getCore: () => {
+		try {
+			return getCore(getDefaultClient());
+		} catch {
+			return;
+		}
+	}
+});
+
+//#endregion
+//#region src/modules/mfa/consumeMfaToken/consumeMfaToken.ts
+/**
+* Consumes and clears the current MFA token from the client state.
+*
+* This function retrieves the MFA token obtained from a successful MFA authentication,
+* and removes it from the client, to prevent it from being used again.
+*
+* @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+* @returns The MFA token that was consumed.
+* @throws Error if no MFA token is found.
+* @instrumented
+* @redact-params
+*/
+const consumeMfaToken = (client = getDefaultClient()) => {
+	const core = getCore(client);
+	const mfaToken = core.state.get().mfaToken;
+	assertDefined(mfaToken, "No MFA token found");
+	core.state.set({ mfaToken: null });
+	return mfaToken;
+};
+const __consumeMfaToken_impl = consumeMfaToken;
+const __consumeMfaToken_wrapped = instrumentFunction({
+	fn: __consumeMfaToken_impl,
+	functionName: "consumeMfaToken",
+	getCore: () => {
+		try {
+			return getCore(getDefaultClient());
+		} catch {
+			return;
+		}
+	},
+	redactAll: true
+});
+
+//#endregion
+//#region src/modules/mfa/getMfaMethods/getMfaMethods.ts
+/**
+* Retrieves the available MFA methods for the current user.
+*
+* This function fetches information about which multi-factor authentication
+* methods are available and configured for the user's account.
+*
+* @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+* @returns A promise that resolves to the user's MFA methods configuration.
+* @not-instrumented
+*/
+const getMfaMethods = async (client = getDefaultClient()) => {
+	const core = getCore(client);
+	return await createApiClient({}, client).getUserMfaMethods({
+		environmentId: core.environmentId,
+		verifiedOnly: true
+	});
+};
+
+//#endregion
+//#region src/modules/mfa/isMfaRequiredForAction/isMfaRequiredForAction.ts
+/**
+* Checks if MFA is required for a specific action.
+*
+* This function determines whether multi-factor authentication is required
+* for the specified action based on project settings and user configuration.
+*
+* @param params.mfaAction - The action to check MFA requirements for.
+* @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+* @returns A promise that resolves to true if MFA is required for the action, false otherwise.
+* @not-instrumented
+*/
+const isMfaRequiredForAction = async ({ mfaAction }, client = getDefaultClient()) => {
+	const projectSettings = client.projectSettings;
+	if (!projectSettings?.security?.mfa?.actions?.some((action) => action.action === mfaAction && action.required)) return false;
+	if (projectSettings?.security?.mfa?.required) return true;
+	return (await getMfaMethods(client)).userHasVerifiedMfaMethods;
+};
+
+//#endregion
+export { generateSessionKeys as a, isSignedIn as c, __logoutWithReason_wrapped as i, retryOnFail as l, getMfaMethods as n, fetchProjectSettings as o, __consumeMfaToken_wrapped as r, createStorageKeySchema as s, isMfaRequiredForAction as t };
+//# sourceMappingURL=isMfaRequiredForAction-DCwLx4Ik.esm.js.map

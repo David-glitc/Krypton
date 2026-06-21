@@ -1,0 +1,1 @@
+{"version":3,"file":"CorruptedKeyShareError.d.ts","sourceRoot":"","sources":["../../src/errors/CorruptedKeyShareError.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,SAAS,EAAE,MAAM,QAAQ,CAAC;AAEnC,KAAK,4BAA4B,GAAG;IAClC,KAAK,CAAC,EAAE,KAAK,GAAG,IAAI,CAAC;CACtB,CAAC;AAEF;;;;;;;;;GASG;AACH,qBAAa,sBAAuB,SAAQ,SAAS;gBACvC,EAAE,KAAY,EAAE,GAAE,4BAAiC;CAWhE"}

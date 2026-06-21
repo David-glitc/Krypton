@@ -1,0 +1,53 @@
+import type { Chain } from '../../chain';
+import type { SwapQuoteOrder, SwapQuoteResponse } from '../swap.types';
+export type GetSwapQuoteParams = {
+    from: {
+        address: string;
+        /**
+         *  Source token amount, including all decimals (e.g. 1000000 for 1 USDC (6 decimals))
+         *  Mutually exclusive with `to.amount`
+         */
+        amount?: string;
+        chain: Chain;
+        networkId: string;
+        tokenAddress: string;
+    };
+    /**
+     * The price impact threshold above which routes are hidden.
+     * As an example, one should specify 0.15 (15%) to hide routes with more than 15% price impact.
+     */
+    maxPriceImpact?: number;
+    /**
+     * Which kind of route should be preferred
+     *
+     * FASTEST: This sorting criterion prioritizes routes with the shortest estimated execution time.
+     * Users who value speed and want their transactions to be completed as quickly as possible should choose the fastest routes.
+     *
+     * CHEAPEST: This criterion focuses on minimizing the cost of the transaction, whether in token amount or USD amount (USD amount minus gas cost).
+     * Users looking for the most economical option should choose the cheapest routes.
+     *
+     */
+    order?: SwapQuoteOrder;
+    slippage?: number;
+    to: {
+        address: string;
+        /**
+         *  Destination token amount, including all decimals (e.g. 1000000 for 1 USDC (6 decimals))
+         *  Mutually exclusive with `from.amount`
+         */
+        amount?: string;
+        chain: Chain;
+        networkId: string;
+        tokenAddress: string;
+    };
+};
+/**
+ * Gets a swap quote
+ *
+ * @param params GetSwapQuoteParams - The parameters for the swap quote.
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns The swap quote details. Use the `signingPayload` field to get the transaction data for the wallet to sign.
+ * @not-instrumented
+ */
+export declare const getSwapQuote: (params: GetSwapQuoteParams, client?: import("../../../exports").DynamicClient) => Promise<SwapQuoteResponse>;
+//# sourceMappingURL=getSwapQuote.d.ts.map

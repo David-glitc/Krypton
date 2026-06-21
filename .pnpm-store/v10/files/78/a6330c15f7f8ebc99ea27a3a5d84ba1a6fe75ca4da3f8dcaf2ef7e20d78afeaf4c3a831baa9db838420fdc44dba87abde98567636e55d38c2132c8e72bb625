@@ -1,0 +1,2 @@
+export { assertNonEmptyArray } from './assertNonEmptyArray';
+//# sourceMappingURL=index.d.ts.map

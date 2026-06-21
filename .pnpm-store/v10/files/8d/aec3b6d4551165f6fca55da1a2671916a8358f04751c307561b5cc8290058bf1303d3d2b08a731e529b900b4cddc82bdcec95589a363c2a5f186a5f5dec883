@@ -1,0 +1,2 @@
+export { getKeychainIndexedDBName } from './getKeychainIndexedDBName';
+//# sourceMappingURL=index.d.ts.map

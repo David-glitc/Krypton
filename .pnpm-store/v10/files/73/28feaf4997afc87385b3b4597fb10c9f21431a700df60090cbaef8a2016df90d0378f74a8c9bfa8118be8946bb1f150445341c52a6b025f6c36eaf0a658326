@@ -1,0 +1,107 @@
+'use client'
+import { __awaiter } from '../../../../../../_virtual/_tslib.js';
+import { jsx } from 'react/jsx-runtime';
+import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import '../../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { logger } from '../../../../shared/logger.js';
+import { useSmartWallets } from '../../../../utils/hooks/useSmartWallets/useSmartWallets.js';
+import { useWalletPassword } from '../../../../utils/hooks/useWalletPassword/useWalletPassword.js';
+import { ResetPasswordCurrentView } from '../ResetPasswordCurrentView/ResetPasswordCurrentView.js';
+import { SetupPasswordConfirmView } from '../SetupPasswordConfirmView/SetupPasswordConfirmView.js';
+import { SetupPasswordEnterView } from '../SetupPasswordEnterView/SetupPasswordEnterView.js';
+import '@dynamic-labs/utils';
+import '@dynamic-labs/iconic';
+import '../../../../context/ViewContext/ViewContext.js';
+import { SetupPasswordSuccessView } from '../SetupPasswordSuccessView/SetupPasswordSuccessView.js';
+
+const ResetPasswordView = ({ onComplete, }) => {
+    const { t } = useTranslation();
+    const { primaryWallet, setShowAuthFlow } = useInternalDynamicContext();
+    const { getEOAWallet } = useSmartWallets();
+    const { unlockWallet, updatePassword } = useWalletPassword();
+    const eoaWallet = primaryWallet && getEOAWallet(primaryWallet);
+    const wallet = eoaWallet !== null && eoaWallet !== void 0 ? eoaWallet : primaryWallet;
+    const [currentStep, setCurrentStep] = useState('current');
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [verifyError, setVerifyError] = useState(null);
+    const [isVerifying, setIsVerifying] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState(null);
+    const handleCurrentPasswordContinue = useCallback((password) => __awaiter(void 0, void 0, void 0, function* () {
+        if (!(wallet === null || wallet === void 0 ? void 0 : wallet.address) || !(wallet === null || wallet === void 0 ? void 0 : wallet.chain)) {
+            logger.error('No wallet address or chain available for password verification');
+            setVerifyError(t('dyn_reset_password.current.error.failed'));
+            return;
+        }
+        setIsVerifying(true);
+        setVerifyError(null);
+        const success = yield unlockWallet({
+            accountAddress: wallet.address,
+            chainName: wallet.chain,
+            password,
+        });
+        setIsVerifying(false);
+        if (success) {
+            setCurrentPassword(password);
+            setCurrentStep('enter');
+        }
+        else {
+            setVerifyError(t('dyn_reset_password.current.error.invalid_password'));
+        }
+    }), [wallet, unlockWallet, t]);
+    const handleCurrentPasswordBack = useCallback(() => {
+        setShowAuthFlow(false);
+    }, [setShowAuthFlow]);
+    const handleEnterContinue = useCallback((password) => {
+        setNewPassword(password);
+        setCurrentStep('confirm');
+    }, []);
+    const handleEnterBack = useCallback(() => {
+        setCurrentStep('current');
+    }, []);
+    const handleConfirmContinue = useCallback(() => __awaiter(void 0, void 0, void 0, function* () {
+        if (!(wallet === null || wallet === void 0 ? void 0 : wallet.address) || !(wallet === null || wallet === void 0 ? void 0 : wallet.chain)) {
+            logger.error('No wallet address or chain available for password reset');
+            setSubmitError(t('dyn_reset_password.confirm.error.failed'));
+            return;
+        }
+        setIsSubmitting(true);
+        setSubmitError(null);
+        const success = yield updatePassword({
+            accountAddress: wallet.address,
+            chainName: wallet.chain,
+            existingPassword: currentPassword,
+            newPassword,
+        });
+        setIsSubmitting(false);
+        if (success) {
+            setCurrentStep('success');
+        }
+        else {
+            setSubmitError(t('dyn_reset_password.confirm.error.failed'));
+        }
+    }), [wallet, updatePassword, currentPassword, newPassword, t]);
+    const handleConfirmBack = useCallback(() => {
+        setCurrentStep('enter');
+    }, []);
+    const handleSuccess = useCallback(() => {
+        onComplete(currentPassword, newPassword);
+    }, [onComplete, currentPassword, newPassword]);
+    switch (currentStep) {
+        case 'current':
+            return (jsx(ResetPasswordCurrentView, { onContinue: handleCurrentPasswordContinue, onBack: handleCurrentPasswordBack, isLoading: isVerifying, error: verifyError }));
+        case 'enter':
+            return (jsx(SetupPasswordEnterView, { onContinue: handleEnterContinue, onBack: handleEnterBack, title: t('dyn_reset_password.enter.title'), description: t('dyn_reset_password.enter.description'), oldPassword: currentPassword }));
+        case 'confirm':
+            return (jsx(SetupPasswordConfirmView, { password: newPassword, onContinue: handleConfirmContinue, onBack: handleConfirmBack, title: t('dyn_reset_password.confirm.title'), description: t('dyn_reset_password.confirm.description'), showAcknowledgment: true, isLoading: isSubmitting, error: submitError }));
+        case 'success':
+            return (jsx(SetupPasswordSuccessView, { onDone: handleSuccess, title: t('dyn_reset_password.success.title'), description: t('dyn_reset_password.success.description') }));
+        default:
+            return null;
+    }
+};
+
+export { ResetPasswordView };

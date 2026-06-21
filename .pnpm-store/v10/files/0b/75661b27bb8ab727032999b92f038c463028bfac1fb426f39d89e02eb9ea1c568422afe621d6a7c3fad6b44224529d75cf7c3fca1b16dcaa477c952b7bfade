@@ -1,0 +1,18 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var DynamicError = require('./DynamicError.cjs');
+var errorCodes = require('./errorCodes.cjs');
+
+class RateLimitError extends DynamicError.DynamicError {
+    constructor(message, requestId, cfRay) {
+        super(message, errorCodes.RATE_LIMIT_ERROR_CODE);
+        this.name = 'RateLimitError';
+        this.requestId = requestId;
+        this.cfRay = cfRay;
+    }
+}
+
+exports.RateLimitError = RateLimitError;

@@ -1,0 +1,34 @@
+import { ThresholdSignatureSchemeFromJSON, ThresholdSignatureSchemeToJSON } from './ThresholdSignatureScheme.js';
+import { WaasWalletShareSetTypeFromJSON, WaasWalletShareSetTypeToJSON } from './WaasWalletShareSetType.js';
+
+/* tslint:disable */
+function WaasShareSetFromJSON(json) {
+    return WaasShareSetFromJSONTyped(json);
+}
+function WaasShareSetFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'shareSetId': json['shareSetId'],
+        'shareSetType': WaasWalletShareSetTypeFromJSON(json['shareSetType']),
+        'thresholdSignatureScheme': ThresholdSignatureSchemeFromJSON(json['thresholdSignatureScheme']),
+        'createdAt': (new Date(json['createdAt'])),
+    };
+}
+function WaasShareSetToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'shareSetId': value.shareSetId,
+        'shareSetType': WaasWalletShareSetTypeToJSON(value.shareSetType),
+        'thresholdSignatureScheme': ThresholdSignatureSchemeToJSON(value.thresholdSignatureScheme),
+        'createdAt': (value.createdAt.toISOString()),
+    };
+}
+
+export { WaasShareSetFromJSON, WaasShareSetFromJSONTyped, WaasShareSetToJSON };

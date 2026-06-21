@@ -1,0 +1,12 @@
+import { FC } from 'react';
+export type SetupPasswordConfirmViewProps = {
+    password: string;
+    onContinue: () => void;
+    onBack: () => void;
+    title?: string;
+    description?: string;
+    showAcknowledgment?: boolean;
+    isLoading?: boolean;
+    error?: string | null;
+};
+export declare const SetupPasswordConfirmView: FC<SetupPasswordConfirmViewProps>;

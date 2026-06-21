@@ -1,0 +1,32 @@
+import { exists } from '../runtime.js';
+import { SwapStatusRequestChainFromJSON, SwapStatusRequestChainToJSON } from './SwapStatusRequestChain.js';
+
+/* tslint:disable */
+function SwapStatusRequestFromJSON(json) {
+    return SwapStatusRequestFromJSONTyped(json);
+}
+function SwapStatusRequestFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'from': !exists(json, 'from') ? undefined : SwapStatusRequestChainFromJSON(json['from']),
+        'to': !exists(json, 'to') ? undefined : SwapStatusRequestChainFromJSON(json['to']),
+        'txHash': json['txHash'],
+    };
+}
+function SwapStatusRequestToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'from': SwapStatusRequestChainToJSON(value.from),
+        'to': SwapStatusRequestChainToJSON(value.to),
+        'txHash': value.txHash,
+    };
+}
+
+export { SwapStatusRequestFromJSON, SwapStatusRequestFromJSONTyped, SwapStatusRequestToJSON };

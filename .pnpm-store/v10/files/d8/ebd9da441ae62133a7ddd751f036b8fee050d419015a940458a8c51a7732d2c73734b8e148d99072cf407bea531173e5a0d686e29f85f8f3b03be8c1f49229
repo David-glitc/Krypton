@@ -1,0 +1,16 @@
+import type { DynamicClient } from '../../../../client/types';
+export type WithCheckoutSessionTokenCleanupOn401Params<T> = {
+    call: () => Promise<T>;
+    transactionId: string;
+};
+/**
+ * Checkout mutation routes are guarded server-side only by session-token
+ * validation, so a 401 means the token is dead (revoked, expired, deleted,
+ * or invalid). Leaving a dead token in `localStorage` widens the XSS
+ * exfiltration surface for no benefit and makes the next SDK load attempt
+ * requests that are guaranteed to fail.
+ *
+ * @not-instrumented
+ */
+export declare const withCheckoutSessionTokenCleanupOn401: <T>({ call, transactionId }: WithCheckoutSessionTokenCleanupOn401Params<T>, client: DynamicClient) => Promise<T>;
+//# sourceMappingURL=withCheckoutSessionTokenCleanupOn401.d.ts.map

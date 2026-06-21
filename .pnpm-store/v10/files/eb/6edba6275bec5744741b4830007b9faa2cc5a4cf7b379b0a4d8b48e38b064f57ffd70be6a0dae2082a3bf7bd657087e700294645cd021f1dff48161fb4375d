@@ -1,0 +1,17 @@
+import type { Chain } from '../chain';
+type ChainInfo = {
+    apiChainName: string;
+    blockchainName: string;
+    /**
+     * Extra identifiers the wallet book may use to refer to this chain in
+     * `injectedConfig[].chain` or embedded in a wallet key, in addition to
+     * `apiChainName`. e.g. `bitcoin` uses apiChainName but `btc` is also
+     * accepted in wallet book entries.
+     */
+    legacyWalletBookAliases?: string[];
+    verifiedCredentialChainName: string;
+    waasChainNameOverride?: string;
+};
+export declare const CHAINS_INFO_MAP: Record<Chain, ChainInfo>;
+export {};
+//# sourceMappingURL=constants.d.ts.map

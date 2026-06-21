@@ -1,0 +1,67 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+var ChainEnum = require('./ChainEnum.cjs');
+var WalletTransactionAssetTransfer = require('./WalletTransactionAssetTransfer.cjs');
+var WalletTransactionFee = require('./WalletTransactionFee.cjs');
+var WalletTransactionType = require('./WalletTransactionType.cjs');
+
+/* tslint:disable */
+function WalletTransactionFromJSON(json) {
+    return WalletTransactionFromJSONTyped(json);
+}
+function WalletTransactionFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'transactionHash': json['transactionHash'],
+        'blockNumber': json['blockNumber'],
+        'transactionTimestamp': (new Date(json['transactionTimestamp'])),
+        'blockHash': !runtime.exists(json, 'blockHash') ? undefined : json['blockHash'],
+        'blockExplorerUrls': json['blockExplorerUrls'],
+        'fromAddress': json['fromAddress'],
+        'toAddress': json['toAddress'],
+        'labels': (json['labels'].map(WalletTransactionType.WalletTransactionTypeFromJSON)),
+        'assetTransfers': (json['assetTransfers'].map(WalletTransactionAssetTransfer.WalletTransactionAssetTransferFromJSON)),
+        'chainName': ChainEnum.ChainEnumFromJSON(json['chainName']),
+        'networkId': json['networkId'],
+        'description': !runtime.exists(json, 'description') ? undefined : json['description'],
+        'source': !runtime.exists(json, 'source') ? undefined : json['source'],
+        'spam': !runtime.exists(json, 'spam') ? undefined : json['spam'],
+        'transactionType': !runtime.exists(json, 'transactionType') ? undefined : json['transactionType'],
+        'fee': !runtime.exists(json, 'fee') ? undefined : WalletTransactionFee.WalletTransactionFeeFromJSON(json['fee']),
+    };
+}
+function WalletTransactionToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'transactionHash': value.transactionHash,
+        'blockNumber': value.blockNumber,
+        'transactionTimestamp': (value.transactionTimestamp.toISOString()),
+        'blockHash': value.blockHash,
+        'blockExplorerUrls': value.blockExplorerUrls,
+        'fromAddress': value.fromAddress,
+        'toAddress': value.toAddress,
+        'labels': (value.labels.map(WalletTransactionType.WalletTransactionTypeToJSON)),
+        'assetTransfers': (value.assetTransfers.map(WalletTransactionAssetTransfer.WalletTransactionAssetTransferToJSON)),
+        'chainName': ChainEnum.ChainEnumToJSON(value.chainName),
+        'networkId': value.networkId,
+        'description': value.description,
+        'source': value.source,
+        'spam': value.spam,
+        'transactionType': value.transactionType,
+        'fee': WalletTransactionFee.WalletTransactionFeeToJSON(value.fee),
+    };
+}
+
+exports.WalletTransactionFromJSON = WalletTransactionFromJSON;
+exports.WalletTransactionFromJSONTyped = WalletTransactionFromJSONTyped;
+exports.WalletTransactionToJSON = WalletTransactionToJSON;

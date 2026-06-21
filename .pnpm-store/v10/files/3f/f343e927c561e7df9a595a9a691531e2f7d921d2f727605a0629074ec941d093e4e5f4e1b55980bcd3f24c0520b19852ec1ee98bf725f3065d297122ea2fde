@@ -1,0 +1,9 @@
+/// <reference types="react" />
+import { TokenBalance } from '@dynamic-labs/sdk-api-core';
+import type { TokenBalanceItemSecondaryAction } from '../TokenBalanceItem/TokenBalanceItem';
+type TokenBalanceListProps = {
+    tokenBalances: TokenBalance[] | undefined;
+    getSecondaryAction?: (tokenBalance: TokenBalance) => TokenBalanceItemSecondaryAction | undefined;
+};
+export declare const TokenBalanceList: ({ tokenBalances, getSecondaryAction, }: TokenBalanceListProps) => JSX.Element;
+export {};

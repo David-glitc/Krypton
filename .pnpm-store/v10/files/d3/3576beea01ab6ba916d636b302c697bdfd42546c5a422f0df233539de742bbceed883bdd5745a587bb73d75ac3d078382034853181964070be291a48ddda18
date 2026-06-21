@@ -1,0 +1,40 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var React = require('react');
+var utils = require('@dynamic-labs/utils');
+require('../../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var UserWalletsContext = require('../../../../context/UserWalletsContext/UserWalletsContext.cjs');
+var DynamicWidgetContext = require('../../../../widgets/DynamicWidget/context/DynamicWidgetContext.cjs');
+var resolvePromiseRef = require('../../../functions/resolvePromiseRef/resolvePromiseRef.cjs');
+var useDynamicEvents = require('../../events/useDynamicEvents/useDynamicEvents.cjs');
+
+const useChooseLinkedWallet = () => {
+    const { setDynamicWidgetView } = DynamicWidgetContext.useWidgetContext();
+    const { setShowDynamicUserProfile } = useInternalDynamicContext.useInternalDynamicContext();
+    const { userWallets } = UserWalletsContext.useInternalUserWallets();
+    const { primaryWallet } = useInternalDynamicContext.useInternalDynamicContext();
+    const filteredWallets = React.useMemo(() => userWallets.filter((wallet) => wallet.id !== (primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.id) &&
+        wallet.chain === (primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.chain)), [userWallets, primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.chain, primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.id]);
+    const choosePromiseRef = React.useRef();
+    const chooseLinkedWallet = React.useCallback(({ showBackButton } = { showBackButton: true }) => {
+        choosePromiseRef.current = new utils.DeferredPromise();
+        setDynamicWidgetView('choose-linked-wallet', {
+            onSelectWallet: (wallet) => resolvePromiseRef.resolvePromiseRef(choosePromiseRef, wallet),
+            showBackButton,
+            wallets: filteredWallets,
+        });
+        setShowDynamicUserProfile(true);
+        return choosePromiseRef.current.promise;
+    }, [filteredWallets, setDynamicWidgetView, setShowDynamicUserProfile]);
+    useDynamicEvents.useInternalDynamicEvents('userProfileClose', () => resolvePromiseRef.resolvePromiseRef(choosePromiseRef, undefined));
+    return {
+        chooseLinkedWallet,
+        filteredWallets,
+    };
+};
+
+exports.useChooseLinkedWallet = useChooseLinkedWallet;

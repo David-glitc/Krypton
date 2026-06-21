@@ -1,0 +1,10 @@
+import type { DynamicCoreState } from '../../../../client/core/types';
+export type ElevatedAccessToken = DynamicCoreState['elevatedAccessTokens'][number];
+export type ParsedElevatedAccessToken = {
+    expiresAt: Date;
+    normalizedScopes: string[];
+    scopes: string[];
+    singleUse: boolean;
+    token: string;
+};
+//# sourceMappingURL=elevatedAccessTokens.types.d.ts.map

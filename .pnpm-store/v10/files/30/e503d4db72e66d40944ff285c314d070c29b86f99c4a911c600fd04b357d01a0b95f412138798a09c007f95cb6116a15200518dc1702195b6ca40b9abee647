@@ -1,0 +1,25 @@
+'use client'
+import { jsx } from 'react/jsx-runtime';
+import { WalletIcon } from '@dynamic-labs/wallet-book';
+import '../../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { useConnectedAccountWallet } from '../../../../utils/hooks/useConnectedAccountWallet/useConnectedAccountWallet.js';
+import { PromptModal } from '../../components/PromptModal/PromptModal.js';
+import { WidgetPortal } from '../../components/WidgetPortal/WidgetPortal.js';
+import { DefaultPromptLayout } from '../DefaultPromptModal/DefaultPromptModal.js';
+import { SwitchAccountView } from './SwitchAccountView/SwitchAccountView.js';
+import { SwitchOrUseActiveAccountView } from './SwitchOrUseActiveAccountView/SwitchOrUseActiveAccountView.js';
+
+const PendingAccountSwitchContent = () => {
+    var _a, _b, _c, _d;
+    const { selectedWalletWithAction, primaryWallet, secondaryWallets } = useInternalDynamicContext();
+    const selectedConnector = (_a = selectedWalletWithAction === null || selectedWalletWithAction === void 0 ? void 0 : selectedWalletWithAction.wallet) === null || _a === void 0 ? void 0 : _a.connector;
+    const isSameWallet = (selectedConnector === null || selectedConnector === void 0 ? void 0 : selectedConnector.key) === (primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.connector.key);
+    const { data: connectedWallet } = useConnectedAccountWallet((_b = selectedWalletWithAction === null || selectedWalletWithAction === void 0 ? void 0 : selectedWalletWithAction.wallet) === null || _b === void 0 ? void 0 : _b.connector, secondaryWallets);
+    const selectedWalletToSwitchTo = (_d = (_c = selectedWalletWithAction === null || selectedWalletWithAction === void 0 ? void 0 : selectedWalletWithAction.wallet) !== null && _c !== void 0 ? _c : primaryWallet) !== null && _d !== void 0 ? _d : undefined;
+    return (jsx(DefaultPromptLayout, { dataTestId: 'pending-account-switch', icon: jsx(WalletIcon, { icon: selectedConnector === null || selectedConnector === void 0 ? void 0 : selectedConnector.metadata.icon, walletKey: selectedConnector === null || selectedConnector === void 0 ? void 0 : selectedConnector.key }), title: `Switch wallet in ${selectedWalletToSwitchTo === null || selectedWalletToSwitchTo === void 0 ? void 0 : selectedWalletToSwitchTo.connector.name}`, children: isSameWallet || !connectedWallet ? (jsx(SwitchAccountView, { selectedWalletToSwitchTo: selectedWalletToSwitchTo })) : (jsx(SwitchOrUseActiveAccountView, { connectedWallet: connectedWallet, selectedWalletToSwitchTo: selectedWalletToSwitchTo })) }));
+};
+const PendingAccountSwitchWidgetPortal = () => (jsx(WidgetPortal, { children: jsx(PendingAccountSwitchContent, {}) }));
+const PendingAccountSwitchModal = () => (jsx(PromptModal, { children: jsx(PendingAccountSwitchContent, {}) }));
+
+export { PendingAccountSwitchModal, PendingAccountSwitchWidgetPortal };

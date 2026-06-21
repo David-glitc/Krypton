@@ -1,0 +1,20 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var React = require('react');
+var DynamicWidgetContext = require('../../../../widgets/DynamicWidget/context/DynamicWidgetContext.cjs');
+require('../../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+
+const usePromptAmountAndFundWithWallet = () => {
+    const { setDynamicWidgetView } = DynamicWidgetContext.useWidgetContext();
+    const { setShowDynamicUserProfile } = useInternalDynamicContext.useInternalDynamicContext();
+    return React.useCallback((props) => {
+        setDynamicWidgetView('receive-wallet-funds', props);
+        setShowDynamicUserProfile(true);
+    }, [setDynamicWidgetView, setShowDynamicUserProfile]);
+};
+
+exports.usePromptAmountAndFundWithWallet = usePromptAmountAndFundWithWallet;

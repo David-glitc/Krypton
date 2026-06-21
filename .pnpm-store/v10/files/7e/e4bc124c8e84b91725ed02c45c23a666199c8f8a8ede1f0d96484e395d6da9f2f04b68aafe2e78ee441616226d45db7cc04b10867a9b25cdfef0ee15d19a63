@@ -1,0 +1,843 @@
+import type { ForwardMPCClientV2 } from '@dynamic-labs-wallet/forward-mpc-client';
+import type { SignMessageContext } from '@dynamic-labs/sdk-api-core';
+import type { BackupLocation, WalletOperation } from './constants.js';
+import type { ThresholdSignatureScheme } from './mpc/index.js';
+export type TraceContext = {
+    traceId?: string;
+    startTime?: number;
+};
+export type RequestWithTraceContext<T> = T & {
+    traceContext?: TraceContext;
+};
+export type RequestWithElevatedAccessToken<T> = T & {
+    elevatedAccessToken?: string;
+};
+export declare enum AuthMode {
+    HEADER = "header",
+    COOKIE = "cookie"
+}
+export declare enum BitcoinAddressType {
+    TAPROOT = "taproot",
+    NATIVE_SEGWIT = "native_segwit"
+}
+export declare enum WalletReadyState {
+    READY = "ready",
+    ENCRYPTED = "encrypted"
+}
+export type WalletRecoveryState = {
+    walletReadyState: WalletReadyState;
+    isPasswordEncrypted: boolean;
+};
+export declare enum BitcoinNetwork {
+    MAINNET = "mainnet",
+    TESTNET = "testnet"
+}
+export type BitcoinConfig = {
+    addressType?: BitcoinAddressType;
+    network?: BitcoinNetwork;
+    tweak?: string;
+};
+export type InitKeygenResult = {
+    keygenId: string;
+    keygenSecret: string;
+};
+export type KeygenResult = {
+    pubkey: string;
+    secretShare: string;
+};
+export type KeygenCompleteResponse = {
+    walletId: string;
+    roomId: string;
+    serverKeygenIds: string[];
+};
+export type OpenRoomResponse = {
+    roomId: string;
+    serverKeygenIds: string[];
+};
+export type ReshareResponse = {
+    roomId: string;
+    serverKeygenIds: string[];
+    newServerKeygenIds: string[];
+};
+export type RefreshResponse = {
+    roomId: string;
+    serverKeygenIds: string[];
+};
+export type RevokeDelegationResponse = {
+    walletId: string;
+    shareSetId: string;
+};
+export declare enum SuccessEventType {
+    KeygenComplete = "keygen_complete",
+    RoomCreated = "room_created",
+    CeremonyComplete = "ceremony_complete"
+}
+export type InitializeResult = {
+    error: unknown | null;
+    traceContext?: TraceContext;
+};
+export interface KeyShareBackupInfo {
+    passwordEncrypted: boolean;
+    backups: Record<BackupLocation, BackupLocationWithExternalKeyShareId[]>;
+}
+export interface WaasWalletProperties {
+    derivationPath?: string;
+    keyShares?: KeyShareInfo[];
+    thresholdSignatureScheme?: ThresholdSignatureScheme;
+}
+export interface WaasWalletResponse {
+    wallet: {
+        accountAddress: string;
+        chainName: string;
+        derivationPath: string;
+        /**
+         * Primary share-set id (`WaasWallets.id`) for this wallet, surfaced as a
+         * single source of truth that callers can echo back to the server as
+         * `shareSetId` on subsequent operations. This is NOT `keyShares[].id` —
+         * see WalletProperties.keyShares for that.
+         */
+        shareSetId?: string;
+        shareSetType?: ShareSetType;
+        thresholdSignatureScheme: string;
+        walletId: string;
+        /**
+         * Other active share sets on this wallet (e.g. a `delegated` row
+         * alongside `rootUser`). Read-only awareness — the primary share set
+         * above is always the one used for signing on this principal.
+         */
+        otherShareSets?: ShareSet[];
+    };
+}
+export interface KeyShareInfo {
+    id: string;
+    keygenId: string;
+    backupLocation: BackupLocation;
+    passwordEncrypted: boolean;
+    externalKeyShareId?: string;
+}
+export type FeatureFlags = Record<string, boolean>;
+export type ICloudConfig = {
+    containerIdentifier?: string;
+    apiToken?: string;
+    environment?: 'development' | 'production';
+};
+export interface DynamicWalletClientProps {
+    environmentId: string;
+    authToken?: string;
+    backupServiceAuthToken?: string;
+    baseApiUrl?: string;
+    storageKey?: string;
+    /**
+     * Enables verbose debug-level logging when `true`.
+     *
+     * Only applies to the built-in default logger. If you provide a custom
+     * `logger`, configure its verbosity directly — this flag has no effect on it.
+     *
+     * @default false
+     */
+    debug?: boolean;
+    baseMPCRelayApiUrl?: string;
+    featureFlags?: FeatureFlags;
+    authMode?: AuthMode;
+    sdkVersion?: string;
+    forwardMPCClient?: ForwardMPCClientV2;
+    baseClientKeysharesRelayApiUrl?: string;
+    iCloudConfig?: ICloudConfig;
+    /**
+     * Custom logger for SDK diagnostic output.
+     *
+     * Accepts any object that implements `ILogger` (`debug`, `info`, `warn`, `error`).
+     * When provided, the SDK routes all internal logging through this instance.
+     * You are responsible for configuring its log level — the `debug` flag has
+     * no effect on custom loggers.
+     *
+     * When omitted, a built-in logger is used with verbosity controlled by `debug`.
+     */
+    logger?: ILogger;
+    additionalTrustedOrigins?: string[];
+}
+export type BackupData = {
+    keyShares: string[];
+    metadata: {
+        version: string;
+        createdAt: string;
+        accountAddress: string;
+        thresholdSignatureScheme: ThresholdSignatureScheme;
+        hasPassword: boolean;
+        encryption?: EncryptionMetadata;
+        shareCount: number;
+    };
+};
+export type EncryptionMetadata = {
+    algorithm: string;
+    keyDerivation: string;
+    iterations: number;
+    hashAlgorithm: string;
+    algorithmLength: number;
+    memorySize?: number;
+    parallelism?: number;
+    hashLength?: number;
+};
+export type IframeRequestMessages = {
+    sendAuthToken: (token?: string, authMode?: AuthMode, traceContext?: TraceContext) => Promise<void>;
+    createWalletAccount: (request: RequestWithTraceContext<CreateWalletAccountRequest>) => Promise<CreateWalletAccountResponse | MessageTransportErrorResponse>;
+    getWallets: (request: RequestWithTraceContext<GetWalletsRequest>) => Promise<GetWalletResponse[] | MessageTransportErrorResponse>;
+    getAllWallets: (request: RequestWithTraceContext<GetAllWalletsRequest>) => Promise<GetWalletResponse[] | MessageTransportErrorResponse>;
+    getWallet: (request: RequestWithTraceContext<GetWalletRequest>) => Promise<GetWalletResponse | MessageTransportErrorResponse>;
+    signMessage: (request: RequestWithTraceContext<RequestWithElevatedAccessToken<SignMessageRequest>>) => Promise<string | MessageTransportErrorResponse>;
+    signRawMessage: (request: RequestWithTraceContext<RequestWithElevatedAccessToken<SignRawMessageRequest>>) => Promise<string | MessageTransportErrorResponse>;
+    signTypedData: (request: RequestWithTraceContext<RequestWithElevatedAccessToken<SignTypedDataRequest>>) => Promise<string | MessageTransportErrorResponse>;
+    requiresPasswordForOperation: (request: RequestWithTraceContext<RequiresPasswordForOperationRequest>) => Promise<boolean | MessageTransportErrorResponse>;
+    signTransaction: (request: RequestWithTraceContext<RequestWithElevatedAccessToken<SignTransactionRequest>>) => Promise<string | MessageTransportErrorResponse>;
+    isPasswordEncrypted: (request: RequestWithTraceContext<IsPasswordEncryptedRequest>) => Promise<boolean | MessageTransportErrorResponse>;
+    backupKeySharesToGoogleDrive: (request: RequestWithTraceContext<BackupKeySharesToGoogleDriveRequest>) => Promise<string[] | MessageTransportErrorResponse>;
+    backupKeySharesToICloud: (request: RequestWithTraceContext<BackupKeySharesToICloudRequest>) => Promise<void | MessageTransportErrorResponse>;
+    exportClientKeysharesFromGoogleDrive: (request: RequestWithTraceContext<ExportClientKeysharesFromGoogleDriveRequest>) => Promise<void | MessageTransportErrorResponse>;
+    delegateKeyShares: (request: RequestWithTraceContext<DelegateKeySharesRequest>) => Promise<void | MessageTransportErrorResponse>;
+    revokeDelegation: (request: RequestWithTraceContext<RevokeDelegationRequest>) => Promise<void | MessageTransportErrorResponse>;
+    refreshWalletAccountShares: (request: RequestWithTraceContext<RequestWithElevatedAccessToken<RefreshWalletAccountSharesRequest>>) => Promise<void | MessageTransportErrorResponse>;
+    reshare: (request: RequestWithTraceContext<RequestWithElevatedAccessToken<ReshareRequest>>) => Promise<void | MessageTransportErrorResponse>;
+    exportPrivateKey: (request: RequestWithTraceContext<RequestWithElevatedAccessToken<ExportPrivateKeyRequest>>) => Promise<void | MessageTransportErrorResponse>;
+    verifyPassword: (request: RequestWithTraceContext<VerifyPasswordRequest>) => Promise<void | MessageTransportErrorResponse>;
+    updatePassword: (request: RequestWithTraceContext<UpdatePasswordRequest>) => Promise<void | MessageTransportErrorResponse>;
+    setPassword: (request: RequestWithTraceContext<SetPasswordRequest>) => Promise<void | MessageTransportErrorResponse>;
+    importPrivateKey: (request: RequestWithTraceContext<ImportPrivateKeyRequest>) => Promise<CreateWalletAccountResponse | MessageTransportErrorResponse>;
+    exportClientKeyshares: (request: RequestWithTraceContext<ExportClientKeysharesRequest>) => Promise<void | MessageTransportErrorResponse>;
+    offlineExportPrivateKey: (request: RequestWithTraceContext<OfflineExportPrivateKeyRequest>) => Promise<OfflineExportPrivateKeyResponse | MessageTransportErrorResponse>;
+    displayICloudSignIn: (request: {
+        chainName: string;
+    }) => Promise<void>;
+    hideICloudSignIn: () => Promise<void>;
+    isICloudAuthenticated: (request: {
+        chainName: string;
+    }) => Promise<boolean>;
+    cleanup: () => Promise<void | MessageTransportErrorResponse>;
+    proveAleoTransaction: (request: RequestWithTraceContext<RequestWithElevatedAccessToken<ProveAleoTransactionRequest>>) => Promise<ProveAleoTransactionResponse | MessageTransportErrorResponse>;
+    findAleoOwnedRecords: (request: RequestWithTraceContext<RequestWithElevatedAccessToken<FindAleoOwnedRecordsRequest>>) => Promise<FindAleoOwnedRecordsResponse | MessageTransportErrorResponse>;
+    isAleoFeemasterCovered: (request: RequestWithTraceContext<{
+        chainName: string;
+        programId: string;
+        functionName: string;
+        chainId?: string | number;
+    }>) => Promise<boolean | MessageTransportErrorResponse>;
+    getClientKeyShare: (request: GetClientKeyShareRequest) => Promise<GetClientKeyShareResponse | MessageTransportErrorResponse>;
+    setClientKeyShare: (request: SetClientKeyShareRequest) => Promise<void | MessageTransportErrorResponse>;
+    removeClientKeyShare: (request: RemoveClientKeyShareRequest) => Promise<void | MessageTransportErrorResponse>;
+    getSignedSessionId: (request: GetSignedSessionIdRequest) => Promise<GetSignedSessionIdResponse | MessageTransportErrorResponse>;
+    notifyUnauthorized: (request: NotifyUnauthorizedRequest) => Promise<void | MessageTransportErrorResponse>;
+    unlockWallet: (request: RequestWithTraceContext<UnlockWalletRequest>) => Promise<GetWalletResponse | MessageTransportErrorResponse>;
+    getWalletRecoveryState: (request: RequestWithTraceContext<GetWalletRecoveryStateRequest>) => Promise<WalletRecoveryState | MessageTransportErrorResponse>;
+    getPrivateBalance: (request: RequestWithTraceContext<RequestWithElevatedAccessToken<GetPrivateBalanceRequest>>) => Promise<GetPrivateBalanceResponse | MessageTransportErrorResponse>;
+    registerDust: (request: RequestWithTraceContext<RequestWithElevatedAccessToken<RegisterDustRequest>>) => Promise<RegisterDustResponse | MessageTransportErrorResponse>;
+    createTransferTransaction: (request: RequestWithTraceContext<RequestWithElevatedAccessToken<CreateTransferTransactionRequest>>) => Promise<CreateTransferTransactionResponse | MessageTransportErrorResponse>;
+    submitTransaction: (request: RequestWithTraceContext<RequestWithElevatedAccessToken<SubmitTransactionRequest>>) => Promise<SubmitTransactionResponse | MessageTransportErrorResponse>;
+    revertTransaction: (request: RequestWithTraceContext<RequestWithElevatedAccessToken<RevertTransactionRequest>>) => Promise<RevertTransactionResponse | MessageTransportErrorResponse>;
+};
+export type CreateWalletAccountRequest = {
+    chainName: string;
+    thresholdSignatureScheme: ThresholdSignatureScheme;
+    password?: string;
+    signedSessionId: string;
+    authToken?: string;
+    bitcoinConfig?: BitcoinConfig;
+};
+export type CreateWalletAccountResponse = {
+    chainName: string;
+    accountAddress: string;
+    publicKeyHex: string;
+    rawPublicKey: string | Uint8Array | undefined;
+};
+export type GetWalletsRequest = {
+    chainName: string;
+    authToken?: string;
+};
+export type GetAllWalletsRequest = {
+    chainName: string;
+};
+/**
+ * The kind of share set a wallet row represents. `rootUser` is the user's own
+ * signing share set; `delegated` is a separate share set used by a delegated
+ * server; `server` is a server-internal share set type.
+ */
+export type ShareSetType = 'rootUser' | 'delegated' | 'server';
+/**
+ * Metadata for a share set the auth principal is aware of but doesn't sign with
+ * directly (e.g., a `delegated` share set surfaced alongside the rootUser).
+ * Mirrors redcoast's `WaasShareSet` schema.
+ */
+export type ShareSet = {
+    shareSetId: string;
+    shareSetType: ShareSetType;
+    thresholdSignatureScheme: ThresholdSignatureScheme;
+    createdAt: string;
+};
+export type GetWalletResponse = {
+    chainName: string;
+    accountAddress: string;
+    walletId: string;
+    clientKeySharesBackupInfo: KeyShareBackupInfo;
+    derivationPath: string;
+    thresholdSignatureScheme: ThresholdSignatureScheme;
+    /** Identifier of the primary share set (the one this principal signs with). */
+    shareSetId?: string;
+    shareSetType?: ShareSetType;
+    /**
+     * Other active share sets that exist on this wallet (e.g., a delegated share
+     * set surfaced alongside rootUser). Read-only awareness — the SDK never picks
+     * a different share set to sign with from this array; the primary inlined
+     * above is always the one used for signing.
+     */
+    otherShareSets?: ShareSet[];
+};
+export type GetWalletRequest = {
+    chainName: string;
+    accountAddress: string;
+    walletOperation: WalletOperation;
+    shareCount?: number;
+    password?: string;
+    signedSessionId: string;
+    authToken?: string;
+};
+export type SignMessageRequest = {
+    chainName: string;
+    message: string;
+    accountAddress: string;
+    password?: string;
+    signedSessionId: string;
+    authToken?: string;
+    mfaToken?: string;
+    context?: string;
+    bitcoinConfig?: BitcoinConfig;
+};
+export type SignMessageRequestBrowser = {
+    chainName: string;
+    message: string;
+    accountAddress: string;
+    password?: string;
+    signedSessionId: string;
+    authToken?: string;
+    mfaToken?: string;
+    context?: SignMessageContext;
+    bitcoinConfig?: BitcoinConfig;
+};
+export type SignRawMessageRequest = {
+    chainName: string;
+    message: string;
+    accountAddress: string;
+    password?: string;
+    signedSessionId: string;
+    authToken?: string;
+    mfaToken?: string;
+    context?: SignMessageContext;
+    bitcoinConfig?: BitcoinConfig;
+};
+export type RequiresPasswordForOperationRequest = {
+    chainName: string;
+    accountAddress: string;
+    walletOperation?: WalletOperation;
+    authToken?: string;
+};
+export type SignTransactionRequest = {
+    chainName: string;
+    senderAddress: string;
+    transaction: string;
+    password?: string;
+    signedSessionId: string;
+    authToken?: string;
+    mfaToken?: string;
+    chainId?: string;
+    bitcoinConfig?: BitcoinConfig;
+};
+export type SignTypedDataRequest = {
+    chainName: string;
+    accountAddress: string;
+    typedData: string;
+    password?: string;
+    signedSessionId: string;
+    authToken?: string;
+    mfaToken?: string;
+};
+export type IsPasswordEncryptedRequest = {
+    chainName: string;
+    accountAddress: string;
+    authToken?: string;
+};
+export type BackupKeySharesToGoogleDriveRequest = {
+    chainName: string;
+    accountAddress: string;
+    password?: string;
+    signedSessionId: string;
+    authToken?: string;
+    googleDriveAccessToken?: string;
+};
+export type BackupKeySharesToICloudRequest = {
+    chainName: string;
+    accountAddress: string;
+    password?: string;
+    signedSessionId: string;
+    authToken?: string;
+    signInButtonId?: string;
+};
+export type ExportClientKeysharesFromGoogleDriveRequest = {
+    chainName: string;
+    accountAddress: string;
+    password?: string;
+    signedSessionId: string;
+    authToken?: string;
+    googleDriveAccessToken?: string;
+};
+export type DelegateKeySharesRequest = {
+    chainName: string;
+    accountAddress: string;
+    password?: string;
+    signedSessionId: string;
+    authToken?: string;
+    mfaToken?: string;
+};
+export type RevokeDelegationRequest = {
+    chainName: string;
+    accountAddress: string;
+    password?: string;
+    signedSessionId: string;
+    authToken?: string;
+    mfaToken?: string;
+};
+export type RefreshWalletAccountSharesRequest = {
+    chainName: string;
+    accountAddress: string;
+    password?: string;
+    signedSessionId: string;
+    authToken?: string;
+    mfaToken?: string;
+};
+export type ReshareRequest = {
+    chainName: string;
+    accountAddress: string;
+    oldThresholdSignatureScheme: ThresholdSignatureScheme;
+    newThresholdSignatureScheme: ThresholdSignatureScheme;
+    password?: string;
+    signedSessionId: string;
+    authToken?: string;
+    mfaToken?: string;
+};
+export type ExportPrivateKeyRequest = {
+    chainName: string;
+    accountAddress: string;
+    password?: string;
+    signedSessionId: string;
+    authToken?: string;
+    mfaToken?: string;
+    bitcoinConfig?: BitcoinConfig;
+};
+export type ProveAleoTransactionRequest = {
+    chainName: 'ALEO';
+    accountAddress: string;
+    programId: string;
+    functionName: string;
+    inputs: string[];
+    inputTypes: string[];
+    broadcast?: boolean;
+    password?: string;
+    signedSessionId: string;
+    authToken?: string;
+    mfaToken?: string;
+    /** Aleo network id (`'0'` mainnet, `'1'` testnet, or numeric). The
+     *  authoritative signal for which network to prove against — drives the
+     *  SDK build, the Feemaster policy, and proving endpoints inside the
+     *  iframe. Required for `credits.aleo` (whose program name doesn't vary
+     *  by network); other programs can fall back to the `test_` prefix
+     *  heuristic when this is omitted. */
+    chainId?: string | number;
+};
+export type ProveAleoTransactionResponse = {
+    txId?: string;
+    provingResponse?: unknown;
+};
+export type FindAleoOwnedRecordsRequest = {
+    chainName: 'ALEO';
+    accountAddress: string;
+    password?: string;
+    signedSessionId: string;
+    authToken?: string;
+    mfaToken?: string;
+    /** Aleo network id (`'0'` mainnet, `'1'` testnet, or numeric). Routes the
+     *  scan to the matching scanner instance + walletState cache bucket inside
+     *  the iframe. Omit to default to testnet (legacy behaviour). */
+    chainId?: string | number;
+};
+export type FindAleoOwnedRecordsResponse = {
+    /** Decrypted `OwnedRecord[]` from Provable's RecordScanner, across ALL Aleo
+     *  programs owned by this wallet (no program filter). Each record carries
+     *  `program_name` + `record_name` so callers can classify by token. The
+     *  shape is serialized as `unknown[]` because record plaintexts contain
+     *  WASM-derived string fields the host doesn't need to narrow. */
+    records: unknown[];
+};
+export type VerifyPasswordRequest = {
+    chainName: string;
+    accountAddress: string;
+    password?: string;
+    walletOperation?: WalletOperation;
+    signedSessionId: string;
+    authToken?: string;
+};
+export type UpdatePasswordRequest = {
+    chainName: string;
+    accountAddress: string;
+    existingPassword: string;
+    newPassword: string;
+    signedSessionId: string;
+    authToken?: string;
+    passwordUpdateBatchId?: string;
+};
+export type SetPasswordRequest = {
+    chainName: string;
+    accountAddress: string;
+    newPassword: string;
+    signedSessionId: string;
+    authToken?: string;
+    passwordUpdateBatchId?: string;
+};
+export type ImportPrivateKeyRequest = {
+    chainName: string;
+    privateKey: string;
+    thresholdSignatureScheme: ThresholdSignatureScheme;
+    password?: string;
+    signedSessionId: string;
+    authToken?: string;
+    publicAddressCheck?: string;
+    addressType?: string;
+    /** ID of the legacy embedded wallet being upgraded to v3 */
+    legacyWalletId?: string;
+};
+export type ExportClientKeysharesRequest = {
+    chainName: string;
+    accountAddress: string;
+    signedSessionId: string;
+    password?: string;
+    authToken?: string;
+};
+export type OfflineExportPrivateKeyRequest = {
+    chainName: string;
+    base64Args: string;
+    authToken?: string;
+};
+export type OfflineExportPrivateKeyResponse = {
+    derivedPrivateKey: string | undefined;
+};
+/**
+ * Internal: Request from iframe to host to get the signed session ID
+ */
+export type GetSignedSessionIdRequest = Record<string, never>;
+/**
+ * Internal: Response from host to iframe with the signed session ID
+ */
+export type GetSignedSessionIdResponse = {
+    signedSessionId: string;
+};
+/**
+ * Internal: Request from iframe to host signalling that a backend call returned
+ * 401. Carries no payload — the host reacts by logging the user out.
+ */
+export type NotifyUnauthorizedRequest = Record<string, never>;
+/**
+ * Internal: Request from iframe to host to get client key shares from secure storage
+ */
+export type GetClientKeyShareRequest = {
+    accountAddress: string;
+};
+/**
+ * Internal: Response from host to iframe with client key shares
+ */
+export type GetClientKeyShareResponse = {
+    keyShares: unknown[];
+};
+/**
+ * Internal: Request from iframe to host to set client key shares in secure storage
+ */
+export type SetClientKeyShareRequest = {
+    accountAddress: string;
+    keyShares: unknown[];
+};
+/**
+ * Internal: Request from iframe to host to remove client key shares from secure storage
+ */
+export type RemoveClientKeyShareRequest = {
+    accountAddress: string;
+};
+export type UnlockWalletRequest = {
+    chainName: string;
+    accountAddress: string;
+    password: string;
+    signedSessionId: string;
+    authToken?: string;
+};
+export type GetWalletRecoveryStateRequest = {
+    chainName: string;
+    accountAddress: string;
+    authToken?: string;
+    signedSessionId?: string;
+    password?: string;
+};
+/**
+ * Midnight-specific. Fetches the wallet's full balance set behind the
+ * elevated-access iframe channel — both the unshielded (transparent) and
+ * shielded (Zswap) sides, plus the Dust generation balance. Other chains
+ * use the public `getAccountBalance` path instead.
+ */
+export type GetPrivateBalanceRequest = {
+    chainName: string;
+    accountAddress: string;
+    password?: string;
+    signedSessionId: string;
+    authToken?: string;
+    mfaToken?: string;
+};
+/**
+ * Midnight-specific. Mirrors the three balance dimensions Midnight
+ * exposes (unshielded, shielded, dust) — clients typically render them
+ * as separate columns rather than a single number.
+ */
+export type GetPrivateBalanceResponse = {
+    /** Map of tokenType → amount for unshielded balances. Includes native
+     *  tNIGHT at the all-zero tokenType plus any ERC-20-style unshielded
+     *  contract tokens. */
+    unshielded: Record<string, string>;
+    /** Map of tokenType → amount for shielded balances. Populated by
+     *  Compact contract-minted shielded tokens (native NIGHT does not
+     *  currently exist on the shielded side). */
+    shielded: Record<string, string>;
+    dust: string;
+    address: string;
+};
+/**
+ * Midnight-specific. "Dust" is Midnight's continuously-generated gas
+ * token derived from held NIGHT UTXOs. This call ensures the wallet's
+ * NIGHT UTXOs are registered with the Dust generation system; without
+ * registration, NIGHT holders produce no Dust and can't pay fees.
+ * No-op for any other chain.
+ */
+export type RegisterDustRequest = {
+    chainName: string;
+    accountAddress: string;
+    password?: string;
+    signedSessionId: string;
+    authToken?: string;
+    mfaToken?: string;
+};
+/** Midnight-specific. See `RegisterDustRequest`. */
+export type RegisterDustResponse = {
+    /** Current dust balance at the time of the call. 0 is normal right after
+     *  a fresh registration — dust generates continuously on-chain. */
+    dustBalance: string;
+    /** Registration tx hash, only present when status === 'registered'. */
+    txId?: string;
+    /** Registration outcome:
+     *   - 'registered': we submitted a new registration tx this call
+     *   - 'already_registered': NIGHT UTXOs already marked registered, no tx submitted
+     *   - 'already_has_dust': wallet already has dust > 0, no action taken
+     *   - 'no_utxos': wallet has no NIGHT UTXOs to register
+     */
+    status: 'registered' | 'already_registered' | 'already_has_dust' | 'no_utxos';
+    /** Human-readable description of what happened and what to do next. */
+    message: string;
+    /** How many NIGHT UTXOs were registered by this call (0 if none). */
+    registeredCount: number;
+};
+/** A single transfer spec within a Midnight transaction. Multiple can be
+ *  combined in one tx (shielded + unshielded + multi-output). */
+export type MidnightTransferSpec = {
+    /** Whether this transfer is on the shielded (Zswap) or unshielded side. */
+    type: 'unshielded' | 'shielded';
+    /** Bech32m-encoded recipient address. Must match the transfer type
+     *  (unshielded → `mn_addr_...`, shielded → `mn_shield_addr_...`). */
+    recipientAddress: string;
+    /** Amount in the token's smallest unit, BigInt-parseable. */
+    amount: string;
+    /** Optional tokenType (hex). Defaults to native tNIGHT. */
+    tokenType?: string;
+};
+/**
+ * Midnight-specific. Builds an unsigned Midnight transaction that can
+ * mix shielded + unshielded transfers in a single envelope (see
+ * `MidnightTransferSpec.type`). Other chains have their own
+ * transaction-construction paths and don't use this request.
+ */
+export type CreateTransferTransactionRequest = {
+    chainName: string;
+    accountAddress: string;
+    transfers: MidnightTransferSpec[];
+    /** Optional TTL in minutes. Defaults to 5. After this window, if the tx
+     *  has not been submitted, the SDK auto-reverts the reserved UTXOs. */
+    ttlMinutes?: number;
+    password?: string;
+    signedSessionId: string;
+    authToken?: string;
+    mfaToken?: string;
+};
+/** Midnight-specific. See `CreateTransferTransactionRequest`. */
+export type CreateTransferTransactionResponse = {
+    /** Base64-encoded unsigned Midnight UnprovenTransaction.
+     *  Feed into signTransaction, then submitTransaction. */
+    serializedTransaction: string;
+};
+/**
+ * Midnight-specific. Broadcasts a signed Midnight transaction
+ * (shielded, unshielded, or mixed) and optionally blocks until the
+ * unshielded balance for a given tokenType stabilises. Other chains
+ * have their own submit paths.
+ */
+export type SubmitTransactionRequest = {
+    chainName: string;
+    accountAddress: string;
+    /** Base64-encoded finalized Midnight transaction (output of signTransaction). */
+    transaction: string;
+    /** If true, blocks until unshielded balance for tokenType stabilizes after submit. */
+    waitForBalance?: boolean;
+    /** Required when waitForBalance is true — the tokenType to watch. */
+    tokenType?: string;
+    /** Required when waitForBalance is true — pre-submit balance for comparison. */
+    balanceBefore?: string;
+    password?: string;
+    signedSessionId: string;
+    authToken?: string;
+    mfaToken?: string;
+};
+/** Midnight-specific. See `SubmitTransactionRequest`. */
+export type SubmitTransactionResponse = {
+    /** On-chain transaction hash / identifier returned by the ledger. */
+    txHash: string;
+    /** Unshielded balance after the tx (only present when waitForBalance was true). */
+    balanceAfter?: string;
+};
+/**
+ * Midnight-specific. Cancels a pending transaction so the reserved
+ * UTXOs are released. Three modes, mutually exclusive (resolved by
+ * priority: resetCache > transaction > all):
+ *
+ * - Pass `transaction`: revert that specific base64 tx (unproven or finalized).
+ *   Covers: user clicks Cancel with the tx they were drafting/signing in hand.
+ *
+ * - Pass `all: true`: iterate `state.pending.all` and revert each entry there.
+ *   Covers: caller wants to clean up every finalized-but-unsubmitted tx.
+ *   Note: Step-1-only drafts aren't in `state.pending.all` (the SDK doesn't
+ *   track unfinalized drafts — see Midnight docs on PendingTransactionsService).
+ *
+ * - Pass `resetCache: true`: stop the cached wallet, clear IndexedDB for this
+ *   account, force the next operation to do a fresh sync from chain.
+ *   This is Midnight's officially recommended workaround for stuck pending
+ *   coins that can't be reverted any other way ("Restart the wallet or
+ *   re-sync to clear stale pending state").
+ */
+export type RevertTransactionRequest = {
+    chainName: string;
+    accountAddress: string;
+    /** Specific tx to revert (base64, either UnprovenTransaction or FinalizedTransaction). */
+    transaction?: string;
+    /** Revert every entry in the pending-tx service. */
+    all?: boolean;
+    /** Nuclear: stop wallet + clear IndexedDB + force re-sync on next op. */
+    resetCache?: boolean;
+    password?: string;
+    signedSessionId: string;
+    authToken?: string;
+    mfaToken?: string;
+};
+/** Midnight-specific. See `RevertTransactionRequest`. */
+export type RevertTransactionResponse = {
+    /** Whether the revert operation ran without errors. */
+    reverted: boolean;
+    /** How many pending-tx entries were reverted. 0 when resetCache was the chosen mode,
+     *  or when there was nothing to revert. */
+    count: number;
+    /** Whether the persisted cache + in-memory wallet were wiped. */
+    cacheCleared: boolean;
+    /** Human-readable summary. */
+    message: string;
+};
+export type GetWalletProviderRequest = {
+    chainName: string;
+    accountAddress: string;
+    password?: string;
+    signedSessionId: string;
+    authToken?: string;
+    mfaToken?: string;
+};
+export type GetWalletProviderResponse = {
+    coinPublicKey: string;
+    encryptionPublicKey: string;
+    status: 'ready';
+};
+export type MessageTransportErrorResponse = {
+    error: string;
+};
+/**
+ * Abstraction for the communication channel between the SDK and its
+ * containing environment (iframe in browsers, WebView in React Native).
+ */
+export interface WaasSDKContainer {
+    /**
+     * Dispatch the given URL to the underlying container (iframe / WebView).
+     * Resolves once the URL has been handed off to the container, not when the
+     * page has finished loading. Use the ready handshake over `onMessage` to
+     * detect load completion and `onError` to detect load failures.
+     */
+    setUrl(url: string): Promise<void>;
+    /** Send a message to the sandboxed environment. */
+    sendMessage(data: unknown): void;
+    /** Register a message handler. Returns an unsubscribe function. Multiple handlers may be registered. */
+    onMessage(handler: (data: unknown) => void): () => void;
+    /** Register a handler for container lifetime errors (load failures, CSP blocks, etc.). Returns an unsubscribe function. */
+    onError(handler: (error: unknown) => void): () => void;
+    /**
+     * Returns true if the container is still able to send/receive messages.
+     * Used by the recovery flow to distinguish a transport timeout from an
+     * actually-dead container: a slow ceremony shouldn't trigger a rebuild
+     * (which would tear a healthy container out from under in-flight ops).
+     */
+    isAlive(): boolean;
+    /** Tear down the container and clean up all resources. */
+    destroy(): void;
+}
+export type CreateWaasSDKContainer = () => WaasSDKContainer;
+/**
+ * Adapter interface for secure storage of client key shares.
+ * Used by mobile apps with TEE-backed storage.
+ */
+export interface SecureStorageAdapter {
+    getClientKeyShare(accountAddress: string): Promise<unknown[]>;
+    setClientKeyShare(accountAddress: string, shares: unknown[]): Promise<void>;
+    removeClientKeyShare(accountAddress: string): Promise<void>;
+}
+export type BackupLocationWithExternalKeyShareId = {
+    location: BackupLocation;
+    externalKeyShareId?: string;
+    id?: string;
+    keygenId?: string;
+    passwordEncrypted?: boolean;
+};
+export type EncryptedDelegatedKeyShareEnvelope = {
+    alg: string;
+    iv: string;
+    ct: string;
+    tag: string;
+    ek: string;
+    kid?: string;
+};
+export interface ILogger {
+    debug(message: string, context?: object, error?: Error): void;
+    debug(message: string, ...args: any[]): void;
+    info(message: string, context?: object, error?: Error): void;
+    info(message: string, ...args: any[]): void;
+    warn(message: string, context?: object, error?: Error): void;
+    warn(message: string, ...args: any[]): void;
+    error(message: string, context?: object, error?: Error): void;
+    error(message: string, ...args: any[]): void;
+}
+export declare class NoopLogger implements ILogger {
+    debug(): void;
+    info(): void;
+    warn(): void;
+    error(): void;
+}
+//# sourceMappingURL=types.d.ts.map

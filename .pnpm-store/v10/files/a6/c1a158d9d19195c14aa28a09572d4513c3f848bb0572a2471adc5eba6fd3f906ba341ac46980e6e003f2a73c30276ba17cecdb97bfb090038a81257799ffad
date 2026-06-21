@@ -1,0 +1,21 @@
+/**
+ * Hook that returns a function to atomically tear down the current WaaS session.
+ *
+ * Intended for integrations where the host app swaps the authenticated user within
+ * a single tab (for example, when a product layers multiple identities on top of a
+ * single Dynamic SDK instance). Calling the returned function:
+ *
+ *   1. Ends every active WaaS wallet-connector session, which triggers per-chain
+ *      `dynamicWaasClient` cleanup and iframe ref-count decrement.
+ *   2. Removes all Dynamic Wallet iframes (main + storage) from the DOM as a
+ *      belt-and-suspenders step in case a consumer failed to decrement the ref count.
+ *   3. Clears the persisted zustand store from localStorage so the next SDK load
+ *      does not hydrate stale user/wallet state.
+ *
+ * After this resolves, the next `useExternalAuth`/auth flow starts from a clean
+ * slate — new iframe, no cached keyshares, no stale store.
+ *
+ * Concurrent calls while a teardown is already in progress are ignored — the
+ * callback is guarded by an in-flight flag so only one teardown runs at a time.
+ */
+export declare const useResetWaasSession: () => () => Promise<void>;

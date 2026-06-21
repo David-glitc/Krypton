@@ -1,0 +1,95 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+require('../../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var FieldsStateContext = require('../../../../context/FieldsStateContext/FieldsStateContext.cjs');
+var VerificationContext = require('../../../../context/VerificationContext/VerificationContext.cjs');
+require('@dynamic-labs-sdk/client');
+require('@dynamic-labs/utils');
+require('@dynamic-labs/sdk-api-core');
+require('@dynamic-labs-sdk/client/core');
+require('eventemitter3');
+require('../../../../config/ApiEndpoint.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+require('../../../../context/ViewContext/ViewContext.cjs');
+require('../../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('../../../constants/colors.cjs');
+require('../../../constants/values.cjs');
+require('../../../../shared/consts/index.cjs');
+require('@dynamic-labs/multi-wallet');
+require('react-international-phone');
+require('../../../../store/state/nonce/nonce.cjs');
+require('../../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../../store/state/primaryWalletId/primaryWalletId.cjs');
+require('../../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+require('../../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+require('../../../../events/dynamicEvents.cjs');
+require('@dynamic-labs/locale');
+var user = require('../../../../data/api/user/user.cjs');
+var getVerificationDestinationFromNextView = require('../../../functions/getVerificationDestinationFromNextView/getVerificationDestinationFromNextView.cjs');
+var useHandleVerificationRequired = require('../../useHandleVerificationRequired/useHandleVerificationRequired.cjs');
+var userFieldsSchema = require('./userFieldsSchema.cjs');
+
+const useUpdateUser = (validationSchemaStripUnknown) => {
+    const { environmentId, userWithMissingInfo } = useInternalDynamicContext.useInternalDynamicContext();
+    const { setRetryData } = VerificationContext.useVerification();
+    const { selectedPhoneCountry } = FieldsStateContext.useFieldsState();
+    const handleVerificationRequired = useHandleVerificationRequired.useHandleVerificationRequired();
+    const updateUser = React.useCallback((userFields, options) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        var _a, _b;
+        // `stripUnknown: true` will automatically strip out any values in the metadata object
+        // so we need to pull out the metadata object here and then re-add it after stripping unknown fields
+        let { metadata } = userFields;
+        // when a user has already logged in but a custom field was added to env, in order to not clear the old fields
+        metadata = metadata
+            ? Object.assign(Object.assign({}, userWithMissingInfo === null || userWithMissingInfo === void 0 ? void 0 : userWithMissingInfo.metadata), metadata) : userWithMissingInfo === null || userWithMissingInfo === void 0 ? void 0 : userWithMissingInfo.metadata;
+        // we dont add user.metadata from edit profile because it is already in the metadata request for updateUser
+        const validatedUserFields = yield userFieldsSchema.userFieldsSchema.validate(userFields, {
+            stripUnknown: validationSchemaStripUnknown,
+        });
+        // If there is a phone number, store it in the retry verification data
+        // in case we need to perform sms verification
+        if (validatedUserFields.phoneNumber &&
+            validatedUserFields.phoneNumber.length > 0 &&
+            selectedPhoneCountry.current)
+            setRetryData({
+                dialCode: selectedPhoneCountry.current.dialCode,
+                iso2: selectedPhoneCountry.current.iso2,
+                phone: validatedUserFields.phoneNumber,
+            });
+        const updateUserProfileResponse = yield user.updateUserProfileFields((_a = options === null || options === void 0 ? void 0 : options.userEnvironmentId) !== null && _a !== void 0 ? _a : environmentId, Object.assign(Object.assign({}, validatedUserFields), { metadata }));
+        // check if decoded JWT still somehow has missing fields, we can't proceed if it does
+        const missingFields = (_b = updateUserProfileResponse.user.missingFields) !== null && _b !== void 0 ? _b : [];
+        const requiredVerificationDestination = getVerificationDestinationFromNextView.getVerificationDestinationFromNextView(updateUserProfileResponse.nextView);
+        if (requiredVerificationDestination)
+            return handleVerificationRequired({
+                destination: requiredVerificationDestination,
+                missingFields,
+                updateUserProfileResponse,
+            });
+        return {
+            isEmailVerificationRequired: false,
+            isSmsVerificationRequired: false,
+            missingFields,
+            updateUserProfileResponse,
+        };
+    }), [
+        userWithMissingInfo === null || userWithMissingInfo === void 0 ? void 0 : userWithMissingInfo.metadata,
+        validationSchemaStripUnknown,
+        selectedPhoneCountry,
+        setRetryData,
+        environmentId,
+        handleVerificationRequired,
+    ]);
+    return updateUser;
+};
+
+exports.useUpdateUser = useUpdateUser;

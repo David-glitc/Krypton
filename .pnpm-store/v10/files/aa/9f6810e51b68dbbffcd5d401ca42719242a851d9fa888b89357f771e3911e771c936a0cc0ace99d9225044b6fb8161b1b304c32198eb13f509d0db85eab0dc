@@ -1,0 +1,1 @@
+{"version":3,"file":"TokenSwapError.d.ts","sourceRoot":"","sources":["../../src/errors/TokenSwapError.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,SAAS,EAAE,MAAM,QAAQ,CAAC;AAEnC,KAAK,oBAAoB,GAAG;IAC1B,OAAO,EAAE,MAAM,CAAC;IAChB,aAAa,CAAC,EAAE,OAAO,CAAC;CACzB,CAAC;AAEF,qBAAa,cAAe,SAAQ,SAAS;gBAC/B,EAAE,OAAO,EAAE,aAAa,EAAE,EAAE,oBAAoB;CAW7D"}

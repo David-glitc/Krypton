@@ -1,0 +1,8 @@
+type RandomStringParams = {
+    chars?: string;
+    length: number;
+};
+/** @not-instrumented */
+export declare const randomString: ({ chars, length, }: RandomStringParams) => string;
+export {};
+//# sourceMappingURL=randomString.d.ts.map

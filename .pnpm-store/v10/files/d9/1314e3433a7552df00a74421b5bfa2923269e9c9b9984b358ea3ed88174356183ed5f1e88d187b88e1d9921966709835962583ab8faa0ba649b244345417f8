@@ -1,0 +1,37 @@
+'use client'
+import { __awaiter } from '../../../../../../_virtual/_tslib.js';
+import { useCallback } from 'react';
+import { DynamicError } from '@dynamic-labs/utils';
+import { JwtVerifiedCredentialFormatEnum } from '@dynamic-labs/sdk-api-core';
+import '../../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { unlinkEmail } from '../../../../data/api/user/user.js';
+import { getDynamicClient } from '../../../../client/client.js';
+import { getPrimaryWalletId } from '../../../../store/state/primaryWalletId/primaryWalletId.js';
+
+const useUnlinkUserEmail = () => {
+    const { environmentId } = useInternalDynamicContext();
+    const unlinkUserEmail = useCallback((_a) => __awaiter(void 0, [_a], void 0, function* ({ verifiedCredentialId }) {
+        var _b;
+        const user = (_b = getDynamicClient()) === null || _b === void 0 ? void 0 : _b.user;
+        const primaryWalletId = getPrimaryWalletId();
+        if (!primaryWalletId) {
+            throw new DynamicError('Primary wallet not found');
+        }
+        const verifiedCredential = user === null || user === void 0 ? void 0 : user.verifiedCredentials.find((credential) => credential.id === verifiedCredentialId);
+        if (!verifiedCredential) {
+            throw new DynamicError('Verified credential not found');
+        }
+        if (verifiedCredential.format !== JwtVerifiedCredentialFormatEnum.Email) {
+            throw new DynamicError('Verified credential is not an email');
+        }
+        return unlinkEmail({
+            environmentId,
+            primaryWalletId,
+            verifiedCredentialId,
+        });
+    }), [environmentId]);
+    return unlinkUserEmail;
+};
+
+export { useUnlinkUserEmail };

@@ -1,0 +1,1 @@
+{"version":3,"file":"signInWithSocialRedirect.d.ts","sourceRoot":"","sources":["../../../../../../src/modules/auth/social/oauth/signInWithSocialRedirect/signInWithSocialRedirect.ts"],"names":[],"mappings":"AAQA,OAAO,KAAK,EAAE,8BAA8B,EAAE,MAAM,kCAAkC,CAAC;AAEvF,YAAY,EAAE,8BAA8B,EAAE,MAAM,kCAAkC,CAAC;AAEvF;;;;;;;;;;;;;;GAcG;AACH,eAAO,MAAM,wBAAwB,8BACR,8BAA8B,2EA4B1D,CAAC"}

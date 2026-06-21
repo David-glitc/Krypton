@@ -1,0 +1,43 @@
+'use client'
+import { useState, useMemo, useCallback } from 'react';
+import '../../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import '@dynamic-labs/iconic';
+import '@dynamic-labs/wallet-connector-core';
+import 'react/jsx-runtime';
+import '../../../../context/ViewContext/ViewContext.js';
+import { logger } from '../../../../shared/logger.js';
+import '@dynamic-labs/wallet-book';
+import '@dynamic-labs/utils';
+import '../../../constants/colors.js';
+import '../../../constants/values.js';
+import '@dynamic-labs/sdk-api-core';
+import '../../../../shared/consts/index.js';
+import { getNativeTokenDecimals } from '../utils/utils.js';
+
+const useBaseTransactionSimulation = (hookName) => {
+    const { primaryWallet, environmentId, networkConfigurations } = useInternalDynamicContext();
+    const [simulationState, setSimulationState] = useState({
+        isLoading: false,
+    });
+    const nativeTokenDecimals = useMemo(() => getNativeTokenDecimals(primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.chain, networkConfigurations), [primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.chain, networkConfigurations]);
+    const handleSimulationError = useCallback((e, type) => {
+        const errorPrefix = type ? `${type} ` : '';
+        logger.error(`[${hookName}] ${errorPrefix}simulation failed:`, e);
+        setSimulationState({
+            error: e instanceof Error ? e.message : `${errorPrefix}simulation failed`,
+            isLoading: false,
+        });
+    }, [hookName]);
+    return {
+        environmentId,
+        handleSimulationError,
+        nativeTokenDecimals,
+        networkConfigurations,
+        primaryWallet,
+        setSimulationState,
+        simulationState,
+    };
+};
+
+export { useBaseTransactionSimulation };

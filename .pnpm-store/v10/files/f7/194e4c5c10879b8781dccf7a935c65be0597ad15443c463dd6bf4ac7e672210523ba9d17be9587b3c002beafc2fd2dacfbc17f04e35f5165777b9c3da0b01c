@@ -1,0 +1,2 @@
+export { normalizeScopes } from './normalizeScopes';
+//# sourceMappingURL=index.d.ts.map

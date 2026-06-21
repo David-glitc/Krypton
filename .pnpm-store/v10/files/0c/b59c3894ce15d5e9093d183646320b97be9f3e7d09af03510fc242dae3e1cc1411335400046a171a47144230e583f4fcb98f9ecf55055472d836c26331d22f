@@ -1,0 +1,19 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var jsxRuntime = require('react/jsx-runtime');
+var React = require('react');
+var createProviderHook = require('../../shared/utils/functions/createProviderHook/createProviderHook.cjs');
+
+const FieldsStateContext = React.createContext(undefined);
+const FieldsStateProvider = ({ children }) => {
+    const selectedPhoneCountry = React.useRef();
+    return (jsxRuntime.jsx(FieldsStateContext.Provider, { value: { selectedPhoneCountry }, children: children }));
+};
+const useFieldsState = createProviderHook.createProviderHook(FieldsStateContext, 'FieldsStateProvider');
+
+exports.FieldsStateContext = FieldsStateContext;
+exports.FieldsStateProvider = FieldsStateProvider;
+exports.useFieldsState = useFieldsState;

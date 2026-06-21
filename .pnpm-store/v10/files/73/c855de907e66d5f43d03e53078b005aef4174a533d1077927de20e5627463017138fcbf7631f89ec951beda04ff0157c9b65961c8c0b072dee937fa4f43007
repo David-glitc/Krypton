@@ -1,0 +1,51 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+var CheckoutFeeBreakdown = require('./CheckoutFeeBreakdown.cjs');
+var SwapSigningPayload = require('./SwapSigningPayload.cjs');
+
+/* tslint:disable */
+function CheckoutTransactionQuoteFromJSON(json) {
+    return CheckoutTransactionQuoteFromJSONTyped(json);
+}
+function CheckoutTransactionQuoteFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'version': json['version'],
+        'fromAmount': json['fromAmount'],
+        'toAmount': json['toAmount'],
+        'fees': !runtime.exists(json, 'fees') ? undefined : CheckoutFeeBreakdown.CheckoutFeeBreakdownFromJSON(json['fees']),
+        'estimatedTimeSec': !runtime.exists(json, 'estimatedTimeSec') ? undefined : json['estimatedTimeSec'],
+        'rawQuote': !runtime.exists(json, 'rawQuote') ? undefined : json['rawQuote'],
+        'signingPayload': !runtime.exists(json, 'signingPayload') ? undefined : SwapSigningPayload.SwapSigningPayloadFromJSON(json['signingPayload']),
+        'createdAt': (new Date(json['createdAt'])),
+        'expiresAt': (new Date(json['expiresAt'])),
+    };
+}
+function CheckoutTransactionQuoteToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'version': value.version,
+        'fromAmount': value.fromAmount,
+        'toAmount': value.toAmount,
+        'fees': CheckoutFeeBreakdown.CheckoutFeeBreakdownToJSON(value.fees),
+        'estimatedTimeSec': value.estimatedTimeSec,
+        'rawQuote': value.rawQuote,
+        'signingPayload': SwapSigningPayload.SwapSigningPayloadToJSON(value.signingPayload),
+        'createdAt': (value.createdAt.toISOString()),
+        'expiresAt': (value.expiresAt.toISOString()),
+    };
+}
+
+exports.CheckoutTransactionQuoteFromJSON = CheckoutTransactionQuoteFromJSON;
+exports.CheckoutTransactionQuoteFromJSONTyped = CheckoutTransactionQuoteFromJSONTyped;
+exports.CheckoutTransactionQuoteToJSON = CheckoutTransactionQuoteToJSON;

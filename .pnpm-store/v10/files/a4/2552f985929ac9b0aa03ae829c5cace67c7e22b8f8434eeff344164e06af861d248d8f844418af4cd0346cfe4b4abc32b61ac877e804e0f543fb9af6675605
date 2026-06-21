@@ -1,0 +1,6 @@
+/**
+ * Sefelly sets the cookie in the browser.
+  * @not-instrumented
+ */
+export declare const setCookie: (cookie: string) => void;
+//# sourceMappingURL=setCookie.d.ts.map

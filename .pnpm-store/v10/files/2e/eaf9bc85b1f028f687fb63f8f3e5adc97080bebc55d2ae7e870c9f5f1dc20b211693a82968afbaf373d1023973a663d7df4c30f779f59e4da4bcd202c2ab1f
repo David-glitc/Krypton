@@ -1,0 +1,19 @@
+/// <reference types="react" />
+type MidnightAddresses = {
+    unshielded?: string;
+    shielded?: string;
+    dust?: string;
+};
+type WalletDetailsCardProps = {
+    /** String representation of a wallet address */
+    address: string;
+    /** Whether the overview should be open or closed */
+    open: boolean;
+    /** Callback when the overlay is closed */
+    onClose: VoidFunction;
+    /** When provided, renders separate Midnight address rows instead of a single address */
+    midnightAddresses?: MidnightAddresses;
+};
+/** Component for wallet detail overlays */
+export declare const WalletDetailsCard: ({ address, open, onClose, midnightAddresses, }: WalletDetailsCardProps) => JSX.Element;
+export {};

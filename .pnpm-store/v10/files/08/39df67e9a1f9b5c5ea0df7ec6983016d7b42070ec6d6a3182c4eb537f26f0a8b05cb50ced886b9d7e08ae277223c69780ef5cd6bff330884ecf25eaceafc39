@@ -1,0 +1,18 @@
+import type { WalletBookSchema } from '../../../legacyWalletBook/legacyWalletBook.types';
+type GetInAppBrowserUrlParams = {
+    wallet: WalletBookSchema['wallets'][string];
+};
+/**
+ * Returns the wallet's in-app browser URL template, preferring the v2
+ * field. `inAppBrowser` is deprecated but some wallet book entries
+ * still carry only the v1 value, so it acts as a fallback. Trailing
+ * `?? undefined` collapses the schema's `string | null` typing down to
+ * the `string | undefined` return contract.
+ *
+ * @param params.wallet - The wallet book wallet entry.
+ * @returns The in-app browser URL, or `undefined` if neither field is set.
+ * @not-instrumented
+ */
+export declare const getInAppBrowserUrl: ({ wallet, }: GetInAppBrowserUrlParams) => string | undefined;
+export {};
+//# sourceMappingURL=getInAppBrowserUrl.d.ts.map

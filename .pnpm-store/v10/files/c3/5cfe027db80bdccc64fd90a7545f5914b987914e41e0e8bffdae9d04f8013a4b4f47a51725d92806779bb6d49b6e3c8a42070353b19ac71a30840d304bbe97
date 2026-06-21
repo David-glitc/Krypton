@@ -1,0 +1,11 @@
+import type { DynamicClient } from '../../client/types';
+/**
+ * Returns a nonce for wallet ownership verification.
+ *
+ * Pops the first nonce from the prefetched pool. When the pool is running low
+ * (≤1 remaining after pop) a background refetch is triggered. If the pool is
+ * empty, nonces are fetched on-demand before returning.
+  * @not-instrumented
+ */
+export declare const getNonce: (client: DynamicClient) => Promise<string>;
+//# sourceMappingURL=getNonce.d.ts.map

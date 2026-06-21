@@ -1,0 +1,1 @@
+{"version":3,"file":"revokeRegisteredDevice.d.ts","sourceRoot":"","sources":["../../../../src/modules/deviceRegistration/revokeRegisteredDevice/revokeRegisteredDevice.ts"],"names":[],"mappings":"AAMA,KAAK,4BAA4B,GAAG;IAClC,oBAAoB,EAAE,MAAM,CAAC;CAC9B,CAAC;AAEF,oBAAoB;AACpB,eAAO,MAAM,sBAAsB,6BACP,4BAA4B,wDAErD,OAAO,CAAC,IAAI,CAcd,CAAC"}

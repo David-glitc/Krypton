@@ -1,0 +1,8 @@
+import { BaseError } from './base';
+export declare class SimulationFailedError extends BaseError {
+    constructor(params: {
+        cause?: Error;
+        message: string;
+    });
+}
+//# sourceMappingURL=SimulationFailedError.d.ts.map

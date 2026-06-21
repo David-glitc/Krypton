@@ -1,0 +1,77 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../../_virtual/_tslib.cjs');
+var walletConnectorCore = require('@dynamic-labs/wallet-connector-core');
+require('../../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var ViewContext = require('../../../../context/ViewContext/ViewContext.cjs');
+var ErrorContext = require('../../../../context/ErrorContext/ErrorContext.cjs');
+var useVerifyWallet = require('../../useVerifyWallet/useVerifyWallet.cjs');
+require('@dynamic-labs/iconic');
+require('react');
+require('react/jsx-runtime');
+var logger = require('../../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('@dynamic-labs/utils');
+require('../../../constants/colors.cjs');
+require('../../../constants/values.cjs');
+require('@dynamic-labs/sdk-api-core');
+var instrumentAuthLoginFailed = require('../../../../shared/utils/functions/instrumentAuthLoginFailed/instrumentAuthLoginFailed.cjs');
+require('../../../../shared/consts/index.cjs');
+var CaptchaContext = require('../../../../context/CaptchaContext/CaptchaContext.cjs');
+
+const useSignConnectOnlyUser = () => {
+    const { pushView } = ViewContext.useViewContext();
+    const { setErrorMessage } = ErrorContext.useErrorContext();
+    const { getCaptchaToken } = CaptchaContext.useCaptchaContext();
+    const { connectWallet, displaySiweStatement, projectSettings, environmentId, setIsSingleWalletAccount, setShowAuthFlow, setSelectedWalletConnectorKey, walletUiUtils, } = useInternalDynamicContext.useInternalDynamicContext();
+    const verifyWallet = useVerifyWallet.useVerifyWallet({
+        displaySiweStatement,
+        environmentId,
+        projectSettings,
+        setIsSingleWalletAccount,
+    });
+    return (_a) => _tslib.__awaiter(void 0, [_a], void 0, function* ({ walletConnector, getAddressOpts = undefined }) {
+        try {
+            if (walletConnectorCore.isEmbeddedConnector(walletConnector) &&
+                !walletConnectorCore.isBloctoConnector(walletConnector)) {
+                walletUiUtils.disabledConfirmationOnce();
+            }
+            // Prepare states to show the pending signature view (without back button)
+            // We need this because in connect-only we don't want to show wallet-list
+            // We don't want to show the back button in the pending signature view
+            // because we don't want to go back to the wallet-list
+            setSelectedWalletConnectorKey({
+                chain: walletConnector.connectedChain,
+                key: walletConnector.key,
+            });
+            pushView('pending-signature-without-back-button');
+            setShowAuthFlow(true);
+            // Wallet should be already connected at this point
+            // We just need to verify it
+            const connectionResult = yield connectWallet(walletConnector, getAddressOpts);
+            if (!(connectionResult === null || connectionResult === void 0 ? void 0 : connectionResult.address)) {
+                return;
+            }
+            yield verifyWallet({
+                captchaToken: getCaptchaToken(),
+                publicWalletAddress: connectionResult.address,
+                walletConnector,
+            });
+        }
+        catch (err) {
+            logger.logger.debug(err);
+            instrumentAuthLoginFailed.instrumentAuthLoginFailed(err, {
+                authOrigin: 'connect-and-sign-split-steps',
+            });
+            setErrorMessage(err.toString(), err, 'connect-and-sign-split-steps');
+            setShowAuthFlow(false, { emitCancelAuth: true });
+            return;
+        }
+    });
+};
+
+exports.useSignConnectOnlyUser = useSignConnectOnlyUser;

@@ -1,0 +1,73 @@
+import type { KoraPluginConfig, KitPayerSignerResponse, KitBlockhashResponse, KitSupportedTokensResponse, KitEstimateFeeResponse, KitSignTransactionResponse, KitSignAndSendTransactionResponse, KitTransferTransactionResponse, KitPaymentInstructionResponse, KitConfigResponse, EstimateTransactionFeeRequest, SignTransactionRequest, SignAndSendTransactionRequest, TransferTransactionRequest, GetPaymentInstructionRequest } from './types/index.js';
+/**
+ * Creates a Kora Kit plugin that adds Kora paymaster functionality to a Kit client.
+ *
+ * The plugin exposes all Kora RPC methods with Kit-typed responses (Address, Blockhash).
+ *
+ * **Note:** The plugin pattern with `createEmptyClient().use()` requires `@solana/kit` v5.4.0+.
+ * For older kit versions, use `KoraClient` directly instead.
+ *
+ * @param config - Plugin configuration
+ * @param config.endpoint - Kora RPC endpoint URL
+ * @param config.apiKey - Optional API key for authentication
+ * @param config.hmacSecret - Optional HMAC secret for signature-based authentication
+ * @returns A Kit plugin function that adds `.kora` to the client
+ *
+ * @example
+ * ```typescript
+ * import { createEmptyClient } from '@solana/kit';
+ * import { koraPlugin } from '@solana/kora';
+ *
+ * const client = createEmptyClient()
+ *   .use(koraPlugin({ endpoint: 'https://kora.example.com' }));
+ *
+ * // All responses have Kit-typed fields
+ * const config = await client.kora.getConfig();
+ * // config.fee_payers is Address[] not string[]
+ *
+ * const { signer_pubkey } = await client.kora.signTransaction({ transaction: tx });
+ * // signer_pubkey is Address not string
+ * ```
+ */
+export declare function koraPlugin(config: KoraPluginConfig): <T extends object>(c: T) => T & {
+    kora: {
+        /**
+         * Retrieves the current Kora server configuration with Kit-typed addresses.
+         */
+        getConfig(): Promise<KitConfigResponse>;
+        /**
+         * Retrieves the payer signer and payment destination with Kit-typed addresses.
+         */
+        getPayerSigner(): Promise<KitPayerSignerResponse>;
+        /**
+         * Gets the latest blockhash with Kit Blockhash type.
+         */
+        getBlockhash(): Promise<KitBlockhashResponse>;
+        /**
+         * Retrieves the list of tokens supported for fee payment with Kit-typed addresses.
+         */
+        getSupportedTokens(): Promise<KitSupportedTokensResponse>;
+        /**
+         * Estimates the transaction fee with Kit-typed addresses.
+         */
+        estimateTransactionFee(request: EstimateTransactionFeeRequest): Promise<KitEstimateFeeResponse>;
+        /**
+         * Signs a transaction with Kit-typed response.
+         */
+        signTransaction(request: SignTransactionRequest): Promise<KitSignTransactionResponse>;
+        /**
+         * Signs and sends a transaction with Kit-typed response.
+         */
+        signAndSendTransaction(request: SignAndSendTransactionRequest): Promise<KitSignAndSendTransactionResponse>;
+        /**
+         * Creates a token transfer transaction with Kit-typed response.
+         */
+        transferTransaction(request: TransferTransactionRequest): Promise<KitTransferTransactionResponse>;
+        /**
+         * Creates a payment instruction with Kit-typed response.
+         */
+        getPaymentInstruction(request: GetPaymentInstructionRequest): Promise<KitPaymentInstructionResponse>;
+    };
+};
+/** Type representing the Kora API exposed by the plugin */
+export type KoraApi = ReturnType<ReturnType<typeof koraPlugin>>['kora'];

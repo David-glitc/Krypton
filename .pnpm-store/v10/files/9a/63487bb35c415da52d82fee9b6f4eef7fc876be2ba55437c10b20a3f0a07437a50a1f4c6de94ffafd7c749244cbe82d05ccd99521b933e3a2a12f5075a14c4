@@ -1,0 +1,50 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var sdkApiCore = require('@dynamic-labs/sdk-api-core');
+
+const DEFAULT_NUMBER_OF_WALLETS_TO_SHOW = 10;
+// references:
+// https://www.iana.org/assignments/jwt/jwt.xhtml#claims
+// https://github.com/jaredhanson/id-blockchain-claims-in-jwt/blob/main/draft.md
+const ChainEnumToVerifiedCredentialName = {
+    ALEO: 'aleo',
+    ALGO: 'algorand',
+    APTOS: 'aptos',
+    BTC: 'bip122', // see: https://namespaces.chainagnostic.org/bip122/caip2
+    COSMOS: 'cosmos',
+    ETH: 'eip155',
+    EVM: 'eip155',
+    FLOW: 'flow',
+    MIDNIGHT: 'midnight',
+    SOL: 'solana',
+    STARK: 'starknet',
+    STELLAR: 'stellar',
+    SUI: 'sui',
+    TEMPO: 'tempo',
+    TON: 'ton',
+    TRON: 'tron',
+};
+const VerifiedCredentialNameToChainEnum = {
+    aleo: sdkApiCore.ChainEnum.Aleo,
+    algorand: sdkApiCore.ChainEnum.Algo,
+    aptos: sdkApiCore.ChainEnum.Aptos,
+    bip122: sdkApiCore.ChainEnum.Btc,
+    cosmos: sdkApiCore.ChainEnum.Cosmos,
+    eip155: sdkApiCore.ChainEnum.Evm,
+    flow: sdkApiCore.ChainEnum.Flow,
+    midnight: sdkApiCore.ChainEnum.Midnight,
+    solana: sdkApiCore.ChainEnum.Sol,
+    starknet: sdkApiCore.ChainEnum.Stark,
+    stellar: sdkApiCore.ChainEnum.Stellar,
+    sui: sdkApiCore.ChainEnum.Sui,
+    tempo: sdkApiCore.ChainEnum.Tempo,
+    ton: sdkApiCore.ChainEnum.Ton,
+    tron: sdkApiCore.ChainEnum.Tron,
+};
+
+exports.ChainEnumToVerifiedCredentialName = ChainEnumToVerifiedCredentialName;
+exports.DEFAULT_NUMBER_OF_WALLETS_TO_SHOW = DEFAULT_NUMBER_OF_WALLETS_TO_SHOW;
+exports.VerifiedCredentialNameToChainEnum = VerifiedCredentialNameToChainEnum;

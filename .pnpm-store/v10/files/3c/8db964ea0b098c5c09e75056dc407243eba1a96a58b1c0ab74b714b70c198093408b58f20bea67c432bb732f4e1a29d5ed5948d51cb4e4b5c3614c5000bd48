@@ -1,0 +1,73 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var store = require('@dynamic-labs/store');
+var localStorage$1 = require('../../utils/constants/localStorage.cjs');
+require('../../utils/constants/colors.cjs');
+require('../../utils/constants/values.cjs');
+var stateConfig = require('../stateConfig.cjs');
+var syncLegacyStorage = require('./utils/syncLegacyStorage/syncLegacyStorage.cjs');
+
+// Store the zustand store instance on globalThis so it survives dual-package
+// loading. See client.ts for full explanation of the dual-package hazard.
+const GLOBAL_KEY = Symbol.for('@dynamic-labs/sdk-react-core/store');
+const getStoreHolder = () => {
+    const g = globalThis;
+    if (!g[GLOBAL_KEY]) {
+        g[GLOBAL_KEY] = { instance: undefined };
+    }
+    return g[GLOBAL_KEY];
+};
+const getStore = () => {
+    const { instance } = getStoreHolder();
+    if (!instance) {
+        throw new Error('Store not initialized');
+    }
+    return instance;
+};
+const removeStoreInstance = () => {
+    getStoreHolder().instance = undefined;
+};
+const clearPersistedStore = (localStorageSuffix) => {
+    if (typeof localStorage === 'undefined')
+        return;
+    const persistName = localStorageSuffix
+        ? `${localStorage$1.STORE_STORAGE_KEY}_${localStorageSuffix}`
+        : localStorage$1.STORE_STORAGE_KEY;
+    localStorage.removeItem(persistName);
+};
+const initializeStore = (props) => {
+    var _a;
+    const holder = getStoreHolder();
+    if (holder.instance) {
+        return;
+    }
+    const { localStorageSuffix } = (_a = props.settings) !== null && _a !== void 0 ? _a : {};
+    const persistName = localStorageSuffix
+        ? `${localStorage$1.STORE_STORAGE_KEY}_${localStorageSuffix}`
+        : localStorage$1.STORE_STORAGE_KEY;
+    holder.instance = syncLegacyStorage.syncLegacyStorage(store.persist({
+        name: persistName,
+        partialize: stateConfig.transformStateForLocalStorage,
+        storage: getStorage(),
+        // Map each entry to its initialValue
+        store: store.createStore(() => stateConfig.createInitialState(props)),
+        version: stateConfig.storeVersion,
+    }));
+};
+const getStorage = () => {
+    if (typeof localStorage === 'undefined') {
+        return {
+            getItem: () => null,
+            setItem: () => { },
+        };
+    }
+    return window.localStorage;
+};
+
+exports.clearPersistedStore = clearPersistedStore;
+exports.getStore = getStore;
+exports.initializeStore = initializeStore;
+exports.removeStoreInstance = removeStoreInstance;

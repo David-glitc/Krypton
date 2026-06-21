@@ -1,0 +1,144 @@
+var __defProp = Object.defineProperty;
+var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
+
+// src/client-v2/errors.ts
+var ErrorCode = {
+  ATTESTATION_FAILED: "ATTESTATION_FAILED",
+  REQUEST_TIMEOUT: "REQUEST_TIMEOUT"};
+var ForwardMPCErrorType = {
+  SESSION: "session"};
+var ForwardMPCError = class extends Error {
+  static {
+    __name(this, "ForwardMPCError");
+  }
+  code;
+  type;
+  context;
+  constructor(message, code, type, context) {
+    super(message);
+    this.name = this.constructor.name;
+    this.code = code;
+    this.type = type;
+    this.context = context;
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+  toJSON() {
+    return {
+      name: this.name,
+      message: this.message,
+      code: this.code,
+      type: this.type,
+      stack: this.stack,
+      context: this.context
+    };
+  }
+};
+var SessionError = class extends ForwardMPCError {
+  static {
+    __name(this, "SessionError");
+  }
+  constructor(message, code, context) {
+    super(message, code, ForwardMPCErrorType.SESSION, context);
+  }
+};
+var SessionAttestationError = class extends SessionError {
+  static {
+    __name(this, "SessionAttestationError");
+  }
+  cause;
+  constructor(message = "Attestation verification failed", code = ErrorCode.ATTESTATION_FAILED, context, cause) {
+    super(message, code, context);
+    if (cause !== void 0) {
+      this.cause = cause;
+    }
+  }
+};
+var SessionRequestTimeoutError = class extends SessionError {
+  static {
+    __name(this, "SessionRequestTimeoutError");
+  }
+  constructor(context) {
+    super("Request timed out waiting for server response", ErrorCode.REQUEST_TIMEOUT, context);
+  }
+};
+var FORWARD_MPC_ERROR_NAMES = /* @__PURE__ */ new Set([
+  "TransportConnectionError",
+  "TransportConnectionTimeoutError",
+  "TransportNotConnectedError",
+  "SessionHandshakeError",
+  "SessionHandshakeInvalidResponseError",
+  "SessionAttestationError",
+  "SessionRequestTimeoutError",
+  "SessionDisposedError",
+  "SessionServerError",
+  "SessionMessageParseError",
+  "SessionRemoteError",
+  "ClientUnsupportedAlgorithmError",
+  "ClientSessionEstablishFailedError"
+]);
+
+// src/client-v2/error-classification.ts
+function matchesForwardMpcErrorClass(error, ctor, name) {
+  if (error instanceof ctor) {
+    return true;
+  }
+  return error instanceof Error && error.name === name && typeof error.code === "string";
+}
+__name(matchesForwardMpcErrorClass, "matchesForwardMpcErrorClass");
+function matchesAnyForwardMpcError(error) {
+  if (error instanceof ForwardMPCError) {
+    return true;
+  }
+  return error instanceof Error && FORWARD_MPC_ERROR_NAMES.has(error.name) && typeof error.code === "string";
+}
+__name(matchesAnyForwardMpcError, "matchesAnyForwardMpcError");
+function classifyForwardMpcError(error) {
+  if (matchesForwardMpcErrorClass(error, SessionAttestationError, "SessionAttestationError")) {
+    return {
+      errorType: "ATTESTATION_FAILURE",
+      errorCode: error.code,
+      errorMessage: error.message,
+      attestationErrors: error.context?.["errors"],
+      sessionEstablished: false,
+      shouldFallback: true
+    };
+  }
+  if (matchesForwardMpcErrorClass(error, SessionRequestTimeoutError, "SessionRequestTimeoutError")) {
+    return {
+      errorType: "FORWARD_MPC_TIMEOUT",
+      errorCode: error.code,
+      errorMessage: error.message,
+      sessionEstablished: true,
+      shouldFallback: true
+    };
+  }
+  if (matchesAnyForwardMpcError(error)) {
+    return {
+      errorType: "FORWARD_MPC_ERROR",
+      errorCode: error.code,
+      errorMessage: error.message,
+      sessionEstablished: true,
+      shouldFallback: true
+    };
+  }
+  return {
+    errorType: "FORWARD_MPC_ERROR",
+    errorCode: void 0,
+    errorMessage: error instanceof Error ? error.message : String(error),
+    sessionEstablished: false,
+    shouldFallback: true
+  };
+}
+__name(classifyForwardMpcError, "classifyForwardMpcError");
+function isForwardMpcError(error) {
+  return matchesAnyForwardMpcError(error);
+}
+__name(isForwardMpcError, "isForwardMpcError");
+function isAttestationError(error) {
+  return matchesForwardMpcErrorClass(error, SessionAttestationError, "SessionAttestationError");
+}
+__name(isAttestationError, "isAttestationError");
+
+export { classifyForwardMpcError, isAttestationError, isForwardMpcError };
+//# sourceMappingURL=utils.js.map
+//# sourceMappingURL=utils.js.map

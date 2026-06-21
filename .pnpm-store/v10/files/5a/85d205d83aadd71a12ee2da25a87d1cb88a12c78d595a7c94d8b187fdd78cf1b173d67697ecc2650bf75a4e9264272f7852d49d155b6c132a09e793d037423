@@ -1,0 +1,23 @@
+import type { CreateMfaToken, TokenScope } from '@dynamic-labs/sdk-api-core';
+type AuthenticateMfaRecoveryCodeParams = {
+    code: string;
+    /** @deprecated Use `requestedScopes` instead. */
+    createMfaTokenOptions?: CreateMfaToken;
+    requestedScopes?: TokenScope[];
+};
+/**
+ * Authenticates using an MFA recovery code.
+ *
+ * This function allows users to bypass normal MFA requirements by using
+ * one of their backup recovery codes when none of the registered MFA methods are available.
+ *
+ * @param params.code - The recovery code to authenticate with.
+ * @param [params.createMfaTokenOptions] - **Deprecated**: use `requestedScopes` instead. Optional configuration for MFA token creation.
+ * @param [params.requestedScopes] - Optional scopes to request an elevated access token instead of an MFA token.
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns A promise that resolves to the MFA authentication response.
+ * @not-instrumented
+ */
+export declare const authenticateMfaRecoveryCode: ({ code, createMfaTokenOptions, requestedScopes }: AuthenticateMfaRecoveryCodeParams, client?: import("../../../exports").DynamicClient) => Promise<import("@dynamic-labs/sdk-api-core").VerifyResponse>;
+export {};
+//# sourceMappingURL=authenticateMfaRecoveryCode.d.ts.map

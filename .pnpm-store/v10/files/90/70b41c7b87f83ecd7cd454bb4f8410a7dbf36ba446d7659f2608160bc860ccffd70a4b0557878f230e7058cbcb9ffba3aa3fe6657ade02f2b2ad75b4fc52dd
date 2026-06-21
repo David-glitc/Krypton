@@ -1,0 +1,2 @@
+export { revokeAllRegisteredDevices } from './revokeAllRegisteredDevices';
+//# sourceMappingURL=index.d.ts.map

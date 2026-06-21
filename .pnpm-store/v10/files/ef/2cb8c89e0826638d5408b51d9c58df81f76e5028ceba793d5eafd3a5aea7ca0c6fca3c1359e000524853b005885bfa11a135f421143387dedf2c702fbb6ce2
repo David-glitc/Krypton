@@ -1,0 +1,147 @@
+package xyz.dynamic.client.keychain
+
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
+import android.security.keystore.StrongBoxUnavailableException
+import java.security.KeyPairGenerator
+import java.security.KeyStore
+import java.security.Signature
+import java.security.spec.ECGenParameterSpec
+
+/**
+ * Android KeyStore key manager backed by hardware TEE/StrongBox.
+ * Provides P-256 key generation, signing, and management.
+ * All public keys are returned in uncompressed SEC1 format (65 bytes: 04 || x || y).
+ * All binary data uses base64url encoding (RFC 4648 S5, no padding).
+ */
+class KeyStoreKeyManager {
+
+    fun isAvailable(context: Context?): Boolean {
+        return try {
+            val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE)
+            keyStore.load(null)
+            val hasStrongBox = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && context != null) {
+                context.packageManager.hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE)
+            } else {
+                false
+            }
+            // Even without StrongBox, Android KeyStore provides TEE-backed keys on most devices
+            hasStrongBox || Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    fun hasKey(alias: String): Boolean {
+        val keyStore = loadKeyStore()
+        return keyStore.containsAlias(alias)
+    }
+
+    fun generateKeyPair(alias: String): String {
+        require(!hasKey(alias)) { "Key already exists for alias: $alias" }
+
+        val specBuilder = KeyGenParameterSpec.Builder(
+            alias,
+            KeyProperties.PURPOSE_SIGN or KeyProperties.PURPOSE_VERIFY
+        )
+            .setAlgorithmParameterSpec(ECGenParameterSpec("secp256r1"))
+            .setDigests(KeyProperties.DIGEST_SHA256)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            specBuilder.setIsStrongBoxBacked(true)
+        }
+
+        val keyPair = try {
+            val kpg = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_EC, ANDROID_KEYSTORE)
+            kpg.initialize(specBuilder.build())
+            kpg.generateKeyPair()
+        } catch (e: Exception) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && e is StrongBoxUnavailableException) {
+                // Fallback: retry without StrongBox on TEE
+                specBuilder.setIsStrongBoxBacked(false)
+                val kpg = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_EC, ANDROID_KEYSTORE)
+                kpg.initialize(specBuilder.build())
+                kpg.generateKeyPair()
+            } else {
+                throw e
+            }
+        }
+
+        val publicKeyBytes = extractUncompressedPublicKey(keyPair.public.encoded)
+        return base64urlEncode(publicKeyBytes)
+    }
+
+    fun getPublicKey(alias: String): String? {
+        val keyStore = loadKeyStore()
+        val entry = keyStore.getEntry(alias, null)
+
+        if (entry == null || entry !is KeyStore.PrivateKeyEntry) {
+            return null
+        }
+
+        val publicKeyBytes = extractUncompressedPublicKey(entry.certificate.publicKey.encoded)
+        return base64urlEncode(publicKeyBytes)
+    }
+
+    fun sign(alias: String, payload: ByteArray): String {
+        val keyStore = loadKeyStore()
+        val entry = keyStore.getEntry(alias, null)
+
+        require(entry != null && entry is KeyStore.PrivateKeyEntry) { "Key not found: $alias" }
+
+        val signature = Signature.getInstance("SHA256withECDSA")
+        signature.initSign(entry.privateKey)
+        signature.update(payload)
+        val signatureBytes = signature.sign()
+
+        return base64urlEncode(signatureBytes)
+    }
+
+    fun deleteKey(alias: String) {
+        val keyStore = loadKeyStore()
+        keyStore.deleteEntry(alias)
+    }
+
+    // region Private helpers
+
+    private fun loadKeyStore(): KeyStore {
+        val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE)
+        keyStore.load(null)
+        return keyStore
+    }
+
+    /**
+     * Extract uncompressed SEC1 public key (65 bytes: 04 || x || y)
+     * from X.509 SubjectPublicKeyInfo DER encoding.
+     */
+    private fun extractUncompressedPublicKey(x509Encoded: ByteArray): ByteArray {
+        val uncompressedPointLength = 65
+        return x509Encoded.copyOfRange(
+            x509Encoded.size - uncompressedPointLength,
+            x509Encoded.size
+        )
+    }
+
+    private fun base64urlEncode(data: ByteArray): String {
+        return android.util.Base64.encodeToString(
+            data,
+            android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP or android.util.Base64.NO_PADDING
+        )
+    }
+
+    companion object {
+        private const val ANDROID_KEYSTORE = "AndroidKeyStore"
+
+        fun base64urlDecode(input: String): ByteArray {
+            return android.util.Base64.decode(
+                input,
+                android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP or android.util.Base64.NO_PADDING
+            )
+        }
+    }
+
+    // endregion
+}

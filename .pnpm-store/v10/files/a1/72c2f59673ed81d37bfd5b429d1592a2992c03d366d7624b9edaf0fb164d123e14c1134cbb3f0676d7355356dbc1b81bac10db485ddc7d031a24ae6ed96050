@@ -1,0 +1,8 @@
+import { FC } from 'react';
+type RemoveDevicePromptProps = {
+    deviceUserAgent: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+};
+export declare const RemoveDevicePrompt: FC<RemoveDevicePromptProps>;
+export {};

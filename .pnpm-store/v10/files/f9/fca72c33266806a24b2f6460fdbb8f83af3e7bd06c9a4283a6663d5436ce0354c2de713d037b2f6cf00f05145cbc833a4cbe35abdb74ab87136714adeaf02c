@@ -1,0 +1,37 @@
+import { Dispatch, SetStateAction } from 'react';
+import { LogoutReason } from '@dynamic-labs-sdk/client';
+import { AuthMode, UserProfile } from '@dynamic-labs/types';
+import { WalletConnector } from '@dynamic-labs/wallet-connector-core';
+import { DynamicEventsCallbacks, Wallet } from '../../../../shared';
+import { MultiWalletWidgetStateSetter } from '../../../../utils/hooks/multiWallet';
+import { ChainsToConnect } from '../../types';
+import { SetShowAuthFlow } from '../useShowAuthFlow';
+import { SetSelectedWalletConnectorKey } from '../useSelectedWalletConnector/SetSelectedWalletConnectorKey.type';
+/**
+ * Diagnostic reason tag for a logout. Widens the official LogoutReason union
+ * from @dynamic-labs-sdk/client with SDK-invented strings so each internal
+ * logout call site can be attributed in Datadog. Cast to LogoutReason at the
+ * boundary inside handleLogOutWithReason (the client SDK forwards unknown
+ * strings through to Datadog as-is).
+ */
+export type SdkLogoutReason = LogoutReason | 'auth-cancelled' | 'last-wallet-removed' | 'network-unsupported' | 'wallet-info-out-of-sync' | 'token-expired-validate-session' | 'embedded-wallet-session-key-invalid' | 'storage-parse-failure' | 'mfa-verification-cancelled' | 'mfa-choose-device-cancelled' | 'mfa-secure-device-cancelled' | 'backup-unsuccessful' | 'user-data-collection-cancelled' | 'store-environment-mismatch' | 'primary-wallet-disconnected';
+export type UseHandleLogoutParams = {
+    clearAllWalletConnectSessions: () => void;
+    bridgeChains: ChainsToConnect[] | undefined;
+    setSelectedWalletConnectorKey: SetSelectedWalletConnectorKey;
+    setShowDynamicUserProfile: Dispatch<SetStateAction<boolean>>;
+    setShowBridgeWidget: Dispatch<SetStateAction<boolean>>;
+    user: UserProfile | undefined;
+    environmentId: string;
+    walletConnectors: WalletConnector[];
+    connectedWallets: Wallet[];
+    setLegacyIsVerifying: Dispatch<SetStateAction<boolean>>;
+    initialAuthenticationMode: AuthMode;
+    setShowAuthFlow: SetShowAuthFlow;
+    setMultiWalletWidgetState: MultiWalletWidgetStateSetter;
+    removeSessionStorageSessionKeys: () => void;
+    removeBridgeOnboardingCompleted: () => void;
+    removeConnectedNameService: () => void;
+    events: DynamicEventsCallbacks | undefined;
+    resetLoginWithEmail: VoidFunction;
+};

@@ -1,0 +1,114 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+var utils = require('@dynamic-labs/utils');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var VerificationContext = require('../../../context/VerificationContext/VerificationContext.cjs');
+require('@dynamic-labs-sdk/client');
+require('@dynamic-labs/sdk-api-core');
+require('@dynamic-labs-sdk/client/core');
+require('eventemitter3');
+require('../../../config/ApiEndpoint.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+require('../../../context/ViewContext/ViewContext.cjs');
+require('../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('../../constants/colors.cjs');
+require('../../constants/values.cjs');
+require('../../../shared/consts/index.cjs');
+require('@dynamic-labs/multi-wallet');
+require('react-international-phone');
+var formatPhone = require('../../functions/formatPhone/formatPhone.cjs');
+require('../../../store/state/nonce/nonce.cjs');
+require('../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../store/state/primaryWalletId/primaryWalletId.cjs');
+require('../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+require('../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+require('../../../events/dynamicEvents.cjs');
+require('@dynamic-labs/locale');
+var user = require('../../../data/api/user/user.cjs');
+var useOtpVerificationRequest = require('../authenticationHooks/useOtpVerificationRequest/useOtpVerificationRequest.cjs');
+var userFieldsSchema = require('../useUserUpdateRequest/useUpdateUser/userFieldsSchema.cjs');
+
+const getResponseInfo = (response, destination) => {
+    var _a, _b, _c, _d, _e, _f, _g;
+    if (destination === 'email')
+        return {
+            displayDestination: (_a = response.emailVerification) === null || _a === void 0 ? void 0 : _a.email,
+            verificationUUID: (_b = response.emailVerification) === null || _b === void 0 ? void 0 : _b.verificationUUID,
+        };
+    return {
+        displayDestination: formatPhone.formatPhone('+' +
+            ((_d = (_c = response.smsVerification) === null || _c === void 0 ? void 0 : _c.phoneCountryCode) !== null && _d !== void 0 ? _d : '') +
+            ((_f = (_e = response.smsVerification) === null || _e === void 0 ? void 0 : _e.phoneNumber) !== null && _f !== void 0 ? _f : '')),
+        verificationUUID: (_g = response.smsVerification) === null || _g === void 0 ? void 0 : _g.verificationUUID,
+    };
+};
+const useHandleVerificationRequired = () => {
+    const { setVerificationUUID, setDisplayedDestination } = VerificationContext.useVerification();
+    const { environmentId } = useInternalDynamicContext.useInternalDynamicContext();
+    const { verifyOtp } = useOtpVerificationRequest.useOtpVerificationRequestRaw();
+    const collectNecessaryVerificationData = React.useCallback((destination, updateUserProfileResponse) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        // We just need to make sure we have the emailVerification/smsVerification data
+        // If it's already present, use it as is
+        if ((destination === 'email' &&
+            updateUserProfileResponse.emailVerification) ||
+            (destination === 'sms' && updateUserProfileResponse.smsVerification))
+            return updateUserProfileResponse;
+        const userField = destination === 'email' ? 'email' : 'phoneNumber';
+        // If verification is required but we don't have the userField's verification data,
+        // make another call to the api to get it
+        if (!updateUserProfileResponse.user[userField])
+            throw new utils.VerificationDataCollectionError(`missing ${userField} field to perform update`);
+        const validatedUserFields = yield userFieldsSchema.userFieldsSchema.validate({
+            [userField]: updateUserProfileResponse.user[userField],
+        });
+        const { emailVerification, smsVerification } = yield user.updateUserProfileFields(environmentId, validatedUserFields);
+        if ((destination === 'email' && !emailVerification) ||
+            (destination === 'sms' && !smsVerification))
+            throw new utils.VerificationDataCollectionError(`could not get ${destination} verification data from api`);
+        return Object.assign(Object.assign({}, updateUserProfileResponse), { emailVerification,
+            smsVerification });
+    }), [environmentId]);
+    const handleVerificationRequired = React.useCallback((_a) => _tslib.__awaiter(void 0, [_a], void 0, function* ({ updateUserProfileResponse: updateUserProfileResponseRaw, missingFields, destination, }) {
+        const updateUserProfileResponse = yield collectNecessaryVerificationData(destination, updateUserProfileResponseRaw);
+        // Use this information in the Verification view
+        const { displayDestination, verificationUUID } = getResponseInfo(updateUserProfileResponse, destination);
+        setDisplayedDestination(displayDestination);
+        setVerificationUUID(verificationUUID);
+        const scopedVerify = (verificationToken) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+            return verifyOtp(handleVerificationRequired, verificationToken, destination, verificationUUID);
+        });
+        if (destination === 'email')
+            return {
+                isEmailVerificationRequired: true,
+                isSmsVerificationRequired: false,
+                missingFields,
+                updateUserProfileResponse,
+                verifyOtp: scopedVerify,
+            };
+        return {
+            isEmailVerificationRequired: false,
+            isSmsVerificationRequired: true,
+            missingFields,
+            updateUserProfileResponse,
+            verifyOtp: scopedVerify,
+        };
+    }), [
+        collectNecessaryVerificationData,
+        setDisplayedDestination,
+        setVerificationUUID,
+        verifyOtp,
+    ]);
+    return handleVerificationRequired;
+};
+
+exports.getResponseInfo = getResponseInfo;
+exports.useHandleVerificationRequired = useHandleVerificationRequired;

@@ -1,0 +1,99 @@
+'use client'
+import { __awaiter } from '../../../../../_virtual/_tslib.js';
+import { useCallback } from 'react';
+import { checkStepUpAuth } from '@dynamic-labs-sdk/client';
+import { useStepUpState } from './useStepUpState.js';
+import { useStepUpOtp } from './useStepUpOtp.js';
+import { useStepUpSocial } from './useStepUpSocial.js';
+import { useStepUpWallet } from './useStepUpWallet.js';
+import { useStepUpMfa } from './useStepUpMfa.js';
+import { useStepUpPromptMfa } from './useStepUpPromptMfa.js';
+import { useStepUpPromptReauth } from './useStepUpPromptReauth.js';
+import { usePromptStepUpAuth } from './usePromptStepUpAuth.js';
+
+/**
+ * Perform step-up authentication for an already-authenticated user.
+ *
+ * Supports multiple verification methods:
+ * - **OTP** (email/SMS): `sendOtp()` then `verifyOtp()`
+ * - **Wallet**: `verifyWallet()` for wallet signature verification
+ * - **Passkey MFA**: `verifyPasskeyMfa()` for passkey-based MFA
+ * - **TOTP MFA**: `verifyTotpMfa()` for authenticator app codes
+ * - **Recovery codes**: `verifyRecoveryCode()` for backup recovery codes
+ * - **Prompt MFA**: `promptMfa()` to show Dynamic's built-in MFA UI
+ * - **Social/OAuth**: `verifySocial()` for OAuth provider reauthentication
+ *
+ * For OTP and wallet methods, automatically selects the first sign-in enabled
+ * credential, or targets a specific one when `credentialId` is provided.
+ *
+ * @param params.credentialId - Optional id of a specific verified credential or
+ *   wallet to use. For OTP, must be an email or SMS credential. Defaults to the
+ *   first sign-in enabled email or SMS credential on the authenticated user.
+ *
+ * @example
+ * ```tsx
+ * // OTP flow
+ * const { sendOtp, verifyOtp } = useStepUpAuthentication();
+ * await sendOtp();
+ * const result = await verifyOtp({ verificationToken: '123456', requestedScopes: ['wallet:export'] });
+ *
+ * // Passkey MFA flow
+ * const { verifyPasskeyMfa } = useStepUpAuthentication();
+ * const result = await verifyPasskeyMfa({ requestedScopes: ['wallet:export'] });
+ *
+ * // TOTP MFA flow
+ * const { verifyTotpMfa } = useStepUpAuthentication();
+ * const result = await verifyTotpMfa({ code: '123456', requestedScopes: ['wallet:export'] });
+ * ```
+ */
+const useStepUpAuthentication = ({ credentialId, } = {}) => {
+    const stateActions = useStepUpState();
+    const { resetOtpRef, sendOtp, verifyOtp } = useStepUpOtp({
+        credentialId,
+        stateActions,
+    });
+    const { verifyWallet } = useStepUpWallet({
+        credentialId,
+        stateActions,
+    });
+    const { verifyPasskeyMfa, verifyRecoveryCode, verifyTotpMfa } = useStepUpMfa({
+        stateActions,
+    });
+    const { verifySocial } = useStepUpSocial({ stateActions });
+    const { promptMfa } = useStepUpPromptMfa();
+    const { promptReauthenticate } = useStepUpPromptReauth();
+    const { promptStepUpAuth } = usePromptStepUpAuth();
+    const isStepUpRequired = useCallback((_a) => __awaiter(void 0, [_a], void 0, function* ({ scope }) {
+        try {
+            const { isRequired } = yield checkStepUpAuth({ scope });
+            return isRequired;
+        }
+        catch (_b) {
+            // Default to required on failure — matches checkStepUpAuth's
+            // own fail-safe, but guards against unexpected rejections
+            return true;
+        }
+    }), []);
+    const resetState = useCallback(() => {
+        resetOtpRef();
+        stateActions.resetState();
+    }, [resetOtpRef, stateActions.resetState]);
+    return {
+        checkStepUpAuth,
+        isStepUpRequired,
+        promptMfa,
+        promptReauthenticate,
+        promptStepUpAuth,
+        resetState,
+        sendOtp,
+        state: stateActions.state,
+        verifyOtp,
+        verifyPasskeyMfa,
+        verifyRecoveryCode,
+        verifySocial,
+        verifyTotpMfa,
+        verifyWallet,
+    };
+};
+
+export { useStepUpAuthentication };

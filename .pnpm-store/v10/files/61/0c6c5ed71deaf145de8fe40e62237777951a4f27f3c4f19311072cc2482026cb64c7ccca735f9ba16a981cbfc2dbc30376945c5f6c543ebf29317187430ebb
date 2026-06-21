@@ -1,0 +1,41 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+var CreateMfaToken = require('./CreateMfaToken.cjs');
+var TokenScope = require('./TokenScope.cjs');
+
+/* tslint:disable */
+function EmailVerificationMfaRequestFromJSON(json) {
+    return EmailVerificationMfaRequestFromJSONTyped(json);
+}
+function EmailVerificationMfaRequestFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'verificationUUID': json['verificationUUID'],
+        'verificationToken': json['verificationToken'],
+        'createMfaToken': !runtime.exists(json, 'createMfaToken') ? undefined : CreateMfaToken.CreateMfaTokenFromJSON(json['createMfaToken']),
+        'requestedScopes': !runtime.exists(json, 'requestedScopes') ? undefined : (json['requestedScopes'].map(TokenScope.TokenScopeFromJSON)),
+    };
+}
+function EmailVerificationMfaRequestToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'verificationUUID': value.verificationUUID,
+        'verificationToken': value.verificationToken,
+        'createMfaToken': CreateMfaToken.CreateMfaTokenToJSON(value.createMfaToken),
+        'requestedScopes': value.requestedScopes === undefined ? undefined : (value.requestedScopes.map(TokenScope.TokenScopeToJSON)),
+    };
+}
+
+exports.EmailVerificationMfaRequestFromJSON = EmailVerificationMfaRequestFromJSON;
+exports.EmailVerificationMfaRequestFromJSONTyped = EmailVerificationMfaRequestFromJSONTyped;
+exports.EmailVerificationMfaRequestToJSON = EmailVerificationMfaRequestToJSON;

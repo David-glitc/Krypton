@@ -1,0 +1,2 @@
+export { destroyWalletProviders } from './destroyWalletProviders';
+//# sourceMappingURL=index.d.ts.map

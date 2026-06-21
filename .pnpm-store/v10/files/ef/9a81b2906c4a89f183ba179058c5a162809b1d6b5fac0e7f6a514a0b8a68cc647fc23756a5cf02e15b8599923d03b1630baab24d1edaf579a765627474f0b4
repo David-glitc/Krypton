@@ -1,0 +1,11 @@
+'use client'
+/**
+ * Stand-in key for `credits.aleo` — the Aleo native asset has no contract
+ * address from redcoast's perspective, so anywhere we'd otherwise reach
+ * for `token.address` as the idempotency / dedup key we use this
+ * sentinel instead. Centralised so the hook and any consumer (e.g. the
+ * `Shield Manually` CTA in `ActiveWalletBalance`) read the same value.
+ */
+const nativeTokenKey = '__native__';
+
+export { nativeTokenKey };

@@ -1,0 +1,758 @@
+'use client'
+import { __awaiter } from '../_virtual/_tslib.js';
+import { DynamicWalletClient } from '@dynamic-labs-wallet/browser-wallet-client';
+import { MFAAction, TokenScope } from '@dynamic-labs/sdk-api-core';
+import { DynamicError, UserRejectedRequestError, PlatformService } from '@dynamic-labs/utils';
+import { version } from '../package.js';
+import { DEFAULT_BASE_API_URL, DEFAULT_BASE_MPC_RELAY_API_URL } from '../utils/constants.js';
+import { createWaasClientSecureStorage } from '../utils/createWaasClientSecureStorage.js';
+import { InstrumentationTimer } from '../utils/instrumentation.js';
+
+// Fallback error code used when a thrown value carries no code, or when
+// formatting the error itself fails.
+const UNKNOWN_ERROR_CODE = 'unknown';
+// This class is common across all waas connectors
+class WaasExportHandler {
+    constructor() {
+        this.iframeStamper = null;
+    }
+    setIframeStamper(iframe) {
+        this.iframeStamper = iframe;
+    }
+    clear() {
+        if (this.iframeStamper) {
+            this.iframeStamper.remove();
+            this.iframeStamper = null;
+        }
+    }
+}
+const withDynamicWaas = (BaseClass) => {
+    class DynamicWaasMixin extends BaseClass {
+        setGetAuthTokenFunction(getAuthToken) {
+            this.getAuthToken = getAuthToken;
+        }
+        setOnUnauthorizedFunction(onUnauthorized) {
+            this.onUnauthorized = onUnauthorized;
+        }
+        setWaasAuthMode(authMode) {
+            this.authMode = authMode;
+        }
+        setGetMfaTokenFunction(getMfaToken) {
+            this.getMfaToken = getMfaToken;
+        }
+        setGetElevatedAccessTokenFunction(getElevatedAccessToken) {
+            this.getElevatedAccessToken = getElevatedAccessToken;
+        }
+        setGetWalletPasswordFunction(getWalletPassword) {
+            this.getWalletPassword = getWalletPassword;
+        }
+        /**
+         * Checks if the wallet needs a password for signing operations.
+         * Returns the password if needed, or undefined if the wallet is already unlocked.
+         */
+        getPasswordIfNeeded(_a) {
+            return __awaiter(this, arguments, void 0, function* ({ accountAddress, }) {
+                const recoveryState = yield this.getWalletRecoveryState({
+                    accountAddress,
+                });
+                // If wallet is ready (already unlocked), no password needed
+                if (recoveryState.walletReadyState === 'ready') {
+                    return undefined;
+                }
+                // If wallet is not password-encrypted, no password needed for recovery
+                if (!recoveryState.isPasswordEncrypted) {
+                    return undefined;
+                }
+                // Wallet is password-encrypted and needs to be unlocked
+                if (!this.getWalletPassword) {
+                    throw new DynamicError('Wallet is locked but no password provider is configured');
+                }
+                const password = yield this.getWalletPassword({
+                    accountAddress,
+                    chainName: this.chainName,
+                });
+                if (!password) {
+                    throw new UserRejectedRequestError();
+                }
+                return password;
+            });
+        }
+        /**
+         * Prompts for the wallet password if the wallet is password-encrypted.
+         *
+         * Unlike `getPasswordIfNeeded` (which skips the prompt when the wallet is
+         * already unlocked in memory), this method always asks for the password
+         * when the wallet is password-encrypted. Use it for operations that
+         * encrypt/decrypt data stored externally (e.g. cloud backup/restore),
+         * where the password is required to encrypt/decrypt the shares on disk.
+         *
+         * Returns undefined if the wallet is not password-encrypted or if no
+         * password provider is configured.
+         */
+        getPassword(_a) {
+            return __awaiter(this, arguments, void 0, function* ({ accountAddress, }) {
+                if (!this.getWalletPassword) {
+                    return undefined;
+                }
+                // Check if wallet is password-encrypted before prompting
+                const recoveryState = yield this.getWalletRecoveryState({
+                    accountAddress,
+                });
+                if (!recoveryState.isPasswordEncrypted) {
+                    return undefined;
+                }
+                return this.getWalletPassword({
+                    accountAddress,
+                    chainName: this.chainName,
+                });
+            });
+        }
+        setEnvironmentId(environmentId) {
+            this.environmentId = environmentId;
+        }
+        setBaseApiUrl(baseApiUrl) {
+            this.baseApiUrl = baseApiUrl;
+        }
+        setBaseClientKeysharesRelayApiUrl(baseClientKeysharesRelayApiUrl) {
+            this.baseClientKeysharesRelayApiUrl = baseClientKeysharesRelayApiUrl;
+        }
+        setRelayUrl(relayUrl) {
+            this.relayUrl = relayUrl;
+        }
+        setGetSignedSessionIdFunction(getSignedSessionId) {
+            this.getSignedSessionId = getSignedSessionId;
+        }
+        delegateKeyShares(_a) {
+            return __awaiter(this, arguments, void 0, function* ({ accountAddress, password, }) {
+                var _b, _c;
+                if (!accountAddress) {
+                    throw new Error('Account address is required');
+                }
+                const resolvedPassword = password !== null && password !== void 0 ? password : (yield this.getPasswordIfNeeded({ accountAddress }));
+                const walletClient = yield this.getWaasWalletClient();
+                const signedSessionId = yield ((_b = this.getSignedSessionId) === null || _b === void 0 ? void 0 : _b.call(this));
+                if (!signedSessionId) {
+                    throw new Error('Signed session ID is required');
+                }
+                const authToken = (_c = this.getAuthToken) === null || _c === void 0 ? void 0 : _c.call(this);
+                if (!authToken) {
+                    throw new Error('Auth token is required');
+                }
+                return walletClient.delegateKeyShares({
+                    accountAddress,
+                    authToken,
+                    password: resolvedPassword,
+                    signedSessionId,
+                });
+            });
+        }
+        constructor(...args) {
+            super(...args);
+            this.name = 'Dynamic Waas';
+            this.overrideKey = 'dynamicwaas';
+            this.isEmbeddedWallet = true;
+            this.authMode = 'header';
+            // Initialize export handler
+            this.__exportHandler = new WaasExportHandler();
+            // Get the class name from the constructor
+            const { connectedChain } = this;
+            // Map class names to chain names
+            const chainNameMap = {
+                ALEO: 'ALEO',
+                BTC: 'BTC',
+                EVM: 'EVM',
+                SOL: 'SVM',
+                STELLAR: 'STELLAR',
+                SUI: 'SUI',
+                TEMPO: 'TEMPO',
+                TON: 'TON',
+            };
+            const chainName = chainNameMap[connectedChain];
+            if (!chainName) {
+                throw new DynamicError(`Unsupported chain: ${connectedChain}`);
+            }
+            this.chainName = chainName;
+        }
+        createDynamicWaasClient(traceContext) {
+            return __awaiter(this, void 0, void 0, function* () {
+                var _a;
+                const authToken = (_a = this.getAuthToken) === null || _a === void 0 ? void 0 : _a.call(this);
+                if (!authToken && this.authMode === 'header') {
+                    throw new DynamicError('Auth token is required in non-cookie auth mode');
+                }
+                if (!this.environmentId) {
+                    throw new DynamicError('Environment ID is required');
+                }
+                const client = new DynamicWalletClient({
+                    authMode: (this.authMode || 'header'),
+                    authToken: authToken || '',
+                    baseApiUrl: this.baseApiUrl || DEFAULT_BASE_API_URL,
+                    baseClientKeysharesRelayApiUrl: this.baseClientKeysharesRelayApiUrl,
+                    baseMPCRelayApiUrl: this.relayUrl || DEFAULT_BASE_MPC_RELAY_API_URL,
+                    chainName: this.chainName,
+                    environmentId: this.environmentId,
+                    sdkVersion: version,
+                }, Object.assign(Object.assign(Object.assign({}, (PlatformService.isWaasSecureStorageSupported
+                    ? { secureStorage: createWaasClientSecureStorage() }
+                    : {})), (this.getSignedSessionId
+                    ? { getSignedSessionId: this.getSignedSessionId }
+                    : {})), (this.onUnauthorized
+                    ? { onUnauthorized: this.onUnauthorized }
+                    : {})));
+                this.instrumentAsync({
+                    context: traceContext,
+                    fn: () => __awaiter(this, void 0, void 0, function* () { return client.initialize(); }),
+                    operation: 'createDynamicWaasClient',
+                    resource: 'initialize',
+                });
+                return client;
+            });
+        }
+        getWaasWalletClient(traceContext) {
+            return __awaiter(this, void 0, void 0, function* () {
+                if (!this.dynamicWaasClient) {
+                    this.dynamicWaasClient = yield this.createDynamicWaasClient(traceContext);
+                }
+                return this.dynamicWaasClient;
+            });
+        }
+        // Common methods that are identical across all connectors
+        createWalletAccount() {
+            return __awaiter(this, arguments, void 0, function* ({ thresholdSignatureScheme = 'TWO_OF_TWO', password, bitcoinConfig, } = {}) {
+                var _a, _b;
+                const walletClient = yield this.getWaasWalletClient();
+                const signedSessionId = yield ((_a = this.getSignedSessionId) === null || _a === void 0 ? void 0 : _a.call(this));
+                if (!signedSessionId) {
+                    throw new DynamicError('Signed session ID is required');
+                }
+                const createdWallet = yield walletClient.createWalletAccount({
+                    authToken: (_b = this.getAuthToken) === null || _b === void 0 ? void 0 : _b.call(this),
+                    bitcoinConfig,
+                    password,
+                    signedSessionId,
+                    thresholdSignatureScheme: thresholdSignatureScheme,
+                });
+                return createdWallet;
+            });
+        }
+        importPrivateKey(_a) {
+            return __awaiter(this, arguments, void 0, function* ({ privateKey, thresholdSignatureScheme = 'TWO_OF_TWO', publicAddressCheck, addressType, legacyWalletId, password, }) {
+                var _b, _c;
+                const walletClient = yield this.getWaasWalletClient();
+                const signedSessionId = yield ((_b = this.getSignedSessionId) === null || _b === void 0 ? void 0 : _b.call(this));
+                if (!signedSessionId) {
+                    throw new DynamicError('Signed session ID is required');
+                }
+                yield walletClient.importPrivateKey({
+                    addressType,
+                    authToken: (_c = this.getAuthToken) === null || _c === void 0 ? void 0 : _c.call(this),
+                    legacyWalletId,
+                    password,
+                    privateKey,
+                    publicAddressCheck,
+                    signedSessionId,
+                    thresholdSignatureScheme: thresholdSignatureScheme,
+                });
+            });
+        }
+        exportPrivateKey() {
+            return __awaiter(this, arguments, void 0, function* ({ accountAddress, displayContainer, password, } = {}) {
+                var _a, _b, _c, _d;
+                const walletClient = yield this.getWaasWalletClient();
+                const targetAccountAddress = accountAddress || (yield this.getActiveAccountAddress());
+                if (!targetAccountAddress) {
+                    throw new DynamicError('Account address is required');
+                }
+                if (!displayContainer) {
+                    throw new DynamicError('Missing display container for export private key');
+                }
+                const resolvedPassword = password !== null && password !== void 0 ? password : (yield this.getPasswordIfNeeded({
+                    accountAddress: targetAccountAddress,
+                }));
+                const signedSessionId = yield ((_a = this.getSignedSessionId) === null || _a === void 0 ? void 0 : _a.call(this));
+                if (!signedSessionId) {
+                    throw new DynamicError('Signed session ID is required');
+                }
+                this.__exportHandler.setIframeStamper(displayContainer);
+                const mfaToken = yield ((_b = this.getMfaToken) === null || _b === void 0 ? void 0 : _b.call(this, {
+                    mfaAction: MFAAction.WalletWaasExport,
+                }));
+                const elevatedAccessToken = yield ((_c = this.getElevatedAccessToken) === null || _c === void 0 ? void 0 : _c.call(this, {
+                    scope: TokenScope.Walletexport,
+                }));
+                yield walletClient.exportPrivateKey({
+                    accountAddress: targetAccountAddress,
+                    authToken: (_d = this.getAuthToken) === null || _d === void 0 ? void 0 : _d.call(this),
+                    displayContainer,
+                    elevatedAccessToken,
+                    mfaToken,
+                    password: resolvedPassword,
+                    signedSessionId,
+                });
+            });
+        }
+        getExportHandler() {
+            return this.__exportHandler;
+        }
+        exportClientKeyshares(_a) {
+            return __awaiter(this, arguments, void 0, function* ({ accountAddress, password, }) {
+                var _b, _c;
+                if (!accountAddress) {
+                    throw new DynamicError('Account address is required');
+                }
+                const resolvedPassword = password !== null && password !== void 0 ? password : (yield this.getPasswordIfNeeded({ accountAddress }));
+                const signedSessionId = yield ((_b = this.getSignedSessionId) === null || _b === void 0 ? void 0 : _b.call(this));
+                if (!signedSessionId) {
+                    throw new DynamicError('Signed session ID is required');
+                }
+                const walletClient = yield this.getWaasWalletClient();
+                yield walletClient.exportClientKeyshares({
+                    accountAddress,
+                    authToken: (_c = this.getAuthToken) === null || _c === void 0 ? void 0 : _c.call(this),
+                    password: resolvedPassword,
+                    signedSessionId,
+                });
+            });
+        }
+        backupKeySharesToGoogleDrive(_a) {
+            return __awaiter(this, arguments, void 0, function* ({ accountAddress, password, googleDriveAccessToken, }) {
+                var _b, _c;
+                if (!accountAddress) {
+                    throw new DynamicError('Account address is required');
+                }
+                const resolvedPassword = password !== null && password !== void 0 ? password : (yield this.getPassword({ accountAddress }));
+                const walletClient = yield this.getWaasWalletClient();
+                const signedSessionId = yield ((_b = this.getSignedSessionId) === null || _b === void 0 ? void 0 : _b.call(this));
+                if (!signedSessionId) {
+                    throw new DynamicError('Signed session ID is required');
+                }
+                return walletClient.backupKeySharesToGoogleDrive({
+                    accountAddress,
+                    authToken: (_c = this.getAuthToken) === null || _c === void 0 ? void 0 : _c.call(this),
+                    googleDriveAccessToken,
+                    password: resolvedPassword,
+                    signedSessionId,
+                });
+            });
+        }
+        exportClientKeysharesFromGoogleDrive(_a) {
+            return __awaiter(this, arguments, void 0, function* ({ accountAddress, password, }) {
+                var _b, _c;
+                if (!accountAddress) {
+                    throw new DynamicError('Account address is required');
+                }
+                const resolvedPassword = password !== null && password !== void 0 ? password : (yield this.getPassword({ accountAddress }));
+                const walletClient = yield this.getWaasWalletClient();
+                const signedSessionId = yield ((_b = this.getSignedSessionId) === null || _b === void 0 ? void 0 : _b.call(this));
+                if (!signedSessionId) {
+                    throw new DynamicError('Signed session ID is required');
+                }
+                return walletClient.exportClientKeysharesFromGoogleDrive({
+                    accountAddress,
+                    authToken: (_c = this.getAuthToken) === null || _c === void 0 ? void 0 : _c.call(this),
+                    password: resolvedPassword,
+                    signedSessionId,
+                });
+            });
+        }
+        backupKeySharesToICloud(_a) {
+            return __awaiter(this, arguments, void 0, function* ({ accountAddress, password, }) {
+                var _b, _c;
+                if (!accountAddress) {
+                    throw new DynamicError('Account address is required');
+                }
+                const resolvedPassword = password !== null && password !== void 0 ? password : (yield this.getPassword({ accountAddress }));
+                const walletClient = yield this.getWaasWalletClient();
+                const signedSessionId = yield ((_b = this.getSignedSessionId) === null || _b === void 0 ? void 0 : _b.call(this));
+                if (!signedSessionId) {
+                    throw new DynamicError('Signed session ID is required');
+                }
+                return walletClient.backupKeySharesToICloud({
+                    accountAddress,
+                    authToken: (_c = this.getAuthToken) === null || _c === void 0 ? void 0 : _c.call(this),
+                    password: resolvedPassword,
+                    signedSessionId,
+                });
+            });
+        }
+        displayICloudSignIn(_a) {
+            return __awaiter(this, arguments, void 0, function* ({ displayContainer, }) {
+                const walletClient = yield this.getWaasWalletClient();
+                return walletClient.displayICloudSignIn({
+                    displayContainer,
+                });
+            });
+        }
+        hideICloudSignIn() {
+            return __awaiter(this, void 0, void 0, function* () {
+                const walletClient = yield this.getWaasWalletClient();
+                return walletClient.hideICloudSignIn();
+            });
+        }
+        isICloudAuthenticated() {
+            return __awaiter(this, void 0, void 0, function* () {
+                const walletClient = yield this.getWaasWalletClient();
+                return walletClient.isICloudAuthenticated();
+            });
+        }
+        refreshWalletAccountShares(_a) {
+            return __awaiter(this, arguments, void 0, function* ({ accountAddress, password, }) {
+                var _b, _c, _d, _e, _f, _g;
+                if (!accountAddress) {
+                    throw new DynamicError('Account address is required');
+                }
+                const resolvedPassword = password !== null && password !== void 0 ? password : (yield this.getPasswordIfNeeded({ accountAddress }));
+                const walletClient = yield this.getWaasWalletClient();
+                const recoverySignedSessionId = yield ((_b = this.getSignedSessionId) === null || _b === void 0 ? void 0 : _b.call(this));
+                const backupSignedSessionId = yield ((_c = this.getSignedSessionId) === null || _c === void 0 ? void 0 : _c.call(this));
+                if (!recoverySignedSessionId || !backupSignedSessionId) {
+                    throw new DynamicError('Signed session ID is required');
+                }
+                yield walletClient.getWallet({
+                    accountAddress,
+                    authToken: (_d = this.getAuthToken) === null || _d === void 0 ? void 0 : _d.call(this),
+                    signedSessionId: recoverySignedSessionId,
+                });
+                const mfaToken = yield ((_e = this.getMfaToken) === null || _e === void 0 ? void 0 : _e.call(this, {
+                    mfaAction: MFAAction.WalletWaasRefresh,
+                }));
+                const elevatedAccessToken = yield ((_f = this.getElevatedAccessToken) === null || _f === void 0 ? void 0 : _f.call(this, {
+                    scope: TokenScope.Walletdelegate,
+                }));
+                return walletClient.refreshWalletAccountShares({
+                    accountAddress,
+                    authToken: (_g = this.getAuthToken) === null || _g === void 0 ? void 0 : _g.call(this),
+                    elevatedAccessToken,
+                    mfaToken,
+                    password: resolvedPassword,
+                    signedSessionId: backupSignedSessionId,
+                });
+            });
+        }
+        reshareWalletAccountShares(_a) {
+            return __awaiter(this, arguments, void 0, function* ({ accountAddress, thresholdSignatureScheme, password, }) {
+                var _b, _c, _d, _e;
+                if (!accountAddress) {
+                    throw new DynamicError('Account address is required');
+                }
+                const resolvedPassword = password !== null && password !== void 0 ? password : (yield this.getPasswordIfNeeded({ accountAddress }));
+                const walletClient = yield this.getWaasWalletClient();
+                const signedSessionId = yield ((_b = this.getSignedSessionId) === null || _b === void 0 ? void 0 : _b.call(this));
+                if (!signedSessionId) {
+                    throw new DynamicError('Signed session ID is required');
+                }
+                const wallets = yield walletClient.getWallets();
+                const wallet = wallets.find((w) => w.accountAddress === accountAddress);
+                if (!wallet) {
+                    throw new DynamicError('Wallet not found');
+                }
+                const oldThresholdSignatureScheme = wallet.thresholdSignatureScheme;
+                const mfaToken = yield ((_c = this.getMfaToken) === null || _c === void 0 ? void 0 : _c.call(this, {
+                    mfaAction: MFAAction.WalletWaasReshare,
+                }));
+                const elevatedAccessToken = yield ((_d = this.getElevatedAccessToken) === null || _d === void 0 ? void 0 : _d.call(this, {
+                    scope: TokenScope.Walletdelegate,
+                }));
+                return walletClient.reshare({
+                    accountAddress,
+                    authToken: (_e = this.getAuthToken) === null || _e === void 0 ? void 0 : _e.call(this),
+                    elevatedAccessToken,
+                    mfaToken,
+                    newThresholdSignatureScheme: thresholdSignatureScheme,
+                    oldThresholdSignatureScheme,
+                    password: resolvedPassword,
+                    signedSessionId,
+                });
+            });
+        }
+        revokeDelegation(_a) {
+            return __awaiter(this, arguments, void 0, function* ({ accountAddress, password, }) {
+                var _b, _c;
+                if (!accountAddress) {
+                    throw new DynamicError('Account address is required');
+                }
+                const resolvedPassword = password !== null && password !== void 0 ? password : (yield this.getPasswordIfNeeded({ accountAddress }));
+                const walletClient = yield this.getWaasWalletClient();
+                const signedSessionId = yield ((_b = this.getSignedSessionId) === null || _b === void 0 ? void 0 : _b.call(this));
+                if (!signedSessionId) {
+                    throw new DynamicError('Signed session ID is required');
+                }
+                return walletClient.revokeDelegation({
+                    accountAddress,
+                    authToken: (_c = this.getAuthToken) === null || _c === void 0 ? void 0 : _c.call(this),
+                    password: resolvedPassword,
+                    signedSessionId,
+                });
+            });
+        }
+        updatePassword(_a) {
+            return __awaiter(this, arguments, void 0, function* ({ accountAddress, existingPassword, newPassword, }) {
+                if (!accountAddress) {
+                    throw new DynamicError('Account address is required');
+                }
+                const resolvedExistingPassword = existingPassword !== null && existingPassword !== void 0 ? existingPassword : (yield this.getPasswordIfNeeded({ accountAddress }));
+                if (!resolvedExistingPassword) {
+                    throw new DynamicError('Existing password is required to update password');
+                }
+                const walletClient = yield this.getWaasWalletClient();
+                if (!this.getSignedSessionId) {
+                    throw new DynamicError('Signed session ID is required');
+                }
+                const wallets = yield walletClient.getAllWallets();
+                const encryptedWallets = wallets.filter((w) => { var _a; return (_a = w.clientKeySharesBackupInfo) === null || _a === void 0 ? void 0 : _a.passwordEncrypted; });
+                const passwordUpdateBatchId = crypto.randomUUID();
+                yield Promise.all(encryptedWallets.map((wallet) => __awaiter(this, void 0, void 0, function* () {
+                    var _b;
+                    const signedSessionId = yield this.getSignedSessionId();
+                    yield walletClient.updatePassword({
+                        accountAddress: wallet.accountAddress,
+                        authToken: (_b = this.getAuthToken) === null || _b === void 0 ? void 0 : _b.call(this),
+                        existingPassword: resolvedExistingPassword,
+                        newPassword,
+                        passwordUpdateBatchId,
+                        signedSessionId,
+                    });
+                })));
+            });
+        }
+        setPassword(_a) {
+            return __awaiter(this, arguments, void 0, function* ({ accountAddress, newPassword, }) {
+                if (!accountAddress) {
+                    throw new DynamicError('Account address is required');
+                }
+                const walletClient = yield this.getWaasWalletClient();
+                if (!this.getSignedSessionId) {
+                    throw new DynamicError('Signed session ID is required');
+                }
+                const wallets = yield walletClient.getAllWallets();
+                const passwordUpdateBatchId = crypto.randomUUID();
+                yield Promise.all(wallets.map((wallet) => __awaiter(this, void 0, void 0, function* () {
+                    var _b;
+                    const signedSessionId = yield this.getSignedSessionId();
+                    yield walletClient.setPassword({
+                        accountAddress: wallet.accountAddress,
+                        authToken: (_b = this.getAuthToken) === null || _b === void 0 ? void 0 : _b.call(this),
+                        newPassword,
+                        passwordUpdateBatchId,
+                        signedSessionId,
+                    });
+                })));
+            });
+        }
+        signRawMessage(_a) {
+            return __awaiter(this, arguments, void 0, function* ({ accountAddress, message, password, }) {
+                var _b, _c, _d, _e;
+                if (!accountAddress) {
+                    throw new DynamicError('Account address is required');
+                }
+                if (message.length !== 64) {
+                    throw new DynamicError('Message must be 64 characters long');
+                }
+                const resolvedPassword = password !== null && password !== void 0 ? password : (yield this.getPasswordIfNeeded({ accountAddress }));
+                const walletClient = yield this.getWaasWalletClient();
+                const signedSessionId = yield ((_b = this.getSignedSessionId) === null || _b === void 0 ? void 0 : _b.call(this));
+                if (!signedSessionId) {
+                    throw new DynamicError('Signed session ID is required');
+                }
+                const mfaToken = yield ((_c = this.getMfaToken) === null || _c === void 0 ? void 0 : _c.call(this, {
+                    mfaAction: MFAAction.WalletWaasSign,
+                }));
+                const elevatedAccessToken = yield ((_d = this.getElevatedAccessToken) === null || _d === void 0 ? void 0 : _d.call(this, {
+                    scope: TokenScope.Walletsign,
+                }));
+                return walletClient.signRawMessage({
+                    accountAddress,
+                    authToken: (_e = this.getAuthToken) === null || _e === void 0 ? void 0 : _e.call(this),
+                    elevatedAccessToken,
+                    message,
+                    mfaToken,
+                    password: resolvedPassword,
+                    signedSessionId,
+                });
+            });
+        }
+        unlockWallet(_a) {
+            return __awaiter(this, arguments, void 0, function* ({ accountAddress, password, }) {
+                var _b, _c;
+                const resolvedPassword = password !== null && password !== void 0 ? password : (yield this.getPasswordIfNeeded({ accountAddress }));
+                if (!resolvedPassword) {
+                    throw new DynamicError('Password is required to unlock this wallet');
+                }
+                const walletClient = yield this.getWaasWalletClient();
+                const signedSessionId = yield ((_b = this.getSignedSessionId) === null || _b === void 0 ? void 0 : _b.call(this));
+                if (!signedSessionId) {
+                    throw new DynamicError('Signed session ID is required');
+                }
+                return walletClient.unlockWallet({
+                    accountAddress,
+                    authToken: (_c = this.getAuthToken) === null || _c === void 0 ? void 0 : _c.call(this),
+                    password: resolvedPassword,
+                    signedSessionId,
+                });
+            });
+        }
+        getWalletRecoveryState(_a) {
+            return __awaiter(this, arguments, void 0, function* ({ accountAddress, }) {
+                var _b, _c;
+                const walletClient = yield this.getWaasWalletClient();
+                const signedSessionId = yield ((_b = this.getSignedSessionId) === null || _b === void 0 ? void 0 : _b.call(this));
+                if (!signedSessionId) {
+                    throw new DynamicError('Signed session ID is required');
+                }
+                return walletClient.getWalletRecoveryState({
+                    accountAddress,
+                    authToken: (_c = this.getAuthToken) === null || _c === void 0 ? void 0 : _c.call(this),
+                    signedSessionId,
+                });
+            });
+        }
+        endSession(reason) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const waasClient = yield this.getWaasWalletClient();
+                if (!waasClient) {
+                    return;
+                }
+                // When a session token expires, we preserve key shares in storage instead
+                // of clearing them. Customers with short-lived sessions (minutes) were
+                // hitting excessive server-side share recovery on every re-login, which
+                // also forced users to re-enter their wallet password since the unlocked
+                // share only lives for the duration of the session.
+                //
+                // This is safe because the waas-sdk separately fingerprints the user
+                // (sub + environment_id) and clears all storage if a different user logs
+                // in. On explicit user-initiated logout, shares are always cleared for
+                // security.
+                if (reason !== 'token-expired') {
+                    // Clear the MPC key share directly on the host's local secure storage.
+                    // This is fast and guaranteed, independent of the iframe round-trip
+                    // cleanup below — whose request-channel timeout (plus a recovery retry)
+                    // can block logout for ~10s on slow devices where secureStorage is slow
+                    // to ACK. Awaited because it is a local operation (milliseconds).
+                    const accountAddress = yield this.getActiveAccountAddress();
+                    if (accountAddress) {
+                        try {
+                            yield createWaasClientSecureStorage().removeClientKeyShare(accountAddress);
+                        }
+                        catch (error) {
+                            this.instrument('[endSession] direct key share removal failed', Object.assign({ key: 'endSession-removeClientKeyShare-failed', time: 0 }, this.buildErrorInstrumentContext(error)));
+                        }
+                    }
+                    // Tear down the iframe and run its best-effort storage cleanup in the
+                    // background so logout returns immediately instead of blocking on the
+                    // iframe cleanup's request-channel timeout. The iframe handler already
+                    // swallows its own errors, and the DOM teardown obsoletes anything it
+                    // misses. Promise.resolve guards against a non-promise return in tests.
+                    void Promise.resolve(waasClient.cleanup()).catch((error) => {
+                        this.instrument('[endSession] background iframe cleanup failed', Object.assign({ key: 'endSession-cleanup-failed', time: 0 }, this.buildErrorInstrumentContext(error)));
+                    });
+                }
+                this.dynamicWaasClient = undefined;
+            });
+        }
+        /**
+         * Get connected accounts by fetching wallets from Waas client.
+         */
+        getConnectedAccounts() {
+            return __awaiter(this, void 0, void 0, function* () {
+                try {
+                    const walletClient = yield this.getWaasWalletClient();
+                    const wallets = yield walletClient.getWallets();
+                    const addresses = wallets
+                        .map((w) => w === null || w === void 0 ? void 0 : w.accountAddress)
+                        .filter((a) => typeof a === 'string');
+                    return addresses;
+                }
+                catch (error) {
+                    // If fetching wallets fails, return empty array
+                    this.logger.debug('[getConnectedAccounts] Failed to fetch wallets from Waas client', {
+                        error,
+                    });
+                    return [];
+                }
+            });
+        }
+        generateTraceId() {
+            // Generate a 128-bit trace ID
+            // 128-bit = 16 bytes = 32 hexadecimal characters
+            const bytes = new Uint8Array(16);
+            crypto.getRandomValues(bytes);
+            // Convert bytes to hexadecimal string
+            return Array.from(bytes)
+                .map((byte) => byte.toString(16).padStart(2, '0'))
+                .join('');
+        }
+        /**
+         * Normalizes an unknown thrown value into the error fields used across
+         * instrumentation so callers don't re-derive them at each catch site.
+         *
+         * Wrapped in try/catch: this is best-effort logging, and a value that
+         * resists formatting (e.g. an object whose toString throws) must never
+         * turn a log line into an exception that blocks the calling flow such as
+         * logout.
+         *
+         * `public` (not `private`) because the TS `private` keyword can't be used
+         * on this mixin's exported class expression (TS4094), and ECMAScript
+         * `#private` isn't supported by the package's Jest/Babel transform. It is
+         * internal-only despite the modifier — same constraint as `instrument`.
+         */
+        buildErrorInstrumentContext(error) {
+            var _a, _b;
+            try {
+                return {
+                    errorCode: (_a = error === null || error === void 0 ? void 0 : error.code) !== null && _a !== void 0 ? _a : UNKNOWN_ERROR_CODE,
+                    errorMessage: error instanceof Error ? error.message : String(error),
+                    errorType: (_b = error === null || error === void 0 ? void 0 : error.constructor) === null || _b === void 0 ? void 0 : _b.name,
+                };
+            }
+            catch (_c) {
+                return { errorCode: UNKNOWN_ERROR_CODE };
+            }
+        }
+        /**
+         * Helper method to instrument with automatic properties inclusion
+         */
+        instrument(message, context) {
+            const defaultContext = {
+                accountAddress: context.accountAddress || this.activeAccountAddress,
+                environmentId: context.environmentId || this.environmentId,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                traceId: context.traceId || this.generateTraceId(),
+            };
+            this.logger.debug(message, Object.assign(Object.assign({}, defaultContext), context));
+            this.logger.instrument(message, Object.assign(Object.assign({}, defaultContext), context));
+        }
+        instrumentAsync(_a) {
+            return __awaiter(this, arguments, void 0, function* ({ operation, resource, fn, context, }) {
+                const timing = new InstrumentationTimer(context === null || context === void 0 ? void 0 : context.startTime);
+                if (context === null || context === void 0 ? void 0 : context.stepStartTime) {
+                    timing.setStepStartTime(context.stepStartTime);
+                }
+                else {
+                    timing.startStep();
+                }
+                this.instrument(`[${operation}] ${resource} - start`, Object.assign({ key: `${resource}-start`, operation, stepTime: timing.getStepElapsed(), time: timing.getElapsed() }, context));
+                try {
+                    const result = yield fn(timing);
+                    this.instrument(`[${operation}] ${resource} - completed`, Object.assign({ key: `${resource}-completed`, operation, stepTime: timing.getStepElapsed(), time: timing.getElapsed() }, context));
+                    return result;
+                }
+                catch (error) {
+                    const isUserRejection = error instanceof UserRejectedRequestError ||
+                        (error === null || error === void 0 ? void 0 : error.code) === 'user_rejected_request';
+                    const errorContext = this.buildErrorInstrumentContext(error);
+                    if (isUserRejection) {
+                        // User-initiated cancellations are expected — debug only, no backend noise
+                        this.logger.debug(`[${operation}] ${resource} - cancelled`, Object.assign(Object.assign({ key: `${resource}-cancelled`, operation, stepTime: timing.getStepElapsed(), time: timing.getElapsed() }, context), errorContext));
+                    }
+                    else {
+                        this.instrument(`[${operation}] ${resource} - failed`, Object.assign(Object.assign({ key: `${resource}-failed`, operation, stepTime: timing.getStepElapsed(), time: timing.getElapsed() }, context), errorContext));
+                    }
+                    throw error;
+                }
+            });
+        }
+    }
+    return DynamicWaasMixin;
+};
+
+export { WaasExportHandler, withDynamicWaas };

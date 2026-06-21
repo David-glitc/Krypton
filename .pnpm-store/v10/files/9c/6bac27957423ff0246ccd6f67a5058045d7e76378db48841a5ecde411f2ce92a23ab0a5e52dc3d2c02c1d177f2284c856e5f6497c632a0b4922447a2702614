@@ -1,0 +1,15 @@
+import type { DynamicClient } from '../../../client/types/DynamicClient';
+import type { LogoutReason } from '../../auth/logoutReason';
+/**
+ * Tear down every wallet provider on the client.
+ *
+ * Each provider's `destroy` is responsible for its own local + remote
+ * cleanup. We swallow errors so a failing destroy on one provider does not
+ * block teardown of the others (e.g. during logout).
+ *
+ * @not-instrumented
+ */
+export declare const destroyWalletProviders: ({ reason }: {
+    reason?: LogoutReason;
+}, client: DynamicClient) => Promise<void>;
+//# sourceMappingURL=destroyWalletProviders.d.ts.map

@@ -1,0 +1,9 @@
+/**
+ * @deprecated Use {@link getNativeBalance} instead. Renamed so its name
+ * states what it returns (native gas balance) and is no longer confusable
+ * with the token-balance fetchers (`getTokenBalances` /
+ * `getMultichainTokenBalances`).
+ * @not-instrumented
+ */
+export { getNativeBalance as getBalance } from '../getNativeBalance/getNativeBalance';
+//# sourceMappingURL=getBalance.d.ts.map

@@ -1,0 +1,29 @@
+import { exists } from '../runtime.js';
+
+/* tslint:disable */
+function InlineResponse2001AllowedProgramsFromJSON(json) {
+    return InlineResponse2001AllowedProgramsFromJSONTyped(json);
+}
+function InlineResponse2001AllowedProgramsFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'programId': !exists(json, 'program_id') ? undefined : json['program_id'],
+        'allowedFunctions': !exists(json, 'allowed_functions') ? undefined : json['allowed_functions'],
+    };
+}
+function InlineResponse2001AllowedProgramsToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'program_id': value.programId,
+        'allowed_functions': value.allowedFunctions,
+    };
+}
+
+export { InlineResponse2001AllowedProgramsFromJSON, InlineResponse2001AllowedProgramsFromJSONTyped, InlineResponse2001AllowedProgramsToJSON };

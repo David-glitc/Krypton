@@ -1,0 +1,2 @@
+export { getElevatedAccessToken } from './getElevatedAccessToken';
+//# sourceMappingURL=index.d.ts.map

@@ -1,0 +1,3 @@
+/** @not-instrumented */
+export declare const getInjectedProviderFromWindow: <T = unknown>(path: string) => T | null;
+//# sourceMappingURL=getInjectedProviderFromWindow.d.ts.map

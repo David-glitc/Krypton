@@ -1,0 +1,26 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../_virtual/_tslib.cjs');
+var jsxRuntime = require('react/jsx-runtime');
+var React = require('react');
+require('../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var ConnectButton = require('./components/ConnectButton.cjs');
+
+const DynamicConnectButton = ({ buttonContainerClassName = '', buttonClassName = '', children, copykey, }) => {
+    const { projectSettings, setShowAuthFlow, setSelectedWalletConnectorKey } = useInternalDynamicContext.useInternalDynamicContext();
+    const [didUserClick, setUserClicked] = React.useState(false);
+    const handleOnClick = React.useCallback(() => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        if (!didUserClick) {
+            setUserClicked(true);
+        }
+        setSelectedWalletConnectorKey(null);
+        setShowAuthFlow(true);
+    }), [didUserClick, setSelectedWalletConnectorKey, setShowAuthFlow]);
+    return (jsxRuntime.jsx(ConnectButton.ConnectButton, { isLoading: !projectSettings, isActive: didUserClick, onClick: handleOnClick, buttonContainerClassName: buttonContainerClassName, buttonClassName: buttonClassName, copykey: copykey, children: children }));
+};
+
+exports.DynamicConnectButton = DynamicConnectButton;

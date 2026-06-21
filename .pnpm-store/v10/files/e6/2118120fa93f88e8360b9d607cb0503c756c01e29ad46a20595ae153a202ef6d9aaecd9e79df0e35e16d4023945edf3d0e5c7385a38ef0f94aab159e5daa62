@@ -1,0 +1,2 @@
+export { isDeeplinkWalletProvider } from './isDeeplinkWalletProvider';
+//# sourceMappingURL=index.d.ts.map

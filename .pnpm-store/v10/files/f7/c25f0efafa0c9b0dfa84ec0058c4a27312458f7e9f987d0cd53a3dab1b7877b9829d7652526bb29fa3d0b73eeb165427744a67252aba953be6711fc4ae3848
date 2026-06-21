@@ -1,0 +1,2 @@
+export { processSocialCallback } from './processSocialCallback';
+//# sourceMappingURL=index.d.ts.map

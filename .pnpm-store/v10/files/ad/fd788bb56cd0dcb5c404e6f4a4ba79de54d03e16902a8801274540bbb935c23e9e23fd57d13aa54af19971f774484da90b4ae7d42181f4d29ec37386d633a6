@@ -1,0 +1,13 @@
+type WithDatabaseParams<T> = {
+    dbName: string;
+    operation: (db: IDBDatabase) => Promise<T>;
+};
+/**
+ * Scopes a database connection to the lifetime of a callback.
+ * Opens a connection, passes it to the operation, and guarantees
+ * the connection is closed when the operation completes or throws.
+ * @not-instrumented
+ */
+export declare const withDatabase: <T>({ dbName, operation, }: WithDatabaseParams<T>) => Promise<T>;
+export {};
+//# sourceMappingURL=withDatabase.d.ts.map

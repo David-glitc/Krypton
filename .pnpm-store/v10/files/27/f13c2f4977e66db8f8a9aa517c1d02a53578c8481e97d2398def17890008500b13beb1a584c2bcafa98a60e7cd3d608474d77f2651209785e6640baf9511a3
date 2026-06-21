@@ -1,0 +1,7 @@
+import * as z from 'zod/mini';
+export declare const deviceSigningKeysSchema: z.ZodMiniObject<{
+    privateJwk: z.ZodMiniCustom<JsonWebKey, JsonWebKey>;
+    privateKey: z.ZodMiniString<string>;
+    publicKey: z.ZodMiniString<string>;
+}, z.core.$strip>;
+//# sourceMappingURL=deviceSigningKeys.schema.d.ts.map

@@ -1,0 +1,2 @@
+export { reconcileWalletAccountsAgainstClient } from './reconcileWalletAccountsAgainstClient';
+//# sourceMappingURL=index.d.ts.map

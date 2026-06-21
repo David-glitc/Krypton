@@ -1,0 +1,83 @@
+package xyz.dynamic.client.webview
+
+import android.graphics.Bitmap
+import android.os.Build
+import android.webkit.RenderProcessGoneDetail
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import androidx.annotation.RequiresApi
+import androidx.webkit.WebViewFeature
+
+internal class DynamicWebViewClient(
+    private val host: DynamicWebViewHost,
+) : WebViewClient() {
+
+    // Pin navigation to the instance's origin. The WaaS page is a single-origin
+    // SPA, so any MAIN-FRAME navigation to a different origin (open redirect,
+    // injected link, scripted location change) is blocked — the bridge must never
+    // be re-exposed to an attacker origin. Subframe navigations are left alone.
+    // Not invoked for the initial loadUrl, which open() already origin-validated.
+    override fun shouldOverrideUrlLoading(
+        view: WebView?,
+        request: WebResourceRequest?,
+    ): Boolean {
+        val req = request ?: return false
+        if (!req.isForMainFrame) return false
+        val expected = host.expectedOrigin ?: return false
+        // Returning true means "handled" → the WebView does not perform the load.
+        return originOf(req.url) != expected
+    }
+
+    override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+        // When DOCUMENT_START_SCRIPT is available the host injects the bridge glue
+        // before any page script runs (see DynamicWebViewHost). Only fall back to
+        // onPageStarted injection on older WebView. The script is idempotent
+        // (`__dynamicBridgeInstalled` guard), so a redundant inject is harmless.
+        if (!WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+            view?.evaluateJavascript(BRIDGE_USER_SCRIPT, null)
+        }
+    }
+
+    override fun onPageCommitVisible(view: WebView?, url: String?) {
+        // Android analog to iOS's `didCommit`: first paint after the response
+        // committed. Resolves the pending open promise — deferred host-side so a
+        // same-pass HTTP error can claim the promise first.
+        host.onCommitVisible()
+    }
+
+    @RequiresApi(Build.VERSION_CODES.M)
+    override fun onReceivedError(
+        view: WebView?,
+        request: WebResourceRequest?,
+        error: WebResourceError?,
+    ) {
+        if (request?.isForMainFrame != true) return
+        host.onNavigationFailed(error?.description?.toString())
+    }
+
+    @RequiresApi(Build.VERSION_CODES.M)
+    override fun onReceivedHttpError(
+        view: WebView?,
+        request: WebResourceRequest?,
+        errorResponse: WebResourceResponse?,
+    ) {
+        if (request?.isForMainFrame != true) return
+        val status = errorResponse?.statusCode ?: return
+        if (status < 400) return
+        host.onHttpError(status)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    override fun onRenderProcessGone(
+        view: WebView?,
+        detail: RenderProcessGoneDetail?,
+    ): Boolean {
+        host.onRenderProcessGone()
+        // Returning true tells the framework we've handled the crash. Returning
+        // false would crash the host process.
+        return true
+    }
+}

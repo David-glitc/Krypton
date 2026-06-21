@@ -1,0 +1,5 @@
+export declare const API_ENDPOINTS: {
+    readonly CONNECT: "connect";
+    readonly SIGN: "sign";
+};
+//# sourceMappingURL=endpoints.d.ts.map

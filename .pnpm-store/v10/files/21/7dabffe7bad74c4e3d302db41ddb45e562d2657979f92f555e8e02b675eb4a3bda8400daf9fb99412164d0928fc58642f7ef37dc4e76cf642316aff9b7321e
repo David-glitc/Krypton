@@ -1,0 +1,8 @@
+/**
+ * Hook that listens for URL updates (from wallet deep link returns) and
+ * emits the walletReturnFromDeepLink event with the previous route.
+ *
+ * This allows customers to navigate back to where the user was before
+ * the wallet operation.
+ */
+export declare const useWalletReturnRoute: () => void;

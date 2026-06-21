@@ -1,0 +1,20 @@
+'use client'
+import { jsx, jsxs } from 'react/jsx-runtime';
+import { useTranslation } from 'react-i18next';
+import { OverlayCardBase } from '../../../../../../components/OverlayCardBase/OverlayCardBase.js';
+import '../../../../../../components/OverlayCardBase/OverlayCardTarget/OverlayCardTarget.js';
+import { Typography } from '../../../../../../components/Typography/Typography.js';
+import { TypographyButton } from '../../../../../../components/TypographyButton/TypographyButton.js';
+
+const RemoveAllDevicesPrompt = ({ onConfirm, onCancel, }) => {
+    const { t } = useTranslation();
+    return (jsx(OverlayCardBase, { isOpen: true, onClickOverlay: onCancel, className: 'remove-device-prompt', children: jsxs("div", { className: 'remove-device-prompt__container', children: [jsx(Typography, { color: 'primary', className: 'remove-device-prompt__title', variant: 'body_normal', as: 'h6', children: t('dyn_device_management.remove_all_devices_title') }), jsx(Typography, { className: 'remove-device-prompt__label', variant: 'body_small', color: 'secondary', children: t('dyn_device_management.remove_all_devices_description') }), jsx(TypographyButton, { buttonPadding: 'small', onClick: onConfirm, buttonClassName: 'remove-device-prompt__button remove-device-prompt__button--shadow', buttonVariant: 'danger', expanded: true, typographyProps: {
+                        variant: 'button_secondary',
+                        weight: 'medium',
+                    }, dataTestId: 'confirm-remove-all-button', children: t('dyn_device_management.remove_button') }), jsx(TypographyButton, { expanded: true, buttonPadding: 'small', onClick: onCancel, buttonVariant: 'secondary', buttonClassName: 'remove-device-prompt__button', typographyProps: {
+                        variant: 'button_secondary',
+                        weight: 'medium',
+                    }, dataTestId: 'cancel-remove-all-button', children: t('dyn_device_management.cancel_button') })] }) }));
+};
+
+export { RemoveAllDevicesPrompt };

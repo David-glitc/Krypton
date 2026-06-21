@@ -1,0 +1,4 @@
+import type { PromptReauthParams } from './useStepUpAuthentication.types';
+export declare const useStepUpPromptReauth: () => {
+    promptReauthenticate: (props?: PromptReauthParams) => Promise<string | undefined>;
+};

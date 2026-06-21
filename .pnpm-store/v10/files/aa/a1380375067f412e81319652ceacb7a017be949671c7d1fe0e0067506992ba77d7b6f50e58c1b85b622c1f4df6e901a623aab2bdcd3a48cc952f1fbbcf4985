@@ -1,0 +1,31 @@
+'use client'
+import { useContext } from 'react';
+import '@dynamic-labs/iconic';
+import '@dynamic-labs/wallet-connector-core';
+import 'react/jsx-runtime';
+import '../../../ViewContext/ViewContext.js';
+import '../../../../shared/logger.js';
+import '@dynamic-labs/wallet-book';
+import { isSSR } from '../../../../shared/utils/functions/isSSR/isSSR.js';
+import '@dynamic-labs/utils';
+import '../../../../utils/constants/colors.js';
+import '../../../../utils/constants/values.js';
+import '@dynamic-labs/sdk-api-core';
+import '../../../../shared/consts/index.js';
+import { DynamicContext } from '../../DynamicContext.js';
+
+const SSR_SAFE_DEFAULT = new Proxy({}, {
+    get: () => undefined,
+});
+// This is internal context hook only for SDK do not expose it to customers
+const useInternalDynamicContext = () => {
+    const context = useContext(DynamicContext);
+    if (context === undefined) {
+        if (isSSR())
+            return SSR_SAFE_DEFAULT;
+        throw new Error('Hook must be used within <DynamicContextProvider>.');
+    }
+    return context;
+};
+
+export { useInternalDynamicContext };

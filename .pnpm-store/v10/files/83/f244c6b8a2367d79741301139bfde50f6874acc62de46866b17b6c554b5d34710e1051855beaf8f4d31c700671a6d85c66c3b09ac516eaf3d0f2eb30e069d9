@@ -1,0 +1,4 @@
+import type { Middleware } from '@dynamic-labs/sdk-api-core';
+/** @not-instrumented */
+export declare const createUnauthorizedMiddleware: () => Middleware;
+//# sourceMappingURL=createUnauthorizedMiddleware.d.ts.map

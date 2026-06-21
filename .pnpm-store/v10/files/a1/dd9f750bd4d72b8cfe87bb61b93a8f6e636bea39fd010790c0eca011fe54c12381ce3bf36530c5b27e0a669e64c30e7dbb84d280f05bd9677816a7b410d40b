@@ -1,0 +1,147 @@
+package xyz.dynamic.client.webview
+
+import android.os.Handler
+import android.os.Looper
+import com.facebook.react.bridge.Arguments
+import com.facebook.react.bridge.Promise
+import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.bridge.ReadableMap
+import com.facebook.react.bridge.WritableArray
+import com.facebook.react.bridge.WritableMap
+import com.facebook.react.module.annotations.ReactModule
+import com.facebook.react.modules.core.DeviceEventManagerModule.RCTDeviceEventEmitter
+import xyz.dynamic.client.NativeDynamicWebViewSpec
+
+@ReactModule(name = DynamicWebViewModule.NAME)
+class DynamicWebViewModule(reactContext: ReactApplicationContext) :
+    NativeDynamicWebViewSpec(reactContext) {
+
+    companion object {
+        const val NAME = "DynamicClientWebView"
+        internal const val MESSAGE_EVENT_NAME = "dynamicBridgeMessage"
+    }
+
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val hosts = mutableMapOf<String, DynamicWebViewHost>()
+
+    // Guards listenerCount + bufferedEvents. Bridge messages arrive on the RN UI
+    // queue (via onBridgeMessage) while addListener/removeListeners may run on a
+    // different thread, so access is serialized.
+    private val listenerLock = Any()
+
+    // Number of JS-side subscribers, driven by NativeEventEmitter's
+    // addListener/removeListeners calls. RCTDeviceEventEmitter.emit drops events
+    // when there is no JS listener, so we gate on this count.
+    private var listenerCount = 0
+
+    // Events that arrived before the first JS listener attached (e.g. the
+    // iframe-ready handshake posted before onMessage subscribes). Flushed in
+    // order on the 0->1 listener transition so the handshake is not lost —
+    // mirroring the iOS .mm pre-listener buffer.
+    private val bufferedEvents = mutableListOf<WritableMap>()
+
+    override fun getName(): String = NAME
+
+    override fun open(instanceId: String, url: String, promise: Promise) {
+        mainHandler.post {
+            if (hosts.containsKey(instanceId)) {
+                val userInfo: WritableMap = Arguments.createMap()
+                promise.reject(
+                    "webview_instance_busy",
+                    "open called on an instanceId that already has an active WebView.",
+                    userInfo
+                )
+                return@post
+            }
+
+            val host = DynamicWebViewHost(
+                reactContext = reactApplicationContext,
+                instanceId = instanceId,
+                onMessage = { data -> emitMessage(instanceId, data) },
+                onRelease = { hosts.remove(instanceId) },
+            )
+            hosts[instanceId] = host
+            host.open(url, promise)
+        }
+    }
+
+    override fun close(instanceId: String) {
+        mainHandler.post {
+            hosts.remove(instanceId)?.close()
+        }
+    }
+
+    override fun sendMessage(instanceId: String, data: ReadableMap) {
+        mainHandler.post {
+            hosts[instanceId]?.sendMessage(data)
+        }
+    }
+
+    // Track JS-subscriber count so emitMessage can buffer until the first
+    // listener attaches, then flush — matching the iOS .mm buffer. Without this,
+    // an early event (the iframe-ready handshake) emitted before onMessage
+    // subscribes is dropped by RCTDeviceEventEmitter and the ceremony stalls.
+    override fun addListener(eventName: String) {
+        val pending: List<WritableMap>
+        synchronized(listenerLock) {
+            listenerCount++
+            // Only flush on the 0 -> 1 transition.
+            if (listenerCount != 1) return
+            pending = bufferedEvents.toList()
+            bufferedEvents.clear()
+        }
+        pending.forEach { emitEvent(it) }
+    }
+
+    override fun removeListeners(count: Double) {
+        synchronized(listenerLock) {
+            listenerCount = maxOf(0, listenerCount - count.toInt())
+        }
+    }
+
+    override fun invalidate() {
+        super.invalidate()
+        mainHandler.post {
+            // close() -> onRelease removes the host from `hosts`, so iterate a
+            // snapshot to avoid ConcurrentModificationException when more than one
+            // host is active (the RN reload / teardown path).
+            for (host in hosts.values.toList()) host.close()
+            hosts.clear()
+        }
+    }
+
+    private fun emitMessage(instanceId: String, data: Any?) {
+        val event = Arguments.createMap().apply {
+            putString("instanceId", instanceId)
+        }
+        putBridgeData(event, data)
+        synchronized(listenerLock) {
+            // No JS listener yet → buffer so an early handshake isn't dropped.
+            if (listenerCount == 0) {
+                bufferedEvents.add(event)
+                return
+            }
+        }
+        emitEvent(event)
+    }
+
+    private fun emitEvent(event: WritableMap) {
+        reactApplicationContext
+            .getJSModule(RCTDeviceEventEmitter::class.java)
+            .emit(MESSAGE_EVENT_NAME, event)
+    }
+}
+
+// Maps a parsed bridge payload onto the event's `data` field. Extracted as a
+// top-level function so the type handling (notably the WritableArray case the
+// hosted page can produce, which previously fell through to putNull) is
+// unit-testable without constructing the codegen TurboModule base class.
+internal fun putBridgeData(target: WritableMap, data: Any?) {
+    when (data) {
+        null -> target.putNull("data")
+        is WritableMap -> target.putMap("data", data)
+        is WritableArray -> target.putArray("data", data)
+        is String -> target.putString("data", data)
+        else -> target.putNull("data")
+    }
+}

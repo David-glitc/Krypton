@@ -1,0 +1,38 @@
+'use client'
+import { onEvent } from '@dynamic-labs-sdk/client';
+import { dynamicEvents } from '../../../../../events/dynamicEvents.js';
+
+const syncEvents = (client) => {
+    onEvent({
+        event: 'mfaCompletionSuccess',
+        listener: ({ mfaToken }) => {
+            dynamicEvents.emit('mfaCompletionSuccess', { mfaToken });
+        },
+    }, client);
+    onEvent({
+        event: 'mfaCompletionFailure',
+        listener: ({ error }) => {
+            dynamicEvents.emit('mfaCompletionFailure', { error });
+        },
+    }, client);
+    onEvent({
+        event: 'logout',
+        listener: (metadata) => {
+            dynamicEvents.emit('logout', metadata);
+        },
+    }, client);
+    onEvent({
+        event: 'deviceRegistrationCompleted',
+        listener: () => {
+            dynamicEvents.emit('deviceRegistrationCompleted');
+        },
+    }, client);
+    onEvent({
+        event: 'deviceRegistrationCompletedInAnotherTab',
+        listener: () => {
+            dynamicEvents.emit('deviceRegistrationCompletedInAnotherTab');
+        },
+    }, client);
+};
+
+export { syncEvents };

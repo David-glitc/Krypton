@@ -1,0 +1,9 @@
+/// <reference types="react" />
+import type { TokenScope } from '@dynamic-labs/sdk-api-core';
+type ConfirmPasskeyViewProps = {
+    createMfaToken?: boolean;
+    authenticatePasskeyPromise: Promise<string | undefined>;
+    requestedScopes?: TokenScope[];
+};
+export declare const ConfirmPasskeyView: ({ createMfaToken, authenticatePasskeyPromise, requestedScopes, }: ConfirmPasskeyViewProps) => JSX.Element;
+export {};

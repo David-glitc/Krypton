@@ -1,0 +1,14 @@
+import type { CheckoutTransaction } from '../checkout.types';
+export type CancelCheckoutTransactionParams = {
+    transactionId: string;
+};
+/**
+ * Cancels a checkout transaction before it has been broadcasted
+ *
+ * @param params CancelCheckoutTransactionParams - The transaction to cancel.
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns The cancelled checkout transaction
+ * @instrumented
+ */
+export declare const cancelCheckoutTransaction: ({ transactionId }: CancelCheckoutTransactionParams, client?: import("../../../exports").DynamicClient) => Promise<CheckoutTransaction>;
+//# sourceMappingURL=cancelCheckoutTransaction.d.ts.map

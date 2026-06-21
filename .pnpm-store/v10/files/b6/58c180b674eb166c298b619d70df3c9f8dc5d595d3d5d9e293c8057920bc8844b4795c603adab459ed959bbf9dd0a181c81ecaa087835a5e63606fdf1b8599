@@ -1,0 +1,10 @@
+/**
+ * Returns whether `grantedScopes` covers every Google OAuth scope required
+ * to upload a keyshare backup to Google Drive.
+ *
+ * @param grantedScopes - Scopes the user has granted to their Google account.
+ * @returns `true` when every required scope is granted, otherwise `false`.
+ * @not-instrumented
+ */
+export declare const hasAllGoogleDriveBackupScopes: (grantedScopes: readonly string[]) => boolean;
+//# sourceMappingURL=hasAllGoogleDriveBackupScopes.d.ts.map

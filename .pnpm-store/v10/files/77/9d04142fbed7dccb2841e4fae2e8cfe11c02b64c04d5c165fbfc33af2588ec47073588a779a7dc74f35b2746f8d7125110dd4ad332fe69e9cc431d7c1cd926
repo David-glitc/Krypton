@@ -1,0 +1,88 @@
+'use client'
+import { __awaiter } from '../../../../../../_virtual/_tslib.js';
+import { useContext, useCallback } from 'react';
+import { DynamicError } from '@dynamic-labs/utils';
+import '../../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { UserFieldEditorContext } from '../../../../context/UserFieldEditorContext/UserFieldEditorContext.js';
+import { useViewContext } from '../../../../context/ViewContext/ViewContext.js';
+import { dynamicEvents } from '../../../../events/dynamicEvents.js';
+import { validateUpdateRequest } from './validateUpdateRequest/validateUpdateRequest.js';
+
+/** Saves the values updated by the user */
+const saveUserValues = (_a, setShowAuthFlow_1, pushView_1, resolve_1, reject_1) => __awaiter(void 0, [_a, setShowAuthFlow_1, pushView_1, resolve_1, reject_1], void 0, function* ({ fields: newValues, updateUserResult: { isEmailVerificationRequired, isSmsVerificationRequired, }, }, setShowAuthFlow, pushView, resolve, reject) {
+    // If no verification is needed, we are done
+    if (!isEmailVerificationRequired && !isSmsVerificationRequired) {
+        resolve(newValues);
+        return;
+    }
+    // Show verification view
+    setShowAuthFlow(true, {
+        ignoreIfIsEmbeddedWidget: false,
+        performMultiWalletChecks: false,
+    });
+    if (isEmailVerificationRequired) {
+        pushView('verify-email');
+        // Subscribe to email verification result
+        dynamicEvents.once('emailVerificationResult', (wasSuccessful, newEmail) => {
+            // Make sure we're using the correct, updated email. User might have changed it mid-OTP
+            newValues.email = newEmail;
+            wasSuccessful
+                ? resolve(newValues)
+                : reject('Failed to verify email, no fields were updated');
+        });
+        return;
+    }
+    pushView('verify-sms');
+    // Subscribe to sms verification result
+    dynamicEvents.once('smsVerificationResult', (wasSuccessful, { phone: newPhone }) => {
+        // Make sure we're using the correct, updated phone number. User might have changed it mid-OTP
+        newValues.phoneNumber = newPhone;
+        wasSuccessful
+            ? resolve(newValues)
+            : reject('Failed to verify phone number, no fields were updated');
+    });
+});
+// eslint-disable-next-line multiline-comment-style
+/** This hook allows to open the widget modal and expose any fields for editing.
+ * The fields must have been previously enabled in the dashboard
+ */
+const useUpdateUserWithModal = (updateUser) => {
+    const { user, projectSettings, setShowAuthFlow } = useInternalDynamicContext();
+    const { pushView } = useViewContext();
+    const editorContext = useContext(UserFieldEditorContext);
+    if (!editorContext)
+        throw new DynamicError('useUserUpdateRequest can only be used inside the context of DynamicContextProvider');
+    const { open: promptUserForValues } = editorContext;
+    const updateUserWithModal = useCallback((fields, options) => new Promise((resolve, reject) => {
+        // Catch invalid requests
+        const errorResponse = validateUpdateRequest(fields, user, projectSettings);
+        if (errorResponse) {
+            reject(errorResponse);
+            return;
+        }
+        // Get user values
+        promptUserForValues({
+            fields,
+            submitText: options === null || options === void 0 ? void 0 : options.submitText,
+            subtitle: options === null || options === void 0 ? void 0 : options.subtitle,
+            title: options === null || options === void 0 ? void 0 : options.title,
+        }, updateUser)
+            .then((updateValues) => saveUserValues(updateValues, setShowAuthFlow, pushView, resolve, reject))
+            .catch((error) => {
+            if (/email already exists/gi.test(error))
+                throw error;
+            reject(error);
+        });
+    }), [
+        user,
+        projectSettings,
+        promptUserForValues,
+        updateUser,
+        setShowAuthFlow,
+        pushView,
+    ]);
+    return updateUserWithModal;
+};
+
+export { useUpdateUserWithModal };

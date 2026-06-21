@@ -1,0 +1,38 @@
+import { exists } from '../runtime.js';
+import { ChainEnumFromJSON, ChainEnumToJSON } from './ChainEnum.js';
+import { CheckoutSourceTypeEnumFromJSON, CheckoutSourceTypeEnumToJSON } from './CheckoutSourceTypeEnum.js';
+import { ExchangeKeyEnumFromJSON, ExchangeKeyEnumToJSON } from './ExchangeKeyEnum.js';
+
+/* tslint:disable */
+function AttachSourceRequestFromJSON(json) {
+    return AttachSourceRequestFromJSONTyped(json);
+}
+function AttachSourceRequestFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'sourceType': CheckoutSourceTypeEnumFromJSON(json['sourceType']),
+        'fromAddress': !exists(json, 'fromAddress') ? undefined : json['fromAddress'],
+        'fromChainId': !exists(json, 'fromChainId') ? undefined : json['fromChainId'],
+        'fromChainName': !exists(json, 'fromChainName') ? undefined : ChainEnumFromJSON(json['fromChainName']),
+        'exchangeProvider': !exists(json, 'exchangeProvider') ? undefined : ExchangeKeyEnumFromJSON(json['exchangeProvider']),
+    };
+}
+function AttachSourceRequestToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'sourceType': CheckoutSourceTypeEnumToJSON(value.sourceType),
+        'fromAddress': value.fromAddress,
+        'fromChainId': value.fromChainId,
+        'fromChainName': ChainEnumToJSON(value.fromChainName),
+        'exchangeProvider': ExchangeKeyEnumToJSON(value.exchangeProvider),
+    };
+}
+
+export { AttachSourceRequestFromJSON, AttachSourceRequestFromJSONTyped, AttachSourceRequestToJSON };

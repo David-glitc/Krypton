@@ -1,0 +1,5 @@
+import { BaseError } from './base';
+export declare class UserCancelledSocialPopUpError extends BaseError {
+    constructor();
+}
+//# sourceMappingURL=UserCancelledSocialPopUpError.d.ts.map

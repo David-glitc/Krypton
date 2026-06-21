@@ -1,0 +1,232 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../../_virtual/_tslib.cjs');
+var utils = require('@dynamic-labs/utils');
+var walletConnectorCore = require('@dynamic-labs/wallet-connector-core');
+var CaptchaContext = require('../../../../context/CaptchaContext/CaptchaContext.cjs');
+require('../../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var ErrorContext = require('../../../../context/ErrorContext/ErrorContext.cjs');
+var ViewContext = require('../../../../context/ViewContext/ViewContext.cjs');
+require('@dynamic-labs/iconic');
+require('react');
+require('react/jsx-runtime');
+var logger = require('../../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+var localStorage = require('../../../constants/localStorage.cjs');
+require('../../../constants/colors.cjs');
+require('../../../constants/values.cjs');
+require('@dynamic-labs/sdk-api-core');
+var instrumentAuthLoginFailed = require('../../../../shared/utils/functions/instrumentAuthLoginFailed/instrumentAuthLoginFailed.cjs');
+require('../../../../shared/consts/index.cjs');
+require('@dynamic-labs/multi-wallet');
+require('react-international-phone');
+require('../../../../store/state/nonce/nonce.cjs');
+var isProgrammableNetworkSwitchSupported = require('../../../functions/isProgrammableNetworkSwitchSupported/isProgrammableNetworkSwitchSupported.cjs');
+var isSupportedNetwork = require('../../../functions/isSupportedNetwork/isSupportedNetwork.cjs');
+require('@dynamic-labs-sdk/client/core');
+require('eventemitter3');
+require('@dynamic-labs-sdk/client');
+require('../../../../config/ApiEndpoint.cjs');
+var dynamicEvents = require('../../../../events/dynamicEvents.cjs');
+var getUserProfile = require('../../../../client/extension/user/getUserProfile/getUserProfile.cjs');
+require('@dynamic-labs/locale');
+require('../../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../../store/state/primaryWalletId/primaryWalletId.cjs');
+require('../../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+require('../../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+var useHandleWalletsToConnect = require('../../useHandleWalletsToConnect/useHandleWalletsToConnect.cjs');
+var useVerifyWallet = require('../../useVerifyWallet/useVerifyWallet.cjs');
+var showPendingConnectView = require('../helpers/showPendingConnectView.cjs');
+var isConnectOnly = require('../helpers/isConnectOnly.cjs');
+var loadingAndLifecycle = require('../../../../store/state/loadingAndLifecycle/loadingAndLifecycle.cjs');
+var unsetInitialWalletVerificationFlag = require('./unsetInitialWalletVerificationFlag/unsetInitialWalletVerificationFlag.cjs');
+
+const useConnectAndSign = ({ shouldUpdateWallets = true, shouldCallCallback = true, } = {}) => {
+    const { pushView, clearStackAndPushInitialView, replaceView } = ViewContext.useViewContext();
+    const { engageCaptcha, getCaptchaToken } = CaptchaContext.useCaptchaContext();
+    const { setErrorMessage, setError, setDefaultError } = ErrorContext.useErrorContext();
+    const { connectWallet, displaySiweStatement, environmentId, projectSettings, networkValidationMode, setIsSingleWalletAccount, setShowAuthFlow, walletUiUtils, } = useInternalDynamicContext.useInternalDynamicContext();
+    const { handleWalletsToConnect } = useHandleWalletsToConnect.useHandleWalletsToConnect();
+    const verifyWallet = useVerifyWallet.useVerifyWallet({
+        displaySiweStatement,
+        environmentId,
+        projectSettings,
+        setIsSingleWalletAccount,
+    });
+    const handleWalletVerify = (walletConnector, publicWalletAddress, captchaToken, requestedScopes) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        if (!walletConnectorCore.isEmailWalletConnector(walletConnector) ||
+            walletConnectorCore.isBloctoConnector(walletConnector)) {
+            replaceView('pending-signature');
+            setShowAuthFlow(true);
+        }
+        else {
+            walletUiUtils.disabledConfirmationOnce();
+        }
+        return verifyWallet({
+            captchaToken,
+            publicWalletAddress,
+            requestedScopes,
+            walletConnector,
+        });
+    });
+    const handleWalletVerifyError = (err) => {
+        var _a;
+        const userCancelled = (err === null || err === void 0 ? void 0 : err.code) === 'user-cancelled';
+        if (!userCancelled)
+            logger.logger.debug(err);
+        instrumentAuthLoginFailed.instrumentAuthLoginFailed(err, {
+            authOrigin: 'connect-and-sign',
+            stage: 'verify',
+        });
+        clearStackAndPushInitialView();
+        if (err instanceof utils.CustomError) {
+            setError(err.message, err.code);
+        }
+        else {
+            setErrorMessage((_a = err === null || err === void 0 ? void 0 : err.code) === null || _a === void 0 ? void 0 : _a.toString(), err, 'connect-and-sign:verify');
+        }
+    };
+    const handleWalletConnectionError = (error) => {
+        if (error instanceof utils.GetAddressCancelledError) {
+            return;
+        }
+        instrumentAuthLoginFailed.instrumentAuthLoginFailed(error, {
+            authOrigin: 'connect-and-sign',
+            stage: 'connect',
+        });
+        clearStackAndPushInitialView();
+        if (error instanceof utils.CustomError) {
+            setError(error.message, error.code);
+        }
+        else {
+            setDefaultError(error);
+        }
+    };
+    return (_a) => _tslib.__awaiter(void 0, [_a], void 0, function* ({ walletConnector, getAddressOpts = undefined, requestedScopes, }) {
+        var _b;
+        const connectionCancelPromise = new utils.DeferredPromise();
+        const onGoBack = () => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+            loadingAndLifecycle.setIsInitialWalletVerificationInProgress(false);
+            connectionCancelPromise.reject(new utils.GetAddressCancelledError());
+        });
+        try {
+            dynamicEvents.dynamicEvents.on('goBack', onGoBack);
+            dynamicEvents.dynamicEvents.on('authFlowClose', onGoBack);
+            dynamicEvents.dynamicEvents.once('walletAdded', unsetInitialWalletVerificationFlag.unsetInitialWalletVerificationFlag);
+            // Lock the variable that indicates that the login wallet verification is in progress
+            // Read UserWalletsContext.tsx explanation for more context
+            loadingAndLifecycle.setIsInitialWalletVerificationInProgress(true);
+            yield showPendingConnectView.showPendingConnectView(walletConnector, pushView);
+            if (walletConnectorCore.isEmailWalletConnector(walletConnector)) {
+                if (walletConnectorCore.isEmailOTPWalletConnector(walletConnector)) {
+                    pushView('email-wallet-otp-verification-view');
+                }
+                else if (!walletConnectorCore.isBloctoConnector(walletConnector)) {
+                    pushView('wait-for-email-confirmation-view');
+                }
+            }
+            const connectionPromise = connectWallet(walletConnector, getAddressOpts, {
+                applyHandleConnectedWallet: shouldCallCallback,
+            });
+            try {
+                yield Promise.race([
+                    connectionPromise,
+                    connectionCancelPromise.promise,
+                ]);
+            }
+            catch (error) {
+                handleWalletConnectionError(error);
+                return;
+            }
+            const connectionResult = yield connectionPromise;
+            // Fallback to catch any errors that were missed.
+            if (!(connectionResult === null || connectionResult === void 0 ? void 0 : connectionResult.address)) {
+                handleWalletConnectionError();
+                return;
+            }
+            const { address } = connectionResult;
+            logger.logger.logVerboseTroubleshootingMessage('[useConnectAndSign] connection result', {
+                address,
+                walletConnectorKey: walletConnector.key,
+            });
+            const walletNetwork = yield walletConnector.getNetwork(true);
+            const usesSupportedNetwork = isSupportedNetwork.isSupportedNetwork({
+                network: walletNetwork,
+                walletConnector,
+            });
+            const isNetworkValidationEnabledForSignIn = networkValidationMode === 'always' ||
+                networkValidationMode === 'sign-in';
+            if (!usesSupportedNetwork && isNetworkValidationEnabledForSignIn) {
+                if (!isProgrammableNetworkSwitchSupported.isProgrammableNetworkSwitchSupported(walletConnector)) {
+                    return pushView('network-not-supported-manual');
+                }
+                return pushView('network-not-supported');
+            }
+            const user = getUserProfile.getUserProfile();
+            const isAlreadyVerified = Boolean(user === null || user === void 0 ? void 0 : user.verifiedCredentials.find((vc) => vc.walletProvider === walletConnectorCore.getWalletProvider(walletConnector) &&
+                vc.walletName === walletConnector.key &&
+                vc.address &&
+                walletConnectorCore.isSameAddress(vc.address, address, walletConnector.connectedChain)));
+            logger.logger.logVerboseTroubleshootingMessage('[useConnectAndSign] isAlreadyVerified', {
+                isAlreadyVerified,
+                userVerifiedCredentials: user === null || user === void 0 ? void 0 : user.verifiedCredentials,
+            });
+            // this is in case the user is trying to link a wallet that is already verified/linked
+            // this flow mainly happens when trying to link a WalletConnect or MM wallet through qr code
+            // skip this check when requestedScopes is present, as that indicates a step-up auth flow
+            // where the user must re-sign with an already-verified wallet to authorize a sensitive action
+            if (isAlreadyVerified && !(requestedScopes === null || requestedScopes === void 0 ? void 0 : requestedScopes.length)) {
+                setShowAuthFlow(false);
+                return;
+            }
+            if (isConnectOnly.isConnectOnly()) {
+                utils.StorageService.setItem(localStorage.LAST_USED_WALLET, walletConnector.key);
+                if (shouldUpdateWallets) {
+                    handleWalletsToConnect({ walletConnector });
+                }
+                return;
+            }
+            if ((_b = projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.security.hCaptcha) === null || _b === void 0 ? void 0 : _b.enabled) {
+                engageCaptcha({
+                    authMethod: 'wallet',
+                    onCaptchaSuccess: (captchaToken) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+                        try {
+                            yield handleWalletVerify(walletConnector, address, captchaToken, requestedScopes);
+                        }
+                        catch (e) {
+                            handleWalletVerifyError(e);
+                        }
+                    }),
+                });
+                return;
+            }
+            yield handleWalletVerify(walletConnector, address, getCaptchaToken(), requestedScopes);
+        }
+        catch (err) {
+            handleWalletVerifyError(err);
+        }
+        finally {
+            // Read UserWalletsContext.tsx explanation for more context
+            // This will unlock the variable that indicates "verification in progress"
+            // by calling setIsInitialWalletVerificationInProgress(false).
+            // However, we do not want to do so immediately, as some routines of wallet verification process
+            // are still ongoing.
+            // This method sets up a listener and a timeout to ensure the unlock will happen, but only after
+            // verification is finally complete.
+            // In order to debug why this is necessary, try:
+            // 1. Remove the setIsInitialWalletVerificationInProgress calls
+            // 2. Add a useEffect somewhere that does primaryWallet.switchNetwork() and depends on primaryWallet
+            // 3. The SDK will enter a broken state. Try signing a message with wagmi.
+            // You can also add a "pause on exception" breakpoint in the debugger and see what happens during verification.
+            unsetInitialWalletVerificationFlag.unsetInitialWalletVerificationFlagWithTimeout();
+            dynamicEvents.dynamicEvents.removeListener('goBack', onGoBack);
+            dynamicEvents.dynamicEvents.removeListener('authFlowClose', onGoBack);
+        }
+    });
+};
+
+exports.useConnectAndSign = useConnectAndSign;

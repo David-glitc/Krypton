@@ -1,0 +1,45 @@
+#import "DynamicClientManifest.h"
+#import <React/RCTBridgeModule.h>
+#import <DynamicClientSpec/DynamicClientSpec.h>
+#if __has_include(<dynamic_labs_sdk_client/dynamic_labs_sdk_client-Swift.h>)
+#import <dynamic_labs_sdk_client/dynamic_labs_sdk_client-Swift.h>
+#else
+#import "dynamic_labs_sdk_client-Swift.h"
+#endif
+
+#ifndef DYNAMIC_SDK_VERSION
+#define DYNAMIC_SDK_VERSION @"unknown"
+#endif
+
+@interface DynamicClientManifest () <NativeReactNativeManifestSpec> {
+  ReactNativeManifestImpl *_impl;
+}
+@end
+
+@implementation DynamicClientManifest
+
+RCT_EXPORT_MODULE()
+
+- (instancetype)init {
+  self = [super init];
+  if (self) {
+    _impl = [[ReactNativeManifestImpl alloc] initWithSdkVersion:DYNAMIC_SDK_VERSION];
+  }
+  return self;
+}
+
+- (NSDictionary *)getManifest {
+  return [_impl getManifest];
+}
+
+- (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:
+    (const facebook::react::ObjCTurboModule::InitParams &)params {
+  return std::make_shared<facebook::react::NativeReactNativeManifestSpecJSI>(
+      params);
+}
+
++ (BOOL)requiresMainQueueSetup {
+  return NO;
+}
+
+@end

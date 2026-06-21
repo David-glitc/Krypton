@@ -1,0 +1,21 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+require('../../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+
+const useCloseMultiWalletPrompt = () => {
+    const { setMultiWalletWidgetState, setSelectedWalletWithAction, setShowQrcodeModal, setDesktopUri, setSelectedWalletConnectorKey, } = useInternalDynamicContext.useInternalDynamicContext();
+    return (e) => {
+        e.stopPropagation();
+        setSelectedWalletWithAction(null);
+        setMultiWalletWidgetState('idle');
+        setShowQrcodeModal(false);
+        setDesktopUri('');
+        setSelectedWalletConnectorKey(null);
+    };
+};
+
+exports.useCloseMultiWalletPrompt = useCloseMultiWalletPrompt;

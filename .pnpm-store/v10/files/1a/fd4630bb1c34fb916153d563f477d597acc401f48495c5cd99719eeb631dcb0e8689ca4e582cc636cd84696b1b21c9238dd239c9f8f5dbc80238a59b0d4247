@@ -1,0 +1,5 @@
+import { BaseError } from '../../../errors/base';
+export declare class KeyNotFoundError extends BaseError {
+    constructor(keyName: string);
+}
+//# sourceMappingURL=KeyNotFoundError.d.ts.map

@@ -1,0 +1,46 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var jsxRuntime = require('react/jsx-runtime');
+var reactI18next = require('react-i18next');
+var utils = require('@dynamic-labs/utils');
+var Skeleton = require('../../../../../components/Skeleton/Skeleton.cjs');
+require('../../../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var UserWalletsContext = require('../../../../../context/UserWalletsContext/UserWalletsContext.cjs');
+var walletOptions = require('../../../../../store/state/walletOptions/walletOptions.cjs');
+var localStorage = require('../../../../../utils/constants/localStorage.cjs');
+require('../../../../../utils/constants/colors.cjs');
+require('../../../../../utils/constants/values.cjs');
+var walletListBuilder = require('../../../../../utils/functions/walletListBuilder/walletListBuilder.cjs');
+var useWalletItemActions = require('../../../../../utils/hooks/useWalletItemActions/useWalletItemActions.cjs');
+var WalletListItem = require('../../../../WalletList/WalletListItem/WalletListItem.cjs');
+var ListItemButton = require('../ListItemButton/ListItemButton.cjs');
+
+const WalletSimpleSignIn = ({ previewWalletsNumber, disabled = false, onshowAllWallets, }) => {
+    var _a;
+    const { t } = reactI18next.useTranslation();
+    const { walletConnectorOptions, projectSettings, walletsFilter, multiWallet, recommendedWallets, } = useInternalDynamicContext.useInternalDynamicContext();
+    const { userWallets } = UserWalletsContext.useInternalUserWallets();
+    const walletGroups = walletOptions.useWalletGroups();
+    const { handleWalletItemClick } = useWalletItemActions.useWalletItemActions();
+    const { numberOfWallets, walletsList } = walletListBuilder.walletListBuilder({
+        groupWallets: true,
+        inputList: walletConnectorOptions,
+        isWalletConnectList: false,
+        lastUsedWalletKey: (_a = utils.StorageService.getItem(localStorage.LAST_USED_WALLET)) !== null && _a !== void 0 ? _a : undefined,
+        loginWithEmail: true,
+        multiWallet,
+        numberOfWalletsToShow: previewWalletsNumber,
+        recommendedWallets,
+        searchFilter: undefined,
+        userWallets,
+        walletGroups,
+        walletsFilter,
+    });
+    return !projectSettings ? (jsxRuntime.jsx(Skeleton.Skeleton, { count: previewWalletsNumber + 1, className: 'login-with-email-wallet-list__skeleton' })) : (jsxRuntime.jsxs("div", { className: 'login-with-email-wallet-list__container', "data-testid": 'top-wallets-list', children: [walletsList.map((wallet, index) => (jsxRuntime.jsx(WalletListItem.WalletListItem, { wallet: wallet, disabled: disabled, onSelectWallet: handleWalletItemClick, recommendedWallets: recommendedWallets }, `${wallet.key}_${index}`))), jsxRuntime.jsx(ListItemButton.ListItemButton, { copykey: 'dyn_wallet_list.view_all', text: t('dyn_wallet_list.view_all'), onClick: onshowAllWallets, numberOfWallets: numberOfWallets, disabled: disabled })] }));
+};
+
+exports.WalletSimpleSignIn = WalletSimpleSignIn;

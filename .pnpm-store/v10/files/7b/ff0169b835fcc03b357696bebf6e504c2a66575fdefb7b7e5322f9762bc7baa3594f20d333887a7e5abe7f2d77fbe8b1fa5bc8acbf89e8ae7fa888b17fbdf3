@@ -1,0 +1,14 @@
+import type { Storage, StorageAdapter } from '../storage.types';
+type CreateWebStorageParams = {
+    prefix?: string;
+    storageAdapter: StorageAdapter;
+};
+/**
+ * Creates a Storage service to interact with storage adapter.
+ * Reads the `storageTier` from each key's config and passes it
+ * to the adapter on every operation, defaulting to `'default'`.
+ * @not-instrumented
+ */
+export declare const createStorage: ({ prefix, storageAdapter, }: CreateWebStorageParams) => Storage;
+export {};
+//# sourceMappingURL=createStorage.d.ts.map

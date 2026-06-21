@@ -1,0 +1,170 @@
+/* Node.js ES build */
+var __async = (__this, __arguments, generator) => {
+  return new Promise((resolve, reject) => {
+    var fulfilled = (value) => {
+      try {
+        step(generator.next(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var rejected = (value) => {
+      try {
+        step(generator.throw(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
+    step((generator = generator.apply(__this, __arguments)).next());
+  });
+};
+
+// src/infura.ts
+import { getInfuraRpcUrls as getInfuraRpcUrlsMultichain } from "@metamask/connect-multichain";
+
+// src/networks.ts
+var SOLANA_CAIP_IDS = {
+  mainnet: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+  devnet: "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+  testnet: "solana:4uhcVJyU9pJkvQyS88uRDiswHXSCkY3z"
+};
+function convertNetworksToCAIP(networks) {
+  return Object.entries(networks).reduce(
+    (acc, [network, rpcUrl]) => {
+      const caipId = SOLANA_CAIP_IDS[network];
+      if (caipId && rpcUrl) {
+        acc[caipId] = rpcUrl;
+      }
+      return acc;
+    },
+    {}
+  );
+}
+
+// src/infura.ts
+var getInfuraRpcUrls = ({
+  infuraApiKey,
+  networks
+}) => {
+  const caipChainIds = networks.map(
+    (network) => SOLANA_CAIP_IDS[network]
+  );
+  const caipMap = getInfuraRpcUrlsMultichain({
+    infuraApiKey,
+    caipChainIds
+  });
+  return networks.reduce((acc, network) => {
+    const caipId = SOLANA_CAIP_IDS[network];
+    const rpcUrl = caipMap[caipId];
+    if (rpcUrl) {
+      acc[network] = rpcUrl;
+    }
+    return acc;
+  }, {});
+};
+
+// src/connect.ts
+import {
+  createMultichainClient
+} from "@metamask/connect-multichain";
+import {
+  getWalletStandard,
+  registerSolanaWalletStandard
+} from "@metamask/solana-wallet-standard";
+
+// src/utils.ts
+import {
+  createLogger,
+  enableDebug as debug
+} from "@metamask/connect-multichain";
+import { getWallets } from "@wallet-standard/app";
+var namespace = "metamask-connect:solana";
+var logger = createLogger(namespace, "93");
+var isMetamaskExtensionRegistered = () => {
+  const wallets = getWallets();
+  return wallets.get().some((wallet) => wallet.name.toLowerCase().includes("metamask"));
+};
+
+// src/connect.ts
+function createSolanaClient(options) {
+  return __async(this, null, function* () {
+    var _a, _b, _c, _d, _e;
+    const defaultNetworks = {
+      mainnet: "https://api.mainnet-beta.solana.com"
+    };
+    const skipAutoRegister = (_a = options.skipAutoRegister) != null ? _a : false;
+    const supportedNetworks = convertNetworksToCAIP(
+      (_c = (_b = options.api) == null ? void 0 : _b.supportedNetworks) != null ? _c : defaultNetworks
+    );
+    const core = yield createMultichainClient({
+      dapp: options.dapp,
+      api: {
+        supportedNetworks
+      },
+      analytics: {
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+        integrationType: ((_d = options.analytics) == null ? void 0 : _d.integrationType) || "direct"
+      },
+      versions: {
+        // typeof guard needed: Metro (React Native) bundles TS source directly,
+        // bypassing the tsup build that substitutes __PACKAGE_VERSION__.
+        "connect-solana": false ? "unknown" : "1.1.0"
+      }
+    });
+    const client = core.provider;
+    const walletName = "MetaMask";
+    let hasRegisteredMmc = false;
+    let handledInitRegistration;
+    const initRegistrationHandledPromise = new Promise((resolve) => {
+      handledInitRegistration = resolve;
+    });
+    const registerWallet = () => __async(null, null, function* () {
+      if (hasRegisteredMmc) {
+        logger("MetaMask Connect is already registered. Skipping...");
+        return;
+      }
+      if (isMetamaskExtensionRegistered()) {
+        logger("MetaMask extension is already registered. Skipping...");
+        return;
+      }
+      yield registerSolanaWalletStandard({ client, walletName });
+      hasRegisteredMmc = true;
+    });
+    if (skipAutoRegister) {
+      handledInitRegistration();
+    } else {
+      setTimeout(() => __async(null, null, function* () {
+        try {
+          yield registerWallet();
+        } finally {
+          handledInitRegistration();
+        }
+      }), 1e3);
+    }
+    const provider = getWalletStandard({ client, walletName });
+    const session = yield core.provider.getSession();
+    const hasSolanaScope = Object.keys((_e = session == null ? void 0 : session.sessionScopes) != null ? _e : {}).some(
+      (scope) => scope.startsWith("solana:")
+    );
+    if (hasSolanaScope) {
+      yield provider.features["standard:connect"].connect();
+    }
+    return {
+      core,
+      getWallet: () => provider,
+      registerWallet: () => __async(null, null, function* () {
+        yield initRegistrationHandledPromise;
+        yield registerWallet();
+      }),
+      disconnect: () => __async(null, null, function* () {
+        return yield core.disconnect(Object.values(SOLANA_CAIP_IDS));
+      })
+    };
+  });
+}
+export {
+  createSolanaClient,
+  getInfuraRpcUrls
+};
+//# sourceMappingURL=connect-solana.mjs.map

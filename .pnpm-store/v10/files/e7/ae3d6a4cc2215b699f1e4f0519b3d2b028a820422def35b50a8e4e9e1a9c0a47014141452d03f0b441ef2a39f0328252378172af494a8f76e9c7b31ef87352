@@ -1,0 +1,70 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+
+// Backoff schedule for the post-shield refresh. `shieldToken` resolves
+//  when the relay accepts the broadcast, not when the public→private
+//  transition confirms on-chain. Aleo block time + RecordScanner indexer
+//  lag means the immediate post-broadcast fetch usually returns the
+//  pre-confirmation balance, so we re-poll on a backoff schedule.
+//
+//  Shared between the auto-shield hook (background) and the widget's
+//  manual Shield Manually CTA (foreground), so both flows update the
+//  unshielded and shielded balances on the same cadence — previously
+//  the manual flow refreshed exactly once and the unshielded row
+//  stayed at its pre-broadcast value for the full RecordScanner lag,
+//  making a successful shield look like a no-op.
+//
+//  Total window ≈106s. Provable's mapping endpoint typically reflects
+//  a `transfer_public_to_private` within ~30s of broadcast, but the
+//  RecordScanner index lag for the new private record can stretch to
+//  ~90s in the worst case. The tail entries (25s, 35s) keep the poll
+//  alive across the upper end of that range without spamming requests
+//  during the common case (most balances converge inside the first
+//  three iterations and the convergence predicate exits the loop).
+const REFRESH_DELAYS_MS = [
+    3000, 5000, 8000, 12000, 18000, 25000, 35000,
+];
+/**
+ * After a successful shield broadcast, poll `onShielded` on a backoff
+ * schedule so the consumer sees both the shielded and unshielded balances
+ * update without a manual refresh click. Stops early on cancel or when
+ * the optional `hasConverged` predicate returns true; swallows
+ * per-iteration errors (refresh is best-effort).
+ *
+ * `isCancelled` is a thunk so callers can hook it up to whatever liveness
+ * signal they have (effect cleanup `cancelled` flag, abort signal, mount
+ * ref, etc.) without this module having to know about React lifecycle.
+ *
+ * `hasConverged` is optional and lets callers exit early once the
+ * post-shield state has actually materialized (e.g. the just-shielded
+ * token's unshielded balance has dropped). When omitted, the schedule
+ * runs to completion. Checked both before each delay and after each
+ * refresh so a refresh that produces the converged state ends the loop
+ * immediately.
+ */
+const pollOnShielded = (onShielded, isCancelled, hasConverged) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+    for (const delay of REFRESH_DELAYS_MS) {
+        if (isCancelled())
+            return;
+        if (hasConverged === null || hasConverged === void 0 ? void 0 : hasConverged())
+            return;
+        yield new Promise((resolve) => setTimeout(resolve, delay));
+        if (isCancelled())
+            return;
+        try {
+            yield onShielded();
+        }
+        catch (_a) {
+            /* swallow — refresh is best-effort */
+        }
+        if (hasConverged === null || hasConverged === void 0 ? void 0 : hasConverged())
+            return;
+    }
+});
+
+exports.REFRESH_DELAYS_MS = REFRESH_DELAYS_MS;
+exports.pollOnShielded = pollOnShielded;

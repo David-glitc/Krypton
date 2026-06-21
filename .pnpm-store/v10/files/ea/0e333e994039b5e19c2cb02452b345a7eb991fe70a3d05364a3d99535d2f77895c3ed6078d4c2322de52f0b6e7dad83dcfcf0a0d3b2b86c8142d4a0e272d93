@@ -1,0 +1,229 @@
+import { AuthMode, type CreateWaasSDKContainer, type IframeRequestMessages, type SecureStorageAdapter } from '@dynamic-labs-wallet/core';
+import { type MessageTransportWithDefaultOrigin, type RequestChannel } from '@dynamic-labs/message-transport';
+import { iframeMessageHandler } from '../../services/iframeMessageHandler.js';
+export declare class IframeManager {
+    protected chainName: string;
+    protected logger: import("@dynamic-labs/logger").Logger;
+    instanceId: string | null;
+    iframeDomain: string | null;
+    environmentId: string;
+    private readonly authToken;
+    private readonly authMode;
+    baseApiUrl: string;
+    baseMPCRelayApiUrl: string;
+    protected messageTransport: MessageTransportWithDefaultOrigin | null;
+    protected iframeMessageHandler: iframeMessageHandler | null;
+    /** Teardown function returned by setupMessageTransportBridge — detaches all
+     * listeners. Tracked so we can rebuild the bridge on iframe recovery without
+     * leaking listeners against the dead iframe. */
+    private cleanupBridge;
+    /** Unsubscribe for the onRecoveryRequested listener. Tracked so logout detaches
+     * it — otherwise the request channel's retry timer keeps firing recovery against
+     * a torn-down transport on the next session. */
+    private cleanupRecoverySubscription;
+    private static iframeLoadPromise;
+    protected iframe: HTMLIFrameElement | null;
+    private readonly debug;
+    /**
+     * Initial timeout (ms) for the iframe to complete its boot handshake.
+     * On each failed attempt the active timeout doubles (capped at 60_000ms — see
+     * {@link resetSharedWaasSDKContainer}) before the next retry.
+     *
+     * Default chosen to comfortably cover the iframe's P95 cold-start at the
+     * time of writing (~13s for global traffic on a 3 MB MPC WASM payload).
+     * Override via the `iframeLoadTimeout` constructor option when the host
+     * environment needs a different budget (e.g. constrained mobile webviews).
+     *
+     * Held as a static (not instance) field because the shared
+     * `iframeLoadPromise` is itself static — all instances in a page must
+     * agree on the active timeout for the retry doubling logic to remain
+     * coherent.
+     */
+    private static iframeLoadTimeout;
+    private static iframeLoadAttempts;
+    /**
+     * Number of retry attempts beyond the initial load attempt. The total
+     * number of attempts is `maxRetryAttempts + 1`. Override via the
+     * `maxRetryAttempts` constructor option.
+     */
+    private static maxRetryAttempts;
+    private static readonly minIframeLoadTimeout;
+    private static readonly maxIframeLoadTimeout;
+    private static readonly maxAllowedRetryAttempts;
+    baseClientKeysharesRelayApiUrl: string | undefined;
+    private static sharedWaasSDKContainer;
+    private static iframeInstanceCount;
+    sdkVersion: string | undefined;
+    /**
+     * Internal secure storage adapter for mobile TEE-backed storage.
+     * When set, key shares are stored in secure storage instead of localStorage.
+     * This is NOT part of the public API.
+     */
+    protected secureStorage?: SecureStorageAdapter;
+    /**
+     * Callback to retrieve a signed session ID lazily.
+     * Used as a reverse-channel handler: the iframe requests this value from the host.
+     * This is NOT part of the public API.
+     */
+    protected getSignedSessionIdCallback?: () => Promise<string>;
+    /**
+     * Request channel for handling messages from iframe (iframe → host)
+     * Used for secureStorage operations and signed session ID retrieval
+     */
+    protected iframeRequestChannel?: RequestChannel<Pick<IframeRequestMessages, 'getClientKeyShare' | 'setClientKeyShare' | 'getSignedSessionId' | 'notifyUnauthorized'>>;
+    private static readonly maxAdditionalTrustedOrigins;
+    private static readonly maxTrustedOriginStringLength;
+    private readonly additionalTrustedOrigins;
+    private waasSDKContainer;
+    private readonly createWaasSDKContainer;
+    /**
+     * Host callback invoked when the iframe reports a 401 (auth token rejected,
+     * e.g. forcibly revoked). Wired by the embedding SDK to trigger logout.
+     * NOT part of the public API — passed via internalOptions.
+     */
+    private readonly onUnauthorized?;
+    /** One-shot guard so a burst of 401 notifications triggers a single logout. */
+    private unauthorizedHandled;
+    constructor({ environmentId, baseApiUrl, baseMPCRelayApiUrl, chainName, sdkVersion, authMode, authToken, debug, baseClientKeysharesRelayApiUrl, additionalTrustedOrigins, iframeLoadTimeout, maxRetryAttempts, }: {
+        environmentId: string;
+        authMode: AuthMode;
+        authToken?: string;
+        baseApiUrl: string;
+        baseMPCRelayApiUrl: string;
+        chainName: string;
+        sdkVersion?: string;
+        debug?: boolean;
+        baseClientKeysharesRelayApiUrl?: string;
+        additionalTrustedOrigins?: readonly string[];
+        /**
+         * Initial timeout in ms for the iframe boot handshake. Defaults to
+         * {@link IframeManager.iframeLoadTimeout}. Clamped to
+         * [{@link IframeManager.minIframeLoadTimeout},
+         * {@link IframeManager.maxIframeLoadTimeout}].
+         */
+        iframeLoadTimeout?: number;
+        /**
+         * Number of retry attempts beyond the initial load attempt (total
+         * attempts = `maxRetryAttempts + 1`). Defaults to
+         * {@link IframeManager.maxRetryAttempts}. Clamped to
+         * [0, {@link IframeManager.maxAllowedRetryAttempts}].
+         */
+        maxRetryAttempts?: number;
+    }, internalOptions?: {
+        secureStorage?: SecureStorageAdapter;
+        getSignedSessionId?: () => Promise<string>;
+        createWaasSDKContainer?: CreateWaasSDKContainer;
+        onUnauthorized?: () => void | Promise<void>;
+    });
+    /**
+     * Apply constructor-provided overrides for the iframe load timeout and
+     * retry budget to the static singleton state. Writing to the statics keeps
+     * the timeout doubling logic in {@link resetSharedWaasSDKContainer}
+     * coherent across instances that share the same `iframeLoadPromise`.
+     *
+     * Invalid values (non-finite, out of range) are clamped or ignored rather
+     * than thrown — the iframe must still load even if a misconfigured host
+     * passes nonsense.
+     */
+    private static applyLoadTuning;
+    initialize(): Promise<void>;
+    /**
+     * this is called on class construction time
+     * @returns {Promise<void>} that resolves when the iframe is loaded and the message transport and iframe storage are initialized
+     */
+    initializeIframeCommunication(): Promise<void>;
+    /**
+     * initialize the iframe communication by awaiting the iframe load promise
+     * and initializing the message transport and iframe storage after iframe is successfully loaded
+     */
+    private doInitializeIframeCommunication;
+    private buildIframeUrlSearchParams;
+    /**
+     * Build the URL that the transport provider should load.
+     */
+    private buildIframeUrl;
+    /**
+     * Set up the bridge between the MessageTransport and the WaasSDKContainer.
+     * - Host-origin messages from the transport are forwarded to the sandbox host via sendMessage.
+     * - Messages received from the sandbox host are parsed and emitted into the transport.
+     *
+     * Returns a teardown function so callers can detach listeners when the
+     * sandbox host is rebuilt (needed by the recovery flow — the transport
+     * survives the rebuild and would otherwise accumulate stale listeners).
+     */
+    private setupWaasSDKContainerBridge;
+    /**
+     * initialize the message transport after iframe is successfully loaded
+     */
+    protected initializeMessageTransport(): Promise<void>;
+    /**
+     * Rebuild the sandbox host and its bridge while preserving the message transport
+     * (which owns the request channel's retry timer and recovery manager).
+     *
+     * Triggered by the request channel's recovery flow when an outgoing message
+     * goes 5s without an ack — typically because the iframe was torn down by a
+     * relogin or RN modal unmount and the host still holds a stale reference.
+     */
+    private recoverIframe;
+    /**
+     * Sets up message handlers for iframe → host requests (secureStorage and getSignedSessionId)
+     */
+    private setupIframeRequestHandlers;
+    /**
+     * Handler for the iframe's `notifyUnauthorized` reverse-channel request.
+     * Fires the host's logout callback once per session; further 401 bursts are
+     * ignored until the next session re-initializes this manager.
+     */
+    private handleNotifyUnauthorized;
+    /**
+     * Handler for getClientKeyShare requests from iframe
+     */
+    private handleGetClientKeyShare;
+    /**
+     * Handler for setClientKeyShare requests from iframe
+     */
+    private handleSetClientKeyShare;
+    /**
+     * Handler for removeClientKeyShare requests from iframe
+     */
+    private handleRemoveClientKeyShare;
+    /**
+     * Handler for getSignedSessionId requests from iframe
+     */
+    private handleGetSignedSessionId;
+    /**
+     * securely exchange the auth token with iframe securely
+     */
+    private initAuthToken;
+    /**
+     * Reset the shared provider and iframe load promise, and iframe instance count
+     */
+    private resetSharedWaasSDKContainer;
+    private loadIframe;
+    private createWaasSDKContainerLoadPromise;
+    private getIframeContext;
+    /**
+     * Load an iframe for a specific container
+     * @param {HTMLElement} container - The container to which the iframe will be attached
+     * @returns {Promise<HTMLIFrameElement>} that resolves when the iframe is loaded
+     */
+    private loadIframeForContainer;
+    /**
+     * Initializes the iframe display for a specific container.
+     *
+     * @param {HTMLElement} container - The container to which the iframe will be attached.
+     * @returns:
+     *   iframe: HTMLIFrameElement;
+     *   iframeDisplay: IframeDisplayChannelAdapter;
+     *   cleanup: () => void;
+     */
+    initializeIframeDisplayForContainer({ container }: {
+        container: HTMLElement;
+    }): Promise<{
+        iframe: HTMLIFrameElement;
+        iframeDisplay: iframeMessageHandler;
+        cleanup: () => void;
+    }>;
+    cleanup(): Promise<void>;
+}
+//# sourceMappingURL=IframeManager.d.ts.map

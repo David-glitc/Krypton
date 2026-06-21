@@ -1,0 +1,28 @@
+'use client'
+import { jsxs, jsx } from 'react/jsx-runtime';
+import { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import { getRegisteredDevices } from '@dynamic-labs-sdk/client';
+import { Typography } from '../../../../../components/Typography/Typography.js';
+import { TypographyButton } from '../../../../../components/TypographyButton/TypographyButton.js';
+import { ReactComponent as SvgChevronLeft } from '../../../../../shared/assets/chevron-left.js';
+import { ReactComponent as SvgMonitorAndDevice } from '../../../../../shared/assets/monitor-and-device.js';
+import '@dynamic-labs/iconic';
+import '../../../../../context/ViewContext/ViewContext.js';
+import { usePromise } from '../../../../../utils/hooks/usePromise/usePromise.js';
+import { useWidgetContext } from '../../../context/DynamicWidgetContext.js';
+
+const TrustedDevicesSection = () => {
+    const { t } = useTranslation();
+    const { setDynamicWidgetView } = useWidgetContext();
+    const { data: devices, isLoading } = usePromise(() => getRegisteredDevices(), { initialData: [] });
+    const handleClick = useCallback(() => setDynamicWidgetView('manage-trusted-devices'), [setDynamicWidgetView]);
+    if (isLoading || devices.length === 0) {
+        return null;
+    }
+    return (jsxs("div", { className: 'settings-view__body__section', children: [jsx("div", { className: 'settings-view__body__section__title', children: jsx(Typography, { copykey: 'dyn_device_management.trusted_devices_section_title', color: 'secondary', weight: 'medium', children: t('dyn_device_management.trusted_devices_section_title') }) }), jsx(TypographyButton, { dataTestId: 'manage-trusted-devices-button', onClick: handleClick, buttonClassName: 'settings-view__body__section__button', startSlot: 
+                // eslint-disable-next-line react/jsx-wrap-multilines
+                jsxs("div", { className: 'settings-view__body__section__button__start-slot', children: [jsx(SvgMonitorAndDevice, { className: 'settings-view__body__section__button__icon' }), jsx(Typography, { color: 'primary', weight: 'medium', copykey: 'dyn_device_management.manage_trusted_devices_button', children: t('dyn_device_management.manage_trusted_devices_button') })] }), endSlot: jsx(SvgChevronLeft, { className: 'settings-view__body__section__button__icon-secondary--rotate' }), showInternalLoading: false })] }));
+};
+
+export { TrustedDevicesSection };

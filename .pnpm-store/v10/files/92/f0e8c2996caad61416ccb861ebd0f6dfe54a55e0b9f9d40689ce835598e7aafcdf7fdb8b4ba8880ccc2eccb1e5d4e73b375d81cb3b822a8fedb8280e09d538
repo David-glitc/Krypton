@@ -1,0 +1,35 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+
+/* tslint:disable */
+function PrepareSigningRequestFromJSON(json) {
+    return PrepareSigningRequestFromJSONTyped(json);
+}
+function PrepareSigningRequestFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'assertBalanceForGasCost': !runtime.exists(json, 'assertBalanceForGasCost') ? undefined : json['assertBalanceForGasCost'],
+        'assertBalanceForTransferAmount': !runtime.exists(json, 'assertBalanceForTransferAmount') ? undefined : json['assertBalanceForTransferAmount'],
+    };
+}
+function PrepareSigningRequestToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'assertBalanceForGasCost': value.assertBalanceForGasCost,
+        'assertBalanceForTransferAmount': value.assertBalanceForTransferAmount,
+    };
+}
+
+exports.PrepareSigningRequestFromJSON = PrepareSigningRequestFromJSON;
+exports.PrepareSigningRequestFromJSONTyped = PrepareSigningRequestFromJSONTyped;
+exports.PrepareSigningRequestToJSON = PrepareSigningRequestToJSON;

@@ -1,0 +1,19 @@
+import { type ILogger } from '../types.js';
+interface ILoggerStatic extends ILogger {
+    setContext(context: Record<string, unknown>): void;
+    resetContext(): void;
+    configure(logger: ILogger): void;
+}
+/**
+ * Global static logger for SDK-internal use.
+ *
+ * Call `Logger.configure(impl)` once at startup to wire in your logger.
+ * Call `Logger.setContext(ctx)` to attach metadata merged into every log call.
+ *
+ * Parses variadic args: any Error instance is extracted and passed as the
+ * third argument; all plain objects are merged into a single context object.
+ * This matches Datadog's (message, context?, error?) calling convention.
+ */
+export declare const Logger: ILoggerStatic;
+export {};
+//# sourceMappingURL=logger.d.ts.map

@@ -1,0 +1,4 @@
+'use client'
+const isMidnightConnector = (connector) => Boolean(connector === null || connector === void 0 ? void 0 : connector.midnightNetworks);
+
+export { isMidnightConnector };

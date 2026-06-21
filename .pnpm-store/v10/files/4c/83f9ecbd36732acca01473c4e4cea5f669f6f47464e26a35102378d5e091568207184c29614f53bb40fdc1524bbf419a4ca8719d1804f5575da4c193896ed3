@@ -1,0 +1,95 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+var utils = require('@dynamic-labs/utils');
+var walletConnectorCore = require('@dynamic-labs/wallet-connector-core');
+require('@dynamic-labs-sdk/client/core');
+require('@dynamic-labs/sdk-api-core');
+require('eventemitter3');
+require('@dynamic-labs-sdk/client');
+require('../../../config/ApiEndpoint.cjs');
+require('@dynamic-labs/iconic');
+require('react/jsx-runtime');
+require('../../../context/ViewContext/ViewContext.cjs');
+var logger = require('../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('../../constants/colors.cjs');
+require('../../constants/values.cjs');
+require('../../../shared/consts/index.cjs');
+var errors = require('../../constants/errors.cjs');
+require('@dynamic-labs/multi-wallet');
+require('react-international-phone');
+var getVerifyArgs = require('../../functions/getVerifyArgs/getVerifyArgs.cjs');
+var updatePrimaryWalletId = require('../../functions/updatePrimaryWalletId/updatePrimaryWalletId.cjs');
+require('../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+var dynamicContextProps = require('../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../store/state/primaryWalletId/primaryWalletId.cjs');
+require('@dynamic-labs/locale');
+var wallets = require('../../../data/api/wallets/wallets.cjs');
+require('../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+require('../../../events/dynamicEvents.cjs');
+var useOnboardingCompleteUser = require('../../../client/extension/user/useOnboardingCompleteUser/useOnboardingCompleteUser.cjs');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var UserWalletsContext = require('../../../context/UserWalletsContext/UserWalletsContext.cjs');
+
+const useTransferWallet = () => {
+    const user = useOnboardingCompleteUser.useOnboardingCompleteUser();
+    const { displaySiweStatement, events } = dynamicContextProps.useDynamicSettings();
+    const environmentId = dynamicContextProps.useEnvironmentId();
+    const { primaryWallet } = useInternalDynamicContext.useInternalDynamicContext();
+    const { addedWalletsIds } = UserWalletsContext.useInternalUserWallets();
+    const updatePrimaryWallet = React.useCallback((walletConnector, user) => {
+        const credentialId = user.lastVerifiedCredentialId;
+        if (!credentialId)
+            return;
+        const shouldUpdatePrimary = !primaryWallet ||
+            walletConnector.key === primaryWallet.connector.key ||
+            (primaryWallet.connector.connectedChain === 'FLOW' &&
+                walletConnector.connectedChain === 'FLOW');
+        if (shouldUpdatePrimary) {
+            updatePrimaryWalletId.updatePrimaryWalletId(credentialId);
+        }
+    }, [primaryWallet]);
+    return React.useCallback((props) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        if (!user)
+            throw new utils.DynamicError(errors.USER_NOT_LOGGED_IN);
+        const { overrideSiweStatement, walletConnector } = props;
+        const args = Object.assign(Object.assign({}, props), { displaySiweStatement,
+            environmentId, siweStatement: overrideSiweStatement, walletProvider: walletConnectorCore.getWalletProvider(walletConnector) });
+        const verifyArgs = yield getVerifyArgs.getVerifyArgs(args);
+        if (events === null || events === void 0 ? void 0 : events.onSignedMessage) {
+            try {
+                events.onSignedMessage({
+                    messageToSign: verifyArgs.messageToSign,
+                    signedMessage: verifyArgs.signedMessage,
+                });
+            }
+            catch (error) {
+                logger.logger.warn('Error calling onSignedMessage callback:', error);
+            }
+        }
+        const userProfile = yield wallets.transferWallet(environmentId, verifyArgs);
+        if (!userProfile) {
+            throw new utils.DynamicError('Error transferring wallet.');
+        }
+        updatePrimaryWallet(walletConnector, userProfile);
+        const walletId = userProfile.lastVerifiedCredentialId;
+        if (walletId) {
+            addedWalletsIds.current.push(walletId);
+        }
+    }), [
+        addedWalletsIds,
+        displaySiweStatement,
+        environmentId,
+        events,
+        updatePrimaryWallet,
+        user,
+    ]);
+};
+
+exports.useTransferWallet = useTransferWallet;

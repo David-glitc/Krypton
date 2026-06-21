@@ -1,0 +1,249 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../../_virtual/_tslib.cjs');
+var utils = require('@dynamic-labs/utils');
+var walletConnectorCore = require('@dynamic-labs/wallet-connector-core');
+require('../../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var ErrorContext = require('../../../../context/ErrorContext/ErrorContext.cjs');
+var MockContext = require('../../../../context/MockContext/MockContext.cjs');
+var ViewContext = require('../../../../context/ViewContext/ViewContext.cjs');
+var dynamicEvents = require('../../../../events/dynamicEvents.cjs');
+var logger = require('../../../../shared/logger.cjs');
+var localStorage = require('../../../constants/localStorage.cjs');
+require('@dynamic-labs/sdk-api-core');
+require('../../../constants/values.cjs');
+require('@dynamic-labs/multi-wallet');
+require('react-international-phone');
+require('../../../constants/colors.cjs');
+require('@dynamic-labs/iconic');
+require('react');
+require('react/jsx-runtime');
+require('@dynamic-labs/wallet-book');
+require('../../../../shared/consts/index.cjs');
+require('../../../../store/state/nonce/nonce.cjs');
+var requiresTwoStepAuthentication = require('../../../functions/requiresTwoStepAuthentication/requiresTwoStepAuthentication.cjs');
+require('@dynamic-labs-sdk/client/core');
+require('eventemitter3');
+require('@dynamic-labs-sdk/client');
+require('../../../../config/ApiEndpoint.cjs');
+require('@dynamic-labs/locale');
+require('../../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../../store/state/primaryWalletId/primaryWalletId.cjs');
+require('../../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+require('../../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+var isSelectedWalletAlreadyConnected = require('../../../functions/isSelectedWalletAlreadyConnected/isSelectedWalletAlreadyConnected.cjs');
+
+const useHandleWalletItem = ({ allowAlreadyConnectedWallet, onQrCodeConnect, onConnectOnly, onCustodialWallet, onInstalledExtension, }) => {
+    const { setMultiWalletWidgetState, setShowAuthFlow, setSelectedWalletConnectorKey, walletConnectorOptions, setQrcodeUri, setDesktopUri, user, linkedWallets, setLegacyIsVerifying, } = useInternalDynamicContext.useInternalDynamicContext();
+    const { mockedSDK } = MockContext.useMockContext();
+    const { setError } = ErrorContext.useErrorContext();
+    const { pushView, replaceView } = ViewContext.useViewContext();
+    const handleCustodialWalletClick = (walletConnector) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        logger.logger.debug('handleCustodialWalletClick', walletConnector);
+        const twoStepAuthentication = requiresTwoStepAuthentication.requiresTwoStepAuthentication(walletConnector);
+        logger.logger.logVerboseTroubleshootingMessage('[handleCustodialWalletClick]', {
+            twoStepAuthentication,
+        });
+        setSelectedWalletConnectorKey({
+            chain: walletConnector.connectedChain,
+            key: walletConnector.key,
+        });
+        return onCustodialWallet({
+            requiresTwoStepAuthentication: twoStepAuthentication,
+            walletConnector,
+        });
+    });
+    const handleMobileWalletClick = (walletConnector) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        var _a;
+        logger.logger.debug('handleMobileWalletClick', walletConnector);
+        setSelectedWalletConnectorKey({
+            chain: walletConnector.connectedChain,
+            key: walletConnector.key,
+        });
+        // We need to set to LS when about to verify phantom wallet on mobile
+        // because the deeplink interrupts this code execution and then redirects back on a new tab.
+        // This resets all state (except for LS obviously). When we receive the phantom signature in this new tab,
+        // we can't tell whether it's supposed to be used to sign a message, verify a wallet sign in/link,
+        // or conclude a wallet transfer, which is why we need this LS variable: it will indicate whether it
+        // is a signature, authentication or transfer.
+        // Check method handleUserResponse in file useResponseHandlers, case 'signMessage'.
+        if (walletConnector.key === 'phantom') {
+            const currentState = utils.StorageService.getItem(localStorage.PHANTOM_SIGNATURE_STATE);
+            logger.logger.logVerboseTroubleshootingMessage('[useHandleWalletItem] Setting PHANTOM_SIGNATURE_STATE to awaiting_verification', { currentState });
+            utils.StorageService.setItem(localStorage.PHANTOM_SIGNATURE_STATE, {
+                loseOriginalAccountOnTransfer: (_a = currentState === null || currentState === void 0 ? void 0 : currentState.loseOriginalAccountOnTransfer) !== null && _a !== void 0 ? _a : false,
+                submittedAtTimestamp: new Date().toString(),
+                verificationType: 'awaiting_verification',
+            });
+        }
+        const onRetry = () => {
+            if (walletConnector.hasRetryDeeplinkConnection()) {
+                walletConnector.retryDeeplinkConnection();
+                return;
+            }
+            onConnectOnly({ shouldShowPendingConnectView: false, walletConnector });
+        };
+        pushView('mobile-wallet-redirect-view', { onRetry });
+        onConnectOnly({ shouldShowPendingConnectView: false, walletConnector });
+    });
+    const handleInstalledExtensionClick = (walletConnector) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        logger.logger.debug('handleInstalledExtensionClick', walletConnector);
+        setSelectedWalletConnectorKey({
+            chain: walletConnector.connectedChain,
+            key: walletConnector.key,
+        });
+        return onInstalledExtension({ walletConnector });
+    });
+    const handleUninstalledClick = (walletConnector) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        logger.logger.debug('handleUninstalledClick', walletConnector);
+        setSelectedWalletConnectorKey({
+            chain: walletConnector.connectedChain,
+            key: walletConnector.key,
+        });
+        if (!walletConnector.canConnectViaQrCode) {
+            replaceView('no-qr-not-installed');
+        }
+        else {
+            onQrCodeConnect({
+                getAddressOpts: {
+                    onDesktopUri: (uri) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+                        dynamicEvents.dynamicEvents.emit('walletConnectionQrCodeReady', uri);
+                        setDesktopUri(uri);
+                    }),
+                    onDisplayUri: (uri) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+                        dynamicEvents.dynamicEvents.emit('walletConnectionQrCodeReady', uri);
+                        setQrcodeUri(uri);
+                    }),
+                },
+                walletConnector,
+            });
+            replaceView('qr-code');
+        }
+        setError(undefined);
+    });
+    const handleAlreadyConnectedWallet = (walletConnector) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        logger.logger.debug('handleAlreadyConnectedWallet', walletConnector);
+        setShowAuthFlow(false);
+        const connectedAccounts = yield walletConnector.getConnectedAccounts();
+        const activeAccountAlreadyLinked = linkedWallets.find((wallet) => { var _a; return wallet.address.toLowerCase() === ((_a = connectedAccounts[0]) === null || _a === void 0 ? void 0 : _a.toLowerCase()); });
+        logger.logger.logVerboseTroubleshootingMessage('[handleAlreadyConnectedWallet]', {
+            activeAccountAlreadyLinked,
+            connectedAccounts,
+            linkedWallets,
+            walletConnectorKey: walletConnector.key,
+        });
+        setSelectedWalletConnectorKey({
+            chain: walletConnector.connectedChain,
+            key: walletConnector.key,
+        });
+        if (!activeAccountAlreadyLinked) {
+            setMultiWalletWidgetState('awaiting_signature', undefined, 'linking_new_wallet');
+            return;
+        }
+        const isTryingToUpdateUnknownWallet = activeAccountAlreadyLinked.connector.key === 'unknown';
+        if (isTryingToUpdateUnknownWallet) {
+            //prompt the user to connect and sign with the wallet
+            dynamicEvents.dynamicEvents.emit('triggerConnectAndSign', walletConnector);
+            return;
+        }
+        setMultiWalletWidgetState('awaiting_account_switch', 'linking_new_wallet');
+    });
+    const openWallet = (walletKey, handlers) => {
+        var _a;
+        const { openMobileWallet = handleMobileWalletClick, openCustodialWallet = handleCustodialWalletClick, openExtensionWallet = handleInstalledExtensionClick, } = handlers || {};
+        const walletConnector = (_a = walletConnectorOptions.find((wallet) => wallet.key === walletKey)) === null || _a === void 0 ? void 0 : _a.walletConnector;
+        if (!walletConnector)
+            return;
+        if (utils.isMobile()) {
+            openMobileWallet(walletConnector);
+        }
+        else if (walletConnector.canConnectViaCustodialService) {
+            openCustodialWallet(walletConnector);
+        }
+        else if (walletConnector.isInstalledOnBrowser()) {
+            openExtensionWallet(walletConnector);
+        }
+    };
+    const handleWalletItemClick = (wallet) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        const { walletConnector, isInstalledOnBrowser } = wallet;
+        const shouldEndWalletConnectorSession = walletConnector.connectedChain === 'FLOW' ||
+            walletConnectorCore.isPhantomRedirectConnector(walletConnector) ||
+            // because some wallet connectors only supports one connection at a time,
+            // we need to end the session (disconnect) when the user selects
+            // a different wallet to connect with
+            // a new connection is established a few steps further down
+            !walletConnector.canHandleMultipleConnections;
+        logger.logger.logVerboseTroubleshootingMessage('[handleWalletItemClick]', {
+            mockedSDK,
+            shouldEndWalletConnectorSession,
+            wallet,
+        });
+        if (mockedSDK)
+            return;
+        if (shouldEndWalletConnectorSession) {
+            yield walletConnector.endSession();
+        }
+        setLegacyIsVerifying(false);
+        // Historical MM-only account-picker hook point. Until #11056 the dedicated
+        // MetaMaskConnector overrode chooseAccountsToConnect() as a no-op
+        // (`return []`), so this block never prompted. #11056 deleted that
+        // connector and both replacement paths (metamask-evm SDK connector and the
+        // generic injected fallback) inherit the base implementation, which calls
+        // wallet_requestPermissions and ALWAYS pops the MetaMask approval UI —
+        // blocking flows that re-connect an already-connected MM (external-wallet
+        // funding's duplicate-wallet detection, account-switch flows) on a popup
+        // that never resolves. Restore the long-standing no-op behavior by not
+        // calling it at all.
+        const supportsMultiAccount = walletConnectorCore.connectorRequiresDisconnectionForNewConnection(walletConnector);
+        const isNotInstalledWithQrCodeSupport = walletConnector.isWalletConnect ||
+            (!walletConnector.isInstalledOnBrowser() &&
+                walletConnector.canConnectViaQrCode);
+        logger.logger.logVerboseTroubleshootingMessage('[handleWalletItemClick] isNotInstalledWithQrCodeSupport', {
+            isNotInstalledWithQrCodeSupport,
+            walletConnectorKey: walletConnector.key,
+        });
+        if (!allowAlreadyConnectedWallet &&
+            isSelectedWalletAlreadyConnected.isSelectedWalletAlreadyConnected(linkedWallets, walletConnector, user) &&
+            walletConnector.connectedChain !== 'FLOW' &&
+            !supportsMultiAccount &&
+            !isNotInstalledWithQrCodeSupport) {
+            handleAlreadyConnectedWallet(walletConnector);
+        }
+        else if (walletConnector.canConnectViaCustodialService) {
+            // providers like coinbase, blocto and dapper
+            handleCustodialWalletClick(walletConnector);
+        }
+        else if (utils.isMobile()) {
+            // mobile wallets
+            if (walletConnector.key.startsWith('walletconnect')) {
+                pushView('wallet-connect-mobile-wallets-list');
+            }
+            else {
+                handleMobileWalletClick(walletConnector);
+            }
+        }
+        else if (isInstalledOnBrowser) {
+            // browser extensions or injected wallets
+            handleInstalledExtensionClick(walletConnector);
+        }
+        else {
+            // wallet requiring a qr code (wallet connect/coinbase wallet)
+            handleUninstalledClick(walletConnector);
+        }
+    });
+    return {
+        handleAlreadyConnectedWallet,
+        handleCustodialWalletClick,
+        handleInstalledExtensionClick,
+        handleMobileWalletClick,
+        handleUninstalledClick,
+        handleWalletItemClick,
+        openWallet,
+    };
+};
+
+exports.useHandleWalletItem = useHandleWalletItem;

@@ -1,0 +1,50 @@
+import { exists } from '../runtime.js';
+
+/* tslint:disable */
+/**
+* @export
+* @enum {string}
+*/
+var SwapStatusResponseStatusEnum;
+(function (SwapStatusResponseStatusEnum) {
+    SwapStatusResponseStatusEnum["Pending"] = "PENDING";
+    SwapStatusResponseStatusEnum["Done"] = "DONE";
+    SwapStatusResponseStatusEnum["Failed"] = "FAILED";
+    SwapStatusResponseStatusEnum["NotFound"] = "NOT_FOUND";
+})(SwapStatusResponseStatusEnum || (SwapStatusResponseStatusEnum = {}));
+function SwapStatusResponseFromJSON(json) {
+    return SwapStatusResponseFromJSONTyped(json);
+}
+function SwapStatusResponseFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'error': !exists(json, 'error') ? undefined : json['error'],
+        'explorerLink': !exists(json, 'explorerLink') ? undefined : json['explorerLink'],
+        'message': !exists(json, 'message') ? undefined : json['message'],
+        'receivingTxLink': !exists(json, 'receivingTxLink') ? undefined : json['receivingTxLink'],
+        'sendingTxLink': !exists(json, 'sendingTxLink') ? undefined : json['sendingTxLink'],
+        'status': json['status'],
+        'substatus': !exists(json, 'substatus') ? undefined : json['substatus'],
+    };
+}
+function SwapStatusResponseToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'error': value.error,
+        'explorerLink': value.explorerLink,
+        'message': value.message,
+        'receivingTxLink': value.receivingTxLink,
+        'sendingTxLink': value.sendingTxLink,
+        'status': value.status,
+        'substatus': value.substatus,
+    };
+}
+
+export { SwapStatusResponseFromJSON, SwapStatusResponseFromJSONTyped, SwapStatusResponseStatusEnum, SwapStatusResponseToJSON };

@@ -1,0 +1,15 @@
+import type { DynamicClient } from '../../../../client/types';
+import type { WalletProvider } from '../../../wallets/walletProvider';
+export type EnsureCorrectActiveNetworkParams = {
+    requiredNetworkId: string;
+    walletProvider: WalletProvider;
+};
+/**
+ * Ensures the wallet provider is on the correct active network if possible.
+ * If the wallet provider is not on the correct active network, it will try to switch to the correct active network.
+ * It's not a blocker, so it will just log the error and skip the step if it fails.
+ *
+ * @not-instrumented
+ */
+export declare const ensureCorrectActiveNetwork: ({ requiredNetworkId, walletProvider }: EnsureCorrectActiveNetworkParams, client: DynamicClient) => Promise<void>;
+//# sourceMappingURL=ensureCorrectActiveNetwork.d.ts.map

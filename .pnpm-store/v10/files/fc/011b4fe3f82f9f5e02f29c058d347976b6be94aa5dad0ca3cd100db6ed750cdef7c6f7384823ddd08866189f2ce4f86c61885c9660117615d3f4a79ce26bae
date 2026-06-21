@@ -1,0 +1,17 @@
+import type { IDynamicContext } from '../../../context/DynamicContext/types/IDynamicContext';
+import type { useInternalUserWallets } from '../../../context/UserWalletsContext';
+import { WalletGroups, WalletOption, WalletsFilter } from '../../../shared/types';
+export type BuildWalletsListParams = Pick<IDynamicContext, 'bridgeChainsToConnect' | 'defaultNumberOfWalletsToShow' | 'multiWallet' | 'recommendedWallets' | 'selectedTabSettings' | 'walletsFilter'> & {
+    isWalletConnectList: boolean;
+    lastUsedWalletKey: string | undefined;
+    searchFilter: string | undefined;
+    userWallets: ReturnType<typeof useInternalUserWallets>['userWallets'];
+    viewWalletsFilter: WalletsFilter | undefined;
+    walletConnectorOptions: WalletOption[];
+    walletGroups: WalletGroups;
+};
+export declare const buildWalletsList: ({ bridgeChainsToConnect, defaultNumberOfWalletsToShow, isWalletConnectList, lastUsedWalletKey, multiWallet, recommendedWallets, searchFilter, selectedTabSettings, userWallets, viewWalletsFilter, walletConnectorOptions, walletGroups, walletsFilter, }: BuildWalletsListParams) => {
+    numberOfWallets: number;
+    recommendedWallets: import("../../../shared/types").RecommendedWallet[] | undefined;
+    walletsList: WalletOption[];
+};

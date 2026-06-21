@@ -1,0 +1,47 @@
+import { BaseWalletAdapter, WalletName, WalletReadyState, SendTransactionOptions } from '@solana/wallet-adapter-base';
+import { PublicKey, Transaction, VersionedTransaction, TransactionInstruction, TransactionSignature } from '@solana/web3.js';
+export declare const LazorkitWalletName: WalletName<"Lazorkit Wallet">;
+export interface LazorkitAdapterConfig {
+    rpcUrl: string;
+    portalUrl: string;
+    paymasterConfig: {
+        paymasterUrl: string;
+        apiKey?: string;
+    };
+    clusterSimulation?: 'devnet' | 'mainnet';
+}
+export declare const DEFAULT_CONFIG: LazorkitAdapterConfig;
+export interface LazorkitSendTransactionOptions extends SendTransactionOptions {
+    extraInstructions?: TransactionInstruction[];
+}
+export declare class LazorkitWalletAdapter extends BaseWalletAdapter {
+    name: WalletName<'Lazorkit Wallet'>;
+    url: string;
+    icon: string;
+    supportedTransactionVersions: ReadonlySet<any>;
+    private _publicKey;
+    private _readyState;
+    private _connecting;
+    private _wallet;
+    private _config;
+    constructor(config?: Partial<LazorkitAdapterConfig>);
+    get publicKey(): PublicKey | null;
+    get connecting(): boolean;
+    get readyState(): WalletReadyState;
+    connect(): Promise<void>;
+    private _updateWalletState;
+    private _createDialogManager;
+    private _ensureWalletOnChain;
+    disconnect(): Promise<void>;
+    sendTransaction(transaction: Transaction | VersionedTransaction): Promise<TransactionSignature>;
+    signTransaction<T extends Transaction | VersionedTransaction>(_transaction: T): Promise<T>;
+    signAllTransactions<T extends Transaction | VersionedTransaction>(_transactions: T[]): Promise<T[]>;
+    signMessage(message: Uint8Array): Promise<Uint8Array>;
+    private _initializeClients;
+    private _prepareInstructions;
+    private _buildAuthorizationMessage;
+    private _signWithDialog;
+    private _executeSmartWalletTransaction;
+    private _sendToPaymaster;
+}
+//# sourceMappingURL=adapter.d.ts.map

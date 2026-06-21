@@ -1,0 +1,1 @@
+{"version":3,"file":"secp256r1.d.ts","sourceRoot":"","sources":["../../../../core/contract/webauthn/secp256r1.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,MAAM,MAAM,mBAAmB,CAAC;AAC5C,OAAO,EAAE,MAAM,EAAE,MAAM,QAAQ,CAAC;AAuChC,wBAAgB,sBAAsB,CACpC,OAAO,EAAE,UAAU,EACnB,MAAM,EAAE,MAAM,EAAE,EAChB,SAAS,EAAE,MAAM,CAAC,WAAW,CAAC,GAC7B,MAAM,CAAC,IAAI,CAAC,sBAAsB,CAiDpC"}

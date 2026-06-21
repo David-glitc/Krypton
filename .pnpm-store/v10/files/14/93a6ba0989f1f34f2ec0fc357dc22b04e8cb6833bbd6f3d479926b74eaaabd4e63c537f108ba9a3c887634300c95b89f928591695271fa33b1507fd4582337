@@ -1,0 +1,23 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var jsxRuntime = require('react/jsx-runtime');
+var React = require('react');
+var createProviderHook = require('../../shared/utils/functions/createProviderHook/createProviderHook.cjs');
+
+const WalletContext = React.createContext(undefined);
+const WalletContextProvider = ({ children, }) => {
+    const [isLoadingEmbeddedWallet, setIsLoadingEmbeddedWallet] = React.useState(false);
+    const value = React.useMemo(() => ({
+        isLoadingEmbeddedWallet,
+        setIsLoadingEmbeddedWallet,
+    }), [isLoadingEmbeddedWallet]);
+    return (jsxRuntime.jsx(WalletContext.Provider, { value: value, children: children }));
+};
+const useWalletContext = createProviderHook.createProviderHook(WalletContext, 'WalletContextProvider');
+
+exports.WalletContext = WalletContext;
+exports.WalletContextProvider = WalletContextProvider;
+exports.useWalletContext = useWalletContext;

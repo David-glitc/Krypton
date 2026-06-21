@@ -1,0 +1,3 @@
+import { DEFAULT_CONFIG } from './adapter';
+export declare function registerLazorkitWallet(config?: Partial<typeof DEFAULT_CONFIG>): void;
+//# sourceMappingURL=standard.d.ts.map

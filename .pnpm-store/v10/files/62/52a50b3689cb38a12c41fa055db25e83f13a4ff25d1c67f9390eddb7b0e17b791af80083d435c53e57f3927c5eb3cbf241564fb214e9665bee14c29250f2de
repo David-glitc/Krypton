@@ -1,0 +1,9 @@
+import { BaseError } from './base';
+type ReactNativeOnlyErrorParams = {
+    apiName: string;
+};
+export declare class ReactNativeOnlyError extends BaseError {
+    constructor({ apiName }: ReactNativeOnlyErrorParams);
+}
+export {};
+//# sourceMappingURL=ReactNativeOnlyError.d.ts.map

@@ -1,0 +1,37 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var ChainEnum = require('./ChainEnum.cjs');
+
+/* tslint:disable */
+function WalletSanctionsResponseFromJSON(json) {
+    return WalletSanctionsResponseFromJSONTyped(json);
+}
+function WalletSanctionsResponseFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'walletAddress': json['walletAddress'],
+        'chain': ChainEnum.ChainEnumFromJSON(json['chain']),
+        'isBlocked': json['isBlocked'],
+    };
+}
+function WalletSanctionsResponseToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'walletAddress': value.walletAddress,
+        'chain': ChainEnum.ChainEnumToJSON(value.chain),
+        'isBlocked': value.isBlocked,
+    };
+}
+
+exports.WalletSanctionsResponseFromJSON = WalletSanctionsResponseFromJSON;
+exports.WalletSanctionsResponseFromJSONTyped = WalletSanctionsResponseFromJSONTyped;
+exports.WalletSanctionsResponseToJSON = WalletSanctionsResponseToJSON;

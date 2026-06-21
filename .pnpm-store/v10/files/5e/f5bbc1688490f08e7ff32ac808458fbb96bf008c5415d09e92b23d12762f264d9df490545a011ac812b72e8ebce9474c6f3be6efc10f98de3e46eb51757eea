@@ -1,0 +1,8 @@
+export type GoogleDriveBackupAccessError = Error;
+/**
+ * Type-guard for Google Drive backup failures caused by missing/insufficient
+ * OAuth scopes (or otherwise denied access). Recover by re-prompting consent
+ * via `linkSocialAccount(ProviderEnum.Google, { forcePopup: true })` and
+ * retrying the backup.
+ */
+export declare const isInsufficientGoogleDriveScopesError: (err: unknown) => err is Error;

@@ -1,0 +1,33 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var ChainDestinationConfig = require('./ChainDestinationConfig.cjs');
+
+/* tslint:disable */
+function DestinationConfigInputFromJSON(json) {
+    return DestinationConfigInputFromJSONTyped(json);
+}
+function DestinationConfigInputFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'destinations': (json['destinations'].map(ChainDestinationConfig.ChainDestinationConfigFromJSON)),
+    };
+}
+function DestinationConfigInputToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'destinations': (value.destinations.map(ChainDestinationConfig.ChainDestinationConfigToJSON)),
+    };
+}
+
+exports.DestinationConfigInputFromJSON = DestinationConfigInputFromJSON;
+exports.DestinationConfigInputFromJSONTyped = DestinationConfigInputFromJSONTyped;
+exports.DestinationConfigInputToJSON = DestinationConfigInputToJSON;

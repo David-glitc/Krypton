@@ -1,0 +1,4 @@
+import type { DynamicClient } from '../../../client/types';
+/** @not-instrumented */
+export declare const syncStateWithStorage: (client: DynamicClient) => void;
+//# sourceMappingURL=syncStateWithStorage.d.ts.map

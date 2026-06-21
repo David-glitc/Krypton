@@ -1,0 +1,28 @@
+import { type GetAddressOpts } from '@dynamic-labs/wallet-connector-core';
+import { SolanaWalletConnector, type SolanaWalletConnectorOpts, type ISolana } from '@dynamic-labs/solana-core';
+/**
+ * MetaMask wallet connector for Dynamic (Solana).
+ * Uses @metamask/connect-solana SDK via wallet-standard.
+ */
+export declare class MetaMaskSolanaWalletConnector extends SolanaWalletConnector {
+    private signer;
+    name: string;
+    overrideKey: string;
+    canConnectViaQrCode: boolean;
+    canHandleMultipleConnections: boolean;
+    constructor(props: SolanaWalletConnectorOpts);
+    /**
+     * Dynamic uses this to decide whether to show "install extension" or QR code.
+     * Returns true only when a real MetaMask injected provider is present.
+     */
+    isInstalledOnBrowser(): boolean;
+    init(): Promise<void>;
+    setupEventListeners(): void;
+    connect(): Promise<void>;
+    getSigner(): Promise<ISolana | undefined>;
+    signMessage(messageToSign: string): Promise<string | undefined>;
+    getAddress(opts?: GetAddressOpts): Promise<string | undefined>;
+    getConnectedAccounts(): Promise<string[]>;
+    endSession(): Promise<void>;
+    private buildSigner;
+}

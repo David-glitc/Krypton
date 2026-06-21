@@ -1,0 +1,190 @@
+'use client'
+import { findWalletBookWalletByNameAndChain } from '@dynamic-labs/wallet-book';
+import { getWalletMetadataFromWalletBook, walletConnectorEvents } from '@dynamic-labs/wallet-connector-core';
+import { sanitizeName } from '@dynamic-labs/utils';
+import { CoinbaseSolana } from '../CoinbaseSolana/CoinbaseSolana.js';
+import { Phantom } from '../Phantom/Phantom.js';
+import { Solflare } from '../Solflare/Solflare.js';
+import { logger } from '../utils/logger.js';
+import { getConnectorConstructorInjectedWallet } from '../utils/getConnectorConstructorInjectedWallet/getConnectorConstructorInjectedWallet.js';
+import { BackpackSol } from './BackpackSol/BackpackSol.js';
+import { getConnectorConstructorForWalletStandardWallet } from './walletStandard/getConnectorConstructorForWalletStandardWallet/getConnectorConstructorForWalletStandardWallet.js';
+import { getWalletStandardWallets } from './walletStandard/getWalletStandardWallets/getWalletStandardWallets.js';
+import { hasAllWalletStandardRequiredFeatures } from './walletStandard/hasAllWalletStandardRequiredFeatures/hasAllWalletStandardRequiredFeatures.js';
+
+/**
+ * Teardown for the active wallet-standard discovery (register listener + poll).
+ * Recreated on each fetchInjectedWalletConnectors call.
+ */
+let teardownSolanaWalletStandardDiscovery = null;
+// Some extensions (e.g. Backpack/Eden/Solflare racing over the page) inject
+// after the initial snapshot, and a one-shot register listener can miss an
+// announcement that fires before we subscribe. Polling the wallet-standard
+// registry for a short window catches those late arrivals without a refresh.
+const SOLANA_WALLET_STANDARD_POLL_INTERVAL_MS = 300;
+const SOLANA_WALLET_STANDARD_POLL_DURATION_MS = 5000;
+const injectedWalletOverrides = [
+    CoinbaseSolana,
+    BackpackSol,
+    Solflare,
+];
+const walletsWithCustomConnectors = [
+    'coinbasesolana',
+    'phantom',
+    'phantomledger',
+    'backpacksol',
+    'solflare',
+    'metamasksol',
+];
+// Maps the wallet-standard name each override wallet registers with to its
+// custom connector. Wallets in this map are rejected by
+// shouldAddWalletStandardConnector, so when one registers late (e.g. on
+// prerendered pages where extensions inject after the SDK snapshot) its
+// connector entry would otherwise keep a stale isInstalledOnBrowser=false
+// forever; re-emitting the override constructor refreshes it.
+const injectedWalletOverridesByWalletStandardName = {
+    Backpack: BackpackSol,
+    'Coinbase Wallet': CoinbaseSolana,
+    Phantom: Phantom,
+    Solflare: Solflare,
+};
+const shouldAddWalletStandardConnector = (wallet, walletBook, authMode) => {
+    var _a;
+    const { name } = wallet;
+    const chain = 'sol';
+    const connectorKey = `${sanitizeName(name)}${chain}`;
+    logger.logVerboseTroubleshootingMessage('[SOL shouldAddWalletStandardConnector]', name, chain, connectorKey, wallet.features);
+    const shouldHandleWalletFromWalletBook = ([key, wallet]) => {
+        var _a, _b, _c, _d, _e, _f;
+        const hasMatchingKey = key === connectorKey;
+        const needsCustomConnector = walletsWithCustomConnectors.includes(connectorKey);
+        const hasMatchingNameAndChain = wallet.name === name && ((_b = (_a = wallet.injectedConfig) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.chain) === chain;
+        // if the wallet supports wallet standard, we want to add the wallet standard connector
+        // and not handle it as a default wallet-book wallet
+        const isNotWalletStandard = !((_f = (_e = (_d = (_c = wallet.injectedConfig) === null || _c === void 0 ? void 0 : _c[0]) === null || _d === void 0 ? void 0 : _d.walletStandard) === null || _e === void 0 ? void 0 : _e.features) === null || _f === void 0 ? void 0 : _f.length);
+        return ((hasMatchingKey || needsCustomConnector || hasMatchingNameAndChain) &&
+            isNotWalletStandard);
+    };
+    const shouldHandleFromWalletBook = Object.entries((_a = walletBook === null || walletBook === void 0 ? void 0 : walletBook.wallets) !== null && _a !== void 0 ? _a : {}).find(shouldHandleWalletFromWalletBook);
+    const hasAllFeatures = hasAllWalletStandardRequiredFeatures(wallet, authMode);
+    logger.logVerboseTroubleshootingMessage('[SOL shouldAddWalletStandardConnector]', {
+        hasAllFeatures,
+        shouldAdd: !shouldHandleFromWalletBook && hasAllFeatures,
+        shouldHandleFromWalletBook,
+    });
+    return !shouldHandleFromWalletBook && hasAllFeatures;
+};
+const emitWalletStandardConnector = (wallet, walletBook) => {
+    var _a, _b;
+    logger.logVerboseTroubleshootingMessage('[SOL fetchInjectedWalletConnectors] Emitting providerInjected for wallet-standard wallet', wallet.name);
+    const walletBookWallet = findWalletBookWalletByNameAndChain(walletBook, wallet.name, 'sol');
+    const walletKey = walletBookWallet
+        ? (_b = Object.entries((_a = walletBook === null || walletBook === void 0 ? void 0 : walletBook.wallets) !== null && _a !== void 0 ? _a : {}).find(([, entry]) => entry === walletBookWallet)) === null || _b === void 0 ? void 0 : _b[0]
+        : undefined;
+    const walletBookMetadata = walletBookWallet &&
+        getWalletMetadataFromWalletBook({
+            walletBook,
+            walletBookWallet,
+            walletKey: walletKey !== null && walletKey !== void 0 ? walletKey : `${sanitizeName(wallet.name)}sol`,
+        });
+    const injectedConnectorConstructor = getConnectorConstructorForWalletStandardWallet(wallet, walletBookMetadata, walletKey);
+    walletConnectorEvents.emit('providerInjected', {
+        injectedConnectorConstructor,
+    });
+};
+const setupSolanaWalletStandardDiscovery = (walletBook, authMode) => {
+    // check to ensure this method doesn't run with SSR
+    if (typeof window === 'undefined') {
+        return;
+    }
+    teardownSolanaWalletStandardDiscovery === null || teardownSolanaWalletStandardDiscovery === void 0 ? void 0 : teardownSolanaWalletStandardDiscovery();
+    // Tracks wallets already surfaced so neither the register listener nor the
+    // poll emits a duplicate providerInjected for the same wallet.
+    const discoveredWallets = new Set();
+    const handleWallet = (wallet) => {
+        if (discoveredWallets.has(wallet.name)) {
+            return;
+        }
+        const overrideConstructor = injectedWalletOverridesByWalletStandardName[wallet.name];
+        if (overrideConstructor) {
+            discoveredWallets.add(wallet.name);
+            logger.logVerboseTroubleshootingMessage('[SOL fetchInjectedWalletConnectors] Emitting providerInjected for late-registered custom connector wallet', wallet.name);
+            walletConnectorEvents.emit('providerInjected', {
+                injectedConnectorConstructor: overrideConstructor,
+            });
+            return;
+        }
+        if (!shouldAddWalletStandardConnector(wallet, walletBook, authMode)) {
+            return;
+        }
+        discoveredWallets.add(wallet.name);
+        emitWalletStandardConnector(wallet, walletBook);
+    };
+    const { on, wallets: initialWallets } = getWalletStandardWallets();
+    // Wallets already present are returned synchronously by
+    // fetchInjectedWalletConnectors, so seed them as discovered (no emit needed);
+    // the listener and poll then only fire for wallets that appear afterwards.
+    initialWallets.forEach((wallet) => {
+        if (injectedWalletOverridesByWalletStandardName[wallet.name] ||
+            shouldAddWalletStandardConnector(wallet, walletBook, authMode)) {
+            discoveredWallets.add(wallet.name);
+        }
+    });
+    const removeRegisterListener = on('register', handleWallet);
+    const pollForNewWallets = () => {
+        getWalletStandardWallets().wallets.forEach(handleWallet);
+    };
+    const pollIntervalId = setInterval(pollForNewWallets, SOLANA_WALLET_STANDARD_POLL_INTERVAL_MS);
+    const pollTimeoutId = setTimeout(() => {
+        clearInterval(pollIntervalId);
+    }, SOLANA_WALLET_STANDARD_POLL_DURATION_MS);
+    teardownSolanaWalletStandardDiscovery = () => {
+        removeRegisterListener === null || removeRegisterListener === void 0 ? void 0 : removeRegisterListener();
+        clearInterval(pollIntervalId);
+        clearTimeout(pollTimeoutId);
+    };
+};
+const fetchInjectedWalletConnectors = ({ walletBook, authMode, }) => {
+    var _a;
+    setupSolanaWalletStandardDiscovery(walletBook, authMode);
+    const walletBookConnectors = Object.entries((_a = walletBook === null || walletBook === void 0 ? void 0 : walletBook.wallets) !== null && _a !== void 0 ? _a : {})
+        .filter(([key, wallet]) => {
+        var _a, _b, _c;
+        const injectedConfig = (_a = wallet.injectedConfig) === null || _a === void 0 ? void 0 : _a.find((config) => config.chain === 'sol');
+        const isSolanaWallet = Boolean(injectedConfig);
+        // should filter out wallets that require a custom connector or wallets that support wallet standard,
+        // since they are already handled automatically with the wallet standard connector
+        const shouldBeFiltered = walletsWithCustomConnectors.includes(key) ||
+            ((_c = (_b = injectedConfig === null || injectedConfig === void 0 ? void 0 : injectedConfig.walletStandard) === null || _b === void 0 ? void 0 : _b.features) === null || _c === void 0 ? void 0 : _c.length);
+        return isSolanaWallet && !shouldBeFiltered;
+    })
+        .map(([key, wallet]) => getConnectorConstructorInjectedWallet({ key, wallet, walletBook }));
+    const { wallets: walletStandardWallets } = getWalletStandardWallets();
+    const walletStandardConnectors = walletStandardWallets
+        .filter((wallet) => shouldAddWalletStandardConnector(wallet, walletBook, authMode))
+        .map((wallet) => {
+        var _a, _b;
+        const [walletBookKey, walletBookWallet] = (_b = Object.entries((_a = walletBook === null || walletBook === void 0 ? void 0 : walletBook.wallets) !== null && _a !== void 0 ? _a : {}).find(([, walletBookEntry]) => {
+            var _a, _b;
+            return walletBookEntry.name === wallet.name &&
+                ((_b = (_a = walletBookEntry.injectedConfig) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.chain) === 'sol';
+        })) !== null && _b !== void 0 ? _b : [];
+        // if the wallet book wallet is found, we want to use it to get the metadata
+        // to merge with the wallet standard metadata, specially the supportedHardwareWallets prop
+        const walletBookMetadata = walletBookWallet &&
+            getWalletMetadataFromWalletBook({
+                walletBook,
+                walletBookWallet,
+                // walletBookKey and walletBookWallet come from the same find() tuple,
+                // so walletBookKey is always defined here; the fallback satisfies the
+                // typed walletKey but is unreachable at runtime.
+                /* istanbul ignore next */
+                walletKey: walletBookKey !== null && walletBookKey !== void 0 ? walletBookKey : `${sanitizeName(wallet.name)}sol`,
+            });
+        return getConnectorConstructorForWalletStandardWallet(wallet, walletBookMetadata, walletBookKey);
+    });
+    logger.logVerboseTroubleshootingMessage('[SOL fetchInjectedWalletConnectors] walletStandardConnectors', walletStandardConnectors.map((w) => w.name));
+    return [...walletBookConnectors, ...walletStandardConnectors];
+};
+
+export { fetchInjectedWalletConnectors, injectedWalletOverrides };

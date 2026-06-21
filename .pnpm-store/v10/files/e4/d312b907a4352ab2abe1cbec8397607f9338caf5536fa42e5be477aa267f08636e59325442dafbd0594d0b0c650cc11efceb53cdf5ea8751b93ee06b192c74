@@ -1,0 +1,24 @@
+'use client'
+import { useCallback, useMemo } from 'react';
+import '../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { useWidgetContext } from '../../../widgets/DynamicWidget/context/DynamicWidgetContext.js';
+
+/**
+ * Opens a view that lets the user choose between funding methods.
+ *
+ * Must be logged in to use.
+ */
+const useOpenFundingOptions = () => {
+    const { setDynamicWidgetView } = useWidgetContext();
+    const { setShowDynamicUserProfile } = useInternalDynamicContext();
+    const openFundingOptions = useCallback(() => {
+        setDynamicWidgetView('choose-wallet-funding-method');
+        setShowDynamicUserProfile(true);
+    }, [setDynamicWidgetView, setShowDynamicUserProfile]);
+    return useMemo(() => ({
+        openFundingOptions,
+    }), [openFundingOptions]);
+};
+
+export { useOpenFundingOptions };

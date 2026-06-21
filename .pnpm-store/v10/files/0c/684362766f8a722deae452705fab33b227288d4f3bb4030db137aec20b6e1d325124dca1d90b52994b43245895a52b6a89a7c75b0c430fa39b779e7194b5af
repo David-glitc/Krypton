@@ -1,0 +1,2 @@
+export { getChainFromWalletBookIdentifier } from './getChainFromWalletBookIdentifier';
+//# sourceMappingURL=index.d.ts.map

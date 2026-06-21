@@ -1,0 +1,82 @@
+'use client'
+import { __awaiter } from '../../../../../_virtual/_tslib.js';
+import { useCallback } from 'react';
+import { UnprocessableEntityErrorCode } from '@dynamic-labs/sdk-api-core';
+import { DynamicError } from '@dynamic-labs/utils';
+import '../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import '@dynamic-labs-sdk/client';
+import '@dynamic-labs-sdk/client/core';
+import 'eventemitter3';
+import '../../../config/ApiEndpoint.js';
+import '@dynamic-labs/iconic';
+import '@dynamic-labs/wallet-connector-core';
+import 'react/jsx-runtime';
+import '../../../context/ViewContext/ViewContext.js';
+import '../../../shared/logger.js';
+import '@dynamic-labs/wallet-book';
+import '../../constants/colors.js';
+import '../../constants/values.js';
+import '../../../shared/consts/index.js';
+import '@dynamic-labs/multi-wallet';
+import 'react-international-phone';
+import '../../../store/state/nonce/nonce.js';
+import { getEnvironmentId } from '../../../store/state/dynamicContextProps/dynamicContextProps.js';
+import '../../../store/state/primaryWalletId/primaryWalletId.js';
+import '../../../store/state/connectedWalletsInfo/connectedWalletsInfo.js';
+import '../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.js';
+import '../../../events/dynamicEvents.js';
+import { getUserExchangeAccounts, getExchangeAccountTransactions, getExchangeTransferDestinations, createExchangeAccountTransfer } from '../../../data/api/exchangeAccounts/exchangeAccounts.js';
+import '@dynamic-labs/locale';
+
+const useExchangeAccounts = () => {
+    const environmentId = getEnvironmentId();
+    const { primaryWallet, network } = useInternalDynamicContext();
+    const getExchangeUserAccounts = useCallback((_a) => __awaiter(void 0, [_a], void 0, function* ({ exchange, networkId, chainName, includeChainName = true, }) {
+        const networkToUse = networkId !== null && networkId !== void 0 ? networkId : network;
+        const payload = {
+            environmentId,
+            exchangeKey: exchange,
+            networkId: networkToUse,
+        };
+        if (includeChainName) {
+            payload.chainName =
+                chainName !== null && chainName !== void 0 ? chainName : primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.connector.connectedChain;
+        }
+        return getUserExchangeAccounts(payload);
+    }), [network, environmentId, primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.connector.connectedChain]);
+    const getExchangeTransactions = useCallback((_b) => __awaiter(void 0, [_b], void 0, function* ({ exchange, accountId, }) {
+        return getExchangeAccountTransactions({
+            accountId,
+            environmentId,
+            exchangeKey: exchange,
+        });
+    }), [environmentId]);
+    const getExchangeWhitelistedDestinations = useCallback((_c) => __awaiter(void 0, [_c], void 0, function* ({ exchange }) {
+        return getExchangeTransferDestinations({
+            environmentId,
+            exchangeKey: exchange,
+        });
+    }), [environmentId]);
+    const exchangeTransfer = useCallback((_d) => __awaiter(void 0, [_d], void 0, function* ({ exchange, transferRequest, }) {
+        const accounts = yield getExchangeUserAccounts({ exchange });
+        const accountOfCorrectCurrency = accounts.find(({ balances }) => balances.some(({ currency }) => currency.toLowerCase() === transferRequest.currency.toLowerCase()));
+        if (!accountOfCorrectCurrency) {
+            throw new DynamicError(`No ${transferRequest.currency}-denominated account found for exchange “${exchange}”.`, UnprocessableEntityErrorCode.InvalidTransferCurrency);
+        }
+        return createExchangeAccountTransfer({
+            accountId: accountOfCorrectCurrency.id,
+            environmentId,
+            exchangeKey: exchange,
+            transfer: transferRequest,
+        });
+    }), [getExchangeUserAccounts, environmentId]);
+    return {
+        exchangeTransfer,
+        getExchangeTransactions,
+        getExchangeUserAccounts,
+        getExchangeWhitelistedDestinations,
+    };
+};
+
+export { useExchangeAccounts };

@@ -1,0 +1,8 @@
+export declare function base64ToBytes(b64: string): Uint8Array;
+export declare function importP256PublicKey(publicKeyBytes: Uint8Array): Promise<CryptoKey>;
+export declare function verifySignatureBrowser({ signedPayload, signature, publicKey, }: {
+    signedPayload: string;
+    signature: string;
+    publicKey: string;
+}): Promise<boolean>;
+//# sourceMappingURL=verify.d.ts.map

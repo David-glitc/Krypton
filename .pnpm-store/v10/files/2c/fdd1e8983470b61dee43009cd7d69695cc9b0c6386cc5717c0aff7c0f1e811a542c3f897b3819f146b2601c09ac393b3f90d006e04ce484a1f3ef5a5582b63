@@ -1,0 +1,37 @@
+'use client'
+const Chains = [
+    'ALEO',
+    'ALGO',
+    'APTOS',
+    'ATOM',
+    'BTC',
+    'COSMOS',
+    'ECLIPSE',
+    'ETH',
+    'EVM',
+    'FLOW',
+    'MIDNIGHT',
+    'SOL',
+    'SPARK',
+    'STARK',
+    'STELLAR',
+    'SUI',
+    'TEMPO',
+    'TRON',
+    'TON',
+];
+const socialProviders = [
+    'google',
+    'facebook',
+    'apple',
+    'github',
+    'bitbucket',
+    'gitlab',
+    'linkedin',
+    'twitter',
+    'discord',
+    'twitch',
+    'microsoft',
+];
+
+export { Chains, socialProviders };

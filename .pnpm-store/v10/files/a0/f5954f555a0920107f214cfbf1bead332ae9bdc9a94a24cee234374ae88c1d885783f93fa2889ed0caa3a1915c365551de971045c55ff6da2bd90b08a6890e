@@ -1,0 +1,15 @@
+type GetKeychainIndexedDBNameParams = {
+    environmentId: string;
+};
+/**
+ * Builds the IndexedDB database name used by the keychain service for a given
+ * environment. Centralizing this avoids drift between the SDK and any
+ * extension code that needs to read or migrate the same database.
+ *
+ * @param params.environmentId - The Dynamic environment id.
+ * @returns The IndexedDB database name for the keychain.
+ * @not-instrumented
+ */
+export declare const getKeychainIndexedDBName: ({ environmentId, }: GetKeychainIndexedDBNameParams) => string;
+export {};
+//# sourceMappingURL=getKeychainIndexedDBName.d.ts.map

@@ -1,0 +1,4 @@
+import type { DynamicClient } from '../../../../client/types';
+/** @not-instrumented */
+export declare const getPasskeyRegistrationOptions: (client: DynamicClient) => Promise<PublicKeyCredentialCreationOptionsJSON>;
+//# sourceMappingURL=getPasskeyRegistrationOptions.d.ts.map

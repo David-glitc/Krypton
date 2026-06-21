@@ -1,0 +1,4 @@
+import type { DebouncedMutex } from '../debouncedMutex.types';
+/** @not-instrumented */
+export declare const createDebouncedMutex: () => DebouncedMutex;
+//# sourceMappingURL=createDebouncedMutex.d.ts.map

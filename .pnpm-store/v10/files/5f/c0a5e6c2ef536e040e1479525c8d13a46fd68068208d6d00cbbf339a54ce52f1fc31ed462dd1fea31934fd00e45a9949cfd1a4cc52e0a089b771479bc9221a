@@ -1,0 +1,8 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+const isMidnightWallet = (wallet) => wallet.chain === 'MIDNIGHT';
+
+exports.isMidnightWallet = isMidnightWallet;

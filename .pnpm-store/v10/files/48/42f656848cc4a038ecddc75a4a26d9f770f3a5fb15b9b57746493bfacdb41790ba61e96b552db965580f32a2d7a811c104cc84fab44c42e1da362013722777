@@ -1,0 +1,63 @@
+const require_InvalidParamError = require('./InvalidParamError-CmwKWCyr.cjs');
+const require_getVerifiedCredentialForWalletAccount = require('./getVerifiedCredentialForWalletAccount-DidFNLGP.cjs');
+
+//#region src/modules/user/refreshAuth/refreshAuth.ts
+/**
+* Refreshes the current user's data from the server.
+*
+* This function fetches the latest user information and token from the backend
+* updating the local user and token states with any changes.
+*
+* @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+* @returns A promise that resolves to the verify response.
+* @instrumented
+* @redact-params
+*/
+const refreshAuth = async (client = require_InvalidParamError.getDefaultClient()) => {
+	const core = require_InvalidParamError.getCore(client);
+	const response = await require_InvalidParamError.createApiClient({}, client).refreshAuth({ environmentId: core.environmentId });
+	require_getVerifiedCredentialForWalletAccount.updateAuthFromVerifyResponse({ response }, client);
+	return response;
+};
+const __refreshAuth_impl = refreshAuth;
+const __refreshAuth_wrapped = require_InvalidParamError.instrumentFunction({
+	fn: __refreshAuth_impl,
+	functionName: "refreshAuth",
+	getCore: () => {
+		try {
+			return require_InvalidParamError.getCore(require_InvalidParamError.getDefaultClient());
+		} catch {
+			return;
+		}
+	},
+	redactAll: true
+});
+
+//#endregion
+//#region src/errors/NotWaasWalletAccountError.ts
+var NotWaasWalletAccountError = class extends require_InvalidParamError.BaseError {
+	constructor({ walletAddress }) {
+		super({
+			cause: null,
+			code: "not_waas_wallet_account_error",
+			docsUrl: null,
+			name: "NotWaasWalletAccountError",
+			shortMessage: `Wallet account ${walletAddress} is not a Dynamic WaaS wallet account`
+		});
+	}
+};
+
+//#endregion
+Object.defineProperty(exports, 'NotWaasWalletAccountError', {
+  enumerable: true,
+  get: function () {
+    return NotWaasWalletAccountError;
+  }
+});
+Object.defineProperty(exports, '__refreshAuth_wrapped', {
+  enumerable: true,
+  get: function () {
+    return __refreshAuth_wrapped;
+  }
+});
+//# sourceMappingURL=NotWaasWalletAccountError-DKEpLrGc.cjs.map

@@ -1,0 +1,11 @@
+/**
+ * Returns the browser's `navigator.userAgent` string for inclusion in
+ * instrumentation events.
+ *
+ * Falls back to an empty string in environments where `navigator` is not
+ * available (e.g., Node.js SSR, service workers) so that callers never need
+ * to guard against undefined.
+  * @not-instrumented
+ */
+export declare const getUserAgent: () => string;
+//# sourceMappingURL=getUserAgent.d.ts.map

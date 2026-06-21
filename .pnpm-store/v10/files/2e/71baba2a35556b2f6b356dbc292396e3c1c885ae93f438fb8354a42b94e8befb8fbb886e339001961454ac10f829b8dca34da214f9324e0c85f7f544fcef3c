@@ -1,0 +1,148 @@
+import { PublicKey, Transaction, VersionedTransaction } from '@solana/web3.js';
+import bs58 from 'bs58';
+export function createWalletStandardAdapter(wallet, getSelectedNetwork) {
+    const features = wallet.features;
+    const getCurrentAccount = ()=>{
+        const account = wallet.accounts[0];
+        if (!account) {
+            throw new Error('[WalletStandardAdapter] No connected account');
+        }
+        return account;
+    };
+    const getChain = ()=>{
+        const network = getSelectedNetwork();
+        return `solana:${network}`;
+    };
+    const connect = async ()=>{
+        var _features_standardconnect;
+        const existing = wallet.accounts[0];
+        if (existing) {
+            return {
+                address: existing.address,
+                publicKey: existing.publicKey
+            };
+        }
+        const connectFn = (_features_standardconnect = features['standard:connect']) == null ? void 0 : _features_standardconnect['connect'];
+        if (!connectFn) {
+            throw new Error('[WalletStandardAdapter] standard:connect not supported');
+        }
+        const result = await connectFn({
+            silent: false
+        });
+        if (!result.accounts[0]) return undefined;
+        return {
+            address: result.accounts[0].address,
+            publicKey: result.accounts[0].publicKey
+        };
+    };
+    const disconnect = async ()=>{
+        var _features_standarddisconnect;
+        const disconnectFn = (_features_standarddisconnect = features['standard:disconnect']) == null ? void 0 : _features_standarddisconnect['disconnect'];
+        if (disconnectFn) {
+            await disconnectFn();
+        }
+    };
+    const signTransaction = async (transaction)=>{
+        var _features_solanasignTransaction, _result_;
+        const signFn = (_features_solanasignTransaction = features['solana:signTransaction']) == null ? void 0 : _features_solanasignTransaction['signTransaction'];
+        if (!signFn) {
+            throw new Error('[WalletStandardAdapter] solana:signTransaction not supported');
+        }
+        const account = getCurrentAccount();
+        const serializedTransaction = transaction.serialize({
+            requireAllSignatures: false
+        });
+        const result = await signFn({
+            account,
+            chain: getChain(),
+            transaction: Uint8Array.from(serializedTransaction)
+        });
+        const signed = (_result_ = result[0]) == null ? void 0 : _result_.signedTransaction;
+        if (!signed) throw new Error('[WalletStandardAdapter] No signed transaction returned');
+        const isVersioned = !('instructions' in transaction);
+        if (isVersioned) {
+            return VersionedTransaction.deserialize(signed);
+        }
+        return Transaction.from(signed);
+    };
+    const signAllTransactions = async (transactions)=>{
+        return Promise.all(transactions.map(signTransaction));
+    };
+    const signAndSendTransaction = async (transaction)=>{
+        var _features_solanasignAndSendTransaction, _result_;
+        const sendFn = (_features_solanasignAndSendTransaction = features['solana:signAndSendTransaction']) == null ? void 0 : _features_solanasignAndSendTransaction['signAndSendTransaction'];
+        if (!sendFn) {
+            throw new Error('[WalletStandardAdapter] solana:signAndSendTransaction not supported');
+        }
+        const account = getCurrentAccount();
+        const serializedTransaction = transaction.serialize({
+            requireAllSignatures: false
+        });
+        const result = await sendFn({
+            account,
+            chain: getChain(),
+            transaction: Uint8Array.from(serializedTransaction)
+        });
+        const sig = (_result_ = result[0]) == null ? void 0 : _result_.signature;
+        if (!sig) throw new Error('[WalletStandardAdapter] No signature returned');
+        return {
+            signature: bs58.encode(sig)
+        };
+    };
+    const signMessage = async (message)=>{
+        var _features_solanasignMessage, _result_;
+        const signFn = (_features_solanasignMessage = features['solana:signMessage']) == null ? void 0 : _features_solanasignMessage['signMessage'];
+        if (!signFn) {
+            throw new Error('[WalletStandardAdapter] solana:signMessage not supported');
+        }
+        const account = getCurrentAccount();
+        const result = await signFn({
+            account,
+            message
+        });
+        const sig = (_result_ = result[0]) == null ? void 0 : _result_.signature;
+        if (!sig) throw new Error('[WalletStandardAdapter] No signature returned');
+        return {
+            signature: sig
+        };
+    };
+    const on = (event, listener)=>{
+        var _features_standardevents;
+        const onFn = (_features_standardevents = features['standard:events']) == null ? void 0 : _features_standardevents['on'];
+        if (!onFn || event !== 'accountChanged') return;
+        return onFn('change', listener);
+    };
+    const noop = ()=>{};
+    return {
+        addListener: noop,
+        connect,
+        disconnect,
+        emit: noop,
+        eventNames: ()=>[],
+        isBackpack: false,
+        isBraveWallet: false,
+        isConnected: wallet.accounts.length > 0,
+        isExodus: false,
+        isGlow: false,
+        isMagicEden: false,
+        isPhantom: false,
+        isSolflare: false,
+        listenerCount: ()=>0,
+        listeners: ()=>[],
+        off: noop,
+        on,
+        once: noop,
+        providers: [],
+        get publicKey () {
+            const account = wallet.accounts[0];
+            if (!(account == null ? void 0 : account.publicKey)) return undefined;
+            return new PublicKey(account.publicKey);
+        },
+        removeAllListeners: noop,
+        removeListener: noop,
+        signAllTransactions,
+        signAndSendTransaction,
+        signMessage,
+        signTransaction
+    };
+}

@@ -1,0 +1,42 @@
+import { exists } from '../runtime.js';
+
+/* tslint:disable */
+/**
+* @export
+* @enum {string}
+*/
+var GetEVMSponsoredTransactionStatusResponseStatusEnum;
+(function (GetEVMSponsoredTransactionStatusResponseStatusEnum) {
+    GetEVMSponsoredTransactionStatusResponseStatusEnum["Pending"] = "pending";
+    GetEVMSponsoredTransactionStatusResponseStatusEnum["Submitted"] = "submitted";
+    GetEVMSponsoredTransactionStatusResponseStatusEnum["Success"] = "success";
+    GetEVMSponsoredTransactionStatusResponseStatusEnum["Failure"] = "failure";
+})(GetEVMSponsoredTransactionStatusResponseStatusEnum || (GetEVMSponsoredTransactionStatusResponseStatusEnum = {}));
+function GetEVMSponsoredTransactionStatusResponseFromJSON(json) {
+    return GetEVMSponsoredTransactionStatusResponseFromJSONTyped(json);
+}
+function GetEVMSponsoredTransactionStatusResponseFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'errorMessage': !exists(json, 'errorMessage') ? undefined : json['errorMessage'],
+        'status': json['status'],
+        'transactionHash': !exists(json, 'transactionHash') ? undefined : json['transactionHash'],
+    };
+}
+function GetEVMSponsoredTransactionStatusResponseToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'errorMessage': value.errorMessage,
+        'status': value.status,
+        'transactionHash': value.transactionHash,
+    };
+}
+
+export { GetEVMSponsoredTransactionStatusResponseFromJSON, GetEVMSponsoredTransactionStatusResponseFromJSONTyped, GetEVMSponsoredTransactionStatusResponseStatusEnum, GetEVMSponsoredTransactionStatusResponseToJSON };

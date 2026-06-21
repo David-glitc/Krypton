@@ -1,0 +1,32 @@
+import { ChainEnumFromJSON, ChainEnumToJSON } from './ChainEnum.js';
+import { DestinationTypeEnumFromJSON, DestinationTypeEnumToJSON } from './DestinationTypeEnum.js';
+
+/* tslint:disable */
+function ChainDestinationConfigFromJSON(json) {
+    return ChainDestinationConfigFromJSONTyped(json);
+}
+function ChainDestinationConfigFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'chainName': ChainEnumFromJSON(json['chainName']),
+        'type': DestinationTypeEnumFromJSON(json['type']),
+        'identifier': json['identifier'],
+    };
+}
+function ChainDestinationConfigToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'chainName': ChainEnumToJSON(value.chainName),
+        'type': DestinationTypeEnumToJSON(value.type),
+        'identifier': value.identifier,
+    };
+}
+
+export { ChainDestinationConfigFromJSON, ChainDestinationConfigFromJSONTyped, ChainDestinationConfigToJSON };

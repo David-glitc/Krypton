@@ -1,0 +1,1 @@
+{"version":3,"file":"deleteMfaDevice.d.ts","sourceRoot":"","sources":["../../../../src/modules/mfa/deleteMfaDevice/deleteMfaDevice.ts"],"names":[],"mappings":"AAQA,KAAK,qBAAqB,GAAG;IAC3B,QAAQ,EAAE,MAAM,CAAC;IACjB,YAAY,CAAC,EAAE,MAAM,CAAC;CACvB,CAAC;AAEF;;;;;;;;;;;;;GAaG;AACH,eAAO,MAAM,eAAe,+BACE,qBAAqB,qEA+BlD,CAAC"}

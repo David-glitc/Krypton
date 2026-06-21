@@ -1,0 +1,1 @@
+{"version":3,"file":"parseUserAgent.d.ts","sourceRoot":"","sources":["../../../src/utils/parseUserAgent/parseUserAgent.ts"],"names":[],"mappings":"AAAA,KAAK,oBAAoB,GAAG;IAC1B,SAAS,EAAE,MAAM,CAAC;CACnB,CAAC;AAEF,KAAK,eAAe,GAAG;IACrB,WAAW,EAAE,MAAM,CAAC;IACpB,IAAI,EAAE,QAAQ,GAAG,SAAS,CAAC;CAC5B,CAAC;AAuBF,wBAAwB;AACxB,eAAO,MAAM,cAAc,mBAExB,oBAAoB,KAAG,eAAe,GAAG,IAwB3C,CAAC"}

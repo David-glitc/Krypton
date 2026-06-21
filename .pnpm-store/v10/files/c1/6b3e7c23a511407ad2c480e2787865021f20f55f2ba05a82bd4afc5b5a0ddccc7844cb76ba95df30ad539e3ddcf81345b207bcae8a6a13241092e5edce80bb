@@ -1,0 +1,9 @@
+var SigningAlgorithm = /*#__PURE__*/ function(SigningAlgorithm) {
+    SigningAlgorithm["ECDSA"] = "ECDSA";
+    SigningAlgorithm["ED25519"] = "ED25519";
+    SigningAlgorithm["BIP340"] = "BIP340";
+    SigningAlgorithm["EDBLS12_377"] = "EDBLS12_377";
+    return SigningAlgorithm;
+}({});
+
+export { SigningAlgorithm };

@@ -1,0 +1,51 @@
+'use client'
+import { jsxs, jsx, Fragment } from 'react/jsx-runtime';
+import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import { isIOS, isAndroid, isSamsungBrowser, PlatformService } from '@dynamic-labs/utils';
+import { WalletIcon } from '@dynamic-labs/wallet-book';
+import { getWalletLinks } from '@dynamic-labs/wallet-connector-core';
+import { Icon } from '../../components/Icon/Icon.js';
+import { IconWithSpinner, iconRatio } from '../../components/IconWithSpinner/IconWithSpinner.js';
+import { Typography } from '../../components/Typography/Typography.js';
+import { TypographyButton } from '../../components/TypographyButton/TypographyButton.js';
+import '../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { ReactComponent as SvgExternalLink } from '../../shared/assets/externalLink.js';
+import '@dynamic-labs/iconic';
+import '../../context/ViewContext/ViewContext.js';
+import { pixelToRem } from '../../utils/functions/pixelToRem/pixelToRem.js';
+
+const MobileWalletRedirectView = ({ onRetry, connector, }) => {
+    const { selectedWalletConnector } = useInternalDynamicContext();
+    const currentConnector = useMemo(() => connector || selectedWalletConnector, [connector, selectedWalletConnector]);
+    const { t } = useTranslation();
+    const { storeName, walletLink } = useMemo(() => {
+        const walletLinks = getWalletLinks(currentConnector === null || currentConnector === void 0 ? void 0 : currentConnector.metadata.downloadLinks);
+        if ((walletLinks === null || walletLinks === void 0 ? void 0 : walletLinks.ios) && isIOS())
+            return {
+                storeName: 'App Store',
+                walletLink: walletLinks.ios,
+            };
+        if ((walletLinks === null || walletLinks === void 0 ? void 0 : walletLinks.android) && (isAndroid() || isSamsungBrowser()))
+            return {
+                storeName: 'Play Store',
+                walletLink: walletLinks.android,
+            };
+        return {
+            storeName: undefined,
+            walletLink: undefined,
+        };
+    }, [currentConnector]);
+    const openWalletApp = () => walletLink &&
+        PlatformService.openURL(walletLink, 'blank', 'noopener,noreferrer');
+    const makeIcon = (size) => (jsx(WalletIcon, { icon: currentConnector === null || currentConnector === void 0 ? void 0 : currentConnector.metadata.icon, walletKey: currentConnector === null || currentConnector === void 0 ? void 0 : currentConnector.key, style: {
+            height: pixelToRem(size),
+            width: pixelToRem(size),
+        } }));
+    return (jsxs("div", { className: 'mobile-wallet-redirect', children: [jsx(IconWithSpinner, { Icon: makeIcon(94 * iconRatio), iconSize: 94, isSpinning: true, className: 'mobile-wallet-redirect__icon-with-spinner' }), jsx(Typography, { variant: 'body_normal', weight: 'regular', className: 'mobile-wallet-redirect__copy-text', copykey: 'dyn_login.mobile_wallet_redirect.prompt', children: t('dyn_login.mobile_wallet_redirect.prompt') }), jsxs(TypographyButton, { buttonVariant: 'brand-primary', typographyProps: { color: 'white', variant: 'button_secondary' }, onClick: onRetry, buttonPadding: 'small', copykey: 'dyn_login.mobile_wallet_redirect.open_prompt', children: [t('dyn_login.mobile_wallet_redirect.open_prompt'), ' ', currentConnector === null || currentConnector === void 0 ? void 0 : currentConnector.name] }), storeName && (jsxs(Fragment, { children: [jsx(Typography, { variant: 'body_small', color: 'secondary', className: 'mobile-wallet-redirect__alert', copykey: 'dyn_login.mobile_wallet_redirect.redirect_fail_message', children: t('dyn_login.mobile_wallet_redirect.redirect_fail_message', {
+                            walletName: currentConnector === null || currentConnector === void 0 ? void 0 : currentConnector.name,
+                        }) }), jsxs("div", { className: 'mobile-wallet-redirect__wallet-app', onClick: openWalletApp, children: [jsxs("div", { className: 'mobile-wallet-redirect__wallet-app__group', children: [makeIcon(26), jsxs(Typography, { variant: 'body_small', weight: 'bold', copykey: 'dyn_login.mobile_wallet_redirect.get_app_prompt', children: [t('dyn_login.mobile_wallet_redirect.get_app_prompt'), ' ', currentConnector === null || currentConnector === void 0 ? void 0 : currentConnector.name] })] }), jsxs("div", { className: 'mobile-wallet-redirect__wallet-app__group', children: [jsx(Typography, { className: 'mobile-wallet-redirect__wallet-app__group__app-store', variant: 'body_small', weight: 'bold', color: 'secondary', children: storeName }), jsx(Icon, { color: 'text-secondary', size: 'small', children: jsx(SvgExternalLink, {}) })] })] })] }))] }));
+};
+
+export { MobileWalletRedirectView };

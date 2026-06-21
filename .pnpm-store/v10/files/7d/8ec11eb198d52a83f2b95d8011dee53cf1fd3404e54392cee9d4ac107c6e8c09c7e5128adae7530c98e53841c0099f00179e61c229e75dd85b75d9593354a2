@@ -1,0 +1,1964 @@
+const require_isMfaRequiredForAction = require('./isMfaRequiredForAction-BNipdNF5.cjs');
+let _dynamic_labs_sdk_api_core = require("@dynamic-labs/sdk-api-core");
+
+//#region package.json
+var name = "@dynamic-labs-sdk/client";
+var version = "1.8.2";
+var dependencies = {
+	"@dynamic-labs-sdk/assert-package-version": "workspace:*",
+	"@dynamic-labs-wallet/browser-wallet-client": "1.0.16",
+	"@dynamic-labs-wallet/forward-mpc-client": "0.10.1",
+	"@dynamic-labs/sdk-api-core": "catalog:",
+	"@simplewebauthn/browser": "13.1.0",
+	"ably": "2.17.1",
+	"buffer": "6.0.3",
+	"eventemitter3": "5.0.1",
+	"zod": "4.0.5"
+};
+
+//#endregion
+//#region src/client/core/getCore/getCore.ts
+/** @not-instrumented */
+const getCore = (client) => {
+	return client.__core;
+};
+
+//#endregion
+//#region src/errors/base/BaseError.ts
+const getDetails = ({ details, cause }) => {
+	if (cause instanceof BaseError) return cause.details;
+	if (cause?.message) return cause.message;
+	return details;
+};
+/**
+* Formats the error message with all available information
+*/
+const formatMessage = ({ shortMessage, details, docsUrl, metaMessages }) => {
+	return [
+		"[Dynamic JS SDK]",
+		shortMessage,
+		"",
+		...metaMessages ? [...metaMessages, ""] : [],
+		...docsUrl ? [`Docs: ${docsUrl}`] : [],
+		...details ? [`Details: ${details}`] : [],
+		`Version: ${version}`,
+		`Timestamp: ${(/* @__PURE__ */ new Date()).toISOString()}`
+	].join("\n");
+};
+/**
+* Base error class that provides structured error handling with detailed information
+*/
+var BaseError = class BaseError extends Error {
+	/** The error unique code */
+	code;
+	details;
+	formattedMessage;
+	name = "BaseError";
+	cause;
+	constructor(args) {
+		const details = getDetails(args);
+		const formattedMessage = formatMessage({
+			...args,
+			details
+		});
+		super(args.shortMessage ?? formattedMessage, args.cause ? { cause: args.cause } : void 0);
+		Object.defineProperty(this, "formattedMessage", {
+			configurable: true,
+			enumerable: false,
+			value: formattedMessage,
+			writable: true
+		});
+		this.details = details;
+		this.name = args.name ?? this.name;
+		this.cause = args.cause ?? this.cause;
+		this.code = args.code;
+	}
+	/**
+	* Walks the cause chain of the error and returns the root error
+	*/
+	walk() {
+		const cause = this.cause;
+		if (cause instanceof BaseError) return cause.walk();
+		return cause;
+	}
+	toString() {
+		return this.formattedMessage;
+	}
+};
+
+//#endregion
+//#region src/errors/ClientNotFoundError.ts
+var ClientNotFoundError = class extends BaseError {
+	constructor() {
+		super({
+			cause: null,
+			code: "client_not_found_error",
+			docsUrl: null,
+			name: "ClientNotFoundError",
+			shortMessage: "No Dynamic client has been created yet. Make sure you have called createDynamicClient() first."
+		});
+	}
+};
+
+//#endregion
+//#region src/client/defaultClient/defaultClient.ts
+let defaultClient = null;
+let numOfInitializedClients = 0;
+/**
+* Returns the DynamicClient instance that was initialized with createDynamicClient.
+*
+* If more than one instance of DynamicClient was initialized, you should not use this function.
+* Instead, you should pass the client instance you stored to the function that needs it.
+* @not-instrumented
+*/
+const getDefaultClient = () => {
+	if (!defaultClient) throw new ClientNotFoundError();
+	if (numOfInitializedClients > 1) getCore(defaultClient).logger.debug("Multiple instances of DynamicClient found. If you are only using one client (recommended), make sure you are not calling \"createDynamicClient\" multiple times. If you are using multiple clients, make sure you are passing which client to use as the last param of all Dynamic functions.");
+	return defaultClient;
+};
+/** @not-instrumented */
+const setDefaultClient = (client) => {
+	defaultClient = client;
+	numOfInitializedClients++;
+};
+
+//#endregion
+//#region src/utils/getNonce/constants.ts
+const NONCE_POOL_EXPIRATION_TIME = 6e4 * 60 * 24;
+const NONCE_POOL_SIZE = 5;
+
+//#endregion
+//#region src/modules/apiClient/constants.ts
+const DYNAMIC_API_VERSION_HEADER = "x-dyn-api-version";
+const DYNAMIC_REQUEST_ID_HEADER = "x-dyn-request-id";
+const DYNAMIC_SDK_VERSION_HEADER = "x-dyn-version";
+const ELEVATED_ACCESS_TOKEN_HEADER = "x-dyn-elevated-access-token";
+const MFA_TOKEN_HEADER = "x-mfa-auth-token";
+const SESSION_PUBLIC_KEY_HEADER = "x-dyn-session-public-key";
+const DYNAMIC_SDK_API_VERSION = dependencies["@dynamic-labs/sdk-api-core"];
+const DYNAMIC_SDK_SESSION_ID_HEADER = "x-dyn-session-id";
+const CLIENT_SDK_NAME = "ClientSDK";
+
+//#endregion
+//#region src/utils/randomString/randomString.ts
+const DEFAULT_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+/** @not-instrumented */
+const randomString = ({ chars = DEFAULT_CHARS, length }) => {
+	const bytes = new Uint8Array(length);
+	crypto.getRandomValues(bytes);
+	let result = "";
+	for (let i = 0; i < length; i++) result += chars[bytes[i] % chars.length];
+	return result;
+};
+
+//#endregion
+//#region src/modules/auth/extractSessionId/extractSessionId.ts
+/**
+* Extracts the session ID (`sid` claim) from a JWT token string.
+*
+* Decodes the base64url-encoded payload segment of the token and reads the
+* `sid` field. This is used to correlate instrumentation events with the
+* authenticated session, without ever forwarding the full token.
+*
+* Returns `null` when no token is present, when the token is malformed, or
+* when the payload does not contain a `sid` claim.
+* @not-instrumented
+*/
+const extractSessionId = (token) => {
+	try {
+		const payload = token.split(".")[1];
+		return JSON.parse(atob(payload)).sid ?? null;
+	} catch {
+		return null;
+	}
+};
+
+//#endregion
+//#region src/utils/getUserAgent/getUserAgent.ts
+/**
+* Returns the browser's `navigator.userAgent` string for inclusion in
+* instrumentation events.
+*
+* Falls back to an empty string in environments where `navigator` is not
+* available (e.g., Node.js SSR, service workers) so that callers never need
+* to guard against undefined.
+* @not-instrumented
+*/
+const getUserAgent = () => {
+	try {
+		return navigator.userAgent;
+	} catch {
+		return "";
+	}
+};
+
+//#endregion
+//#region src/services/instrumentation/constants.ts
+/**
+* Default key-based PII scrubber list, lowercased and matched against the
+* lowercased object key.
+*
+* Two complementary mechanisms cover credential leakage:
+*
+* 1. Explicit keys listed here — matched exactly (case-insensitive). Use this
+*    for keys that don't end in a generic credential suffix (e.g. `mnemonic`,
+*    `seed`, `verificationCode`, `keyShare`).
+* 2. Suffix matching in {@link scrubParameters} for the credential suffixes
+*    enumerated by {@link PII_KEY_SUFFIXES} — catches any field whose name
+*    ends in `token` or `jwt` (e.g. `mfaToken`, `minifiedJwt`, `accessToken`,
+*    `idToken`, `captchaToken`, …) without needing to enumerate them here.
+*/
+const DEFAULT_PII_FIELDS = [
+	"password",
+	"token",
+	"secret",
+	"privateKey",
+	"privateJwk",
+	"mnemonic",
+	"seed",
+	"keyShare",
+	"keyShares",
+	"email",
+	"phone",
+	"ssn",
+	"address",
+	"authorization",
+	"verificationCode",
+	"recoveryCodes",
+	"codeVerifier",
+	"pkce",
+	"bearer",
+	"apiKey"
+];
+/**
+* Lowercased suffixes used by {@link scrubParameters} to match credential-like
+* keys without enumerating every variant (e.g. `mfaToken`, `accessToken`,
+* `refreshToken`, `legacyToken`, `minifiedJwt`). Only suffixes that are
+* unambiguously credentials belong here — `key` (matches `publicKey`) and
+* `code` (matches `countryCode`) are too broad and must not be added.
+*/
+const PII_KEY_SUFFIXES = ["token", "jwt"];
+const REDACTED_VALUE = "[REDACTED]";
+const MAX_STRING_LENGTH = 500;
+const TRUNCATED_SUFFIX = "...[truncated]";
+/**
+* Label prefix for binary data placeholders. The full placeholder includes the
+* byte length, e.g. `[Binary:16 bytes]`, so consumers can gauge data size
+* without the actual bytes appearing in logs.
+*/
+const BINARY_LABEL = "Binary";
+/**
+* Placeholder emitted when a circular reference is detected in the value tree.
+* Using a named constant makes it easy to search for or filter in downstream
+* log tooling.
+*/
+const CIRCULAR_VALUE = "[Circular]";
+
+//#endregion
+//#region src/services/instrumentation/scrubParameters/scrubParameters.ts
+/**
+* Returns true when `key` should be redacted based on the configured PII
+* field list. A key matches when its lowercased form either equals one of
+* `piiFieldsLower` exactly, or ends in one of the curated credential
+* suffixes in {@link PII_KEY_SUFFIXES} (currently `token` and `jwt`). The
+* suffix check is what catches `mfaToken`, `minifiedJwt`, `accessToken`,
+* etc. without needing every variant enumerated explicitly.
+*/
+const keyMatchesPiiField = ({ keyLower, piiFieldsLower }) => {
+	if (piiFieldsLower.includes(keyLower)) return true;
+	return PII_KEY_SUFFIXES.some((suffix) => keyLower.endsWith(suffix));
+};
+const scrubString = ({ key, piiFieldsLower, redactAll, value }) => {
+	if (keyMatchesPiiField({
+		keyLower: key.toLowerCase(),
+		piiFieldsLower
+	})) return REDACTED_VALUE;
+	if (redactAll) return REDACTED_VALUE;
+	if (value.length > MAX_STRING_LENGTH) return value.slice(0, MAX_STRING_LENGTH) + TRUNCATED_SUFFIX;
+	return value;
+};
+const scrubArray = ({ context, value }) => {
+	if (context.visited.has(value)) return [CIRCULAR_VALUE];
+	context.visited.add(value);
+	const result = value.map((item, index) => scrubValue({
+		context,
+		key: String(index),
+		value: item
+	}));
+	context.visited.delete(value);
+	return result;
+};
+const scrubObject = ({ context, value }) => {
+	if (context.visited.has(value)) return { [CIRCULAR_VALUE]: true };
+	context.visited.add(value);
+	const result = Object.create(null);
+	for (const key of Object.keys(value)) result[key] = scrubValue({
+		context,
+		key,
+		value: value[key]
+	});
+	context.visited.delete(value);
+	return result;
+};
+const scrubValue = ({ context, key, value }) => {
+	if (value === null || value === void 0) return value;
+	if (value instanceof Uint8Array) return `[${BINARY_LABEL}:${value.byteLength} bytes]`;
+	if (keyMatchesPiiField({
+		keyLower: key.toLowerCase(),
+		piiFieldsLower: context.piiFieldsLower
+	})) return REDACTED_VALUE;
+	if (typeof value === "string") return scrubString({
+		key,
+		piiFieldsLower: context.piiFieldsLower,
+		redactAll: context.redactAll,
+		value
+	});
+	if (Array.isArray(value)) return scrubArray({
+		context,
+		value
+	});
+	if (value instanceof Set) {
+		if (context.visited.has(value)) return [CIRCULAR_VALUE];
+		context.visited.add(value);
+		const setResult = scrubArray({
+			context,
+			value: [...value]
+		});
+		context.visited.delete(value);
+		return setResult;
+	}
+	if (value instanceof Map) {
+		if (context.visited.has(value)) return { [CIRCULAR_VALUE]: true };
+		context.visited.add(value);
+		const asObject = Object.create(null);
+		for (const [k, v] of value.entries()) asObject[String(k)] = v;
+		const mapResult = scrubObject({
+			context,
+			value: asObject
+		});
+		context.visited.delete(value);
+		return mapResult;
+	}
+	if (value instanceof WeakMap) return "[WeakMap]";
+	if (value instanceof WeakSet) return "[WeakSet]";
+	if (value instanceof Date) return value.toISOString();
+	if (value instanceof Error) return `[Error: ${value.message}]`;
+	if (typeof value === "object") return scrubObject({
+		context,
+		value
+	});
+	return value;
+};
+/** @not-instrumented */
+const scrubParameters = ({ piiFields, redactAll, value }) => {
+	return scrubObject({
+		context: {
+			piiFieldsLower: piiFields.map((field) => field.toLowerCase()),
+			redactAll,
+			visited: /* @__PURE__ */ new WeakSet()
+		},
+		value
+	});
+};
+
+//#endregion
+//#region src/services/instrumentation/instrumentFunction/extractParams/extractParams.ts
+/**
+* Normalises the raw positional arguments of an instrumented function call
+* into a flat `Record<string, unknown>` suitable for structured logging.
+*
+* ## Why this is needed
+*
+* Instrumented functions are wrapped with `(...args: unknown[])`, so their
+* parameters arrive as an array. Logging a raw array loses the semantic names
+* of each argument. This function recovers a named representation:
+*
+* - **No arguments** → `{}`
+* - **Single plain-object argument** → that object is returned as-is, because
+*   SDK functions follow the single-object-parameter convention, so the object
+*   already carries named keys (`{ amount, to }`, etc.).
+* - **Everything else** (multiple args, a single primitive, a single array) →
+*   each value is indexed as `arg0`, `arg1`, …
+*
+* ## Why arrays are NOT treated as plain objects
+*
+* `typeof [] === 'object'` and `[] !== null`, so without the `Array.isArray`
+* guard a single-array argument would be returned as-is. That would produce
+* an object with numeric string keys (`{ '0': ..., '1': ... }`), which is
+* misleading and inconsistent with how multi-arg calls are handled. Instead,
+* arrays fall through to the indexed `arg0` path.
+* @not-instrumented
+*/
+const extractParams = (args) => {
+	if (args.length === 0) return {};
+	if (args.length === 1 && typeof args[0] === "object" && args[0] !== null && !Array.isArray(args[0])) return args[0];
+	const result = {};
+	for (let i = 0; i < args.length; i++) result[`arg${i}`] = args[i];
+	return result;
+};
+
+//#endregion
+//#region src/services/instrumentation/instrumentFunction/scrubResolvedValue/scrubResolvedValue.ts
+/**
+* Scrubs a resolved return value of any type before logging it.
+* Routes through `scrubParameters` by wrapping the value so that strings,
+* arrays, Dates, Errors, and all other types are handled identically to
+* nested object fields.
+* @not-instrumented
+*/
+const scrubResolvedValue = ({ piiFields, redactAll, value }) => scrubParameters({
+	piiFields,
+	redactAll,
+	value: { result: value }
+}).result;
+
+//#endregion
+//#region src/services/instrumentation/instrumentFunction/instrumentFunction.ts
+const serializeError = (error) => {
+	if (error instanceof Error) return {
+		message: error.message,
+		name: error.name,
+		stack: error.stack
+	};
+	return {
+		message: String(error),
+		name: "UnknownError"
+	};
+};
+/**
+* Wraps a function so that each invocation emits a structured
+* `FunctionInstrumentationEvent` at three lifecycle points:
+*
+* - **started** — immediately before the function body executes, with the
+*   PII-scrubbed call parameters.
+* - **resolved** — after the function (or its returned Promise) settles
+*   successfully, with the PII-scrubbed return value.
+* - **rejected** — if the function throws synchronously or its returned
+*   Promise rejects.
+*
+* The original return value (or thrown error) is always forwarded to the
+* caller unchanged — instrumentation is purely observational.
+*
+* ## Usage
+*
+* ```ts
+* const transfer = instrumentFunction({
+*   fn: rawTransfer,
+*   functionName: 'transfer',
+*   getCore: () => core,
+* });
+*
+* // When called, three events are emitted automatically:
+* await transfer({ amount: 1, to: '0xabc' });
+* ```
+*
+* ## How functions are wrapped
+*
+* `instrumentFunction` is not called manually in application code. Instead,
+* the esbuild instrumentation plugin (`tools/instrumentation-plugin`) injects
+* it at build time: any exported function annotated with `@instrumented` in its
+* JSDoc is automatically wrapped by the plugin during the build step.
+* The plugin strips the original `export`, renames the function, and re-exports
+* it under the original name via `instrumentFunction(...)` — so the public API
+* is unchanged and no call sites need to be updated.
+*
+* ## Opting out
+*
+* Instrumentation is skipped entirely when:
+* - `getCore()` returns `undefined` (SDK not initialised), or
+* - `core.instrumentation.config.enabled` is `false`.
+*
+* In both cases the original function is called directly with no overhead.
+*
+* ## PII scrubbing
+*
+* All string values whose key appears in `piiFields` are replaced with
+* `"[redacted]"` before events are emitted. Pass `redactAll: true` to redact
+* every field, regardless of key name.
+* @not-instrumented
+*/
+const instrumentFunction = ({ fn, functionName, getCore: getCore$1, redactAll }) => {
+	const wrapped = (...args) => {
+		const core = getCore$1();
+		if (!core) return fn(...args);
+		if (!core.instrumentation.config.enabled) return fn(...args);
+		const instrumentation = core.instrumentation;
+		const state = core.state.get();
+		const baseEvent = {
+			environmentId: core.environmentId,
+			functionName,
+			parameters: scrubParameters({
+				piiFields: instrumentation.config.piiFields,
+				redactAll,
+				value: extractParams(args)
+			}),
+			registeredExtensionKeys: Array.from(core.extensions),
+			sdkSessionId: core.sdkSessionId,
+			sdkVersion: core.version,
+			status: "info",
+			tokenSessionId: state.token ? extractSessionId(state.token) : null,
+			userAgent: getUserAgent(),
+			userId: state.user?.id ?? null
+		};
+		instrumentation.logFunction({
+			...baseEvent,
+			phase: "started",
+			timestamp: (/* @__PURE__ */ new Date()).toISOString()
+		});
+		try {
+			const result = fn(...args);
+			if (result instanceof Promise) return result.then((value) => {
+				instrumentation.logFunction({
+					...baseEvent,
+					phase: "resolved",
+					resolvedValue: scrubResolvedValue({
+						piiFields: instrumentation.config.piiFields,
+						redactAll,
+						value
+					}),
+					timestamp: (/* @__PURE__ */ new Date()).toISOString()
+				});
+				return value;
+			}).catch((error) => {
+				instrumentation.logFunction({
+					...baseEvent,
+					phase: "rejected",
+					rejectedError: serializeError(error),
+					timestamp: (/* @__PURE__ */ new Date()).toISOString()
+				});
+				throw error;
+			});
+			instrumentation.logFunction({
+				...baseEvent,
+				phase: "resolved",
+				resolvedValue: scrubResolvedValue({
+					piiFields: instrumentation.config.piiFields,
+					redactAll,
+					value: result
+				}),
+				timestamp: (/* @__PURE__ */ new Date()).toISOString()
+			});
+			return result;
+		} catch (error) {
+			instrumentation.logFunction({
+				...baseEvent,
+				phase: "rejected",
+				rejectedError: serializeError(error),
+				timestamp: (/* @__PURE__ */ new Date()).toISOString()
+			});
+			throw error;
+		}
+	};
+	return wrapped;
+};
+
+//#endregion
+//#region src/modules/auth/getElevatedAccessToken/getElevatedAccessToken.ts
+/**
+* Gets an elevated access token by scope.
+*
+* This function retrieves an elevated access token that contains the specified scope.
+* Expired tokens are automatically filtered out.
+*
+* By default, if the token has `singleUse: true`, it will be automatically
+* consumed (removed from state) after retrieval. Pass `consume: false` to
+* check for token existence without consuming it.
+*
+* @param params - The parameters object.
+* @param params.scope - The scope to match (e.g., 'wallet:export').
+* @param params.consume - Whether to consume single-use tokens (default: true).
+* @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+* @returns The elevated access token if found and not expired, or undefined if not found or expired.
+*
+* @example
+* ```typescript
+* // Retrieve and consume (default)
+* const token = getElevatedAccessToken({ scope: 'wallet:export' });
+*
+* // Check existence without consuming
+* const token = getElevatedAccessToken({ scope: 'credential:unlink', consume: false });
+* ```
+* @not-instrumented
+*/
+const getElevatedAccessToken = ({ consume = true, scope }, client = getDefaultClient()) => {
+	const core = getCore(client);
+	const now = /* @__PURE__ */ new Date();
+	const elevatedAccessTokens = core.state.get().elevatedAccessTokens || [];
+	const validTokens = elevatedAccessTokens.filter((token$1) => !token$1.expiresAt || token$1.expiresAt > now);
+	if (validTokens.length !== elevatedAccessTokens.length) core.state.set({ elevatedAccessTokens: validTokens });
+	const token = validTokens.find((token$1) => token$1.scopes.includes(scope));
+	if (!token) return;
+	if (consume && token.singleUse) {
+		const updatedTokens = validTokens.filter((t) => t !== token);
+		core.state.set({ elevatedAccessTokens: updatedTokens });
+	}
+	return token.token;
+};
+const __getElevatedAccessToken_impl = getElevatedAccessToken;
+const __getElevatedAccessToken_wrapped = instrumentFunction({
+	fn: __getElevatedAccessToken_impl,
+	functionName: "getElevatedAccessToken",
+	getCore: () => {
+		try {
+			return getCore(getDefaultClient());
+		} catch {
+			return;
+		}
+	}
+});
+
+//#endregion
+//#region src/errors/ValueMustBeDefinedError.ts
+var ValueMustBeDefinedError = class extends BaseError {
+	constructor(message) {
+		super({
+			cause: null,
+			code: "value_must_be_defined_error",
+			docsUrl: null,
+			name: "ValueMustBeDefined",
+			shortMessage: message
+		});
+	}
+};
+
+//#endregion
+//#region src/utils/assertDefined/assertDefined.ts
+/**
+* Asserts that a value is not null or undefined, throwing an error if it is.
+* This function acts as a type guard, narrowing the type to exclude null and undefined.
+*
+* @template T - The type of the value being checked
+* @param value - The value to check for null or undefined
+* @param message - The error message to throw if the value is null or undefined
+* @throws Throws an error with the provided message if value is null or undefined
+* @example
+* ```typescript
+* const maybeString: string | null = getValue();
+* assertDefined(maybeString, 'String value is required');
+* // maybeString is now typed as string (null is excluded)
+* ```
+*/
+function assertDefined(value, message) {
+	if (value === null || value === void 0) throw new ValueMustBeDefinedError(message);
+}
+
+//#endregion
+//#region src/modules/projectSettings/isCookieEnabled/isCookieEnabled.ts
+/**
+* Returns true if the client is using Dynamic cookies or a BYO JWT cookie.
+* @not-instrumented
+*/
+const isCookieEnabled = (client) => {
+	assertDefined(client.projectSettings, "Project settings are not defined");
+	const securitySettings = client.projectSettings.security;
+	if (!securitySettings) return false;
+	const dynamicCookiesEnabled = (securitySettings.auth?.storage || []).includes(_dynamic_labs_sdk_api_core.AuthStorageEnum.Cookie);
+	const byoJwtCookieEnabled = Boolean(securitySettings.externalAuth?.cookieName);
+	return dynamicCookiesEnabled || byoJwtCookieEnabled;
+};
+
+//#endregion
+//#region src/modules/sessionKeys/getSessionKeys/getSessionKeys.ts
+/** @not-instrumented */
+const getSessionKeys = (client) => {
+	const publicKey = getCore(client).state.get().sessionKeys;
+	if (!publicKey) return;
+	return { publicKey };
+};
+
+//#endregion
+//#region src/errors/APIError/APIError.ts
+var APIError = class APIError extends BaseError {
+	status;
+	constructor(message, code, status) {
+		super({
+			cause: null,
+			code,
+			docsUrl: null,
+			name: "APIError",
+			shortMessage: message
+		});
+		this.status = status;
+	}
+	static async fromResponse(response) {
+		try {
+			const errorBody = await response.clone().json();
+			if (errorBody && "error" in errorBody && typeof errorBody.error === "string") {
+				const errorCode = "code" in errorBody && typeof errorBody.code === "string" ? errorBody.code : "unknown_error";
+				return new APIError(errorBody.error, errorCode, response.status);
+			}
+			return null;
+		} catch {
+			return null;
+		}
+	}
+};
+
+//#endregion
+//#region src/errors/InvalidExternalAuthError.ts
+var InvalidExternalAuthError = class extends BaseError {
+	constructor({ cause }) {
+		super({
+			cause,
+			code: "invalid_external_auth_error",
+			docsUrl: "https://www.dynamic.xyz/docs/external-auth/third-party-auth-overview",
+			name: "InvalidExternalAuthError",
+			shortMessage: "Error authenticating with external JWT"
+		});
+	}
+};
+
+//#endregion
+//#region src/errors/LinkCredentialError.ts
+var LinkCredentialError = class extends BaseError {
+	constructor({ cause }) {
+		super({
+			cause,
+			code: "link_credential_error",
+			docsUrl: null,
+			name: "LinkCredentialError",
+			shortMessage: "The credential you are trying to link is associated with another account and cannot be reassigned."
+		});
+	}
+};
+
+//#endregion
+//#region src/errors/MfaInvalidOtpError.ts
+var MfaInvalidOtpError = class extends BaseError {
+	constructor({ cause }) {
+		super({
+			cause,
+			code: "mfa_invalid_otp_error",
+			docsUrl: null,
+			name: "MfaInvalidOtpError",
+			shortMessage: "Invalid OTP"
+		});
+	}
+};
+
+//#endregion
+//#region src/errors/MfaRateLimitedError.ts
+var MfaRateLimitedError = class extends BaseError {
+	constructor({ cause }) {
+		super({
+			cause,
+			code: "mfa_rate_limited_error",
+			docsUrl: null,
+			name: "MfaRateLimitedError",
+			shortMessage: "Rate limited"
+		});
+	}
+};
+
+//#endregion
+//#region src/errors/SandboxMaximumThresholdReachedError.ts
+var SandboxMaximumThresholdReachedError = class extends BaseError {
+	constructor({ cause }) {
+		super({
+			cause,
+			code: "sandbox_maximum_threshold_reached_error",
+			docsUrl: "https://www.dynamic.xyz/docs/developer-dashboard/sandbox-vs-live#sandbox-vs-live",
+			name: "SandboxMaximumThresholdReachedError",
+			shortMessage: "Your sandbox environment has reached the maximum MAU. Please use a live environment for production traffic."
+		});
+	}
+};
+
+//#endregion
+//#region src/modules/apiClient/utils/clientErrorMapper/clientErrorMapper.ts
+/**
+* Default error mapper for the client that handles common API error codes.
+*
+* This mapper transforms specific API error codes into more specific error types:
+* - `mfa_invalid_code` → `MfaInvalidOtpError`
+* - `mfa_rate_limited` → `MfaRateLimitedError`
+*
+* @param error - The error to be mapped
+* @returns A transformed error if the error code matches a known pattern, or null if no transformation is needed
+*
+* @example
+* ```typescript
+* // This will be automatically applied to all API errors
+* const apiClient = createApiClient({}, client);
+*
+* // The clientErrorMapper will automatically convert mfa_invalid_code errors
+* // to MfaInvalidOtpError instances
+* ```
+* @not-instrumented
+*/
+const clientErrorMapper = (error) => {
+	if (error instanceof APIError) {
+		if (error.code === "mfa_invalid_code") return new MfaInvalidOtpError({ cause: error });
+		if (error.code === "mfa_rate_limited") return new MfaRateLimitedError({ cause: error });
+		if (error.code === "invalid_external_auth") return new InvalidExternalAuthError({ cause: error });
+		if (error.code === "sandbox_maximum_threshold_reached") return new SandboxMaximumThresholdReachedError({ cause: error });
+		if (error.code === "merge_accounts_invalid" || error.code === "reassign_wallet_error") return new LinkCredentialError({ cause: error });
+	}
+	return null;
+};
+
+//#endregion
+//#region src/modules/apiClient/utils/convertToApiErrorMiddleware/convertToApiErrorMiddleware.ts
+/**
+* Creates middleware that converts HTTP error responses to APIError instances
+* and optionally applies custom error mappers to transform them into specific error types.
+*
+* @param options.errorMappers - Array of error mappers to apply to API errors
+* @returns A middleware function that handles error conversion and mapping
+* @not-instrumented
+*/
+const createConvertToApiErrorMiddleware = ({ errorMappers = [] }) => ({ post: async (context) => {
+	if (context.response.status >= 400) {
+		const apiError = await APIError.fromResponse(context.response);
+		if (apiError) {
+			let errorToThrow = apiError;
+			for (const mapper of errorMappers) {
+				const newError = mapper(apiError);
+				if (newError) {
+					errorToThrow = newError;
+					break;
+				}
+			}
+			throw errorToThrow;
+		}
+	}
+	return context.response;
+} });
+
+//#endregion
+//#region src/utils/getNonce/getNonce.ts
+/**
+* Returns a nonce for wallet ownership verification.
+*
+* Pops the first nonce from the prefetched pool. When the pool is running low
+* (≤1 remaining after pop) a background refetch is triggered. If the pool is
+* empty, nonces are fetched on-demand before returning.
+* @not-instrumented
+*/
+const getNonce = async (client) => {
+	const core = getCore(client);
+	const pool = core.state.get().prefetchedNonces;
+	if (pool.length > 0) {
+		const [nonce, ...remaining] = pool;
+		core.state.set({ prefetchedNonces: remaining });
+		if (remaining.length <= 1) fetchAndStoreNonces(client);
+		return nonce;
+	}
+	await fetchAndStoreNonces(client);
+	return getNonce(client);
+};
+
+//#endregion
+//#region src/modules/deviceRegistration/getDeviceSigner/getDeviceSigner.ts
+/** @not-instrumented */
+const getDeviceSigner = async (client) => {
+	const { deviceSigner, keychain } = getCore(client);
+	/**
+	* If the device signer is available, it should handle the device signing.
+	* This is used for mobile devices with secure enclave.
+	*/
+	if (deviceSigner) return deviceSigner;
+	const keyName = "device";
+	if (!await keychain.getPublicKey(keyName)) await keychain.generateKey(keyName);
+	return {
+		getPublicKey: () => keychain.getPublicKey(keyName),
+		sign: (payload) => keychain.sign(keyName, payload)
+	};
+};
+
+//#endregion
+//#region src/modules/deviceRegistration/getHeadersForNonceSignedByDeviceSigners/getHeadersForNonceSignedByDeviceSigners.ts
+/** @not-instrumented */
+const getHeadersForNonceSignedByDeviceSigners = async (client) => {
+	const { projectSettings } = client;
+	assertDefined(projectSettings, "Project settings not found");
+	/**
+	* For cookie based environments, the device registration is handled
+	* by settings the cookie in the browser.
+	* Then we dont need to provide the headers
+	*/
+	if (isCookieEnabled(client)) return {};
+	const deviceSigner = await getDeviceSigner(client);
+	const nonce = await getNonce(client);
+	const signedNonce = await deviceSigner.sign(nonce);
+	const publicKey = await deviceSigner.getPublicKey();
+	return {
+		"x-dynamic-device-nonce": nonce,
+		"x-dynamic-device-publickey": publicKey,
+		"x-dynamic-device-signed-nonce": signedNonce
+	};
+};
+
+//#endregion
+//#region src/modules/apiClient/utils/deviceSignatureHeadersMiddleware/createDeviceSignatureHeadersMiddleware.ts
+/** @not-instrumented */
+const createDeviceSignatureHeadersMiddleware = (client) => {
+	return { pre: async (context) => {
+		/**
+		* The signed nonce is not required for cookie based environments.
+		*/
+		if ((0, _dynamic_labs_sdk_api_core.isDeviceNonceSignatureRequiredForUrl)(context.url) && !isCookieEnabled(client)) {
+			const deviceSignerHeaders = await getHeadersForNonceSignedByDeviceSigners(client);
+			return {
+				init: {
+					...context.init,
+					headers: {
+						...context.init.headers,
+						...deviceSignerHeaders
+					}
+				},
+				url: context.url
+			};
+		}
+	} };
+};
+
+//#endregion
+//#region src/errors/UnauthorizedError.ts
+var UnauthorizedError = class extends BaseError {
+	constructor({ cause }) {
+		super({
+			cause,
+			code: "unauthorized_error",
+			docsUrl: null,
+			name: "UnauthorizedError",
+			shortMessage: "Unauthorized"
+		});
+	}
+};
+
+//#endregion
+//#region src/modules/apiClient/utils/unauthorizedMiddleware/createUnauthorizedMiddleware.ts
+/** @not-instrumented */
+const createUnauthorizedMiddleware = () => ({ post: async (context) => {
+	if (context.response.status === 401) {
+		let cause = null;
+		try {
+			const errorBody = await context.response.clone().json();
+			if (errorBody && "error" in errorBody && typeof errorBody.error === "string") cause = new Error(errorBody.error);
+		} catch {}
+		throw new UnauthorizedError({ cause });
+	}
+	return context.response;
+} });
+
+//#endregion
+//#region src/modules/apiClient/createApiClient.ts
+/**
+* Returns a new instance of the SDK API client.
+*
+* This is not meant for storing, as it is very light we can create it whenever needed.
+* @not-instrumented
+*/
+const createApiClient = (options = {}, client) => {
+	const core = getCore(client);
+	const coreState = core.state.get();
+	const settings = {
+		basePath: core.apiBaseUrl,
+		headers: {
+			"Content-Type": "application/json",
+			[DYNAMIC_API_VERSION_HEADER]: `API/${DYNAMIC_SDK_API_VERSION}`,
+			[DYNAMIC_REQUEST_ID_HEADER]: randomString({ length: 50 }),
+			[DYNAMIC_SDK_SESSION_ID_HEADER]: core.sdkSessionId,
+			[DYNAMIC_SDK_VERSION_HEADER]: `${CLIENT_SDK_NAME}/${version}`,
+			...core.getApiHeaders(),
+			...options.headers
+		}
+	};
+	if (core.metadata?.universalLink) settings.headers["Origin"] = core.metadata.universalLink;
+	if (client.token) settings.headers.Authorization = `Bearer ${client.token}`;
+	if (client.projectSettings && isCookieEnabled(client)) settings.credentials = "include";
+	if (options.includeMfaToken && coreState.mfaToken) settings.headers[MFA_TOKEN_HEADER] = coreState.mfaToken;
+	if (options.elevatedAccessTokenScope) {
+		const elevatedToken = __getElevatedAccessToken_wrapped({ scope: options.elevatedAccessTokenScope }, client);
+		if (elevatedToken) settings.headers[ELEVATED_ACCESS_TOKEN_HEADER] = elevatedToken;
+	}
+	const sessionPublicKey = getSessionKeys(client)?.publicKey;
+	const isSessionPublicKeyHeaderPresent = settings.headers[SESSION_PUBLIC_KEY_HEADER] !== void 0;
+	if (sessionPublicKey && !isSessionPublicKeyHeaderPresent) settings.headers[SESSION_PUBLIC_KEY_HEADER] = sessionPublicKey;
+	return new _dynamic_labs_sdk_api_core.SDKApi(new _dynamic_labs_sdk_api_core.Configuration({
+		...settings,
+		fetchApi: core.fetch,
+		middleware: [
+			createDeviceSignatureHeadersMiddleware(client),
+			createConvertToApiErrorMiddleware({ errorMappers: [...options.errorMappers || [], clientErrorMapper] }),
+			createUnauthorizedMiddleware()
+		]
+	}));
+};
+
+//#endregion
+//#region src/utils/getNonce/fetchAndStoreNonces/fetchAndStoreNonces.ts
+/**
+* Fetches a batch of nonces from the API.
+*
+* Prefetching is critical for iOS deep link wallet providers (e.g. Phantom
+* redirect). On iOS, a network request (like fetching a nonce) between a user
+* action and a deeplink call will break the gesture chain, causing iOS to
+* silently ignore the deeplink. By prefetching nonces ahead of time,
+* `getNonce` can return synchronously from cache and the deeplink fires
+* without an interrupting network round-trip.
+*
+* New nonces are **appended** to the existing pool so that unconsumed entries
+* are not discarded by a background refetch.
+*
+* Concurrent refills are coalesced behind a single in-flight promise so that
+* simultaneous callers share one `GET /nonces` round-trip instead of each
+* issuing their own (which would inflate the pool and hammer the backend).
+* @not-instrumented
+*/
+const fetchAndStoreNonces = async (client) => {
+	const core = getCore(client);
+	const inFlight = core.state.get().nonceFetchInFlight;
+	if (inFlight) return inFlight;
+	const { environmentId } = core;
+	const apiClient = createApiClient({}, client);
+	const fetchPromise = (async () => {
+		const { nonces } = await apiClient.getNonces({
+			count: NONCE_POOL_SIZE,
+			environmentId
+		});
+		const existing = core.state.get().prefetchedNonces;
+		core.state.set({
+			prefetchedNonces: [...existing, ...nonces],
+			prefetchedNoncesExpiration: Date.now() + NONCE_POOL_EXPIRATION_TIME
+		});
+	})().finally(() => {
+		core.state.set({ nonceFetchInFlight: null });
+	});
+	core.state.set({ nonceFetchInFlight: fetchPromise });
+	return fetchPromise;
+};
+
+//#endregion
+//#region src/utils/setCookie/setCookie.ts
+/**
+* Sefelly sets the cookie in the browser.
+* @not-instrumented
+*/
+const setCookie = (cookie) => {
+	document.cookie = cookie;
+};
+
+//#endregion
+//#region src/modules/clientEvents/clientEvents.ts
+/**
+* Adds an event listener for Dynamic client events.
+*
+* This function allows you to listen for various events emitted by the Dynamic client,
+* such as authentication state changes, wallet connections, and more.
+*
+* @param params.event - The event name to listen for.
+* @param params.listener - The callback function to execute when the event is fired.
+* @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+* @returns A function that can be called to remove the listener.
+* @not-instrumented
+*/
+const onEvent = ({ event, listener }, client = getDefaultClient()) => {
+	const { eventEmitter } = getCore(client);
+	eventEmitter.on(event, listener);
+	return () => {
+		eventEmitter.off(event, listener);
+	};
+};
+/**
+* Removes an event listener from Dynamic client events.
+*
+* This function unsubscribes a previously registered event listener
+* from the specified Dynamic client event.
+*
+* @param params.event - The event name to remove the listener from.
+* @param params.listener - The callback function to remove.
+* @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+* @not-instrumented
+*/
+const offEvent = ({ event, listener }, client = getDefaultClient()) => {
+	const { eventEmitter } = getCore(client);
+	eventEmitter.off(event, listener);
+};
+/**
+* Adds a one-time event listener for Dynamic client events.
+*
+* This function listens for an event that will automatically remove itself
+* after being triggered once.
+*
+* @param params.event - The event name to listen for.
+* @param params.listener - The callback function to execute when the event is fired.
+* @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+* @returns A function that can be called to remove the listener before it fires.
+* @not-instrumented
+*/
+const onceEvent = ({ event, listener }, client = getDefaultClient()) => {
+	const { eventEmitter } = getCore(client);
+	eventEmitter.once(event, listener);
+	return () => {
+		eventEmitter.off(event, listener);
+	};
+};
+/**
+* Emits a Dynamic client event.
+*
+* This function triggers an event that will be received by all registered
+* listeners for the specified event type.
+*
+* @param params.event - The event name to emit.
+* @param params.args - The arguments to pass to event listeners.
+* @param client - The Dynamic client instance.
+* @not-instrumented
+*/
+const emitEvent = ({ event, args }, client) => {
+	const { eventEmitter } = getCore(client);
+	eventEmitter.emit(event, args);
+};
+
+//#endregion
+//#region src/errors/InvalidWalletProviderKeyError.ts
+var InvalidWalletProviderKeyError = class extends BaseError {
+	constructor(value) {
+		super({
+			cause: null,
+			code: "invalid_wallet_provider_key",
+			docsUrl: null,
+			name: "InvalidWalletProviderKeyError",
+			shortMessage: `Invalid wallet provider key: ${value}. Key must be in the format of <normalizedWalletNameWithChain>:<walletProviderType>[:<suffix>]`
+		});
+	}
+};
+
+//#endregion
+//#region src/modules/wallets/walletProvider/splitWalletProviderKey/splitWalletProviderKey.ts
+/** @not-instrumented */
+const splitWalletProviderKey = (walletProviderKey) => {
+	const [normalizedWalletNameWithChain, walletProviderType, suffix, ...rest] = walletProviderKey.split(":");
+	if (!normalizedWalletNameWithChain || !Object.values(_dynamic_labs_sdk_api_core.WalletProviderEnum).includes(walletProviderType) || rest.length > 0) throw new InvalidWalletProviderKeyError(walletProviderKey);
+	return {
+		normalizedWalletNameWithChain,
+		suffix,
+		walletProviderType
+	};
+};
+
+//#endregion
+//#region src/modules/wallets/utils/normalizeAddress/normalizeAddress.ts
+/** @not-instrumented */
+const normalizeAddress = ({ address, chain }) => {
+	let normalizedAddress = address;
+	if (normalizedAddress?.startsWith("0x")) normalizedAddress = normalizedAddress.slice(2);
+	normalizedAddress = ["EVM", "FLOW"].includes(chain) ? normalizedAddress?.toLowerCase() : normalizedAddress;
+	return normalizedAddress;
+};
+
+//#endregion
+//#region src/modules/wallets/utils/formatWalletAccountId/formatWalletAccountId.ts
+/** @not-instrumented */
+const formatWalletAccountId = ({ address, chain, walletProviderKey }) => {
+	const { normalizedWalletNameWithChain } = splitWalletProviderKey(walletProviderKey);
+	return `${normalizedWalletNameWithChain}:${normalizeAddress({
+		address,
+		chain
+	})}`;
+};
+
+//#endregion
+//#region src/modules/wallets/utils/convertUnverifiedWalletAccountToWalletAccount/convertUnverifiedWalletAccountToWalletAccount.ts
+/** @not-instrumented */
+const convertUnverifiedWalletAccountToWalletAccount = ({ unverifiedWalletAccount }) => ({
+	address: unverifiedWalletAccount.address,
+	addressesWithTypes: unverifiedWalletAccount.addressesWithTypes,
+	chain: unverifiedWalletAccount.chain,
+	id: formatWalletAccountId({
+		address: unverifiedWalletAccount.address,
+		chain: unverifiedWalletAccount.chain,
+		walletProviderKey: unverifiedWalletAccount.walletProviderKey
+	}),
+	lastSelectedAt: unverifiedWalletAccount.lastSelectedAt,
+	verifiedCredentialId: null,
+	walletProviderKey: unverifiedWalletAccount.walletProviderKey
+});
+
+//#endregion
+//#region src/modules/wallets/constants.ts
+const CHAINS_INFO_MAP = {
+	ALEO: {
+		apiChainName: "aleo",
+		blockchainName: "Aleo",
+		verifiedCredentialChainName: "aleo"
+	},
+	ALGO: {
+		apiChainName: "algo",
+		blockchainName: "Algorand",
+		verifiedCredentialChainName: "algorand"
+	},
+	APTOS: {
+		apiChainName: "aptos",
+		blockchainName: "Aptos",
+		verifiedCredentialChainName: "aptos"
+	},
+	BTC: {
+		apiChainName: "bitcoin",
+		blockchainName: "Bitcoin",
+		legacyWalletBookAliases: ["btc"],
+		verifiedCredentialChainName: "bip122"
+	},
+	COSMOS: {
+		apiChainName: "cosmos",
+		blockchainName: "Cosmos",
+		verifiedCredentialChainName: "cosmos"
+	},
+	ECLIPSE: {
+		apiChainName: "eclipse",
+		blockchainName: "Eclipse",
+		verifiedCredentialChainName: "eclipse"
+	},
+	EVM: {
+		apiChainName: "evm",
+		blockchainName: "Ethereum",
+		verifiedCredentialChainName: "eip155"
+	},
+	FLOW: {
+		apiChainName: "flow",
+		blockchainName: "Flow",
+		verifiedCredentialChainName: "flow"
+	},
+	MIDNIGHT: {
+		apiChainName: "midnight",
+		blockchainName: "Midnight",
+		verifiedCredentialChainName: "midnight"
+	},
+	SOL: {
+		apiChainName: "solana",
+		blockchainName: "Solana",
+		legacyWalletBookAliases: ["sol"],
+		verifiedCredentialChainName: "solana",
+		waasChainNameOverride: "SVM"
+	},
+	SPARK: {
+		apiChainName: "spark",
+		blockchainName: "Spark",
+		verifiedCredentialChainName: "spark"
+	},
+	STARK: {
+		apiChainName: "starknet",
+		blockchainName: "Starknet",
+		legacyWalletBookAliases: ["stark"],
+		verifiedCredentialChainName: "starknet"
+	},
+	STELLAR: {
+		apiChainName: "stellar",
+		blockchainName: "Stellar",
+		verifiedCredentialChainName: "stellar"
+	},
+	SUI: {
+		apiChainName: "sui",
+		blockchainName: "Sui",
+		verifiedCredentialChainName: "sui"
+	},
+	TEMPO: {
+		apiChainName: "tempo",
+		blockchainName: "Tempo",
+		verifiedCredentialChainName: "tempo"
+	},
+	TON: {
+		apiChainName: "ton",
+		blockchainName: "TON",
+		verifiedCredentialChainName: "ton"
+	},
+	TRON: {
+		apiChainName: "tron",
+		blockchainName: "Tron",
+		verifiedCredentialChainName: "tron"
+	}
+};
+
+//#endregion
+//#region src/utils/getChainFromVerifiedCredentialChain/getChainFromVerifiedCredentialChain.ts
+/** @not-instrumented */
+const getChainFromVerifiedCredentialChain = (verifiedCredentialChain) => {
+	const chain = Object.keys(CHAINS_INFO_MAP).find((chain$1) => CHAINS_INFO_MAP[chain$1].verifiedCredentialChainName === verifiedCredentialChain);
+	assertDefined(chain, `Unknown chain: ${verifiedCredentialChain}`);
+	return chain;
+};
+
+//#endregion
+//#region src/modules/wallets/utils/normalizeWalletNameWithChain/normalizeWalletNameWithChain.ts
+/**
+* Format the raw wallet name and chain to get the value we can use for
+* verified credentials' `walletName` field.
+* @not-instrumented
+*/
+const normalizeWalletNameWithChain = ({ displayName, chain }) => {
+	const sanitizedWalletName = displayName.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+	const chainLowered = chain.toLocaleLowerCase();
+	if (sanitizedWalletName.endsWith(chainLowered)) return sanitizedWalletName;
+	return `${sanitizedWalletName}${chainLowered}`;
+};
+
+//#endregion
+//#region src/modules/wallets/utils/formatWalletProviderKey/formatWalletProviderKey.ts
+/**
+* Assembles the wallet provider key from the wallet name, chain, and wallet provider type.
+*
+* The suffix is optional and can be used to add a uniquely identifying string to the key, which
+* might be necessary for some wallet providers (like Wallet Connect).
+*
+* IMPORTANT: Do NOT add a suffix unless absolutely necessary, as it will cause the wallet account
+* to not be able to find its wallet provider when connecting to a new device (it won't be possible
+* to determine the full key just from the Verified Credential data).
+* @not-instrumented
+*/
+const formatWalletProviderKey = ({ suffix, chain, displayName, walletProviderType }) => {
+	return `${normalizeWalletNameWithChain({
+		chain,
+		displayName
+	})}:${walletProviderType}${suffix ? `:${suffix}` : ""}`;
+};
+
+//#endregion
+//#region src/modules/wallets/walletProvider/walletProviderKeyMap/getWalletProviderKeyFromVerifiedCredential/getWalletProviderKeyFromVerifiedCredential.ts
+/** @not-instrumented */
+const getWalletProviderKeyFromVerifiedCredential = ({ verifiedCredential }, client) => {
+	const { walletProviderKeyMap } = getCore(client).state.get();
+	const storedWalletProviderKey = walletProviderKeyMap[verifiedCredential.id];
+	if (storedWalletProviderKey) return { walletProviderKey: storedWalletProviderKey };
+	/**
+	* We fallback to comprising the wallet provider key from walletName and walletProvider.
+	*
+	* Some wallet provider types (like Wallet Connect) also use a special suffix for their wallet provider
+	* keys, so this won't be enough for them.
+	* Therefore, for those specific wallet providers, the wallet account will remain without a wallet provider
+	* and will require reconnection.
+	* Read walletProvider.types.ts for more info.
+	*/
+	assertDefined(verifiedCredential.walletName, `Failed to get wallet provider for verified credential with ID ${verifiedCredential.id}: missing walletName`);
+	assertDefined(verifiedCredential.walletProvider, `Failed to get wallet provider for verified credential with ID ${verifiedCredential.id}: missing walletProvider`);
+	assertDefined(verifiedCredential.chain, `Failed to get wallet provider for verified credential with ID ${verifiedCredential.id}: missing chain`);
+	return { walletProviderKey: formatWalletProviderKey({
+		chain: getChainFromVerifiedCredentialChain(verifiedCredential.chain),
+		displayName: verifiedCredential.walletName,
+		walletProviderType: verifiedCredential.walletProvider
+	}) };
+};
+
+//#endregion
+//#region src/modules/wallets/utils/convertVerifiedCredentialToWalletAccount/convertVerifiedCredentialToWalletAccount.ts
+/** @not-instrumented */
+const convertVerifiedCredentialToWalletAccount = ({ verifiedCredential }, client) => {
+	assertDefined(verifiedCredential.address, "Missing address in verified credential");
+	assertDefined(verifiedCredential.chain, "Missing chain in verified credential");
+	const chain = getChainFromVerifiedCredentialChain(verifiedCredential.chain);
+	const { walletProviderKey } = getWalletProviderKeyFromVerifiedCredential({ verifiedCredential }, client);
+	const walletAccountId = formatWalletAccountId({
+		address: verifiedCredential.address,
+		chain,
+		walletProviderKey
+	});
+	return {
+		address: verifiedCredential.address,
+		addressesWithTypes: verifiedCredential.walletAdditionalAddresses,
+		chain,
+		hardwareWalletVendor: verifiedCredential.walletProperties?.hardwareWallet,
+		id: walletAccountId,
+		lastSelectedAt: verifiedCredential.lastSelectedAt ?? null,
+		verifiedCredentialId: verifiedCredential.id,
+		walletProviderKey
+	};
+};
+
+//#endregion
+//#region src/modules/wallets/getWalletAccounts/getWalletAccountsFromState/getWalletAccountsFromState.ts
+/** @not-instrumented */
+const getWalletAccountsFromState = ({ unverifiedWalletAccounts, user }, client) => {
+	const walletAccountsMap = /* @__PURE__ */ new Map();
+	/**
+	* Handle the unverified wallet accounts before the user verified credentials
+	* so the later verified wallet accounts can override the unverified wallet accounts
+	*/
+	unverifiedWalletAccounts.forEach((unverifiedWalletAccount) => {
+		const walletAccount = convertUnverifiedWalletAccountToWalletAccount({ unverifiedWalletAccount });
+		walletAccountsMap.set(walletAccount.id, walletAccount);
+	});
+	(user?.verifiedCredentials ?? []).filter((verified) => verified.format === _dynamic_labs_sdk_api_core.JwtVerifiedCredentialFormatEnum.Blockchain).forEach((verifiedWalletAccount) => {
+		const walletAccount = convertVerifiedCredentialToWalletAccount({ verifiedCredential: verifiedWalletAccount }, client);
+		walletAccountsMap.set(walletAccount.id, walletAccount);
+	});
+	return Array.from(walletAccountsMap.values());
+};
+
+//#endregion
+//#region src/modules/wallets/getWalletAccounts/getWalletAccounts.ts
+/**
+* Retrieves all wallet accounts associated with the current session.
+*
+* This function returns both verified and unverified wallet accounts,
+* combining data from user credentials and local unverified accounts.
+* You can differentiate between verified and unverified wallet accounts by
+* checking the `verifiedCredentialId` property.
+*
+* @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+* @returns An array of wallet accounts associated with the session.
+* @not-instrumented
+*/
+const getWalletAccounts = (client = getDefaultClient()) => {
+	const { unverifiedWalletAccounts, user } = getCore(client).state.get();
+	return getWalletAccountsFromState({
+		unverifiedWalletAccounts,
+		user
+	}, client);
+};
+
+//#endregion
+//#region src/errors/NoWalletProviderFoundError.ts
+var NoWalletProviderFoundError = class extends BaseError {
+	constructor({ walletProviderKey }) {
+		super({
+			cause: null,
+			code: "no_wallet_provider_found_error",
+			docsUrl: null,
+			name: "NoWalletProviderFoundError",
+			shortMessage: `No wallet provider found with key: ${walletProviderKey}`
+		});
+	}
+};
+
+//#endregion
+//#region src/services/runtimeServices/createRuntimeServiceAccessKey/createRuntimeServiceAccessKey.ts
+/**
+* Creates a service accessor function that manages service instantiation and caching.
+* The returned function will either retrieve an existing service from the registry or
+* create a new one using the provided builder function.
+*
+* @template - The type of service to be created/accessed
+* @param key - Unique identifier for the service in the registry
+* @param builder - Function that creates the service instance when called with a DynamicClient
+* @not-instrumented
+*/
+const createRuntimeServiceAccessKey = (key, builder) => (client) => {
+	const { runtimeServices } = getCore(client);
+	const currentService = runtimeServices.getByKey(key);
+	if (currentService) return currentService;
+	const service = builder(client);
+	runtimeServices.register(key, service);
+	return service;
+};
+
+//#endregion
+//#region src/modules/wallets/walletProviderRegistry/createWalletProviderRegistry/createWalletProviderRegistry.ts
+/**
+* Creates a new wallet provider registry that manages wallet providers with priority-based registration.
+*
+* @returns The wallet provider registry instance
+*
+* @example
+* ```typescript
+* const registry = createWalletProviderRegistry();
+*
+* registry.register({
+*   priority: WalletProviderPriority.WALLET_SDK,
+*   walletProvider: myWalletProvider
+* });
+*
+* const provider = registry.getByKey('my-wallet-key');
+* const providers = registry.listProviders();
+* ```
+* @not-instrumented
+*/
+const createWalletProviderRegistry = (client) => {
+	const registry = /* @__PURE__ */ new Map();
+	return {
+		getByKey: (key) => registry.get(key)?.walletProvider,
+		listProviderEntries: () => Array.from(registry.values()),
+		listProviders: () => Array.from(registry.values()).map((v) => v.walletProvider),
+		register: (args) => {
+			const existingEntry = registry.get(args.walletProvider.key);
+			if (existingEntry) {
+				if (existingEntry.priority < args.priority) {
+					registry.set(args.walletProvider.key, args);
+					emitEvent({
+						args: { walletProviderKey: args.walletProvider.key },
+						event: "walletProviderChanged"
+					}, client);
+				}
+			} else {
+				registry.set(args.walletProvider.key, args);
+				emitEvent({
+					args: { walletProvider: args.walletProvider },
+					event: "walletProviderRegistered"
+				}, client);
+				emitEvent({
+					args: { walletProviderKey: args.walletProvider.key },
+					event: "walletProviderChanged"
+				}, client);
+			}
+		},
+		unregister: (key) => {
+			registry.delete(key);
+			emitEvent({
+				args: { walletProviderKey: key },
+				event: "walletProviderUnregistered"
+			}, client);
+		}
+	};
+};
+
+//#endregion
+//#region src/modules/wallets/walletProviderRegistry/getWalletProviderRegistry/getWalletProviderRegistry.ts
+/**
+* This function provides access to a shared instance of the wallet provider registry.
+*
+* It ensures that the same registry instance is used throughout the client to maintaining
+* consistency of registered wallet providers across different parts of the codebase.
+*
+* @returns The wallet provider registry instance
+*
+* @example
+* ```typescript
+* // Get the registry instance
+* const registry = getWalletProviderRegistry();
+*
+* // Register a wallet provider
+* registry.register({
+*   priority: WalletProviderPriority.WALLET_SDK,
+*   walletProvider: myWalletProvider
+* });
+*
+* // Retrieve a specific provider
+* const provider = registry.getByKey('metamaskevm');
+* ```
+*/
+const getWalletProviderRegistry = createRuntimeServiceAccessKey("walletProviderRegistry", (client) => createWalletProviderRegistry(client));
+
+//#endregion
+//#region src/modules/wallets/walletProviderRegistry/walletProviderRegistry.types.ts
+let WalletProviderPriority = /* @__PURE__ */ function(WalletProviderPriority$1) {
+	/**
+	* Highest priority should be used by wallet providers that implement
+	* the most reliable wallet integration.
+	* example: The SDK provided by the wallet provider.
+	*/
+	WalletProviderPriority$1[WalletProviderPriority$1["WALLET_SDK"] = 100] = "WALLET_SDK";
+	/**
+	* Medium priority should be used by wallet providers that implement
+	* a wallet integration via some reliable standard.
+	* example: A wallet provider that uses EIP6963 announcement.
+	*/
+	WalletProviderPriority$1[WalletProviderPriority$1["WALLET_SELF_ANNOUNCEMENT_STANDARD"] = 50] = "WALLET_SELF_ANNOUNCEMENT_STANDARD";
+	/**
+	* Low priority should be used by wallet providers that implement
+	* a wallet integration on a less reliable standard.
+	* example: A wallet provider that uses window.ethereum, where the
+	* window key can be overridden by other extensions.
+	*/
+	WalletProviderPriority$1[WalletProviderPriority$1["WINDOW_INJECT"] = 20] = "WINDOW_INJECT";
+	return WalletProviderPriority$1;
+}({});
+
+//#endregion
+//#region src/modules/wallets/utils/getWalletProviderFromWalletAccount/getWalletProviderFromWalletAccount.ts
+/** @not-instrumented */
+const getWalletProviderFromWalletAccount = ({ walletAccount }, client) => {
+	const walletProvider = getWalletProviderRegistry(client).getByKey(walletAccount.walletProviderKey);
+	if (!walletProvider) throw new NoWalletProviderFoundError({ walletProviderKey: walletAccount.walletProviderKey });
+	return walletProvider;
+};
+
+//#endregion
+//#region src/modules/auth/consts.ts
+const DYNAMIC_AUTH_COOKIE_NAME = "DYNAMIC_JWT_TOKEN";
+
+//#endregion
+//#region src/constants.ts
+const SDK_API_CORE_VERSION = dependencies["@dynamic-labs/sdk-api-core"];
+const DYNAMIC_ICONIC_SPRITE_URL = "https://iconic.dynamic-static-assets.com/icons/sprite.svg";
+
+//#endregion
+//#region src/modules/waas/constants.ts
+const DEFAULT_WAAS_BASE_API_URL = "https://app.dynamicauth.com";
+const DEFAULT_WAAS_BASE_MPC_RELAY_API_URL = "https://relay.dynamicauth.com";
+const DYNAMIC_WAAS_METADATA = {
+	displayName: "Dynamic WaaS",
+	icon: `${DYNAMIC_ICONIC_SPRITE_URL}#dynamicwaas`,
+	normalizedWalletName: "dynamicwaas"
+};
+
+//#endregion
+//#region src/errors/InvalidParamError.ts
+var InvalidParamError = class extends BaseError {
+	constructor(message) {
+		super({
+			cause: null,
+			code: "invalid_param_error",
+			docsUrl: null,
+			name: "InvalidParamError",
+			shortMessage: message
+		});
+	}
+};
+
+//#endregion
+Object.defineProperty(exports, 'APIError', {
+  enumerable: true,
+  get: function () {
+    return APIError;
+  }
+});
+Object.defineProperty(exports, 'BaseError', {
+  enumerable: true,
+  get: function () {
+    return BaseError;
+  }
+});
+Object.defineProperty(exports, 'CHAINS_INFO_MAP', {
+  enumerable: true,
+  get: function () {
+    return CHAINS_INFO_MAP;
+  }
+});
+Object.defineProperty(exports, 'CLIENT_SDK_NAME', {
+  enumerable: true,
+  get: function () {
+    return CLIENT_SDK_NAME;
+  }
+});
+Object.defineProperty(exports, 'ClientNotFoundError', {
+  enumerable: true,
+  get: function () {
+    return ClientNotFoundError;
+  }
+});
+Object.defineProperty(exports, 'DEFAULT_PII_FIELDS', {
+  enumerable: true,
+  get: function () {
+    return DEFAULT_PII_FIELDS;
+  }
+});
+Object.defineProperty(exports, 'DEFAULT_WAAS_BASE_API_URL', {
+  enumerable: true,
+  get: function () {
+    return DEFAULT_WAAS_BASE_API_URL;
+  }
+});
+Object.defineProperty(exports, 'DEFAULT_WAAS_BASE_MPC_RELAY_API_URL', {
+  enumerable: true,
+  get: function () {
+    return DEFAULT_WAAS_BASE_MPC_RELAY_API_URL;
+  }
+});
+Object.defineProperty(exports, 'DYNAMIC_AUTH_COOKIE_NAME', {
+  enumerable: true,
+  get: function () {
+    return DYNAMIC_AUTH_COOKIE_NAME;
+  }
+});
+Object.defineProperty(exports, 'DYNAMIC_ICONIC_SPRITE_URL', {
+  enumerable: true,
+  get: function () {
+    return DYNAMIC_ICONIC_SPRITE_URL;
+  }
+});
+Object.defineProperty(exports, 'DYNAMIC_SDK_API_VERSION', {
+  enumerable: true,
+  get: function () {
+    return DYNAMIC_SDK_API_VERSION;
+  }
+});
+Object.defineProperty(exports, 'DYNAMIC_WAAS_METADATA', {
+  enumerable: true,
+  get: function () {
+    return DYNAMIC_WAAS_METADATA;
+  }
+});
+Object.defineProperty(exports, 'InvalidExternalAuthError', {
+  enumerable: true,
+  get: function () {
+    return InvalidExternalAuthError;
+  }
+});
+Object.defineProperty(exports, 'InvalidParamError', {
+  enumerable: true,
+  get: function () {
+    return InvalidParamError;
+  }
+});
+Object.defineProperty(exports, 'InvalidWalletProviderKeyError', {
+  enumerable: true,
+  get: function () {
+    return InvalidWalletProviderKeyError;
+  }
+});
+Object.defineProperty(exports, 'LinkCredentialError', {
+  enumerable: true,
+  get: function () {
+    return LinkCredentialError;
+  }
+});
+Object.defineProperty(exports, 'MfaInvalidOtpError', {
+  enumerable: true,
+  get: function () {
+    return MfaInvalidOtpError;
+  }
+});
+Object.defineProperty(exports, 'MfaRateLimitedError', {
+  enumerable: true,
+  get: function () {
+    return MfaRateLimitedError;
+  }
+});
+Object.defineProperty(exports, 'NONCE_POOL_SIZE', {
+  enumerable: true,
+  get: function () {
+    return NONCE_POOL_SIZE;
+  }
+});
+Object.defineProperty(exports, 'NoWalletProviderFoundError', {
+  enumerable: true,
+  get: function () {
+    return NoWalletProviderFoundError;
+  }
+});
+Object.defineProperty(exports, 'SDK_API_CORE_VERSION', {
+  enumerable: true,
+  get: function () {
+    return SDK_API_CORE_VERSION;
+  }
+});
+Object.defineProperty(exports, 'SandboxMaximumThresholdReachedError', {
+  enumerable: true,
+  get: function () {
+    return SandboxMaximumThresholdReachedError;
+  }
+});
+Object.defineProperty(exports, 'UnauthorizedError', {
+  enumerable: true,
+  get: function () {
+    return UnauthorizedError;
+  }
+});
+Object.defineProperty(exports, 'ValueMustBeDefinedError', {
+  enumerable: true,
+  get: function () {
+    return ValueMustBeDefinedError;
+  }
+});
+Object.defineProperty(exports, 'WalletProviderPriority', {
+  enumerable: true,
+  get: function () {
+    return WalletProviderPriority;
+  }
+});
+Object.defineProperty(exports, '__getElevatedAccessToken_wrapped', {
+  enumerable: true,
+  get: function () {
+    return __getElevatedAccessToken_wrapped;
+  }
+});
+Object.defineProperty(exports, 'assertDefined', {
+  enumerable: true,
+  get: function () {
+    return assertDefined;
+  }
+});
+Object.defineProperty(exports, 'createApiClient', {
+  enumerable: true,
+  get: function () {
+    return createApiClient;
+  }
+});
+Object.defineProperty(exports, 'createDeviceSignatureHeadersMiddleware', {
+  enumerable: true,
+  get: function () {
+    return createDeviceSignatureHeadersMiddleware;
+  }
+});
+Object.defineProperty(exports, 'createRuntimeServiceAccessKey', {
+  enumerable: true,
+  get: function () {
+    return createRuntimeServiceAccessKey;
+  }
+});
+Object.defineProperty(exports, 'emitEvent', {
+  enumerable: true,
+  get: function () {
+    return emitEvent;
+  }
+});
+Object.defineProperty(exports, 'extractSessionId', {
+  enumerable: true,
+  get: function () {
+    return extractSessionId;
+  }
+});
+Object.defineProperty(exports, 'fetchAndStoreNonces', {
+  enumerable: true,
+  get: function () {
+    return fetchAndStoreNonces;
+  }
+});
+Object.defineProperty(exports, 'formatWalletAccountId', {
+  enumerable: true,
+  get: function () {
+    return formatWalletAccountId;
+  }
+});
+Object.defineProperty(exports, 'formatWalletProviderKey', {
+  enumerable: true,
+  get: function () {
+    return formatWalletProviderKey;
+  }
+});
+Object.defineProperty(exports, 'getChainFromVerifiedCredentialChain', {
+  enumerable: true,
+  get: function () {
+    return getChainFromVerifiedCredentialChain;
+  }
+});
+Object.defineProperty(exports, 'getCore', {
+  enumerable: true,
+  get: function () {
+    return getCore;
+  }
+});
+Object.defineProperty(exports, 'getDefaultClient', {
+  enumerable: true,
+  get: function () {
+    return getDefaultClient;
+  }
+});
+Object.defineProperty(exports, 'getDeviceSigner', {
+  enumerable: true,
+  get: function () {
+    return getDeviceSigner;
+  }
+});
+Object.defineProperty(exports, 'getHeadersForNonceSignedByDeviceSigners', {
+  enumerable: true,
+  get: function () {
+    return getHeadersForNonceSignedByDeviceSigners;
+  }
+});
+Object.defineProperty(exports, 'getNonce', {
+  enumerable: true,
+  get: function () {
+    return getNonce;
+  }
+});
+Object.defineProperty(exports, 'getSessionKeys', {
+  enumerable: true,
+  get: function () {
+    return getSessionKeys;
+  }
+});
+Object.defineProperty(exports, 'getUserAgent', {
+  enumerable: true,
+  get: function () {
+    return getUserAgent;
+  }
+});
+Object.defineProperty(exports, 'getWalletAccounts', {
+  enumerable: true,
+  get: function () {
+    return getWalletAccounts;
+  }
+});
+Object.defineProperty(exports, 'getWalletAccountsFromState', {
+  enumerable: true,
+  get: function () {
+    return getWalletAccountsFromState;
+  }
+});
+Object.defineProperty(exports, 'getWalletProviderFromWalletAccount', {
+  enumerable: true,
+  get: function () {
+    return getWalletProviderFromWalletAccount;
+  }
+});
+Object.defineProperty(exports, 'getWalletProviderRegistry', {
+  enumerable: true,
+  get: function () {
+    return getWalletProviderRegistry;
+  }
+});
+Object.defineProperty(exports, 'instrumentFunction', {
+  enumerable: true,
+  get: function () {
+    return instrumentFunction;
+  }
+});
+Object.defineProperty(exports, 'isCookieEnabled', {
+  enumerable: true,
+  get: function () {
+    return isCookieEnabled;
+  }
+});
+Object.defineProperty(exports, 'name', {
+  enumerable: true,
+  get: function () {
+    return name;
+  }
+});
+Object.defineProperty(exports, 'normalizeAddress', {
+  enumerable: true,
+  get: function () {
+    return normalizeAddress;
+  }
+});
+Object.defineProperty(exports, 'normalizeWalletNameWithChain', {
+  enumerable: true,
+  get: function () {
+    return normalizeWalletNameWithChain;
+  }
+});
+Object.defineProperty(exports, 'offEvent', {
+  enumerable: true,
+  get: function () {
+    return offEvent;
+  }
+});
+Object.defineProperty(exports, 'onEvent', {
+  enumerable: true,
+  get: function () {
+    return onEvent;
+  }
+});
+Object.defineProperty(exports, 'onceEvent', {
+  enumerable: true,
+  get: function () {
+    return onceEvent;
+  }
+});
+Object.defineProperty(exports, 'randomString', {
+  enumerable: true,
+  get: function () {
+    return randomString;
+  }
+});
+Object.defineProperty(exports, 'scrubParameters', {
+  enumerable: true,
+  get: function () {
+    return scrubParameters;
+  }
+});
+Object.defineProperty(exports, 'setCookie', {
+  enumerable: true,
+  get: function () {
+    return setCookie;
+  }
+});
+Object.defineProperty(exports, 'setDefaultClient', {
+  enumerable: true,
+  get: function () {
+    return setDefaultClient;
+  }
+});
+Object.defineProperty(exports, 'splitWalletProviderKey', {
+  enumerable: true,
+  get: function () {
+    return splitWalletProviderKey;
+  }
+});
+Object.defineProperty(exports, 'version', {
+  enumerable: true,
+  get: function () {
+    return version;
+  }
+});
+//# sourceMappingURL=InvalidParamError-CmwKWCyr.cjs.map

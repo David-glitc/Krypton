@@ -1,0 +1,42 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+var ChainEnum = require('./ChainEnum.cjs');
+
+/* tslint:disable */
+function SwapQuoteRequestSideFromJSON(json) {
+    return SwapQuoteRequestSideFromJSONTyped(json);
+}
+function SwapQuoteRequestSideFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'address': json['address'],
+        'amount': !runtime.exists(json, 'amount') ? undefined : json['amount'],
+        'chainId': json['chainId'],
+        'chainName': ChainEnum.ChainEnumFromJSON(json['chainName']),
+        'tokenAddress': json['tokenAddress'],
+    };
+}
+function SwapQuoteRequestSideToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'address': value.address,
+        'amount': value.amount,
+        'chainId': value.chainId,
+        'chainName': ChainEnum.ChainEnumToJSON(value.chainName),
+        'tokenAddress': value.tokenAddress,
+    };
+}
+
+exports.SwapQuoteRequestSideFromJSON = SwapQuoteRequestSideFromJSON;
+exports.SwapQuoteRequestSideFromJSONTyped = SwapQuoteRequestSideFromJSONTyped;
+exports.SwapQuoteRequestSideToJSON = SwapQuoteRequestSideToJSON;

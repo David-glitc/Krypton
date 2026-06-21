@@ -1,0 +1,28 @@
+import * as anchor from '@coral-xyz/anchor';
+import { TransactionBuilderOptions, TransactionBuilderResult } from './types';
+/**
+ * Creates a compute unit limit instruction
+ */
+export declare function createComputeUnitLimitInstruction(limit: number): anchor.web3.TransactionInstruction;
+/**
+ * Prepends compute unit limit instruction to the beginning of instruction array if limit is provided
+ */
+export declare function prependComputeUnitLimit(instructions: anchor.web3.TransactionInstruction[], computeUnitLimit?: number): anchor.web3.TransactionInstruction[];
+/**
+ * Combines authentication verification instruction with smart wallet instructions
+ */
+export declare function combineInstructionsWithAuth(authInstruction: anchor.web3.TransactionInstruction, smartWalletInstructions: anchor.web3.TransactionInstruction[]): anchor.web3.TransactionInstruction[];
+/**
+ * Combines authentication verification instruction with smart wallet instructions and optional compute unit limit
+ */
+export declare function combineInstructionsWithAuthAndCU(authInstruction: anchor.web3.TransactionInstruction, smartWalletInstructions: anchor.web3.TransactionInstruction[], computeUnitLimit?: number): anchor.web3.TransactionInstruction[];
+/**
+ * Calculates the correct verifyInstructionIndex based on whether compute unit limit is used
+ */
+export declare function calculateVerifyInstructionIndex(computeUnitLimit?: number): number;
+/**
+ * Flexible transaction builder that supports both legacy and versioned transactions
+ * with optional address lookup table support
+ */
+export declare function buildTransaction(connection: anchor.web3.Connection, payer: anchor.web3.PublicKey, instructions: anchor.web3.TransactionInstruction[], options?: TransactionBuilderOptions): Promise<TransactionBuilderResult>;
+//# sourceMappingURL=transaction.d.ts.map

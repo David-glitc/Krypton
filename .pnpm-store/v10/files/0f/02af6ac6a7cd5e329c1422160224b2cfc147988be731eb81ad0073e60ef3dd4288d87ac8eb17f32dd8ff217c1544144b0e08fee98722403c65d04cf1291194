@@ -1,0 +1,2 @@
+export { isMidnightConnector } from './isMidnightConnector';
+export type { IMidnightWalletConnector } from './isMidnightConnector';

@@ -1,0 +1,12 @@
+import { UserProfile } from '@dynamic-labs/types';
+import { Wallet } from '@dynamic-labs/wallet-connector-core';
+type UseInitialViewTypeProps = {
+    isAuthenticated: boolean;
+    bridgeOnboardingCompleted: boolean;
+    isMultiWalletEnabled: boolean;
+    isBridgeFlow: boolean;
+    connectedWallets: Wallet[];
+    user: UserProfile | undefined;
+};
+export declare const useInitialViewType: ({ isAuthenticated, bridgeOnboardingCompleted, isMultiWalletEnabled, isBridgeFlow, connectedWallets, user, }: UseInitialViewTypeProps) => "device-registration" | "multi-wallet-wallet-list" | "wallet-list" | "bridge-welcome" | "login-with-email-or-wallet";
+export {};

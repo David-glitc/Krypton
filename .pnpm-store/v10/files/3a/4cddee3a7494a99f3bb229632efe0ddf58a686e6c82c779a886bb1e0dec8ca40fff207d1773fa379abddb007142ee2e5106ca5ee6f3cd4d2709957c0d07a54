@@ -1,0 +1,29 @@
+'use client'
+import { __awaiter } from '../../../../../../_virtual/_tslib.js';
+import { getDefaultClient } from '@dynamic-labs-sdk/client';
+import { getSignedSessionId, getSessionKeys } from '@dynamic-labs-sdk/client/core';
+
+/**
+ * Returns the nonce, nonce signature, and session public key needed for
+ * Turnkey session key registration headers.
+ *
+ * Parses the combined session chaining signature format:
+ * `${signedSessionId}/${nonceSignature}/${nonce}`
+ *
+ * Note: signatures are hex-encoded (no slashes), so splitting on '/' is safe.
+ */
+const getClientSessionNonceHeaders = () => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
+    const client = getDefaultClient();
+    const { signature } = yield getSignedSessionId(client);
+    // signature format: "${signedSessionId}/${nonceSignature}/${nonce}"
+    const parts = signature.split('/');
+    if (parts.length < 3) {
+        throw new Error(`Unexpected session chaining signature format: expected 3 parts, got ${parts.length}`);
+    }
+    const [, nonceSignature, nonce] = parts;
+    const publicKey = (_b = (_a = getSessionKeys(client)) === null || _a === void 0 ? void 0 : _a.publicKey) !== null && _b !== void 0 ? _b : '';
+    return { nonce, nonceSignature, publicKey };
+});
+
+export { getClientSessionNonceHeaders };

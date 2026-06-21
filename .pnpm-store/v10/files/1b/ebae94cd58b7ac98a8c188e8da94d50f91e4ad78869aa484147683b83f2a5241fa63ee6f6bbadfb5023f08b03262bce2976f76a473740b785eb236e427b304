@@ -1,0 +1,7 @@
+import { BaseError } from './base';
+export declare class CheckoutSessionTokenMissingError extends BaseError {
+    constructor({ transactionId }: {
+        transactionId: string;
+    });
+}
+//# sourceMappingURL=CheckoutSessionTokenMissingError.d.ts.map

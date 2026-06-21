@@ -1,0 +1,17 @@
+'use client'
+import '../../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+
+const useCloseMultiWalletPrompt = () => {
+    const { setMultiWalletWidgetState, setSelectedWalletWithAction, setShowQrcodeModal, setDesktopUri, setSelectedWalletConnectorKey, } = useInternalDynamicContext();
+    return (e) => {
+        e.stopPropagation();
+        setSelectedWalletWithAction(null);
+        setMultiWalletWidgetState('idle');
+        setShowQrcodeModal(false);
+        setDesktopUri('');
+        setSelectedWalletConnectorKey(null);
+    };
+};
+
+export { useCloseMultiWalletPrompt };

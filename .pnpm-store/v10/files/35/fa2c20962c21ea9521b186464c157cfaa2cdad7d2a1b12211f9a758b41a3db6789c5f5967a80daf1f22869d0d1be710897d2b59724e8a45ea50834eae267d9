@@ -1,0 +1,474 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+var sdkApiCore = require('@dynamic-labs/sdk-api-core');
+require('@dynamic-labs-sdk/client/core');
+require('eventemitter3');
+require('@dynamic-labs/utils');
+require('@dynamic-labs-sdk/client');
+require('../../../config/ApiEndpoint.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+var ViewContext = require('../../../context/ViewContext/ViewContext.cjs');
+var logger = require('../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('../../constants/colors.cjs');
+var values = require('../../constants/values.cjs');
+require('../../../shared/consts/index.cjs');
+var errors = require('../../constants/errors.cjs');
+require('@dynamic-labs/multi-wallet');
+require('react-international-phone');
+require('../../../store/state/nonce/nonce.cjs');
+require('@dynamic-labs/locale');
+require('../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../store/state/primaryWalletId/primaryWalletId.cjs');
+require('../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+require('../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+require('../../../events/dynamicEvents.cjs');
+var useUser = require('../../../client/extension/user/useUser/useUser.cjs');
+var useProjectSettings = require('../../../client/extension/projectSettings/useProjectSettings/useProjectSettings.cjs');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var useDynamicWaas = require('../useDynamicWaas/useDynamicWaas.cjs');
+var useRefreshAuth = require('../useRefreshAuth/useRefreshAuth.cjs');
+var useSocialAccounts = require('../useSocialAccounts/useSocialAccounts.cjs');
+var BackupError = require('./BackupError.cjs');
+var cloudProviders = require('./cloudProviders.cjs');
+var types = require('./types.cjs');
+
+const CLOUD_BACKUP_LOCATIONS = [
+    sdkApiCore.WaasBackupOptionsEnum.GoogleDrive,
+    sdkApiCore.WaasBackupOptionsEnum.ICloud,
+];
+const isWalletBackedUp = (cred) => {
+    var _a;
+    const keyShares = (_a = cred.walletProperties) === null || _a === void 0 ? void 0 : _a.keyShares;
+    if (!keyShares || !Array.isArray(keyShares))
+        return false;
+    return keyShares.some((keyShare) => keyShare &&
+        typeof keyShare === 'object' &&
+        'backupLocation' in keyShare &&
+        CLOUD_BACKUP_LOCATIONS.includes(keyShare.backupLocation));
+};
+const useWalletBackup = (options) => {
+    var _a, _b, _c;
+    const throwOnError = (_a = options === null || options === void 0 ? void 0 : options.throwOnError) !== null && _a !== void 0 ? _a : false;
+    const { setShowAuthFlow } = useInternalDynamicContext.useInternalDynamicContext();
+    const { pushView } = ViewContext.useViewContext();
+    const user = useUser.useUser();
+    const projectSettings = useProjectSettings.useProjectSettings();
+    const refresh = useRefreshAuth.useRefreshAuth();
+    const { getWaasWalletConnector, getWaasWalletsByCredentials } = useDynamicWaas.useDynamicWaas();
+    const { linkSocialAccount, isLinked } = useSocialAccounts.useSocialAccounts();
+    const backupOptions = (_c = (_b = projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.sdk) === null || _b === void 0 ? void 0 : _b.waas) === null || _c === void 0 ? void 0 : _c.backupOptions;
+    const isGoogleLinked = React.useMemo(() => isLinked(sdkApiCore.ProviderEnum.Google), [isLinked]);
+    const [backupState, setBackupState] = React.useState({
+        currentIndex: 0,
+        failedIndex: null,
+        hasError: false,
+        isComplete: false,
+        isProcessing: false,
+        lastError: undefined,
+        totalWallets: 0,
+    });
+    const [lastBackupError, setLastBackupError] = React.useState(undefined);
+    const clearBackupError = React.useCallback(() => setLastBackupError(undefined), []);
+    const timeoutRef = React.useRef(null);
+    React.useEffect(() => () => {
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+        }
+    }, []);
+    const getWalletsBackupStatus = React.useCallback(() => getWaasWalletsByCredentials().map((cred) => ({
+        address: cred.address,
+        chain: values.VerifiedCredentialNameToChainEnum[cred.chain],
+        status: isWalletBackedUp(cred) ? 'backed-up' : 'pending',
+    })), [getWaasWalletsByCredentials]);
+    const getWalletsToBackup = React.useCallback(() => getWalletsBackupStatus()
+        .filter((wallet) => wallet.status === 'pending')
+        .map(({ address, chain }) => ({ address, chain })), [getWalletsBackupStatus]);
+    const areAllWalletsBackedUp = React.useMemo(() => {
+        const statuses = getWalletsBackupStatus();
+        return (statuses.length > 0 && statuses.every((w) => w.status === 'backed-up'));
+    }, [getWalletsBackupStatus]);
+    const ensureGoogleLinked = React.useCallback(() => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        var _d;
+        if (isGoogleLinked) {
+            return true;
+        }
+        try {
+            yield linkSocialAccount(sdkApiCore.ProviderEnum.Google, {
+                forcePopup: true,
+                showWidgetAfterConnection: false,
+            });
+            const updatedUser = yield refresh();
+            const isGoogleLinkedAfterRefresh = (_d = updatedUser === null || updatedUser === void 0 ? void 0 : updatedUser.verifiedCredentials) === null || _d === void 0 ? void 0 : _d.some((cred) => cred.format === 'oauth' && cred.oauthProvider === sdkApiCore.ProviderEnum.Google);
+            return Boolean(isGoogleLinkedAfterRefresh);
+        }
+        catch (error) {
+            logger.logger.warn('Error linking Google account for backup', { error });
+            return false;
+        }
+    }), [isGoogleLinked, linkSocialAccount, refresh]);
+    const showICloudAuth = React.useCallback((displayContainer, walletChain) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        try {
+            const waasConnector = getWaasWalletConnector(walletChain);
+            if (!waasConnector) {
+                logger.logger.warn('No WaaS connector found for showing iCloud auth', {
+                    chain: walletChain,
+                });
+                return false;
+            }
+            yield waasConnector.displayICloudSignIn({ displayContainer });
+            return true;
+        }
+        catch (error) {
+            logger.logger.warn('Error showing iCloud auth', { error });
+            return false;
+        }
+    }), [getWaasWalletConnector]);
+    const checkICloudAuth = React.useCallback((walletChain) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        try {
+            const waasConnector = getWaasWalletConnector(walletChain);
+            if (!waasConnector) {
+                logger.logger.warn('No WaaS connector found for checking iCloud auth', {
+                    chain: walletChain,
+                });
+                return false;
+            }
+            return yield waasConnector.isICloudAuthenticated();
+        }
+        catch (error) {
+            logger.logger.warn('Error checking iCloud auth', { error });
+            return false;
+        }
+    }), [getWaasWalletConnector]);
+    const hideICloudAuth = React.useCallback((walletChain) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        try {
+            const waasConnector = getWaasWalletConnector(walletChain);
+            if (!waasConnector) {
+                logger.logger.warn('No WaaS connector found for hiding iCloud auth', {
+                    chain: walletChain,
+                });
+                return;
+            }
+            yield waasConnector.hideICloudSignIn();
+        }
+        catch (error) {
+            logger.logger.warn('Error hiding iCloud auth', { error });
+        }
+    }), [getWaasWalletConnector]);
+    // Throwing core used by startBackup/backupAllWallets internally. The
+    // public `backupWallet` wraps this with the legacy/opt-in error-surfacing
+    // behavior controlled by `options.throwOnError`.
+    const backupWalletCore = React.useCallback((walletToBackup_1, ...args_1) => _tslib.__awaiter(void 0, [walletToBackup_1, ...args_1], void 0, function* (walletToBackup, provider = types.CloudBackupProvider.GoogleDrive, displayContainer) {
+        try {
+            const waasConnector = getWaasWalletConnector(walletToBackup.chain);
+            if (!waasConnector) {
+                logger.logger.warn('No WaaS connector found for wallet', {
+                    address: walletToBackup.address,
+                });
+                throw new Error(`No WaaS connector found for wallet ${walletToBackup.address}`);
+            }
+            if (provider === types.CloudBackupProvider.GoogleDrive) {
+                yield waasConnector.backupKeySharesToGoogleDrive({
+                    accountAddress: walletToBackup.address,
+                });
+            }
+            else if (provider === types.CloudBackupProvider.ICloud) {
+                yield waasConnector.backupKeySharesToICloud({
+                    accountAddress: walletToBackup.address,
+                });
+            }
+        }
+        catch (error) {
+            logger.logger.warn('Error backing up wallet', {
+                address: walletToBackup.address,
+                error,
+            });
+            throw error;
+        }
+    }), [getWaasWalletConnector]);
+    const backupWallet = React.useCallback((walletToBackup_2, ...args_2) => _tslib.__awaiter(void 0, [walletToBackup_2, ...args_2], void 0, function* (walletToBackup, provider = types.CloudBackupProvider.GoogleDrive, displayContainer) {
+        setLastBackupError(undefined);
+        try {
+            yield backupWalletCore(walletToBackup, provider, displayContainer);
+            return true;
+        }
+        catch (error) {
+            if (throwOnError) {
+                throw error;
+            }
+            setLastBackupError(error);
+            return false;
+        }
+    }), [backupWalletCore, throwOnError]);
+    const backupAllWallets = React.useCallback((wallets_1, ...args_3) => _tslib.__awaiter(void 0, [wallets_1, ...args_3], void 0, function* (wallets, provider = types.CloudBackupProvider.GoogleDrive, displayContainer) {
+        const walletsToProcess = wallets !== null && wallets !== void 0 ? wallets : getWalletsToBackup();
+        if (!throwOnError) {
+            // Legacy: each call to backupWallet sets lastBackupError on failure
+            // and returns false. Iterate without surfacing an aggregate error,
+            // matching pre-#11183 behavior.
+            for (const wallet of walletsToProcess) {
+                yield backupWallet(wallet, provider, displayContainer);
+            }
+            yield refresh();
+            return;
+        }
+        const successfulWallets = [];
+        const failedWallets = [];
+        for (const wallet of walletsToProcess) {
+            try {
+                yield backupWalletCore(wallet, provider, displayContainer);
+                successfulWallets.push(wallet);
+            }
+            catch (cause) {
+                failedWallets.push({ cause, wallet });
+            }
+        }
+        yield refresh();
+        if (failedWallets.length > 0) {
+            throw new BackupError.BackupError({
+                failedWallets,
+                provider,
+                successfulWallets,
+            });
+        }
+    }), [getWalletsToBackup, backupWallet, backupWalletCore, refresh, throwOnError]);
+    const startBackup = React.useCallback((onComplete_1, ...args_4) => _tslib.__awaiter(void 0, [onComplete_1, ...args_4], void 0, function* (onComplete, fromIndex = 0, provider = types.CloudBackupProvider.GoogleDrive, displayContainer) {
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+        }
+        const walletsToBackup = getWalletsToBackup();
+        if (walletsToBackup.length === 0) {
+            onComplete === null || onComplete === void 0 ? void 0 : onComplete();
+            return;
+        }
+        setBackupState((prev) => (Object.assign(Object.assign({}, prev), { failedIndex: null, hasError: false, isProcessing: true, lastError: undefined, totalWallets: walletsToBackup.length })));
+        for (let i = fromIndex; i < walletsToBackup.length; i++) {
+            setBackupState((prev) => (Object.assign(Object.assign({}, prev), { currentIndex: i + 1 })));
+            try {
+                yield backupWalletCore(walletsToBackup[i], provider, displayContainer);
+            }
+            catch (error) {
+                setBackupState((prev) => (Object.assign(Object.assign({}, prev), { failedIndex: i, hasError: true, isProcessing: false, lastError: error })));
+                return;
+            }
+        }
+        yield refresh();
+        setBackupState((prev) => (Object.assign(Object.assign({}, prev), { isComplete: true, isProcessing: false })));
+        if (onComplete) {
+            timeoutRef.current = setTimeout(onComplete, 1000);
+        }
+    }), [getWalletsToBackup, backupWalletCore, refresh]);
+    const initBackupProcess = React.useCallback(() => {
+        if (!user) {
+            throw new Error(errors.USER_NOT_LOGGED_IN);
+        }
+        setShowAuthFlow(true, {
+            ignoreIfIsEmbeddedWidget: false,
+            performMultiWalletChecks: false,
+        });
+        pushView('waas-backup-progress-view');
+    }, [setShowAuthFlow, pushView, user]);
+    const ensureProviderLinked = React.useCallback((provider) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        const config = cloudProviders.CLOUD_PROVIDER_CONFIGS[provider];
+        if (config.requiresOAuth && config.oauthProvider) {
+            return ensureGoogleLinked();
+        }
+        return true;
+    }), [ensureGoogleLinked]);
+    const isProviderLinked = React.useCallback((provider) => {
+        const config = cloudProviders.CLOUD_PROVIDER_CONFIGS[provider];
+        if (config.requiresOAuth) {
+            return isGoogleLinked;
+        }
+        return true;
+    }, [isGoogleLinked]);
+    const backupToCloudProviderCore = React.useCallback((options, walletToBackup) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        const { provider, password, googleDriveAccessToken } = options;
+        try {
+            const waasConnector = getWaasWalletConnector(walletToBackup.chain);
+            if (!waasConnector) {
+                logger.logger.warn('No WaaS connector found for wallet', {
+                    address: walletToBackup.address,
+                });
+                throw new Error(`No WaaS connector found for wallet ${walletToBackup.address}`);
+            }
+            if (provider === types.CloudBackupProvider.GoogleDrive) {
+                yield waasConnector.backupKeySharesToGoogleDrive({
+                    accountAddress: walletToBackup.address,
+                    googleDriveAccessToken,
+                    password,
+                });
+            }
+            else if (provider === types.CloudBackupProvider.ICloud) {
+                yield waasConnector.backupKeySharesToICloud({
+                    accountAddress: walletToBackup.address,
+                    password,
+                });
+            }
+        }
+        catch (error) {
+            logger.logger.warn('Error backing up to cloud provider', { error, options });
+            throw error;
+        }
+    }), [getWaasWalletConnector]);
+    const backupToCloudProvider = React.useCallback((options, walletToBackup) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        setLastBackupError(undefined);
+        try {
+            yield backupToCloudProviderCore(options, walletToBackup);
+            return true;
+        }
+        catch (error) {
+            if (throwOnError) {
+                throw error;
+            }
+            setLastBackupError(error);
+            return false;
+        }
+    }), [backupToCloudProviderCore, throwOnError]);
+    const getSupportedProviders = React.useCallback(() => cloudProviders.getSupportedProviders(backupOptions), [backupOptions]);
+    return {
+        areAllWalletsBackedUp,
+        backupAllWallets,
+        backupState,
+        backupToCloudProvider,
+        backupWallet,
+        checkICloudAuth,
+        /**
+         * @deprecated Pass `{ throwOnError: true }` to `useWalletBackup` and
+         * use try/catch around `backupWallet` / `backupToCloudProvider` instead.
+         * Will be removed in the next major version.
+         */
+        clearBackupError,
+        ensureGoogleLinked,
+        ensureProviderLinked,
+        getSupportedProviders,
+        getWalletsBackupStatus,
+        getWalletsToBackup,
+        hideICloudAuth,
+        initBackupProcess,
+        isGoogleLinked,
+        isProviderLinked,
+        /**
+         * @deprecated Pass `{ throwOnError: true }` to `useWalletBackup` and
+         * use try/catch around `backupWallet` / `backupToCloudProvider` instead.
+         * Will be removed in the next major version.
+         */
+        lastBackupError,
+        showICloudAuth,
+        startBackup,
+    };
+};
+const useBackupWallets = (onComplete, provider = types.CloudBackupProvider.GoogleDrive, displayContainer) => {
+    const { backupState, startBackup } = useWalletBackup();
+    const hasStartedRef = React.useRef(false);
+    const onCompleteRef = React.useRef(onComplete);
+    onCompleteRef.current = onComplete;
+    const config = cloudProviders.CLOUD_PROVIDER_CONFIGS[provider];
+    const start = React.useCallback(() => {
+        if (hasStartedRef.current)
+            return;
+        if (config.requiresIframe && !displayContainer) {
+            throw new Error(`${config.name} backup requires iframe to be ready`);
+        }
+        hasStartedRef.current = true;
+        startBackup(() => onCompleteRef.current(), 0, provider, displayContainer);
+    }, [startBackup, provider, displayContainer, config]);
+    const retry = React.useCallback(() => {
+        var _a;
+        hasStartedRef.current = false;
+        const fromIndex = (_a = backupState.failedIndex) !== null && _a !== void 0 ? _a : 0;
+        hasStartedRef.current = true;
+        startBackup(() => onCompleteRef.current(), fromIndex, provider, displayContainer);
+    }, [startBackup, backupState.failedIndex, provider, displayContainer]);
+    // Auto-start for non-iframe providers (Google Drive)
+    // iCloud requires displayContainer to be ready first
+    React.useEffect(() => {
+        if (hasStartedRef.current)
+            return;
+        if (config.requiresIframe)
+            return;
+        start();
+    }, [config.requiresIframe, start]);
+    return Object.assign(Object.assign({}, backupState), { retry, start });
+};
+const useDownloadKeyShares = (onComplete) => {
+    const { getWaasWalletConnector, getWaasWalletsByCredentials } = useDynamicWaas.useDynamicWaas();
+    const [downloadState, setDownloadState] = React.useState({
+        currentIndex: 0,
+        failedIndex: null,
+        hasError: false,
+        isComplete: false,
+        isProcessing: false,
+        totalWallets: 0,
+    });
+    const hasStartedRef = React.useRef(false);
+    const onCompleteRef = React.useRef(onComplete);
+    onCompleteRef.current = onComplete;
+    const walletsToDownload = React.useMemo(() => getWaasWalletsByCredentials().map((cred) => ({
+        address: cred.address,
+        chain: values.VerifiedCredentialNameToChainEnum[cred.chain],
+    })), [getWaasWalletsByCredentials]);
+    const downloadKeyShare = React.useCallback((walletToDownload) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        try {
+            const waasConnector = getWaasWalletConnector(walletToDownload.chain);
+            if (!waasConnector) {
+                logger.logger.warn('No WaaS connector found for wallet', {
+                    address: walletToDownload.address,
+                });
+                return false;
+            }
+            yield waasConnector.exportClientKeyshares({
+                accountAddress: walletToDownload.address,
+            });
+            return true;
+        }
+        catch (error) {
+            logger.logger.warn('Error downloading key share', {
+                address: walletToDownload.address,
+                error,
+            });
+            return false;
+        }
+    }), [getWaasWalletConnector]);
+    const startDownload = React.useCallback((...args_1) => _tslib.__awaiter(void 0, [...args_1], void 0, function* (fromIndex = 0) {
+        if (hasStartedRef.current || walletsToDownload.length === 0)
+            return;
+        hasStartedRef.current = true;
+        setDownloadState((prev) => (Object.assign(Object.assign({}, prev), { currentIndex: fromIndex, failedIndex: null, hasError: false, isComplete: false, isProcessing: true, totalWallets: walletsToDownload.length })));
+        for (let i = fromIndex; i < walletsToDownload.length; i++) {
+            setDownloadState((prev) => (Object.assign(Object.assign({}, prev), { currentIndex: i + 1 })));
+            const success = yield downloadKeyShare(walletsToDownload[i]);
+            if (!success) {
+                setDownloadState((prev) => (Object.assign(Object.assign({}, prev), { failedIndex: i, hasError: true, isProcessing: false })));
+                hasStartedRef.current = false;
+                return;
+            }
+        }
+        setDownloadState((prev) => (Object.assign(Object.assign({}, prev), { isComplete: true, isProcessing: false })));
+        hasStartedRef.current = false;
+        if (onCompleteRef.current) {
+            const count = walletsToDownload.length;
+            setTimeout(() => { var _a; return (_a = onCompleteRef.current) === null || _a === void 0 ? void 0 : _a.call(onCompleteRef, count); }, 500);
+        }
+    }), [walletsToDownload, downloadKeyShare]);
+    const retry = React.useCallback(() => {
+        var _a;
+        const fromIndex = (_a = downloadState.failedIndex) !== null && _a !== void 0 ? _a : 0;
+        startDownload(fromIndex);
+    }, [startDownload, downloadState.failedIndex]);
+    return Object.assign(Object.assign({}, downloadState), { retry, startDownload: () => startDownload(0) });
+};
+
+exports.isWalletBackedUp = isWalletBackedUp;
+exports.useBackupWallets = useBackupWallets;
+exports.useDownloadKeyShares = useDownloadKeyShares;
+exports.useWalletBackup = useWalletBackup;

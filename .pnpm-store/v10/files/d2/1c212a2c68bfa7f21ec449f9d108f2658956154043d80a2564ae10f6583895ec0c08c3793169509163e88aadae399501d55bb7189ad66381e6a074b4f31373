@@ -1,0 +1,10 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+const RATE_LIMIT_ERROR_CODE = 'rate_limit_error';
+const UNKNOWN_ERROR_CODE = 'unknown_error';
+
+exports.RATE_LIMIT_ERROR_CODE = RATE_LIMIT_ERROR_CODE;
+exports.UNKNOWN_ERROR_CODE = UNKNOWN_ERROR_CODE;

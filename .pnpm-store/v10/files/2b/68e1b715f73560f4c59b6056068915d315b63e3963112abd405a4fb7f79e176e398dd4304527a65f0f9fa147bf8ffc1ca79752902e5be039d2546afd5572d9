@@ -1,0 +1,34 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+var InlineResponse2001AllowedPrograms = require('./InlineResponse2001AllowedPrograms.cjs');
+
+/* tslint:disable */
+function InlineResponse2001FromJSON(json) {
+    return InlineResponse2001FromJSONTyped(json);
+}
+function InlineResponse2001FromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'allowedPrograms': !runtime.exists(json, 'allowed_programs') ? undefined : (json['allowed_programs'] === null ? null : json['allowed_programs'].map(InlineResponse2001AllowedPrograms.InlineResponse2001AllowedProgramsFromJSON)),
+    };
+}
+function InlineResponse2001ToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'allowed_programs': value.allowedPrograms === undefined ? undefined : (value.allowedPrograms === null ? null : value.allowedPrograms.map(InlineResponse2001AllowedPrograms.InlineResponse2001AllowedProgramsToJSON)),
+    };
+}
+
+exports.InlineResponse2001FromJSON = InlineResponse2001FromJSON;
+exports.InlineResponse2001FromJSONTyped = InlineResponse2001FromJSONTyped;
+exports.InlineResponse2001ToJSON = InlineResponse2001ToJSON;

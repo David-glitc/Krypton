@@ -1,0 +1,14 @@
+import type { SDKApi } from '@dynamic-labs/sdk-api-core';
+import type { DynamicClient } from '../../../../client/types';
+type CreateCheckoutApiClientParams = {
+    transactionId: string;
+};
+type CheckoutApiClientResult = {
+    apiClient: SDKApi;
+    environmentId: string;
+    sessionToken: string;
+};
+/** @not-instrumented */
+export declare const createCheckoutApiClient: ({ transactionId }: CreateCheckoutApiClientParams, client: DynamicClient) => Promise<CheckoutApiClientResult>;
+export {};
+//# sourceMappingURL=createCheckoutApiClient.d.ts.map

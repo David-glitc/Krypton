@@ -1,0 +1,47 @@
+/**
+ * Single entry returned by the redcoast `/chains/aleo/prices` endpoint.
+ * Wallet-facing keys mirror the multichain balance shape (`address`,
+ * `isNative`, `price`) so consumers can join with `unshieldedTokenBalances`
+ * on `(address, isNative)` without a translation layer.
+ */
+export type AleoCuratedTokenPrice = {
+    address: string;
+    isNative: boolean;
+    /**
+     * Brand logo for the token. Surfaced so the widget's Shielded
+     * balance tab can render the same icon the unshielded multichain
+     * feed renders for the same `(address, isNative)` key, instead of
+     * falling through to the generic `?` placeholder. Optional because
+     * older redcoast deployments (pre logo-prop rollout) don't yet send
+     * the field; consumers must fall back gracefully when it's missing.
+     */
+    logoURI?: string;
+    symbol: string;
+    /**
+     * CoinGecko id used for the lookup. Echoed back so consumers can
+     * confirm which pricing source was used.
+     */
+    tokenId: string | null;
+    /**
+     * USD price per whole token unit, or `null` when the pricing source
+     * has no current price (token is unranked / cache empty). Render an
+     * empty cell rather than treating `null` as `0`.
+     */
+    price: number | null;
+};
+/**
+ * Fetch the curated Aleo token price list for the given network. The
+ * endpoint returns every curated token regardless of balance, so this
+ * works as the price source for the Shielded balance tab — which never
+ * goes through the multichain `/accountBalances` pipeline.
+ *
+ * Auth + base URL mirror the OpenAPI-generated `sdkApi`. We don't go
+ * through `sdkApi` here because this endpoint isn't in the OpenAPI
+ * surface yet; a manual fetch keeps the dynamic-auth side small and
+ * focused, and the auth token / device-fingerprint headers are still
+ * picked up via `getApiHeaders` + `getMinAuthToken`.
+ */
+export declare const getAleoCuratedPrices: ({ environmentId, network, }: {
+    environmentId: string;
+    network: 'mainnet' | 'testnet';
+}) => Promise<AleoCuratedTokenPrice[]>;

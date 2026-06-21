@@ -1,0 +1,1 @@
+export declare const generateSessionKeys: () => Promise<import("@dynamic-labs-sdk/client/core").SessionKeys>;

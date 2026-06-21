@@ -1,0 +1,20 @@
+import type { CrossTabBroadcast } from '../crossTabBroadcast.types';
+type CreateCrossTabBroadcastParams = {
+    channelName: string;
+};
+/**
+ * Creates a cross-tab broadcast service instance using the BroadcastChannel API.
+ *
+ * Enables communication between multiple tabs/windows of the same application.
+ * Messages are validated against the schema and invalid messages are silently ignored.
+ *
+ * In SSR or when BroadcastChannel is unavailable, returns a no-op implementation.
+ *
+ * @param params - Configuration parameters
+ * @param params.channelName - The name of the broadcast channel to use
+ * @returns A cross-tab broadcast service instance
+  * @not-instrumented
+ */
+export declare const createCrossTabBroadcast: ({ channelName, }: CreateCrossTabBroadcastParams) => CrossTabBroadcast;
+export {};
+//# sourceMappingURL=createCrossTabBroadcast.d.ts.map

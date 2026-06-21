@@ -1,0 +1,139 @@
+import type EventEmitter from 'eventemitter3';
+import type { AsyncTrack } from '../../../services/asyncTrack';
+import type { CrossTabBroadcast } from '../../../services/crossTabBroadcast';
+import type { DeviceSigner } from '../../../services/deviceSigner';
+import type { Fetch } from '../../../services/fetch';
+import type { Instrumentation } from '../../../services/instrumentation/instrumentation.types';
+import type { KeychainService } from '../../../services/keychain';
+import type { Logger } from '../../../services/logger';
+import type { NavigationHandler } from '../../../services/navigate';
+import type { OpenAuthSession } from '../../../services/openAuthSession';
+import type { OpenDeeplink } from '../../../services/openDeeplink';
+import type { PasskeyService } from '../../../services/passkey';
+import type { RealtimeService } from '../../../services/realtime';
+import type { RuntimeServices } from '../../../services/runtimeServices';
+import type { Storage } from '../../../services/storage/storage.types';
+import type { DebouncedMutex } from '../../../utils/debouncedMutex';
+import type { ObservableState } from '../../../utils/observable/observable.types';
+import type { DynamicClientConfig } from '../../types/DynamicClientConfig';
+import type { DynamicCoreState } from './DynamicCoreState';
+/**
+ * The core object needed to work with Dynamic SDK's functionality.
+ *
+ * Holds all state and services any module might need to use.
+ */
+export type DynamicCore = {
+    /**
+     * The base URL to use for API requests to Dynamic.
+     */
+    apiBaseUrl: string;
+    /**
+     * The cross-tab broadcast service, used for
+     * communication between multiple tabs/windows of the same application.
+     */
+    crossTabBroadcast: CrossTabBroadcast;
+    /**
+     * Debounced mutex helper function, that runs a callback for a given `lockKey` **one at a time**, while
+     * *debouncing* repeated calls.
+     *
+     * Read more about it in the debouncedMutex.types.ts file.
+     */
+    debouncedMutex: DebouncedMutex;
+    /**
+     * Optional instance of the device signer service, used for device-based signing operations.
+     */
+    deviceSigner?: DeviceSigner;
+    /**
+     * The environment ID of the Dynamic app.
+     */
+    environmentId: string;
+    /**
+     * A generic event emitter instance for handling events.
+     */
+    eventEmitter: EventEmitter;
+    /**
+     * What extensions have been applied to this client.
+     */
+    extensions: Set<string>;
+    /**
+     * Instance of the fetch service, used for making any HTTP requests.
+     */
+    fetch: Fetch;
+    /**
+     * Custom headers to be sent with API requests.
+     */
+    getApiHeaders: () => Record<string, string>;
+    /**
+     * Instance of the async track service, used for tracking status of SDK initialization promises.
+     */
+    initTrack: AsyncTrack;
+    /**
+     * Instance of the instrumentation service, used for tracking SDK function calls and errors.
+     */
+    instrumentation: Instrumentation;
+    /**
+     * Instance of the keychain service, used for secure non-extractable key management.
+     */
+    keychain: KeychainService;
+    /**
+     * Instance of the logger service, used for logging messages to the console and controlling the log level.
+     */
+    logger: Logger;
+    /**
+     * The current metadata of the app.
+     */
+    metadata: DynamicClientConfig['metadata'];
+    /**
+     * Instance of the navigation service, used for triggering window navigation.
+     */
+    navigate: NavigationHandler;
+    /**
+     * Optional override for the in-app auth session opener used by
+     * `signInWithSocialPopUp` on React Native. If unset, the SDK falls back to
+     * `react-native-inappbrowser-reborn` (ASWebAuthenticationSession on iOS,
+     * Chrome Custom Tabs on Android).
+     */
+    openAuthSession?: OpenAuthSession;
+    /**
+     * Instance of the open deeplink service, used for triggering deeplinks using the appropriate device method.
+     */
+    openDeeplink: OpenDeeplink;
+    /**
+     * Instance of the passkey service, used for prompting the user with passkey authentication.
+     */
+    passkey: PasskeyService;
+    /**
+     * Instance of the realtime service, used for pub/sub messaging.
+     */
+    realtime: RealtimeService;
+    /**
+     * Instance of the runtime services, used for registering and accessing services.
+     */
+    runtimeServices: RuntimeServices;
+    /**
+     * A unique identifier for the current SDK session, generated once at client creation.
+     * Included in all API requests and instrumentation events to correlate activity.
+     */
+    sdkSessionId: string;
+    /**
+     * Reactive object with all variable state of the client.
+     */
+    state: ObservableState<DynamicCoreState>;
+    /**
+     * Instance of the storage service, used for interacting with the device's storage.
+     */
+    storage: Storage;
+    /**
+     * Transformer callbacks that modify SDK data before it's used.
+     */
+    transformers: DynamicClientConfig['transformers'];
+    /**
+     * The NPM version of the Dynamic SDK client package.
+     */
+    version: string;
+    /**
+     * Options for Wallet-as-a-Service (embedded wallet / MPC) behavior.
+     */
+    waas: DynamicClientConfig['waas'];
+};
+//# sourceMappingURL=DynamicCore.d.ts.map

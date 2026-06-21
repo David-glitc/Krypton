@@ -1,0 +1,62 @@
+type Payload = string[];
+/**
+ * Creates a tracing utility with functions for logging and formatting
+ * @returns Tracing utility object
+ */
+export declare const createTracing: () => {
+    /**
+     * Ships the buffered traces to `sink` and clears them. Otherwise traces are
+     * only collected in memory and never leave the device. Logger-agnostic
+     * (caller supplies the sink) so this stays dependency-free.
+     * @param sink - Receives the packed trace string (e.g. logger.instrument)
+     * @param scopes - Optional array of scopes to flush
+     */
+    flush: (sink: (packed: string) => void, scopes?: string[]) => void;
+    /**
+     * Formats an object as a pretty-printed JSON string
+     * @param object - The object to format
+     * @returns JSON string representation of the object
+     */
+    formatObject: (object: Record<string, unknown>) => string;
+    /**
+     * Logs an event to the trace collection
+     * @param scope - The scope/category of the event
+     * @param args - String messages to include in the trace
+     */
+    logEvent: (scope: string, ...args: Payload) => void;
+    /**
+     * Formats and returns traces filtered by scope
+     * @param scopes - Optional array of scopes to filter traces
+     * @returns Formatted trace output as a string
+     */
+    packScopes: (scopes?: string[] | undefined) => string;
+};
+export declare const tracing: {
+    /**
+     * Ships the buffered traces to `sink` and clears them. Otherwise traces are
+     * only collected in memory and never leave the device. Logger-agnostic
+     * (caller supplies the sink) so this stays dependency-free.
+     * @param sink - Receives the packed trace string (e.g. logger.instrument)
+     * @param scopes - Optional array of scopes to flush
+     */
+    flush: (sink: (packed: string) => void, scopes?: string[]) => void;
+    /**
+     * Formats an object as a pretty-printed JSON string
+     * @param object - The object to format
+     * @returns JSON string representation of the object
+     */
+    formatObject: (object: Record<string, unknown>) => string;
+    /**
+     * Logs an event to the trace collection
+     * @param scope - The scope/category of the event
+     * @param args - String messages to include in the trace
+     */
+    logEvent: (scope: string, ...args: Payload) => void;
+    /**
+     * Formats and returns traces filtered by scope
+     * @param scopes - Optional array of scopes to filter traces
+     * @returns Formatted trace output as a string
+     */
+    packScopes: (scopes?: string[] | undefined) => string;
+};
+export {};

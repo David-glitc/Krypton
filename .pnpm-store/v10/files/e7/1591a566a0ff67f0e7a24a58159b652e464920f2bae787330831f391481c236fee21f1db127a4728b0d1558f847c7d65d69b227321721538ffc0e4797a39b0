@@ -1,0 +1,2 @@
+export { shouldFilterWalletForWalletConnect } from './shouldFilterWalletForWalletConnect';
+//# sourceMappingURL=index.d.ts.map

@@ -1,0 +1,45 @@
+import { exists } from '../runtime.js';
+import { SwapQuoteRequestSideFromJSON, SwapQuoteRequestSideToJSON } from './SwapQuoteRequestSide.js';
+
+/* tslint:disable */
+/**
+* @export
+* @enum {string}
+*/
+var SwapQuoteRequestOrderEnum;
+(function (SwapQuoteRequestOrderEnum) {
+    SwapQuoteRequestOrderEnum["Cheapest"] = "CHEAPEST";
+    SwapQuoteRequestOrderEnum["Fastest"] = "FASTEST";
+})(SwapQuoteRequestOrderEnum || (SwapQuoteRequestOrderEnum = {}));
+function SwapQuoteRequestFromJSON(json) {
+    return SwapQuoteRequestFromJSONTyped(json);
+}
+function SwapQuoteRequestFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'from': SwapQuoteRequestSideFromJSON(json['from']),
+        'maxPriceImpact': !exists(json, 'maxPriceImpact') ? undefined : json['maxPriceImpact'],
+        'order': !exists(json, 'order') ? undefined : json['order'],
+        'slippage': !exists(json, 'slippage') ? undefined : json['slippage'],
+        'to': SwapQuoteRequestSideFromJSON(json['to']),
+    };
+}
+function SwapQuoteRequestToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'from': SwapQuoteRequestSideToJSON(value.from),
+        'maxPriceImpact': value.maxPriceImpact,
+        'order': value.order,
+        'slippage': value.slippage,
+        'to': SwapQuoteRequestSideToJSON(value.to),
+    };
+}
+
+export { SwapQuoteRequestFromJSON, SwapQuoteRequestFromJSONTyped, SwapQuoteRequestOrderEnum, SwapQuoteRequestToJSON };

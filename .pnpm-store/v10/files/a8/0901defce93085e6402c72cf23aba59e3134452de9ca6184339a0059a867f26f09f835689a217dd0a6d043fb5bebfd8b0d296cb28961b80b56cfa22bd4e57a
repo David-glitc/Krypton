@@ -1,0 +1,58 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var React = require('react');
+require('@dynamic-labs-sdk/client/core');
+require('@dynamic-labs/sdk-api-core');
+require('eventemitter3');
+require('@dynamic-labs/utils');
+require('@dynamic-labs-sdk/client');
+require('../../../config/ApiEndpoint.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+require('../../../context/ViewContext/ViewContext.cjs');
+require('../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('../../constants/colors.cjs');
+require('../../constants/values.cjs');
+require('../../../shared/consts/index.cjs');
+require('../../../../../_virtual/_tslib.cjs');
+require('@dynamic-labs/multi-wallet');
+require('react-international-phone');
+require('../../../store/state/nonce/nonce.cjs');
+require('@dynamic-labs/locale');
+require('../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../store/state/primaryWalletId/primaryWalletId.cjs');
+require('../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+require('../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+require('../../../events/dynamicEvents.cjs');
+var useUser = require('../../../client/extension/user/useUser/useUser.cjs');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+
+const useIsPasswordEncrypted = () => {
+    const user = useUser.useUser();
+    const { primaryWallet } = useInternalDynamicContext.useInternalDynamicContext();
+    const walletCredential = React.useMemo(() => {
+        var _a;
+        if (!user || !primaryWallet)
+            return undefined;
+        return (_a = user.verifiedCredentials) === null || _a === void 0 ? void 0 : _a.find((cred) => cred.walletName === 'dynamicwaas' &&
+            cred.address === primaryWallet.address);
+    }, [user, primaryWallet]);
+    return React.useMemo(() => {
+        var _a;
+        const keyShares = (_a = walletCredential === null || walletCredential === void 0 ? void 0 : walletCredential.walletProperties) === null || _a === void 0 ? void 0 : _a.keyShares;
+        if (!keyShares || !Array.isArray(keyShares))
+            return false;
+        return keyShares.some((keyShare) => keyShare &&
+            typeof keyShare === 'object' &&
+            'passwordEncrypted' in keyShare &&
+            keyShare.passwordEncrypted === true);
+    }, [walletCredential]);
+};
+
+exports.useIsPasswordEncrypted = useIsPasswordEncrypted;

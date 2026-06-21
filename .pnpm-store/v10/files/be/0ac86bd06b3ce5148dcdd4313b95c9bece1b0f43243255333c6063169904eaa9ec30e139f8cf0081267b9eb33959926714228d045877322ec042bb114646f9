@@ -1,0 +1,41 @@
+import { exists } from '../runtime.js';
+
+/* tslint:disable */
+function TransactionFeeEstimateResponseFromJSON(json) {
+    return TransactionFeeEstimateResponseFromJSONTyped(json);
+}
+function TransactionFeeEstimateResponseFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'estimatedFee': json['estimatedFee'],
+        'currency': json['currency'],
+        'decimals': !exists(json, 'decimals') ? undefined : json['decimals'],
+        'units': !exists(json, 'units') ? undefined : json['units'],
+        'unitPrice': !exists(json, 'unitPrice') ? undefined : json['unitPrice'],
+        'baseFee': !exists(json, 'baseFee') ? undefined : json['baseFee'],
+        'priorityFee': !exists(json, 'priorityFee') ? undefined : json['priorityFee'],
+        'maxFee': !exists(json, 'maxFee') ? undefined : json['maxFee'],
+    };
+}
+function TransactionFeeEstimateResponseToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'estimatedFee': value.estimatedFee,
+        'currency': value.currency,
+        'decimals': value.decimals,
+        'units': value.units,
+        'unitPrice': value.unitPrice,
+        'baseFee': value.baseFee,
+        'priorityFee': value.priorityFee,
+        'maxFee': value.maxFee,
+    };
+}
+
+export { TransactionFeeEstimateResponseFromJSON, TransactionFeeEstimateResponseFromJSONTyped, TransactionFeeEstimateResponseToJSON };

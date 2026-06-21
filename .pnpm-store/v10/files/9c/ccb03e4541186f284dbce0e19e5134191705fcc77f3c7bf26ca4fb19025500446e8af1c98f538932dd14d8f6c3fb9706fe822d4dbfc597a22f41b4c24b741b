@@ -1,0 +1,36 @@
+import { exists } from '../runtime.js';
+import { SwapTokenFromJSON, SwapTokenToJSON } from './SwapToken.js';
+
+/* tslint:disable */
+function SwapFeeFromJSON(json) {
+    return SwapFeeFromJSONTyped(json);
+}
+function SwapFeeFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'amount': json['amount'],
+        'amountUSD': !exists(json, 'amountUSD') ? undefined : json['amountUSD'],
+        'included': json['included'],
+        'name': json['name'],
+        'token': SwapTokenFromJSON(json['token']),
+    };
+}
+function SwapFeeToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'amount': value.amount,
+        'amountUSD': value.amountUSD,
+        'included': value.included,
+        'name': value.name,
+        'token': SwapTokenToJSON(value.token),
+    };
+}
+
+export { SwapFeeFromJSON, SwapFeeFromJSONTyped, SwapFeeToJSON };

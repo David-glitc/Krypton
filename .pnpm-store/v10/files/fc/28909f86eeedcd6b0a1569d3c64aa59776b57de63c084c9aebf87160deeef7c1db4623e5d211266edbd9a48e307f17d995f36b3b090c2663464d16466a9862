@@ -1,0 +1,16 @@
+'use client'
+import { useCallback } from 'react';
+import { useWidgetContext } from '../../../../widgets/DynamicWidget/context/DynamicWidgetContext.js';
+import '../../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+
+const usePromptAmountAndFundWithWallet = () => {
+    const { setDynamicWidgetView } = useWidgetContext();
+    const { setShowDynamicUserProfile } = useInternalDynamicContext();
+    return useCallback((props) => {
+        setDynamicWidgetView('receive-wallet-funds', props);
+        setShowDynamicUserProfile(true);
+    }, [setDynamicWidgetView, setShowDynamicUserProfile]);
+};
+
+export { usePromptAmountAndFundWithWallet };

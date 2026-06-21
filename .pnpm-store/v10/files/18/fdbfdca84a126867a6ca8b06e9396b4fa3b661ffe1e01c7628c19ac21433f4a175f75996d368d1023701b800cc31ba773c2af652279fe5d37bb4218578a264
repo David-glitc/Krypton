@@ -1,0 +1,9 @@
+import type { WalletAccount, WalletAddressType } from '../walletAccount';
+type GetWalletAccountAddressByTypeParams = {
+    type: WalletAddressType;
+    walletAccount: WalletAccount;
+};
+/** @not-instrumented */
+export declare const getWalletAccountAddressByType: ({ type, walletAccount, }: GetWalletAccountAddressByTypeParams) => string | undefined;
+export {};
+//# sourceMappingURL=getWalletAccountAddressByType.d.ts.map

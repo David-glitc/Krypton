@@ -1,0 +1,37 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var CheckoutTransaction = require('./CheckoutTransaction.cjs');
+
+/* tslint:disable */
+function CheckoutTransactionCreateResponseFromJSON(json) {
+    return CheckoutTransactionCreateResponseFromJSONTyped(json);
+}
+function CheckoutTransactionCreateResponseFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'sessionExpiresAt': (new Date(json['sessionExpiresAt'])),
+        'sessionToken': json['sessionToken'],
+        'transaction': CheckoutTransaction.CheckoutTransactionFromJSON(json['transaction']),
+    };
+}
+function CheckoutTransactionCreateResponseToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'sessionExpiresAt': (value.sessionExpiresAt.toISOString()),
+        'sessionToken': value.sessionToken,
+        'transaction': CheckoutTransaction.CheckoutTransactionToJSON(value.transaction),
+    };
+}
+
+exports.CheckoutTransactionCreateResponseFromJSON = CheckoutTransactionCreateResponseFromJSON;
+exports.CheckoutTransactionCreateResponseFromJSONTyped = CheckoutTransactionCreateResponseFromJSONTyped;
+exports.CheckoutTransactionCreateResponseToJSON = CheckoutTransactionCreateResponseToJSON;

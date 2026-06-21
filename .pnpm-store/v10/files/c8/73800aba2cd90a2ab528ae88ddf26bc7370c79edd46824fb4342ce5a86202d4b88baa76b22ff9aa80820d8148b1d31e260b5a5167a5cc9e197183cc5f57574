@@ -1,0 +1,43 @@
+import { B as getCore, h as getNonce, w as assertDefined } from "./InvalidParamError-BqFQnYCi.native.esm.js";
+import { r as __consumeMfaToken_wrapped, t as isMfaRequiredForAction } from "./isMfaRequiredForAction-Dx4BPJVg.native.esm.js";
+
+//#region src/modules/mfa/consumeMfaTokenIfRequiredForAction/consumeMfaTokenIfRequiredForAction.ts
+/** @not-instrumented */
+const consumeMfaTokenIfRequiredForAction = async ({ mfaAction }, client) => {
+	if (!await isMfaRequiredForAction({ mfaAction }, client)) return;
+	return __consumeMfaToken_wrapped(client);
+};
+
+//#endregion
+//#region src/modules/sessionKeys/generateNonceSignature/generateNonceSignature.ts
+/** @not-instrumented */
+const generateNonceSignature = async ({ nonce }, client) => {
+	const core = getCore(client);
+	assertDefined(core.keychain, "Keychain service not available");
+	return { signature: await core.keychain.sign("session", nonce) };
+};
+
+//#endregion
+//#region src/modules/sessionKeys/generateSessionSignature/generateSessionSignature.ts
+/** @not-instrumented */
+const generateSessionSignature = async ({ sessionId }, client) => {
+	return { signature: await getCore(client).keychain.sign("session", sessionId) };
+};
+
+//#endregion
+//#region src/modules/sessionKeys/getSignedSessionId/getSignedSessionId.ts
+/** @not-instrumented */
+const getSignedSessionId = async (client) => {
+	const sessionId = getCore(client).state.get().user?.sessionId;
+	assertDefined(sessionId, "Session ID is required");
+	const { signature: signedSessionId } = await generateSessionSignature({ sessionId }, client);
+	assertDefined(signedSessionId, "Signed session ID is required");
+	const nonce = await getNonce(client);
+	const { signature: nonceSignature } = await generateNonceSignature({ nonce }, client);
+	assertDefined(nonceSignature, "Nonce signature is required");
+	return { signature: `${signedSessionId}/${nonceSignature}/${nonce}` };
+};
+
+//#endregion
+export { consumeMfaTokenIfRequiredForAction as n, getSignedSessionId as t };
+//# sourceMappingURL=getSignedSessionId-C7YR-jNH.native.esm.js.map

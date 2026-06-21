@@ -1,0 +1,24 @@
+import type { DynamicClient } from '../../../client/types';
+import type { LogoutReason } from '../logoutReason';
+/**
+ * Logs the user out with an explicit reason.
+ *
+ * Revokes the session, clears auth state, terminates wallet providers, and
+ * emits the `logout` client event with the given reason. The reason is also
+ * captured as an argument on the function-instrumentation event, which is
+ * how Datadog distinguishes between different logout causes.
+ *
+ * Use this instead of the public `logout` when triggering a logout from
+ * internal or extension code — the caller owns the reason string, so the
+ * telemetry correctly attributes *why* the logout happened.
+ *
+ * @param params - The logout params.
+ * @param params.reason - Why the logout is being triggered. Extension authors
+ *   needing a reason outside the SDK catalog can cast with `as LogoutReason`.
+ * @param client - The Dynamic client instance.
+ * @instrumented
+ */
+export declare const logoutWithReason: ({ reason }: {
+    reason: LogoutReason;
+}, client: DynamicClient) => Promise<void>;
+//# sourceMappingURL=logoutWithReason.d.ts.map

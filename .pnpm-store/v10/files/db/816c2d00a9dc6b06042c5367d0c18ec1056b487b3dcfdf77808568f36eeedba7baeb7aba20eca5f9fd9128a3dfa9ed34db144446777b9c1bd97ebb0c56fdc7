@@ -1,0 +1,2 @@
+export { hasAllGoogleDriveBackupScopes } from './hasAllGoogleDriveBackupScopes';
+//# sourceMappingURL=index.d.ts.map

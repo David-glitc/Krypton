@@ -1,0 +1,5 @@
+import { BaseError } from './base';
+export declare class ArrayMustNotBeEmptyError extends BaseError {
+    constructor(message: string);
+}
+//# sourceMappingURL=ArrayMustNotBeEmptyError.d.ts.map

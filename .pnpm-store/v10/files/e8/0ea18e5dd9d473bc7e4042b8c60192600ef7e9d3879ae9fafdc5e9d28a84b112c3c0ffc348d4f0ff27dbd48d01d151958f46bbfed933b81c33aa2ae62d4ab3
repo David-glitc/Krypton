@@ -1,0 +1,32 @@
+'use client'
+import { __awaiter } from '../../../_virtual/_tslib.js';
+import { isMobile, PlatformService, walletReturnRoute } from '@dynamic-labs/utils';
+import { getDeepLink } from './walletConnectDeepLinks.js';
+
+const performPlatformSpecificConnectionMethod = (uri, deepLinks, opts, preference, redirectUrl) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c;
+    const deepLink = getDeepLink({
+        deepLinks,
+        mode: 'connection',
+        preference,
+        redirectUrl,
+        uri,
+    });
+    // Deeplink performed here
+    if (isMobile()) {
+        // Store current route before opening wallet so we can emit an event on return
+        const currentUrl = PlatformService.getUrl();
+        walletReturnRoute.set(currentUrl.pathname);
+        // Await the openURL call so errors propagate to the caller
+        // This ensures that if opening the URL fails, the connection promise rejects
+        yield PlatformService.openURL(deepLink);
+    }
+    else {
+        if ((_a = deepLinks === null || deepLinks === void 0 ? void 0 : deepLinks.desktop) === null || _a === void 0 ? void 0 : _a.native) {
+            (_b = opts.onDesktopUri) === null || _b === void 0 ? void 0 : _b.call(opts, deepLink);
+        }
+        (_c = opts.onDisplayUri) === null || _c === void 0 ? void 0 : _c.call(opts, uri);
+    }
+});
+
+export { performPlatformSpecificConnectionMethod };

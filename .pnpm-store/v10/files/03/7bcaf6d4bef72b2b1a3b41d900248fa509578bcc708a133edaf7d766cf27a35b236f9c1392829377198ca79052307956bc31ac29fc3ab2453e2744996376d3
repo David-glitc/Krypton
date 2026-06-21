@@ -1,0 +1,38 @@
+import type { StandardWallet } from './types.js';
+type MultichainCore = {
+    on(event: string, handler: (...args: unknown[]) => void): void;
+    off(event: string, handler: (...args: unknown[]) => void): void;
+    mergeOptions(partial: {
+        ui?: {
+            headless?: boolean;
+        };
+    }): void;
+};
+export interface MetaMaskSolanaSdkClientConfig {
+    dappName?: string;
+    dappUrl?: string;
+}
+/**
+ * Static singleton client for MetaMask Connect Solana SDK.
+ * Wraps createSolanaClient() and exposes the wallet-standard Wallet.
+ */
+export declare class MetaMaskSolanaSdkClient {
+    private static client;
+    private static wallet;
+    private static multichainCore;
+    private static initPromise;
+    static isInitialized: boolean;
+    private constructor();
+    static init: (config: MetaMaskSolanaSdkClientConfig) => Promise<void>;
+    private static doInit;
+    static getWallet: () => StandardWallet | null;
+    static getCore: () => MultichainCore | null;
+    /** Subscribe to display_uri events from the multichain core. Returns an unsubscribe function. */
+    static onDisplayUri: (listener: (uri: string) => void) => (() => void);
+    static getAccounts: () => string[];
+    static getSelectedAccount: () => string | undefined;
+    static connect: () => Promise<string | undefined>;
+    static disconnect: () => Promise<void>;
+    static reset: () => void;
+}
+export {};

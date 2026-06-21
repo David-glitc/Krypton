@@ -1,0 +1,36 @@
+'use client'
+import { __awaiter } from '../../../../../_virtual/_tslib.js';
+import '../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { useViewContext } from '../../../context/ViewContext/ViewContext.js';
+import { useConnectAndSign } from '../authenticationHooks/useConnectAndSign/useConnectAndSign.js';
+import { useConnectAndSignSplitSteps } from '../authenticationHooks/useConnectAndSignSplitSteps/useConnectAndSignSplitSteps.js';
+import { getAuthMode } from '../../../store/state/authMode/authMode.js';
+import { useHandleWalletItem } from './useHandleWalletItem/useHandleWalletItem.js';
+
+const useWalletItemActions = () => {
+    const { setMultiWalletWidgetState } = useInternalDynamicContext();
+    const { onlyConnectUser } = useConnectAndSignSplitSteps();
+    const connectAndSignWallet = useConnectAndSign();
+    const { pushView } = useViewContext();
+    const handleExtensionAndCustodial = (_a) => __awaiter(void 0, [_a], void 0, function* ({ requiresTwoStepAuthentication, walletConnector, }) {
+        const authMode = getAuthMode();
+        if (requiresTwoStepAuthentication || authMode === 'connect-only') {
+            pushView('pending-connect');
+            yield onlyConnectUser({ walletConnector });
+        }
+        else {
+            // See useVerifyOnAwaitingSignature's useEffect for more context.
+            setMultiWalletWidgetState('awaiting_signature', undefined, 'linking_new_wallet');
+        }
+    });
+    return useHandleWalletItem({
+        allowAlreadyConnectedWallet: false,
+        onConnectOnly: onlyConnectUser,
+        onCustodialWallet: handleExtensionAndCustodial,
+        onInstalledExtension: handleExtensionAndCustodial,
+        onQrCodeConnect: connectAndSignWallet,
+    });
+};
+
+export { useWalletItemActions };

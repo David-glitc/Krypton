@@ -1,0 +1,2294 @@
+import * as react_jsx_runtime from 'react/jsx-runtime';
+import { ReactNode } from 'react';
+import { PublicKey as PublicKey$1, Transaction as Transaction$1, VersionedTransaction as VersionedTransaction$1, TransactionInstruction as TransactionInstruction$1, AddressLookupTableAccount, Connection, TransactionSignature } from '@solana/web3.js';
+export { Connection, Keypair, PublicKey, Transaction, TransactionInstruction } from '@solana/web3.js';
+import * as zustand_middleware from 'zustand/middleware';
+import * as zustand from 'zustand';
+import { EventEmitter } from 'eventemitter3';
+import * as anchor from '@coral-xyz/anchor';
+import { Buffer as Buffer$1 } from 'buffer';
+import { WalletName, SendTransactionOptions, BaseWalletAdapter, WalletReadyState } from '@solana/wallet-adapter-base';
+
+/**
+ * Paymaster service for handling transaction fees and signing
+ */
+
+interface PaymasterConfig {
+    paymasterUrl: string;
+    apiKey?: string;
+}
+declare class Paymaster {
+    private endpoint;
+    private apiKey?;
+    private logger;
+    /**
+     * Create a new Paymaster instance
+     * @param config Configuration for the paymaster service
+     */
+    constructor(config: PaymasterConfig);
+    private getHeaders;
+    /**
+     * Get the public key of the fee payer from the paymaster service
+     * @returns Public key of the fee payer
+     */
+    getPayer(): Promise<PublicKey$1>;
+    /**
+     * Get a recent blockhash from the paymaster service
+     * @returns Recent blockhash as a string
+     */
+    getBlockhash(): Promise<string>;
+    /**
+     * Sign a transaction using the paymaster service
+     * @param transaction Transaction to sign
+     * @returns Signed transaction
+     */
+    private attemptSign;
+    /**
+     * Sign a transaction using the paymaster service with retries
+     * @param transaction Transaction to sign
+     * @param maxRetries Maximum number of retry attempts (default: 3)
+     * @param baseDelay Base delay between retries in ms (default: 1000)
+     * @returns Signed transaction
+     */
+    sign(transaction: Transaction$1, maxRetries?: number, baseDelay?: number): Promise<Transaction$1>;
+    /**
+     * Sign and send a transaction using the paymaster service
+     * @param transaction Transaction to sign and send
+     * @returns Transaction hash as a string
+     */
+    private attemptSignAndSend;
+    /**
+     * Sign and send a transaction with retries
+     * @param transaction Transaction to sign and send
+     * @param maxRetries Maximum number of retry attempts (default: 3)
+     * @param baseDelay Base delay between retries in ms (default: 1000)
+     * @returns Transaction signature
+     */
+    signAndSend(transaction: Transaction$1, maxRetries?: number, baseDelay?: number): Promise<string>;
+    /**
+   * Sign and send a transaction using the paymaster service
+   * @param transaction Transaction to sign and send
+   * @returns Transaction hash as a string
+   */
+    private attemptSignAndSendVersionedTransaction;
+    /**
+     * Sign and send a transaction with retries
+     * @param transaction Transaction to sign and send
+     * @param maxRetries Maximum number of retry attempts (default: 3)
+     * @param baseDelay Base delay between retries in ms (default: 1000)
+     * @returns Transaction signature
+     */
+    signAndSendVersionedTransaction(transaction: VersionedTransaction$1, maxRetries?: number, baseDelay?: number): Promise<string>;
+}
+
+interface LazorkitProviderProps {
+    children: ReactNode;
+    rpcUrl?: string;
+    portalUrl?: string;
+    paymasterConfig?: PaymasterConfig;
+}
+declare const LazorkitProvider: (props: LazorkitProviderProps) => react_jsx_runtime.JSX.Element;
+
+interface WalletInfo {
+    readonly credentialId: string;
+    readonly passkeyPubkey: number[];
+    readonly expo: string;
+    readonly platform: string;
+    readonly smartWallet: string;
+    readonly walletDevice: string;
+    readonly accountName?: string;
+}
+
+interface WalletConfig {
+    readonly portalUrl: string;
+    readonly paymasterConfig: PaymasterConfig;
+    readonly rpcUrl?: string;
+}
+/**
+ * Storage Manager Class
+ * Provides unified interface for credential storage
+ */
+declare class StorageManager {
+    /**
+     * Save wallet information to storage
+     */
+    static saveWallet(wallet: WalletInfo): Promise<void>;
+    /**
+     * Get wallet information from storage
+     */
+    static getWallet(): Promise<WalletInfo | null>;
+    /**
+     * Save wallet configuration to storage
+     */
+    static saveConfig(config: WalletConfig): Promise<void>;
+    /**
+     * Get wallet configuration from storage
+     */
+    static getConfig(): Promise<WalletConfig | null>;
+    /**
+     * Clear all wallet data from storage
+     */
+    static clearWallet(): Promise<void>;
+    /**
+     * Get item from storage (generic)
+     */
+    static getItem(key: string): Promise<string | null>;
+    /**
+     * Set item in storage (generic)
+     */
+    static setItem(key: string, value: string): Promise<void>;
+    /**
+     * Remove item from storage (generic)
+     */
+    static removeItem(key: string): Promise<void>;
+}
+
+/**
+ * Wallet Hook - Provides clean interface to wallet functionality
+ * Business logic is handled by store actions
+ */
+
+interface WalletHookInterface {
+    smartWalletPubkey: PublicKey$1 | null;
+    isConnected: boolean;
+    isLoading: boolean;
+    isConnecting: boolean;
+    isSigning: boolean;
+    error: Error | null;
+    wallet: WalletInfo | null;
+    connect: (options?: {
+        feeMode?: 'paymaster' | 'user';
+    }) => Promise<WalletInfo>;
+    disconnect: () => Promise<void>;
+    signAndSendTransaction: (payload: {
+        instructions: TransactionInstruction$1[];
+        transactionOptions?: {
+            feeToken?: string;
+            addressLookupTableAccounts?: AddressLookupTableAccount[];
+            computeUnitLimit?: number;
+            clusterSimulation?: 'devnet' | 'mainnet';
+        };
+    }) => Promise<string>;
+    signMessage: (message: string) => Promise<{
+        signature: string;
+        signedPayload: string;
+    }>;
+    verifyMessage: (args: {
+        signedPayload: Uint8Array;
+        signature: Uint8Array;
+        publicKey: Uint8Array;
+    }) => Promise<boolean>;
+}
+/**
+ * Hook for interacting with the Lazorkit wallet
+ * Simplified interface for wallet functionality
+ */
+declare const useWallet: () => WalletHookInterface;
+
+interface WalletState$1 {
+    wallet: WalletInfo | null;
+    config: WalletConfig;
+    connection: Connection;
+    isLoading: boolean;
+    isConnecting: boolean;
+    isSigning: boolean;
+    error: Error | null;
+    setConfig: (config: WalletConfig) => void;
+    setWallet: (wallet: WalletInfo | null) => void;
+    setLoading: (isLoading: boolean) => void;
+    setConnecting: (isConnecting: boolean) => void;
+    setSigning: (isSigning: boolean) => void;
+    setConnection: (connection: Connection) => void;
+    setError: (error: Error | null) => void;
+    clearError: () => void;
+    connect: (options?: ConnectOptions & {
+        feeMode?: 'paymaster' | 'user';
+    }) => Promise<WalletInfo>;
+    disconnect: () => Promise<void>;
+    signAndSendTransaction: (payload: SignAndSendTransactionPayload) => Promise<string>;
+    signMessage: (message: string) => Promise<{
+        signature: string;
+        signedPayload: string;
+    }>;
+}
+interface ConnectOptions {
+    readonly onSuccess?: (wallet: WalletInfo) => void;
+    readonly onFail?: (error: Error) => void;
+}
+interface SignAndSendTransactionPayload {
+    readonly transactionOptions?: {
+        readonly feeToken?: string;
+        readonly addressLookupTableAccounts?: AddressLookupTableAccount[];
+        readonly computeUnitLimit?: number;
+        readonly clusterSimulation?: 'devnet' | 'mainnet';
+    };
+    readonly instructions: TransactionInstruction$1[];
+    readonly onSuccess?: (signature: string) => void;
+    readonly onFail?: (error: Error) => void;
+}
+
+/**
+ * Create wallet store with integrated business logic and persistence
+ */
+declare const useWalletStore: zustand.UseBoundStore<Omit<zustand.StoreApi<WalletState$1>, "setState" | "persist"> & {
+    setState(partial: WalletState$1 | Partial<WalletState$1> | ((state: WalletState$1) => WalletState$1 | Partial<WalletState$1>), replace?: false | undefined): unknown;
+    setState(state: WalletState$1 | ((state: WalletState$1) => WalletState$1), replace: true): unknown;
+    persist: {
+        setOptions: (options: Partial<zustand_middleware.PersistOptions<WalletState$1, unknown, unknown>>) => void;
+        clearStorage: () => void;
+        rehydrate: () => Promise<void> | void;
+        hasHydrated: () => boolean;
+        onHydrate: (fn: (state: WalletState$1) => void) => () => void;
+        onFinishHydration: (fn: (state: WalletState$1) => void) => () => void;
+        getOptions: () => Partial<zustand_middleware.PersistOptions<WalletState$1, unknown, unknown>>;
+    };
+}>;
+
+/**
+ * Dialog Manager - Web Portal Connection
+ * Handles portal communication via iframe/popup dialogs for web
+ */
+
+interface DialogResult {
+    readonly publicKey: string;
+    readonly credentialId: string;
+    readonly isCreated: boolean;
+    readonly connectionType: 'create' | 'get';
+    readonly timestamp: number;
+    readonly accountName?: string;
+}
+interface SignResult {
+    readonly signature: string;
+    readonly clientDataJsonBase64: string;
+    readonly authenticatorDataBase64: string;
+    readonly signedPayload: string;
+}
+interface DialogManagerConfig {
+    readonly portalUrl: string;
+    readonly rpcUrl?: string;
+    readonly paymasterUrl?: string;
+}
+type DialogAction = 'connect' | 'sign' | string;
+/**
+ * Dialog Manager for Web Portal Connection
+ * Provides abstraction over iframe/popup portal communication
+ */
+declare class DialogManager extends EventEmitter {
+    private config;
+    private dialogRef;
+    private iframeRef;
+    private popupWindow;
+    private popupCloseInterval;
+    private isClosing;
+    private isDestroyed;
+    private credentialManager;
+    private logger;
+    private _currentAction;
+    constructor(config: DialogManagerConfig);
+    /**
+     * Open portal connection dialog
+     * @returns Promise that resolves with connection result
+     */
+    openConnect(): Promise<DialogResult>;
+    /**
+     * Open portal signing dialog
+     * @param message - Message to sign
+     * @returns Promise that resolves with signature result
+     */
+    openSign(message: string, transaction: string, credentialId: string, clusterSimulation?: 'devnet' | 'mainnet'): Promise<SignResult>;
+    /**
+     * Open portal message signing dialog
+     * @param message - Message to sign
+     * @param credentialId - Credential ID
+     * @returns Promise that resolves with signature result
+     */
+    openSignMessage(message: string, credentialId: string): Promise<SignResult>;
+    /**
+     * Open connection dialog (modal only - popup handled separately)
+     */
+    private openConnectDialog;
+    private ensureFonts;
+    private ensureDialogBackdropCSS;
+    private createCloseButton;
+    /**
+     * Open signing dialog (always iframe to avoid popup blocking)
+     */
+    private openSignDialog;
+    /**
+     * Check if the current device is a mobile device
+     */
+    private isMobileDevice;
+    /**
+     * Check if the browser is Safari
+     */
+    private isSafari;
+    /**
+     * Determine if popup should be used instead of modal
+     */
+    private shouldUsePopup;
+    /**
+     * Get popup window dimensions
+     */
+    private getPopupDimensions;
+    /**
+     * Open popup window
+     */
+    private openPopup;
+    /**
+     * Start monitoring for popup window close
+     */
+    private startPopupMonitor;
+    /**
+     * Open modal dialog with iframe
+     */
+    private openModal;
+    /**
+     * Create modal dialog with iframe
+     */
+    private createModal;
+    /**
+     * Setup message listener for portal communication
+     */
+    private setupMessageListener;
+    /**
+     * Close any open dialogs or popups
+     */
+    closeDialog(): void;
+    /**
+     * Get the iframe reference
+     */
+    getIframeRef(): HTMLIFrameElement | null;
+    /**
+     * Get the dialog reference
+     */
+    getDialogRef(): HTMLDialogElement | null;
+    /**
+     * Get the popup window reference
+     */
+    getPopupWindow(): Window | null;
+    /**
+     * Get the current action
+     */
+    getCurrentAction(): DialogAction | null;
+    /**
+     * Clean up resources
+     */
+    destroy(): void;
+}
+
+declare const DEFAULTS: {
+    readonly PORTAL_URL: "https://portal.lazor.sh";
+    readonly PAYMASTER_URL: "https://lazorkit-paymaster.onrender.com";
+    readonly RPC_ENDPOINT: "https://api.devnet.solana.com";
+};
+
+declare const API_ENDPOINTS: {
+    readonly CONNECT: "connect";
+    readonly SIGN: "sign";
+};
+
+declare const DEFAULT_COMMITMENT: "confirmed";
+declare const STORAGE_KEYS: {
+    readonly WALLET: "lazorkit-wallet";
+    readonly CREDENTIALS: "lazorkit-credentials";
+    readonly PUBLIC_KEY: "PUBLIC_KEY";
+    readonly CREDENTIAL_ID: "CREDENTIAL_ID";
+    readonly SMART_WALLET_ADDRESS: "SMART_WALLET_ADDRESS";
+};
+
+type Platform = 'web' | 'mobile' | 'desktop';
+declare function detectPlatform(): Platform;
+declare function isSafari(): boolean;
+declare function isIOS(): boolean;
+declare function isAndroid(): boolean;
+
+declare class Logger {
+    private context;
+    private enabled;
+    constructor(context: string);
+    debug(message: string, data?: any): void;
+    info(message: string, data?: any): void;
+    warn(message: string, data?: any): void;
+    error(message: string, error?: any): void;
+}
+
+/**
+ * Storage utility for managing credential data in local storage
+ */
+interface StoredCredentials {
+    credentialId?: string;
+    publickey: string;
+    smartWalletAddress: string;
+    timestamp: number;
+}
+/**
+ * Storage utility for managing credential data
+ */
+declare class StorageUtil {
+    /**
+     * Save credentials to local storage
+     * @param credentials The credentials to save
+     */
+    static saveCredentials(credentials: StoredCredentials): void;
+    /**
+     * Get credentials from local storage
+     * @returns The stored credentials or null if not found
+     */
+    static getCredentials(): StoredCredentials | null;
+    /**
+     * Update smart wallet address in local storage
+     * @param smartWalletAddress The smart wallet address to save
+     */
+    static updateSmartWalletAddress(smartWalletAddress: string): void;
+    /**
+     * Clear credentials from local storage
+     */
+    static clearCredentials(): void;
+    static getItem(key: string): string | null;
+    static setItem(key: string, value: string): void;
+}
+
+declare function base64ToBytes(b64: string): Uint8Array;
+declare function importP256PublicKey(publicKeyBytes: Uint8Array): Promise<CryptoKey>;
+declare function verifySignatureBrowser({ signedPayload, signature, publicKey, }: {
+    signedPayload: string;
+    signature: string;
+    publicKey: string;
+}): Promise<boolean>;
+
+/**
+ * Program IDL in camelCase format in order to be used in JS/TS.
+ *
+ * Note that this is only a type helper and is not the actual IDL. The original
+ * IDL can be found at `target/idl/lazorkit.json`.
+ */
+type Lazorkit = {
+    "address": "Gsuz7YcA5sbMGVRXT3xSYhJBessW4xFC4xYsihNCqMFh";
+    "metadata": {
+        "name": "lazorkit";
+        "version": "0.1.0";
+        "spec": "0.1.0";
+        "description": "Created with Anchor";
+    };
+    "docs": [
+        "LazorKit: Smart Wallet with WebAuthn Passkey Authentication"
+    ];
+    "instructions": [
+        {
+            "name": "createChunk";
+            "discriminator": [
+                83,
+                226,
+                15,
+                219,
+                9,
+                19,
+                186,
+                90
+            ];
+            "accounts": [
+                {
+                    "name": "payer";
+                    "writable": true;
+                    "signer": true;
+                },
+                {
+                    "name": "smartWallet";
+                    "writable": true;
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const";
+                                "value": [
+                                    115,
+                                    109,
+                                    97,
+                                    114,
+                                    116,
+                                    95,
+                                    119,
+                                    97,
+                                    108,
+                                    108,
+                                    101,
+                                    116
+                                ];
+                            },
+                            {
+                                "kind": "account";
+                                "path": "wallet_state.wallet_id";
+                                "account": "walletState";
+                            }
+                        ];
+                    };
+                },
+                {
+                    "name": "walletState";
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const";
+                                "value": [
+                                    119,
+                                    97,
+                                    108,
+                                    108,
+                                    101,
+                                    116,
+                                    95,
+                                    115,
+                                    116,
+                                    97,
+                                    116,
+                                    101
+                                ];
+                            },
+                            {
+                                "kind": "account";
+                                "path": "smartWallet";
+                            }
+                        ];
+                    };
+                },
+                {
+                    "name": "walletDevice";
+                },
+                {
+                    "name": "policyProgram";
+                },
+                {
+                    "name": "chunk";
+                    "writable": true;
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const";
+                                "value": [
+                                    99,
+                                    104,
+                                    117,
+                                    110,
+                                    107
+                                ];
+                            },
+                            {
+                                "kind": "account";
+                                "path": "smartWallet";
+                            },
+                            {
+                                "kind": "account";
+                                "path": "wallet_state.last_nonce";
+                                "account": "walletState";
+                            }
+                        ];
+                    };
+                },
+                {
+                    "name": "ixSysvar";
+                    "address": "Sysvar1nstructions1111111111111111111111111";
+                },
+                {
+                    "name": "systemProgram";
+                    "address": "11111111111111111111111111111111";
+                }
+            ];
+            "args": [
+                {
+                    "name": "args";
+                    "type": {
+                        "defined": {
+                            "name": "createChunkArgs";
+                        };
+                    };
+                }
+            ];
+        },
+        {
+            "name": "createSmartWallet";
+            "discriminator": [
+                129,
+                39,
+                235,
+                18,
+                132,
+                68,
+                203,
+                19
+            ];
+            "accounts": [
+                {
+                    "name": "payer";
+                    "writable": true;
+                    "signer": true;
+                },
+                {
+                    "name": "smartWallet";
+                    "writable": true;
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const";
+                                "value": [
+                                    115,
+                                    109,
+                                    97,
+                                    114,
+                                    116,
+                                    95,
+                                    119,
+                                    97,
+                                    108,
+                                    108,
+                                    101,
+                                    116
+                                ];
+                            },
+                            {
+                                "kind": "arg";
+                                "path": "args.wallet_id";
+                            }
+                        ];
+                    };
+                },
+                {
+                    "name": "walletState";
+                    "writable": true;
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const";
+                                "value": [
+                                    119,
+                                    97,
+                                    108,
+                                    108,
+                                    101,
+                                    116,
+                                    95,
+                                    115,
+                                    116,
+                                    97,
+                                    116,
+                                    101
+                                ];
+                            },
+                            {
+                                "kind": "account";
+                                "path": "smartWallet";
+                            }
+                        ];
+                    };
+                },
+                {
+                    "name": "walletDevice";
+                    "writable": true;
+                },
+                {
+                    "name": "policyProgram";
+                },
+                {
+                    "name": "systemProgram";
+                    "address": "11111111111111111111111111111111";
+                }
+            ];
+            "args": [
+                {
+                    "name": "args";
+                    "type": {
+                        "defined": {
+                            "name": "createSmartWalletArgs";
+                        };
+                    };
+                }
+            ];
+        },
+        {
+            "name": "execute";
+            "discriminator": [
+                130,
+                221,
+                242,
+                154,
+                13,
+                193,
+                189,
+                29
+            ];
+            "accounts": [
+                {
+                    "name": "payer";
+                    "writable": true;
+                    "signer": true;
+                },
+                {
+                    "name": "smartWallet";
+                    "writable": true;
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const";
+                                "value": [
+                                    115,
+                                    109,
+                                    97,
+                                    114,
+                                    116,
+                                    95,
+                                    119,
+                                    97,
+                                    108,
+                                    108,
+                                    101,
+                                    116
+                                ];
+                            },
+                            {
+                                "kind": "account";
+                                "path": "wallet_state.wallet_id";
+                                "account": "walletState";
+                            }
+                        ];
+                    };
+                },
+                {
+                    "name": "walletState";
+                    "writable": true;
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const";
+                                "value": [
+                                    119,
+                                    97,
+                                    108,
+                                    108,
+                                    101,
+                                    116,
+                                    95,
+                                    115,
+                                    116,
+                                    97,
+                                    116,
+                                    101
+                                ];
+                            },
+                            {
+                                "kind": "account";
+                                "path": "smartWallet";
+                            }
+                        ];
+                    };
+                },
+                {
+                    "name": "walletDevice";
+                },
+                {
+                    "name": "policyProgram";
+                },
+                {
+                    "name": "cpiProgram";
+                },
+                {
+                    "name": "ixSysvar";
+                    "address": "Sysvar1nstructions1111111111111111111111111";
+                },
+                {
+                    "name": "systemProgram";
+                    "address": "11111111111111111111111111111111";
+                }
+            ];
+            "args": [
+                {
+                    "name": "args";
+                    "type": {
+                        "defined": {
+                            "name": "executeArgs";
+                        };
+                    };
+                }
+            ];
+        },
+        {
+            "name": "executeChunk";
+            "discriminator": [
+                106,
+                83,
+                113,
+                47,
+                89,
+                243,
+                39,
+                220
+            ];
+            "accounts": [
+                {
+                    "name": "payer";
+                    "writable": true;
+                    "signer": true;
+                },
+                {
+                    "name": "smartWallet";
+                    "writable": true;
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const";
+                                "value": [
+                                    115,
+                                    109,
+                                    97,
+                                    114,
+                                    116,
+                                    95,
+                                    119,
+                                    97,
+                                    108,
+                                    108,
+                                    101,
+                                    116
+                                ];
+                            },
+                            {
+                                "kind": "account";
+                                "path": "wallet_state.wallet_id";
+                                "account": "walletState";
+                            }
+                        ];
+                    };
+                },
+                {
+                    "name": "walletState";
+                    "writable": true;
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const";
+                                "value": [
+                                    119,
+                                    97,
+                                    108,
+                                    108,
+                                    101,
+                                    116,
+                                    95,
+                                    115,
+                                    116,
+                                    97,
+                                    116,
+                                    101
+                                ];
+                            },
+                            {
+                                "kind": "account";
+                                "path": "smartWallet";
+                            }
+                        ];
+                    };
+                },
+                {
+                    "name": "chunk";
+                    "writable": true;
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const";
+                                "value": [
+                                    99,
+                                    104,
+                                    117,
+                                    110,
+                                    107
+                                ];
+                            },
+                            {
+                                "kind": "account";
+                                "path": "smartWallet";
+                            },
+                            {
+                                "kind": "account";
+                                "path": "chunk.authorized_nonce";
+                                "account": "chunk";
+                            }
+                        ];
+                    };
+                },
+                {
+                    "name": "sessionRefund";
+                    "writable": true;
+                },
+                {
+                    "name": "systemProgram";
+                    "address": "11111111111111111111111111111111";
+                }
+            ];
+            "args": [
+                {
+                    "name": "instructionDataList";
+                    "type": {
+                        "vec": "bytes";
+                    };
+                },
+                {
+                    "name": "splitIndex";
+                    "type": "bytes";
+                }
+            ];
+        }
+    ];
+    "accounts": [
+        {
+            "name": "chunk";
+            "discriminator": [
+                134,
+                67,
+                80,
+                65,
+                135,
+                143,
+                156,
+                196
+            ];
+        },
+        {
+            "name": "walletDevice";
+            "discriminator": [
+                35,
+                85,
+                31,
+                31,
+                179,
+                48,
+                136,
+                123
+            ];
+        },
+        {
+            "name": "walletState";
+            "discriminator": [
+                126,
+                186,
+                0,
+                158,
+                92,
+                223,
+                167,
+                68
+            ];
+        }
+    ];
+    "errors": [
+        {
+            "code": 6000;
+            "name": "passkeyMismatch";
+            "msg": "Passkey public key mismatch with stored authenticator";
+        },
+        {
+            "code": 6001;
+            "name": "invalidPolicyDataSize";
+            "msg": "Invalid policy data size";
+        },
+        {
+            "code": 6002;
+            "name": "secp256r1InvalidLength";
+            "msg": "Secp256r1 instruction has invalid data length";
+        },
+        {
+            "code": 6003;
+            "name": "secp256r1HeaderMismatch";
+            "msg": "Secp256r1 instruction header validation failed";
+        },
+        {
+            "code": 6004;
+            "name": "secp256r1DataMismatch";
+            "msg": "Secp256r1 signature data validation failed";
+        },
+        {
+            "code": 6005;
+            "name": "invalidSignature";
+            "msg": "Invalid signature provided for passkey verification";
+        },
+        {
+            "code": 6006;
+            "name": "clientDataInvalidUtf8";
+            "msg": "Client data JSON is not valid UTF-8";
+        },
+        {
+            "code": 6007;
+            "name": "clientDataJsonParseError";
+            "msg": "Client data JSON parsing failed";
+        },
+        {
+            "code": 6008;
+            "name": "challengeMissing";
+            "msg": "Challenge field missing from client data JSON";
+        },
+        {
+            "code": 6009;
+            "name": "challengeBase64DecodeError";
+            "msg": "Challenge base64 decoding failed";
+        },
+        {
+            "code": 6010;
+            "name": "challengeDeserializationError";
+            "msg": "Challenge message deserialization failed";
+        },
+        {
+            "code": 6011;
+            "name": "hashMismatch";
+            "msg": "Message hash mismatch: expected different value";
+        },
+        {
+            "code": 6012;
+            "name": "invalidInstructionDiscriminator";
+            "msg": "Invalid instruction discriminator";
+        },
+        {
+            "code": 6013;
+            "name": "insufficientCpiAccounts";
+            "msg": "Insufficient remaining accounts for CPI instruction";
+        },
+        {
+            "code": 6014;
+            "name": "accountSliceOutOfBounds";
+            "msg": "Account slice index out of bounds";
+        },
+        {
+            "code": 6015;
+            "name": "invalidAccountOwner";
+            "msg": "Account owner verification failed";
+        },
+        {
+            "code": 6016;
+            "name": "programNotExecutable";
+            "msg": "Program not executable";
+        },
+        {
+            "code": 6017;
+            "name": "credentialIdEmpty";
+            "msg": "Credential ID cannot be empty";
+        },
+        {
+            "code": 6018;
+            "name": "policyDataTooLarge";
+            "msg": "Policy data exceeds maximum allowed size";
+        },
+        {
+            "code": 6019;
+            "name": "transactionTooOld";
+            "msg": "Transaction is too old";
+        },
+        {
+            "code": 6020;
+            "name": "invalidInstructionData";
+            "msg": "Invalid instruction data";
+        },
+        {
+            "code": 6021;
+            "name": "invalidInstruction";
+            "msg": "Invalid instruction";
+        },
+        {
+            "code": 6022;
+            "name": "insufficientBalanceForFee";
+            "msg": "Insufficient balance for fee";
+        },
+        {
+            "code": 6023;
+            "name": "invalidSequenceNumber";
+            "msg": "Invalid sequence number";
+        },
+        {
+            "code": 6024;
+            "name": "invalidPasskeyFormat";
+            "msg": "Invalid passkey format";
+        },
+        {
+            "code": 6025;
+            "name": "reentrancyDetected";
+            "msg": "Reentrancy detected";
+        },
+        {
+            "code": 6026;
+            "name": "unauthorizedAdmin";
+            "msg": "Unauthorized admin";
+        }
+    ];
+    "types": [
+        {
+            "name": "chunk";
+            "docs": [
+                "Transaction chunk for deferred execution",
+                "",
+                "Created after full passkey and policy verification. Contains all bindings",
+                "necessary to execute the transaction later without re-verification.",
+                "Used for large transactions that need to be split into manageable chunks."
+            ];
+            "type": {
+                "kind": "struct";
+                "fields": [
+                    {
+                        "name": "ownerWalletAddress";
+                        "docs": [
+                            "Smart wallet address that authorized this chunk session"
+                        ];
+                        "type": "pubkey";
+                    },
+                    {
+                        "name": "cpiHash";
+                        "docs": [
+                            "Combined SHA256 hash of all cpi transaction instruction data"
+                        ];
+                        "type": {
+                            "array": [
+                                "u8",
+                                32
+                            ];
+                        };
+                    },
+                    {
+                        "name": "authorizedNonce";
+                        "docs": [
+                            "The nonce that was authorized at chunk creation (bound into data hash)"
+                        ];
+                        "type": "u64";
+                    },
+                    {
+                        "name": "authorizedTimestamp";
+                        "docs": [
+                            "Timestamp from the original message hash for expiration validation"
+                        ];
+                        "type": "i64";
+                    },
+                    {
+                        "name": "rentRefundAddress";
+                        "docs": [
+                            "Address to receive rent refund when closing the chunk session"
+                        ];
+                        "type": "pubkey";
+                    }
+                ];
+            };
+        },
+        {
+            "name": "createChunkArgs";
+            "type": {
+                "kind": "struct";
+                "fields": [
+                    {
+                        "name": "passkeyPublicKey";
+                        "type": {
+                            "array": [
+                                "u8",
+                                33
+                            ];
+                        };
+                    },
+                    {
+                        "name": "signature";
+                        "type": {
+                            "array": [
+                                "u8",
+                                64
+                            ];
+                        };
+                    },
+                    {
+                        "name": "clientDataJsonRaw";
+                        "type": "bytes";
+                    },
+                    {
+                        "name": "authenticatorDataRaw";
+                        "type": "bytes";
+                    },
+                    {
+                        "name": "verifyInstructionIndex";
+                        "type": "u8";
+                    },
+                    {
+                        "name": "policyData";
+                        "type": "bytes";
+                    },
+                    {
+                        "name": "timestamp";
+                        "type": "i64";
+                    },
+                    {
+                        "name": "cpiHash";
+                        "type": {
+                            "array": [
+                                "u8",
+                                32
+                            ];
+                        };
+                    }
+                ];
+            };
+        },
+        {
+            "name": "createSmartWalletArgs";
+            "type": {
+                "kind": "struct";
+                "fields": [
+                    {
+                        "name": "passkeyPublicKey";
+                        "type": {
+                            "array": [
+                                "u8",
+                                33
+                            ];
+                        };
+                    },
+                    {
+                        "name": "credentialHash";
+                        "type": {
+                            "array": [
+                                "u8",
+                                32
+                            ];
+                        };
+                    },
+                    {
+                        "name": "initPolicyData";
+                        "type": "bytes";
+                    },
+                    {
+                        "name": "walletId";
+                        "type": "u64";
+                    },
+                    {
+                        "name": "amount";
+                        "type": "u64";
+                    },
+                    {
+                        "name": "policyDataSize";
+                        "type": "u16";
+                    }
+                ];
+            };
+        },
+        {
+            "name": "executeArgs";
+            "type": {
+                "kind": "struct";
+                "fields": [
+                    {
+                        "name": "passkeyPublicKey";
+                        "type": {
+                            "array": [
+                                "u8",
+                                33
+                            ];
+                        };
+                    },
+                    {
+                        "name": "signature";
+                        "type": {
+                            "array": [
+                                "u8",
+                                64
+                            ];
+                        };
+                    },
+                    {
+                        "name": "clientDataJsonRaw";
+                        "type": "bytes";
+                    },
+                    {
+                        "name": "authenticatorDataRaw";
+                        "type": "bytes";
+                    },
+                    {
+                        "name": "verifyInstructionIndex";
+                        "type": "u8";
+                    },
+                    {
+                        "name": "splitIndex";
+                        "type": "u16";
+                    },
+                    {
+                        "name": "policyData";
+                        "type": "bytes";
+                    },
+                    {
+                        "name": "cpiData";
+                        "type": "bytes";
+                    },
+                    {
+                        "name": "timestamp";
+                        "type": "i64";
+                    }
+                ];
+            };
+        },
+        {
+            "name": "walletDevice";
+            "docs": [
+                "Wallet device account linking a passkey to a smart wallet"
+            ];
+            "type": {
+                "kind": "struct";
+                "fields": [
+                    {
+                        "name": "passkeyPubkey";
+                        "docs": [
+                            "Secp256r1 compressed public key (33 bytes)"
+                        ];
+                        "type": {
+                            "array": [
+                                "u8",
+                                33
+                            ];
+                        };
+                    },
+                    {
+                        "name": "credentialHash";
+                        "docs": [
+                            "SHA256 hash of the credential ID"
+                        ];
+                        "type": {
+                            "array": [
+                                "u8",
+                                32
+                            ];
+                        };
+                    },
+                    {
+                        "name": "smartWallet";
+                        "docs": [
+                            "Associated smart wallet address"
+                        ];
+                        "type": "pubkey";
+                    },
+                    {
+                        "name": "bump";
+                        "docs": [
+                            "PDA bump seed"
+                        ];
+                        "type": "u8";
+                    }
+                ];
+            };
+        },
+        {
+            "name": "walletState";
+            "docs": [
+                "Wallet state account storing wallet configuration and execution state"
+            ];
+            "type": {
+                "kind": "struct";
+                "fields": [
+                    {
+                        "name": "bump";
+                        "docs": [
+                            "PDA bump seed for smart wallet"
+                        ];
+                        "type": "u8";
+                    },
+                    {
+                        "name": "walletId";
+                        "docs": [
+                            "Unique wallet identifier"
+                        ];
+                        "type": "u64";
+                    },
+                    {
+                        "name": "lastNonce";
+                        "docs": [
+                            "Last used nonce for anti-replay protection"
+                        ];
+                        "type": "u64";
+                    },
+                    {
+                        "name": "policyProgram";
+                        "docs": [
+                            "Policy program that validates transactions"
+                        ];
+                        "type": "pubkey";
+                    },
+                    {
+                        "name": "policyData";
+                        "docs": [
+                            "Serialized policy data returned from policy initialization"
+                        ];
+                        "type": "bytes";
+                    }
+                ];
+            };
+        }
+    ];
+};
+
+type WalletState = anchor.IdlTypes<Lazorkit>['walletState'];
+type WalletDevice = anchor.IdlTypes<Lazorkit>['walletDevice'];
+type Chunk = anchor.IdlTypes<Lazorkit>['chunk'];
+type CreateSmartWalletArgs = anchor.IdlTypes<Lazorkit>['createSmartWalletArgs'];
+type ExecuteArgs = anchor.IdlTypes<Lazorkit>['executeArgs'];
+type CreateChunkArgs = anchor.IdlTypes<Lazorkit>['createChunkArgs'];
+/**
+ * Branded type for passkey public key (33 bytes)
+ * This ensures type safety and prevents mixing up different byte arrays
+ */
+type PasskeyPublicKey = number[] & {
+    readonly __brand: 'PasskeyPublicKey';
+};
+/**
+ * Branded type for credential hash (32 bytes)
+ */
+type CredentialHash = number[] & {
+    readonly __brand: 'CredentialHash';
+};
+/**
+ * Branded type for signature (64 bytes)
+ */
+type Signature = number[] & {
+    readonly __brand: 'Signature';
+};
+/**
+ * Creates a type-safe PasskeyPublicKey from a validated number array
+ * WARNING: This function does NOT validate the input. Use validation functions first.
+ * @internal
+ */
+declare function asPasskeyPublicKey(value: number[]): PasskeyPublicKey;
+/**
+ * Creates a type-safe CredentialHash from a validated number array
+ * WARNING: This function does NOT validate the input. Use validation functions first.
+ * @internal
+ */
+declare function asCredentialHash(value: number[]): CredentialHash;
+/**
+ * Creates a type-safe Signature from a validated number array
+ * WARNING: This function does NOT validate the input. Use validation functions first.
+ * @internal
+ */
+declare function asSignature(value: number[]): Signature;
+declare enum SmartWalletAction {
+    CreateChunk = "create_chunk",
+    ExecuteChunk = "execute_chunk"
+}
+type ArgsByAction = {
+    [SmartWalletAction.CreateChunk]: {
+        policyInstruction?: anchor.web3.TransactionInstruction;
+        cpiInstructions: readonly anchor.web3.TransactionInstruction[];
+        expiresAt: number;
+        cpiSigners?: readonly anchor.web3.PublicKey[];
+    };
+    [SmartWalletAction.ExecuteChunk]: {
+        cpiInstructions: readonly anchor.web3.TransactionInstruction[];
+        cpiSigners?: readonly anchor.web3.PublicKey[];
+    };
+};
+type SmartWalletActionArgs<K extends SmartWalletAction = SmartWalletAction> = {
+    type: K;
+    args: ArgsByAction[K];
+};
+/**
+ * Passkey signature data for authentication
+ * All fields are required and validated
+ */
+interface PasskeySignature {
+    /** Passkey public key (33 bytes, compressed secp256r1) */
+    readonly passkeyPublicKey: PasskeyPublicKey;
+    /** Base64-encoded signature (64 bytes when decoded) */
+    readonly signature64: string;
+    /** Base64-encoded client data JSON */
+    readonly clientDataJsonRaw64: string;
+    /** Base64-encoded authenticator data */
+    readonly authenticatorDataRaw64: string;
+}
+interface TransactionBuilderOptions {
+    /** Address lookup table for versioned transactions */
+    readonly addressLookupTables?: readonly anchor.web3.AddressLookupTableAccount[];
+    /** Custom recent blockhash (if not provided, fetched from connection) */
+    readonly recentBlockhash?: string;
+    /** Compute unit limit for transaction */
+    readonly computeUnitLimit?: number;
+}
+interface TransactionBuilderResult {
+    readonly transaction: anchor.web3.Transaction | anchor.web3.VersionedTransaction;
+    readonly isVersioned: boolean;
+    readonly recentBlockhash: string;
+}
+/**
+ * Base parameters required for all smart wallet operations
+ */
+interface BaseParams {
+    /** Payer account that will pay for transaction fees */
+    readonly payer: anchor.web3.PublicKey;
+    /** Smart wallet PDA address */
+    readonly smartWallet: anchor.web3.PublicKey;
+}
+/**
+ * Parameters for operations requiring authentication
+ */
+interface AuthParams extends BaseParams {
+    /** Passkey signature for authentication */
+    readonly passkeySignature: PasskeySignature;
+    /** Credential hash (32 bytes) */
+    readonly credentialHash: CredentialHash;
+}
+/**
+ * Parameters for creating a new smart wallet
+ * All required fields must be provided and validated
+ */
+interface CreateSmartWalletParams {
+    /** Payer account that will pay for transaction fees (required) */
+    readonly payer: anchor.web3.PublicKey;
+    /** Passkey public key (33 bytes, compressed secp256r1) (required) */
+    readonly passkeyPublicKey: PasskeyPublicKey;
+    /** Base64-encoded credential ID (required, must be valid base64) */
+    readonly credentialIdBase64: string;
+    /** Initial funding amount in lamports (optional, defaults to EMPTY_PDA_RENT_EXEMPT_BALANCE) */
+    readonly amount?: anchor.BN;
+    /** Custom policy instruction (optional, if not provided, default policy is used) */
+    readonly policyInstruction?: anchor.web3.TransactionInstruction;
+    /** Wallet ID (optional, if not provided, a random one is generated) */
+    readonly smartWalletId?: anchor.BN;
+    /** Policy data size in bytes (optional, if not provided, default policy size is used) */
+    readonly policyDataSize?: number;
+}
+/**
+ * Parameters for executing a direct transaction
+ * Note: smartWalletId is derived from smartWallet, so it's not required
+ * All required fields must be provided and validated
+ */
+interface ExecuteParams extends AuthParams {
+    /** Policy instruction (optional, if not provided, default policy is used) */
+    readonly policyInstruction?: anchor.web3.TransactionInstruction;
+    /** CPI instruction to execute (required, must be valid TransactionInstruction) */
+    readonly cpiInstruction: anchor.web3.TransactionInstruction;
+    /** Transaction timestamp (Unix timestamp in seconds, required, must be non-negative) */
+    readonly timestamp: anchor.BN;
+    /** Optional signers for CPI instruction (all must be valid PublicKeys if provided) */
+    readonly cpiSigners?: readonly anchor.web3.PublicKey[];
+}
+/**
+ * Parameters for creating a deferred execution (chunk)
+ * All required fields must be provided and validated
+ */
+interface CreateChunkParams extends AuthParams {
+    /** Policy instruction (optional, if not provided, default policy is used) */
+    readonly policyInstruction?: anchor.web3.TransactionInstruction;
+    /** CPI instructions to execute later (required, must be non-empty array, all must be valid TransactionInstructions) */
+    readonly cpiInstructions: readonly anchor.web3.TransactionInstruction[];
+    /** Transaction timestamp (Unix timestamp in seconds, required, must be non-negative) */
+    readonly timestamp: anchor.BN;
+    /** Optional signers for CPI instructions (all must be valid PublicKeys if provided) */
+    readonly cpiSigners?: readonly anchor.web3.PublicKey[];
+}
+/**
+ * Parameters for executing a deferred transaction (chunk)
+ * No authentication required as it was already verified during chunk creation
+ * All required fields must be provided and validated
+ */
+interface ExecuteChunkParams extends BaseParams {
+    /** CPI instructions to execute (required, must be non-empty array, all must be valid TransactionInstructions) */
+    readonly cpiInstructions: readonly anchor.web3.TransactionInstruction[];
+    /** Optional signers for CPI instructions (all must be valid PublicKeys if provided) */
+    readonly cpiSigners?: readonly anchor.web3.PublicKey[];
+}
+/**
+ * Parameters for closing a chunk
+ * All required fields must be provided and validated
+ */
+interface CloseChunkParams extends BaseParams {
+    /** Nonce of the chunk to close (required, must be non-negative) */
+    readonly nonce: anchor.BN;
+}
+
+/**
+ * Program IDL in camelCase format in order to be used in JS/TS.
+ *
+ * Note that this is only a type helper and is not the actual IDL. The original
+ * IDL can be found at `target/idl/default_policy.json`.
+ */
+type DefaultPolicy = {
+    "address": "BiE9vSdz9MidUiyjVYsu3PG4C1fbPZ8CVPADA9jRfXw7";
+    "metadata": {
+        "name": "defaultPolicy";
+        "version": "0.1.0";
+        "spec": "0.1.0";
+        "description": "Created with Anchor";
+    };
+    "instructions": [
+        {
+            "name": "checkPolicy";
+            "discriminator": [
+                28,
+                88,
+                170,
+                179,
+                239,
+                136,
+                25,
+                35
+            ];
+            "accounts": [
+                {
+                    "name": "policySigner";
+                    "signer": true;
+                },
+                {
+                    "name": "smartWallet";
+                }
+            ];
+            "args": [
+                {
+                    "name": "walletId";
+                    "type": "u64";
+                },
+                {
+                    "name": "passkeyPublicKey";
+                    "type": {
+                        "array": [
+                            "u8",
+                            33
+                        ];
+                    };
+                },
+                {
+                    "name": "credentialHash";
+                    "type": {
+                        "array": [
+                            "u8",
+                            32
+                        ];
+                    };
+                },
+                {
+                    "name": "policyData";
+                    "type": "bytes";
+                }
+            ];
+        },
+        {
+            "name": "initPolicy";
+            "discriminator": [
+                45,
+                234,
+                110,
+                100,
+                209,
+                146,
+                191,
+                86
+            ];
+            "accounts": [
+                {
+                    "name": "policySigner";
+                    "signer": true;
+                },
+                {
+                    "name": "smartWallet";
+                    "writable": true;
+                },
+                {
+                    "name": "walletState";
+                    "writable": true;
+                }
+            ];
+            "args": [
+                {
+                    "name": "walletId";
+                    "type": "u64";
+                },
+                {
+                    "name": "passkeyPublicKey";
+                    "type": {
+                        "array": [
+                            "u8",
+                            33
+                        ];
+                    };
+                },
+                {
+                    "name": "credentialHash";
+                    "type": {
+                        "array": [
+                            "u8",
+                            32
+                        ];
+                    };
+                }
+            ];
+            "returns": {
+                "defined": {
+                    "name": "policyStruct";
+                };
+            };
+        }
+    ];
+    "errors": [
+        {
+            "code": 6000;
+            "name": "invalidPasskey";
+            "msg": "Invalid passkey format";
+        },
+        {
+            "code": 6001;
+            "name": "unauthorized";
+            "msg": "Unauthorized to access smart wallet";
+        }
+    ];
+    "types": [
+        {
+            "name": "deviceSlot";
+            "type": {
+                "kind": "struct";
+                "fields": [
+                    {
+                        "name": "passkeyPubkey";
+                        "type": {
+                            "array": [
+                                "u8",
+                                33
+                            ];
+                        };
+                    },
+                    {
+                        "name": "credentialHash";
+                        "type": {
+                            "array": [
+                                "u8",
+                                32
+                            ];
+                        };
+                    }
+                ];
+            };
+        },
+        {
+            "name": "policyStruct";
+            "type": {
+                "kind": "struct";
+                "fields": [
+                    {
+                        "name": "bump";
+                        "type": "u8";
+                    },
+                    {
+                        "name": "smartWallet";
+                        "type": "pubkey";
+                    },
+                    {
+                        "name": "deviceSlots";
+                        "type": {
+                            "vec": {
+                                "defined": {
+                                    "name": "deviceSlot";
+                                };
+                            };
+                        };
+                    }
+                ];
+            };
+        }
+    ];
+};
+
+/**
+ * Parameters for building initialize policy instruction
+ */
+interface BuildInitPolicyIxParams {
+    /** Wallet ID (required, must be non-negative) */
+    readonly walletId: anchor.BN;
+    /** Passkey public key (33 bytes, required) */
+    readonly passkeyPublicKey: PasskeyPublicKey | number[];
+    /** Credential hash (32 bytes, required) */
+    readonly credentialHash: CredentialHash | number[];
+    /** Policy signer PDA address (required) */
+    readonly policySigner: anchor.web3.PublicKey;
+    /** Smart wallet PDA address (required) */
+    readonly smartWallet: anchor.web3.PublicKey;
+    /** Wallet state PDA address (required) */
+    readonly walletState: anchor.web3.PublicKey;
+}
+/**
+ * Parameters for building check policy instruction
+ */
+interface BuildCheckPolicyIxParams {
+    /** Wallet ID (required, must be non-negative) */
+    readonly walletId: anchor.BN;
+    /** Passkey public key (33 bytes, required) */
+    readonly passkeyPublicKey: PasskeyPublicKey | number[];
+    /** Policy signer PDA address (required) */
+    readonly policySigner: anchor.web3.PublicKey;
+    /** Smart wallet PDA address (required) */
+    readonly smartWallet: anchor.web3.PublicKey;
+    /** Credential hash (32 bytes, required) */
+    readonly credentialHash: CredentialHash | number[];
+    /** Policy data buffer (required, must be a Buffer instance) */
+    readonly policyData: Buffer;
+}
+declare class DefaultPolicyClient {
+    readonly connection: anchor.web3.Connection;
+    readonly program: anchor.Program<DefaultPolicy>;
+    readonly programId: anchor.web3.PublicKey;
+    constructor(connection: anchor.web3.Connection);
+    /**
+     * Gets the policy PDA for a given smart wallet
+     *
+     * @param smartWallet - Smart wallet PDA address
+     * @returns Policy PDA address
+     * @throws {ValidationError} if smartWallet is invalid
+     */
+    policyPda(smartWallet: anchor.web3.PublicKey): anchor.web3.PublicKey;
+    /**
+     * Gets the default policy data size in bytes
+     *
+     * @returns Policy data size in bytes
+     */
+    getPolicyDataSize(): number;
+    /**
+     * Validates BuildInitPolicyIxParams
+     */
+    private validateInitPolicyParams;
+    /**
+     * Builds the initialize policy instruction
+     *
+     * @param params - Initialize policy parameters
+     * @returns Transaction instruction
+     * @throws {ValidationError} if parameters are invalid
+     */
+    buildInitPolicyIx(params: BuildInitPolicyIxParams): Promise<anchor.web3.TransactionInstruction>;
+    /**
+     * Validates BuildCheckPolicyIxParams
+     */
+    private validateCheckPolicyParams;
+    /**
+     * Builds the check policy instruction
+     *
+     * @param params - Check policy parameters
+     * @returns Transaction instruction
+     * @throws {ValidationError} if parameters are invalid
+     */
+    buildCheckPolicyIx(params: BuildCheckPolicyIxParams): Promise<anchor.web3.TransactionInstruction>;
+}
+
+type PublicKey = anchor.web3.PublicKey;
+type TransactionInstruction = anchor.web3.TransactionInstruction;
+type Transaction = anchor.web3.Transaction;
+type VersionedTransaction = anchor.web3.VersionedTransaction;
+type BN = anchor.BN;
+/**
+ * Main client for interacting with the LazorKit smart wallet program
+ *
+ * This client provides both low-level instruction builders and high-level
+ * transaction builders for common smart wallet operations.
+ */
+declare class LazorkitClient {
+    readonly connection: anchor.web3.Connection;
+    readonly program: anchor.Program<Lazorkit>;
+    readonly programId: anchor.web3.PublicKey;
+    readonly defaultPolicyProgram: DefaultPolicyClient;
+    private readonly walletPdas;
+    private readonly policyResolver;
+    constructor(connection: anchor.web3.Connection);
+    /**
+     * Derives a smart wallet PDA from wallet ID
+     */
+    getSmartWalletPubkey(walletId: BN): PublicKey;
+    /**
+     * Derives the smart wallet data PDA for a given smart wallet
+     */
+    getWalletStatePubkey(smartWallet: PublicKey): PublicKey;
+    /**
+     * Derives a wallet device PDA for a given smart wallet and passkey
+     *
+     * @param smartWallet - Smart wallet PDA address
+     * @param credentialHash - Credential hash (32 bytes)
+     * @returns Wallet device PDA address
+     * @throws {ValidationError} if parameters are invalid
+     */
+    getWalletDevicePubkey(smartWallet: PublicKey, credentialHash: CredentialHash | number[]): PublicKey;
+    /**
+     * Derives a transaction session PDA for a given smart wallet and nonce
+     */
+    getChunkPubkey(smartWallet: PublicKey, lastNonce: BN): PublicKey;
+    /**
+     * Generates a random wallet ID
+     */
+    generateWalletId(): BN;
+    private fetchWalletStateContext;
+    private fetchChunkContext;
+    /**
+     * Validates CreateSmartWalletParams
+     */
+    private validateCreateSmartWalletParams;
+    /**
+     * Validates ExecuteParams
+     */
+    private validateExecuteParams;
+    /**
+     * Validates CreateChunkParams
+     */
+    private validateCreateChunkParams;
+    /**
+     * Validates ExecuteChunkParams
+     */
+    private validateExecuteChunkParams;
+    /**
+     * Fetches smart wallet data for a given smart wallet
+     */
+    getWalletStateData(smartWallet: PublicKey): Promise<any>;
+    /**
+     * Fetches transaction session data for a given transaction session
+     */
+    getChunkData(chunk: PublicKey): Promise<any>;
+    /**
+     * Find smart wallet by credential hash
+     * Searches through all WalletState accounts to find one containing the specified credential hash
+     *
+     * @param credentialHash - Credential hash (32 bytes)
+     * @returns Smart wallet information or null if not found
+     * @throws {ValidationError} if credentialHash is invalid
+     */
+    getSmartWalletByCredentialHash(credentialHash: CredentialHash | number[]): Promise<{
+        smartWallet: anchor.web3.PublicKey;
+        walletState: anchor.web3.PublicKey;
+        walletDevice: anchor.web3.PublicKey;
+        passkeyPublicKey: number[];
+    } | null>;
+    /**
+     * Builds the create smart wallet instruction
+     *
+     * @param payer - Payer account public key
+     * @param smartWallet - Smart wallet PDA address
+     * @param policyInstruction - Policy initialization instruction
+     * @param args - Create smart wallet arguments
+     * @returns Transaction instruction
+     * @throws {ValidationError} if parameters are invalid
+     */
+    buildCreateSmartWalletIns(payer: PublicKey, smartWallet: PublicKey, policyInstruction: TransactionInstruction, args: CreateSmartWalletArgs): Promise<TransactionInstruction>;
+    /**
+     * Builds the execute direct transaction instruction
+     *
+     * @param payer - Payer account public key
+     * @param smartWallet - Smart wallet PDA address
+     * @param walletDevice - Wallet device PDA address
+     * @param args - Execute arguments
+     * @param policyInstruction - Policy check instruction
+     * @param cpiInstruction - CPI instruction to execute
+     * @param cpiSigners - Optional signers for CPI instruction
+     * @returns Transaction instruction
+     * @throws {ValidationError} if parameters are invalid
+     */
+    buildExecuteIns(payer: PublicKey, smartWallet: PublicKey, walletDevice: PublicKey, args: ExecuteArgs, policyInstruction: TransactionInstruction, cpiInstruction: TransactionInstruction, cpiSigners?: readonly PublicKey[]): Promise<TransactionInstruction>;
+    /**
+     * Builds the create deferred execution instruction
+     *
+     * @param payer - Payer account public key
+     * @param smartWallet - Smart wallet PDA address
+     * @param walletDevice - Wallet device PDA address
+     * @param args - Create chunk arguments
+     * @param policyInstruction - Policy check instruction
+     * @returns Transaction instruction
+     * @throws {ValidationError} if parameters are invalid
+     */
+    buildCreateChunkIns(payer: PublicKey, smartWallet: PublicKey, walletDevice: PublicKey, args: CreateChunkArgs, policyInstruction: TransactionInstruction): Promise<TransactionInstruction>;
+    /**
+     * Builds the execute deferred transaction instruction
+     *
+     * @param payer - Payer account public key
+     * @param smartWallet - Smart wallet PDA address
+     * @param cpiInstructions - CPI instructions to execute
+     * @param cpiSigners - Optional signers for CPI instructions
+     * @returns Transaction instruction
+     * @throws {ValidationError} if parameters are invalid
+     */
+    buildExecuteChunkIns(payer: PublicKey, smartWallet: PublicKey, cpiInstructions: readonly TransactionInstruction[], cpiSigners?: readonly PublicKey[]): Promise<TransactionInstruction>;
+    /**
+     * Creates a smart wallet with passkey authentication
+     *
+     * @param params - Create smart wallet parameters
+     * @param options - Transaction builder options
+     * @returns Transaction and wallet information
+     * @throws {ValidationError} if parameters are invalid
+     */
+    createSmartWalletTxn(params: CreateSmartWalletParams, options?: TransactionBuilderOptions): Promise<{
+        transaction: Transaction | VersionedTransaction;
+        smartWalletId: BN;
+        smartWallet: PublicKey;
+    }>;
+    /**
+     * Executes a direct transaction with passkey authentication
+     *
+     * @param params - Execute parameters
+     * @param options - Transaction builder options
+     * @returns Transaction
+     * @throws {ValidationError} if parameters are invalid
+     */
+    executeTxn(params: ExecuteParams, options?: TransactionBuilderOptions): Promise<Transaction | VersionedTransaction>;
+    /**
+     * Creates a deferred execution with passkey authentication
+     *
+     * @param params - Create chunk parameters
+     * @param options - Transaction builder options
+     * @returns Transaction
+     * @throws {ValidationError} if parameters are invalid
+     */
+    createChunkTxn(params: CreateChunkParams, options?: TransactionBuilderOptions): Promise<Transaction | VersionedTransaction>;
+    /**
+     * Executes a deferred transaction (no authentication needed)
+     *
+     * @param params - Execute chunk parameters
+     * @param options - Transaction builder options
+     * @returns Transaction
+     * @throws {ValidationError} if parameters are invalid
+     */
+    executeChunkTxn(params: ExecuteChunkParams, options?: TransactionBuilderOptions): Promise<Transaction | VersionedTransaction>;
+    /**
+     * Builds an authorization message for a smart wallet action
+     */
+    buildAuthorizationMessage(params: {
+        action: SmartWalletActionArgs;
+        payer: PublicKey;
+        smartWallet: PublicKey;
+        passkeyPublicKey: number[];
+        credentialHash: number[];
+        timestamp: BN;
+    }): Promise<Buffer$1>;
+}
+
+/**
+ * Builds a Secp256r1 signature verification instruction for passkey authentication
+ *
+ * @param passkeySignature - Validated passkey signature data
+ * @returns Transaction instruction for signature verification
+ * @throws {ValidationError} if passkeySignature is invalid
+ */
+declare function buildPasskeyVerificationInstruction(passkeySignature: PasskeySignature): anchor.web3.TransactionInstruction;
+/**
+ * Converts passkey signature data to the format expected by smart contract instructions
+ *
+ * @param passkeySignature - Validated passkey signature data
+ * @returns Instruction arguments with validated byte arrays
+ * @throws {ValidationError} if passkeySignature is invalid
+ */
+declare function convertPasskeySignatureToInstructionArgs(passkeySignature: PasskeySignature): {
+    passkeyPublicKey: number[];
+    signature: Signature;
+    clientDataJsonRaw: Buffer;
+    authenticatorDataRaw: Buffer;
+};
+
+/**
+ * Creates a compute unit limit instruction
+ */
+declare function createComputeUnitLimitInstruction(limit: number): anchor.web3.TransactionInstruction;
+/**
+ * Prepends compute unit limit instruction to the beginning of instruction array if limit is provided
+ */
+declare function prependComputeUnitLimit(instructions: anchor.web3.TransactionInstruction[], computeUnitLimit?: number): anchor.web3.TransactionInstruction[];
+/**
+ * Combines authentication verification instruction with smart wallet instructions
+ */
+declare function combineInstructionsWithAuth(authInstruction: anchor.web3.TransactionInstruction, smartWalletInstructions: anchor.web3.TransactionInstruction[]): anchor.web3.TransactionInstruction[];
+/**
+ * Combines authentication verification instruction with smart wallet instructions and optional compute unit limit
+ */
+declare function combineInstructionsWithAuthAndCU(authInstruction: anchor.web3.TransactionInstruction, smartWalletInstructions: anchor.web3.TransactionInstruction[], computeUnitLimit?: number): anchor.web3.TransactionInstruction[];
+/**
+ * Calculates the correct verifyInstructionIndex based on whether compute unit limit is used
+ */
+declare function calculateVerifyInstructionIndex(computeUnitLimit?: number): number;
+/**
+ * Flexible transaction builder that supports both legacy and versioned transactions
+ * with optional address lookup table support
+ */
+declare function buildTransaction(connection: anchor.web3.Connection, payer: anchor.web3.PublicKey, instructions: anchor.web3.TransactionInstruction[], options?: TransactionBuilderOptions): Promise<TransactionBuilderResult>;
+
+declare function instructionToAccountMetas(ix: anchor.web3.TransactionInstruction, signers?: readonly anchor.web3.PublicKey[]): anchor.web3.AccountMeta[];
+declare function getRandomBytes(len: number): Uint8Array;
+declare function byteArrayEquals(a: number[], b: number[]): boolean;
+declare function credentialHashFromBase64(credentialIdBase64: string): CredentialHash;
+declare function getBlockchainTimestamp(connection: anchor.web3.Connection): Promise<anchor.BN>;
+declare function ensureChunkExist(connection: anchor.web3.Connection, client: LazorkitClient, smartWalletPubkey: anchor.web3.PublicKey): Promise<void>;
+
+declare const computeMultipleCpiHashes: (cpiInstructions: readonly anchor.web3.TransactionInstruction[], smartWallet: anchor.web3.PublicKey, cpiSigners?: readonly anchor.web3.PublicKey[]) => {
+    cpiDataHash: Uint8Array;
+    cpiAccountsHash: Uint8Array;
+};
+declare function buildExecuteMessage(smartWallet: anchor.web3.PublicKey, nonce: anchor.BN, timestamp: anchor.BN, policyIns: anchor.web3.TransactionInstruction, cpiIns: anchor.web3.TransactionInstruction, cpiSigners?: readonly anchor.web3.PublicKey[]): Buffer$1;
+declare function buildCreateChunkMessage(smartWallet: anchor.web3.PublicKey, nonce: anchor.BN, timestamp: anchor.BN, policyIns: anchor.web3.TransactionInstruction, cpiInstructions: readonly anchor.web3.TransactionInstruction[], cpiSigners?: readonly anchor.web3.PublicKey[]): Buffer$1;
+
+declare const SMART_WALLET_SEED: Buffer$1<ArrayBuffer>;
+declare const SMART_WALLET_CONFIG_SEED: Buffer$1<ArrayBuffer>;
+declare const WALLET_DEVICE_SEED: Buffer$1<ArrayBuffer>;
+declare const CHUNK_SEED: Buffer$1<ArrayBuffer>;
+declare function deriveSmartWalletPda(programId: anchor.web3.PublicKey, walletId: anchor.BN): anchor.web3.PublicKey;
+declare function deriveSmartWalletConfigPda(programId: anchor.web3.PublicKey, smartWallet: anchor.web3.PublicKey): anchor.web3.PublicKey;
+declare function deriveWalletDevicePda(programId: anchor.web3.PublicKey, smartWallet: anchor.web3.PublicKey, credentialHash: number[]): [anchor.web3.PublicKey, number];
+declare function deriveChunkPda(programId: anchor.web3.PublicKey, smartWallet: anchor.web3.PublicKey, lastNonce: anchor.BN): anchor.web3.PublicKey;
+
+declare class ValidationError extends Error {
+    readonly field?: string | undefined;
+    constructor(message: string, field?: string | undefined);
+}
+/**
+ * Validates that a value is not null or undefined
+ * Works correctly in browser, Node.js, and React Native environments
+ */
+declare function assertDefined<T>(value: T | null | undefined, fieldName: string): asserts value is T;
+/**
+ * Validates that a PublicKey is valid
+ * Works correctly in browser, Node.js, and React Native environments
+ */
+declare function assertValidPublicKey(value: anchor.web3.PublicKey | string | null | undefined, fieldName: string): asserts value is anchor.web3.PublicKey;
+/**
+ * Validates that a byte array has the exact required length
+ * Works correctly in browser, Node.js, and React Native environments
+ */
+declare function assertByteArrayLength(value: number[] | Uint8Array | null | undefined, expectedLength: number, fieldName: string): asserts value is number[];
+/**
+ * Validates that a byte array is not empty
+ */
+declare function assertNonEmptyByteArray(value: number[] | Uint8Array | null | undefined, fieldName: string): asserts value is number[];
+/**
+ * Validates a passkey public key (33 bytes)
+ * Returns the validated value as a number array
+ */
+declare function assertValidPasskeyPublicKey(value: number[] | Uint8Array | null | undefined, fieldName?: string): asserts value is number[];
+/**
+ * Validates and converts a passkey public key to a number array
+ * Throws ValidationError if invalid
+ */
+declare function validatePasskeyPublicKey(value: number[] | Uint8Array | null | undefined, fieldName?: string): number[];
+/**
+ * Validates a credential hash (32 bytes)
+ * Returns the validated value as a number array
+ */
+declare function assertValidCredentialHash(value: number[] | Uint8Array | null | undefined, fieldName?: string): asserts value is number[];
+/**
+ * Validates and converts a credential hash to a number array
+ * Throws ValidationError if invalid
+ */
+declare function validateCredentialHash(value: number[] | Uint8Array | null | undefined, fieldName?: string): number[];
+/**
+ * Validates a signature (64 bytes)
+ * Returns the validated value as a number array
+ */
+declare function assertValidSignature(value: number[] | Uint8Array | null | undefined, fieldName?: string): asserts value is number[];
+/**
+ * Validates and converts a signature to a number array
+ * Throws ValidationError if invalid
+ */
+declare function validateSignature(value: number[] | Uint8Array | null | undefined, fieldName?: string): number[];
+/**
+ * Validates that a BN is non-negative (>= 0)
+ * Note: Despite the name "Positive", this actually checks for non-negative values (>= 0)
+ * Works correctly in browser, Node.js, and React Native environments
+ */
+declare function assertPositiveBN(value: anchor.BN | null | undefined, fieldName: string): asserts value is anchor.BN;
+/**
+ * Validates that a number is positive
+ * Works correctly in browser, Node.js, and React Native environments
+ */
+declare function assertPositiveNumber(value: number | null | undefined, fieldName: string): asserts value is number;
+/**
+ * Validates that a string is not empty
+ * Works correctly in browser, Node.js, and React Native environments
+ */
+declare function assertNonEmptyString(value: string | null | undefined, fieldName: string): asserts value is string;
+/**
+ * Validates that an array is not empty
+ * Accepts both mutable and readonly arrays
+ * Works correctly in browser, Node.js, and React Native environments
+ */
+declare function assertNonEmptyArray<T>(value: T[] | readonly T[] | null | undefined, fieldName: string): asserts value is T[] | readonly T[];
+/**
+ * Validates a TransactionInstruction
+ * Works correctly in browser, Node.js, and React Native environments
+ */
+declare function assertValidTransactionInstruction(value: anchor.web3.TransactionInstruction | null | undefined, fieldName: string): asserts value is anchor.web3.TransactionInstruction;
+/**
+ * Converts a value to a number array, validating it's a valid byte array
+ */
+declare function toNumberArray(value: number[] | Uint8Array | Buffer): number[];
+/**
+ * Normalizes a PublicKey to a PublicKey instance
+ * Validates the input and throws ValidationError if invalid
+ */
+declare function normalizePublicKey(value: anchor.web3.PublicKey | string | null | undefined, fieldName?: string): anchor.web3.PublicKey;
+/**
+ * Validates that a value is a valid base64 string
+ * Works correctly in browser, Node.js, and React Native environments
+ */
+declare function assertValidBase64(value: string | null | undefined, fieldName: string): asserts value is string;
+/**
+ * Validates that a number is a positive integer
+ * Works correctly in browser, Node.js, and React Native environments
+ */
+declare function assertPositiveInteger(value: number | null | undefined, fieldName: string): asserts value is number;
+/**
+ * Validates an array of PublicKeys
+ * Allows empty arrays since cpiSigners is optional and may be empty
+ */
+declare function assertValidPublicKeyArray(value: readonly anchor.web3.PublicKey[] | anchor.web3.PublicKey[] | null | undefined, fieldName: string): asserts value is readonly anchor.web3.PublicKey[] | anchor.web3.PublicKey[];
+/**
+ * Validates an array of TransactionInstructions
+ */
+declare function assertValidTransactionInstructionArray(value: readonly anchor.web3.TransactionInstruction[] | anchor.web3.TransactionInstruction[] | null | undefined, fieldName: string): asserts value is readonly anchor.web3.TransactionInstruction[] | anchor.web3.TransactionInstruction[];
+/**
+ * Converts a byte array-like value to a number array
+ */
+declare function toNumberArraySafe(value: number[] | Uint8Array | readonly number[]): number[];
+/**
+ * Validates a PasskeySignature object
+ * Works correctly in browser, Node.js, and React Native environments
+ */
+declare function assertValidPasskeySignature(value: any, fieldName?: string): asserts value is PasskeySignature;
+
+declare const EMPTY_PDA_RENT_EXEMPT_BALANCE = 890880;
+declare const PASSKEY_PUBLIC_KEY_SIZE = 33;
+declare const CREDENTIAL_HASH_SIZE = 32;
+declare const SIGNATURE_SIZE = 64;
+
+declare const LazorkitWalletName: WalletName<"Lazorkit Wallet">;
+interface LazorkitAdapterConfig {
+    rpcUrl: string;
+    portalUrl: string;
+    paymasterConfig: {
+        paymasterUrl: string;
+        apiKey?: string;
+    };
+    clusterSimulation?: 'devnet' | 'mainnet';
+}
+declare const DEFAULT_CONFIG: LazorkitAdapterConfig;
+interface LazorkitSendTransactionOptions extends SendTransactionOptions {
+    extraInstructions?: TransactionInstruction$1[];
+}
+declare class LazorkitWalletAdapter extends BaseWalletAdapter {
+    name: WalletName<'Lazorkit Wallet'>;
+    url: string;
+    icon: string;
+    supportedTransactionVersions: ReadonlySet<any>;
+    private _publicKey;
+    private _readyState;
+    private _connecting;
+    private _wallet;
+    private _config;
+    constructor(config?: Partial<LazorkitAdapterConfig>);
+    get publicKey(): PublicKey$1 | null;
+    get connecting(): boolean;
+    get readyState(): WalletReadyState;
+    connect(): Promise<void>;
+    private _updateWalletState;
+    private _createDialogManager;
+    private _ensureWalletOnChain;
+    disconnect(): Promise<void>;
+    sendTransaction(transaction: Transaction$1 | VersionedTransaction$1): Promise<TransactionSignature>;
+    signTransaction<T extends Transaction$1 | VersionedTransaction$1>(_transaction: T): Promise<T>;
+    signAllTransactions<T extends Transaction$1 | VersionedTransaction$1>(_transactions: T[]): Promise<T[]>;
+    signMessage(message: Uint8Array): Promise<Uint8Array>;
+    private _initializeClients;
+    private _prepareInstructions;
+    private _buildAuthorizationMessage;
+    private _signWithDialog;
+    private _executeSmartWalletTransaction;
+    private _sendToPaymaster;
+}
+
+declare function registerLazorkitWallet(config?: Partial<typeof DEFAULT_CONFIG>): void;
+
+export { API_ENDPOINTS, CHUNK_SEED, CREDENTIAL_HASH_SIZE, DEFAULTS, DEFAULT_COMMITMENT, DEFAULT_CONFIG, DefaultPolicyClient, DialogManager, EMPTY_PDA_RENT_EXEMPT_BALANCE, LazorkitClient, LazorkitProvider, LazorkitWalletAdapter, LazorkitWalletName, Logger, PASSKEY_PUBLIC_KEY_SIZE, Paymaster, SIGNATURE_SIZE, SMART_WALLET_CONFIG_SEED, SMART_WALLET_SEED, STORAGE_KEYS, SmartWalletAction, StorageManager, StorageUtil, ValidationError, WALLET_DEVICE_SEED, asCredentialHash, asPasskeyPublicKey, asSignature, assertByteArrayLength, assertDefined, assertNonEmptyArray, assertNonEmptyByteArray, assertNonEmptyString, assertPositiveBN, assertPositiveInteger, assertPositiveNumber, assertValidBase64, assertValidCredentialHash, assertValidPasskeyPublicKey, assertValidPasskeySignature, assertValidPublicKey, assertValidPublicKeyArray, assertValidSignature, assertValidTransactionInstruction, assertValidTransactionInstructionArray, base64ToBytes, buildCreateChunkMessage, buildExecuteMessage, buildPasskeyVerificationInstruction, buildTransaction, byteArrayEquals, calculateVerifyInstructionIndex, combineInstructionsWithAuth, combineInstructionsWithAuthAndCU, computeMultipleCpiHashes, convertPasskeySignatureToInstructionArgs, createComputeUnitLimitInstruction, credentialHashFromBase64, deriveChunkPda, deriveSmartWalletConfigPda, deriveSmartWalletPda, deriveWalletDevicePda, detectPlatform, ensureChunkExist, getBlockchainTimestamp, getRandomBytes, importP256PublicKey, instructionToAccountMetas, isAndroid, isIOS, isSafari, normalizePublicKey, prependComputeUnitLimit, registerLazorkitWallet, toNumberArray, toNumberArraySafe, useWallet, useWalletStore, validateCredentialHash, validatePasskeyPublicKey, validateSignature, verifySignatureBrowser };
+export type { ArgsByAction, AuthParams, BaseParams, BuildCheckPolicyIxParams, BuildInitPolicyIxParams, Chunk, CloseChunkParams, CreateChunkArgs, CreateChunkParams, CreateSmartWalletArgs, CreateSmartWalletParams, CredentialHash, ExecuteArgs, ExecuteChunkParams, ExecuteParams, LazorkitAdapterConfig, LazorkitSendTransactionOptions, PasskeyPublicKey, PasskeySignature, Platform, Signature, SmartWalletActionArgs, StoredCredentials, TransactionBuilderOptions, TransactionBuilderResult, WalletConfig, WalletDevice, WalletHookInterface, WalletInfo, WalletState };

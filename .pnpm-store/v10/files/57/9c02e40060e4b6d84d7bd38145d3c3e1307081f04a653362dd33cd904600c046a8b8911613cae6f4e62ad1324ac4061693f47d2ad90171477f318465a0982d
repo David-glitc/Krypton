@@ -1,0 +1,4 @@
+import { ThemeData } from '../../types';
+export declare const findOrCreateLinkTag: (nonce?: string) => HTMLLinkElement | undefined;
+export declare const findOrCreateStyleTag: (nonce?: string) => Element | undefined;
+export declare const buildStylesheet: (theme: ThemeData) => string;

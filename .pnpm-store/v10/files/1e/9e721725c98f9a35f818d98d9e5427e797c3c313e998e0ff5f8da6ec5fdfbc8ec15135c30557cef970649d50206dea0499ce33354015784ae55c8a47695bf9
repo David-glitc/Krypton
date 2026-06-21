@@ -1,0 +1,1 @@
+export declare const parsePairingTopicFromUri: (uri: string | undefined) => string | undefined;

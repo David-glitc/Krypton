@@ -1,0 +1,2 @@
+export { parseElevatedAccessToken } from './parseElevatedAccessToken';
+//# sourceMappingURL=index.d.ts.map

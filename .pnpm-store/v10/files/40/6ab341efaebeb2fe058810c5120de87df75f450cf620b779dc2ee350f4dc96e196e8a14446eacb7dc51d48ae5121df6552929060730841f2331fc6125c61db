@@ -1,0 +1,8 @@
+# Standalone test-build properties. In a consuming app these come from the
+# app's android/gradle.properties; here they are declared so the module can be
+# built and unit-tested in isolation by `pnpm test:android`.
+
+# react-android (and its androidx transitive deps) require AndroidX.
+android.useAndroidX=true
+
+org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m

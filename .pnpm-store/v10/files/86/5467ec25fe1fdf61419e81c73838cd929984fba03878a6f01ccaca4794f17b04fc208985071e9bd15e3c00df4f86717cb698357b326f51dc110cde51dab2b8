@@ -1,0 +1,82 @@
+'use client'
+import { __awaiter } from '../../../../../_virtual/_tslib.js';
+import { useRef, useCallback } from 'react';
+import '@dynamic-labs/iconic';
+import '@dynamic-labs/wallet-connector-core';
+import 'react/jsx-runtime';
+import '../../../context/ViewContext/ViewContext.js';
+import { logger } from '../../../shared/logger.js';
+import '@dynamic-labs/wallet-book';
+import '@dynamic-labs/utils';
+import '../../constants/colors.js';
+import '../../constants/values.js';
+import '@dynamic-labs/sdk-api-core';
+import '../../../shared/consts/index.js';
+import { clearPersistedStore } from '../../../store/internalImplementation/store.js';
+import { useWalletConnectorOptions } from '../../../store/state/walletOptions/walletOptions.js';
+import { useDynamicSettings } from '../../../store/state/dynamicContextProps/dynamicContextProps.js';
+
+const DYNAMIC_WAAS_KEY = 'dynamicwaas';
+const DYNAMIC_WALLET_IFRAME_TITLE_PREFIX = 'Dynamic Wallet';
+/**
+ * Hook that returns a function to atomically tear down the current WaaS session.
+ *
+ * Intended for integrations where the host app swaps the authenticated user within
+ * a single tab (for example, when a product layers multiple identities on top of a
+ * single Dynamic SDK instance). Calling the returned function:
+ *
+ *   1. Ends every active WaaS wallet-connector session, which triggers per-chain
+ *      `dynamicWaasClient` cleanup and iframe ref-count decrement.
+ *   2. Removes all Dynamic Wallet iframes (main + storage) from the DOM as a
+ *      belt-and-suspenders step in case a consumer failed to decrement the ref count.
+ *   3. Clears the persisted zustand store from localStorage so the next SDK load
+ *      does not hydrate stale user/wallet state.
+ *
+ * After this resolves, the next `useExternalAuth`/auth flow starts from a clean
+ * slate — new iframe, no cached keyshares, no stale store.
+ *
+ * Concurrent calls while a teardown is already in progress are ignored — the
+ * callback is guarded by an in-flight flag so only one teardown runs at a time.
+ */
+const useResetWaasSession = () => {
+    const walletConnectorOptions = useWalletConnectorOptions();
+    const { localStorageSuffix } = useDynamicSettings();
+    // Refs keep the callback stable (deps: []) while always reading the latest values.
+    const walletConnectorOptionsRef = useRef(walletConnectorOptions);
+    walletConnectorOptionsRef.current = walletConnectorOptions;
+    const localStorageSuffixRef = useRef(localStorageSuffix);
+    localStorageSuffixRef.current = localStorageSuffix;
+    const inFlightRef = useRef(false);
+    return useCallback(() => __awaiter(void 0, void 0, void 0, function* () {
+        if (inFlightRef.current)
+            return;
+        inFlightRef.current = true;
+        try {
+            const waasConnectors = walletConnectorOptionsRef.current
+                .filter((option) => option.key.includes(DYNAMIC_WAAS_KEY))
+                .map((option) => option.walletConnector);
+            yield Promise.all(waasConnectors.map((connector) => __awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    yield connector.endSession('user-intent');
+                }
+                catch (error) {
+                    logger.warn('[useResetWaasSession] connector endSession failed', {
+                        connector: connector.key,
+                        error,
+                    });
+                }
+            })));
+            if (typeof document !== 'undefined') {
+                document
+                    .querySelectorAll(`iframe[title^="${DYNAMIC_WALLET_IFRAME_TITLE_PREFIX}"]`)
+                    .forEach((el) => el.remove());
+            }
+            clearPersistedStore(localStorageSuffixRef.current);
+        }
+        finally {
+            inFlightRef.current = false;
+        }
+    }), []);
+};
+
+export { useResetWaasSession };

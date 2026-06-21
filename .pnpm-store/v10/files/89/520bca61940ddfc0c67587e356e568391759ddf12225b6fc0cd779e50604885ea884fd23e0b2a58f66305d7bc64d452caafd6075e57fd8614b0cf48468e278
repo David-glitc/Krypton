@@ -1,0 +1,19 @@
+'use client'
+import { hasPendingDeviceRegistration } from '../../../../shared/utils/functions/hasPendingDeviceRegistration/hasPendingDeviceRegistration.js';
+
+const useInitialViewType = ({ isAuthenticated, bridgeOnboardingCompleted, isMultiWalletEnabled, isBridgeFlow, connectedWallets, user, }) => {
+    if (user && hasPendingDeviceRegistration(user)) {
+        return 'device-registration';
+    }
+    // when multiwallet enabled, and user wants to link wallet
+    // show wallet-list view
+    if (isAuthenticated || bridgeOnboardingCompleted) {
+        return isMultiWalletEnabled ? 'multi-wallet-wallet-list' : 'wallet-list';
+    }
+    if (isBridgeFlow && !connectedWallets.length) {
+        return 'bridge-welcome';
+    }
+    return 'login-with-email-or-wallet';
+};
+
+export { useInitialViewType };

@@ -1,0 +1,1 @@
+{"version":3,"file":"stripChainSuffix.d.ts","sourceRoot":"","sources":["../../../../../src/modules/wallets/utils/stripChainSuffix/stripChainSuffix.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,KAAK,EAAE,MAAM,gBAAgB,CAAC;AAE5C,KAAK,sBAAsB,GAAG;IAC5B,KAAK,EAAE,KAAK,CAAC;IACb,cAAc,EAAE,MAAM,CAAC;CACxB,CAAC;AAEF;;;;;;;;;;;GAWG;AACH,eAAO,MAAM,gBAAgB,+BAG1B,sBAAsB,KAAG,MAQ3B,CAAC"}

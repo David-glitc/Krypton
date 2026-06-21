@@ -1,0 +1,17 @@
+import { ChainEnum } from '@dynamic-labs/sdk-api-core';
+/**
+ * Converts Stellar network identifiers to numeric network IDs.
+ * Supports both hash format (7ac33997...) and CAIP-2 format (stellar:pubnet).
+ */
+export declare const convertStellarNetworkToNumeric: (networkId: string | number | undefined) => number | undefined;
+/**
+ * Resolves the network ID for API requests, handling chain-specific conversions.
+ */
+export declare const resolveNetworkIdForRequest: (chainName: ChainEnum, networkId: string | number | undefined) => number | undefined;
+/**
+ * Extracts an appropriate error message from an error object.
+ */
+export declare const getTokenBalanceErrorMessage: (error: {
+    code?: number;
+    message?: string;
+}) => string;

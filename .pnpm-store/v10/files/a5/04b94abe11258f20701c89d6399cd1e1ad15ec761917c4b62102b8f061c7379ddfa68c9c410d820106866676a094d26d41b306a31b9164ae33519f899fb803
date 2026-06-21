@@ -1,0 +1,74 @@
+import type { DynamicCore } from '../../../client/core/types/DynamicCore';
+type InstrumentFunctionParams<T extends (...args: unknown[]) => unknown> = {
+    /** The original function to wrap. */
+    fn: T;
+    /** Human-readable name recorded in every emitted event. */
+    functionName: string;
+    /**
+     * Returns the current `DynamicCore` instance, or `undefined` when the SDK
+     * has not yet been initialised. Instrumentation is skipped when this returns
+     * `undefined` or when `core.instrumentation.config.enabled` is `false`.
+     */
+    getCore: () => DynamicCore | undefined;
+    /**
+     * When `true`, every field in `parameters` and `resolvedValue` is replaced
+     * with `"[redacted]"` regardless of `piiFields`. Use this for functions
+     * whose arguments are inherently sensitive (e.g., signing, authentication).
+     */
+    redactAll?: boolean;
+};
+/**
+ * Wraps a function so that each invocation emits a structured
+ * `FunctionInstrumentationEvent` at three lifecycle points:
+ *
+ * - **started** — immediately before the function body executes, with the
+ *   PII-scrubbed call parameters.
+ * - **resolved** — after the function (or its returned Promise) settles
+ *   successfully, with the PII-scrubbed return value.
+ * - **rejected** — if the function throws synchronously or its returned
+ *   Promise rejects.
+ *
+ * The original return value (or thrown error) is always forwarded to the
+ * caller unchanged — instrumentation is purely observational.
+ *
+ * ## Usage
+ *
+ * ```ts
+ * const transfer = instrumentFunction({
+ *   fn: rawTransfer,
+ *   functionName: 'transfer',
+ *   getCore: () => core,
+ * });
+ *
+ * // When called, three events are emitted automatically:
+ * await transfer({ amount: 1, to: '0xabc' });
+ * ```
+ *
+ * ## How functions are wrapped
+ *
+ * `instrumentFunction` is not called manually in application code. Instead,
+ * the esbuild instrumentation plugin (`tools/instrumentation-plugin`) injects
+ * it at build time: any exported function annotated with `@instrumented` in its
+ * JSDoc is automatically wrapped by the plugin during the build step.
+ * The plugin strips the original `export`, renames the function, and re-exports
+ * it under the original name via `instrumentFunction(...)` — so the public API
+ * is unchanged and no call sites need to be updated.
+ *
+ * ## Opting out
+ *
+ * Instrumentation is skipped entirely when:
+ * - `getCore()` returns `undefined` (SDK not initialised), or
+ * - `core.instrumentation.config.enabled` is `false`.
+ *
+ * In both cases the original function is called directly with no overhead.
+ *
+ * ## PII scrubbing
+ *
+ * All string values whose key appears in `piiFields` are replaced with
+ * `"[redacted]"` before events are emitted. Pass `redactAll: true` to redact
+ * every field, regardless of key name.
+ * @not-instrumented
+ */
+export declare const instrumentFunction: <T extends (...args: unknown[]) => unknown>({ fn, functionName, getCore, redactAll, }: InstrumentFunctionParams<T>) => T;
+export {};
+//# sourceMappingURL=instrumentFunction.d.ts.map

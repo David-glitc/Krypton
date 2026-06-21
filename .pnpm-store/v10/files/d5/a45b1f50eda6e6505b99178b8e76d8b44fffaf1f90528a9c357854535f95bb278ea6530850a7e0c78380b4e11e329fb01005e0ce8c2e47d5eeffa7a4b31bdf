@@ -1,0 +1,65 @@
+'use client'
+import { __awaiter } from '../../../../../_virtual/_tslib.js';
+import { useCallback } from 'react';
+import { authenticatePasskeyMFA, authenticateTotpMfaDevice, authenticateMfaRecoveryCode } from '@dynamic-labs-sdk/client';
+
+const useStepUpMfa = ({ stateActions }) => {
+    const { setError, setLoading, setSuccess } = stateActions;
+    const verifyPasskeyMfa = useCallback((_a) => __awaiter(void 0, [_a], void 0, function* ({ requestedScopes, }) {
+        setLoading();
+        try {
+            const response = yield authenticatePasskeyMFA({
+                requestedScopes,
+            });
+            setSuccess();
+            return response;
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error
+                ? error.message
+                : 'Failed to authenticate passkey for step-up authentication';
+            setError(errorMessage);
+            return null;
+        }
+    }), [setError, setLoading, setSuccess]);
+    const verifyTotpMfa = useCallback((_b) => __awaiter(void 0, [_b], void 0, function* ({ code, deviceId, requestedScopes, }) {
+        setLoading();
+        try {
+            const response = yield authenticateTotpMfaDevice({
+                code,
+                deviceId,
+                requestedScopes,
+            });
+            setSuccess();
+            return response;
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error
+                ? error.message
+                : 'Failed to authenticate TOTP device for step-up authentication';
+            setError(errorMessage);
+            return null;
+        }
+    }), [setError, setLoading, setSuccess]);
+    const verifyRecoveryCode = useCallback((_c) => __awaiter(void 0, [_c], void 0, function* ({ code, requestedScopes, }) {
+        setLoading();
+        try {
+            const response = yield authenticateMfaRecoveryCode({
+                code,
+                requestedScopes,
+            });
+            setSuccess();
+            return response;
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error
+                ? error.message
+                : 'Failed to authenticate recovery code for step-up authentication';
+            setError(errorMessage);
+            return null;
+        }
+    }), [setError, setLoading, setSuccess]);
+    return { verifyPasskeyMfa, verifyRecoveryCode, verifyTotpMfa };
+};
+
+export { useStepUpMfa };

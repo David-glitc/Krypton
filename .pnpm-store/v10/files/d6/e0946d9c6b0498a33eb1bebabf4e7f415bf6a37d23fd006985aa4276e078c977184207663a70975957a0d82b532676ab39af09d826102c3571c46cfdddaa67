@@ -1,0 +1,94 @@
+'use client'
+import { jsx } from 'react/jsx-runtime';
+import { createContext, useRef, useCallback, useEffect } from 'react';
+import { isMobile, PlatformService } from '@dynamic-labs/utils';
+import '../DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { logger } from '../../shared/logger.js';
+import { createProviderHook } from '../../shared/utils/functions/createProviderHook/createProviderHook.js';
+import { useResponseHandlers } from './useResponseHandlers.js';
+
+const PhantomRedirectContext = createContext(undefined);
+const PhantomRedirectContextProvider = ({ children, }) => {
+    const { sdkHasLoaded } = useInternalDynamicContext();
+    const { phantomRedirectConnector, handleConnectResponse, handleUserResponse, handleErrorResponse, } = useResponseHandlers();
+    // Track the last processed redirect params to prevent infinite loops
+    // when useEffect re-runs due to callback dependency changes
+    const lastProcessedParamsRef = useRef('');
+    /**
+     * Process Phantom redirect response from URL params.
+     * This is called both on initial render and when URL updates (for native mobile deep links).
+     */
+    const processPhantomRedirect = useCallback((url) => {
+        const hasData = url.searchParams.has('data');
+        const hasConnect = url.searchParams.has('phantom_encryption_public_key');
+        const hasError = url.searchParams.has('errorCode');
+        // Only log if there's something relevant to process
+        if (hasData || hasConnect || hasError) {
+            logger.logVerboseTroubleshootingMessage('[PhantomRedirectContext] processPhantomRedirect', {
+                hasConnect,
+                hasData,
+                hasError,
+                sdkHasLoaded,
+            });
+        }
+        if (!phantomRedirectConnector || !isMobile() || !sdkHasLoaded) {
+            return;
+        }
+        const params = url.searchParams;
+        // Create a unique key from the relevant params to track if we've already processed this redirect
+        const paramsKey = [
+            params.get('errorCode'),
+            params.get('phantom_encryption_public_key'),
+            params.get('data'),
+            params.get('nonce'),
+        ]
+            .filter(Boolean)
+            .join('|');
+        // If we've already processed these exact params, skip to prevent infinite loop
+        // This prevents the callback from processing the same redirect multiple times
+        if (paramsKey && paramsKey === lastProcessedParamsRef.current) {
+            logger.logVerboseTroubleshootingMessage('[PhantomRedirectContext] skipping - already processed');
+            return;
+        }
+        // Update the ref before processing to mark these params as processed
+        if (paramsKey) {
+            lastProcessedParamsRef.current = paramsKey;
+        }
+        if (params.has('errorCode')) {
+            logger.logVerboseTroubleshootingMessage('[PhantomRedirectContext] handling errorCode response');
+            handleErrorResponse(params);
+            return;
+        }
+        // handle response of connect method
+        if (params.has('phantom_encryption_public_key')) {
+            logger.logVerboseTroubleshootingMessage('[PhantomRedirectContext] handling connect response');
+            handleConnectResponse();
+            return;
+        }
+        // handle response of the following methods:
+        // signMessage, signTransaction, signAndSendTransaction or signAllTransactions
+        if (params.has('data')) {
+            logger.logVerboseTroubleshootingMessage('[PhantomRedirectContext] handling user response (data)');
+            handleUserResponse();
+        }
+    }, [
+        handleConnectResponse,
+        handleUserResponse,
+        handleErrorResponse,
+        phantomRedirectConnector,
+        sdkHasLoaded,
+    ]);
+    // Process redirect on initial render and dependency changes
+    useEffect(() => {
+        processPhantomRedirect(PlatformService.getUrl());
+    }, [processPhantomRedirect]);
+    // Listen for URL updates from native mobile deep links
+    useEffect(() => PlatformService.onUrlUpdate(processPhantomRedirect), [processPhantomRedirect]);
+    return (jsx(PhantomRedirectContext.Provider, { value: {
+            phantomRedirectConnector,
+        }, children: children }));
+};
+const usePhantomRedirectContext = createProviderHook(PhantomRedirectContext, 'PhantomRedirectContextProvider');
+
+export { PhantomRedirectContext, PhantomRedirectContextProvider, usePhantomRedirectContext };

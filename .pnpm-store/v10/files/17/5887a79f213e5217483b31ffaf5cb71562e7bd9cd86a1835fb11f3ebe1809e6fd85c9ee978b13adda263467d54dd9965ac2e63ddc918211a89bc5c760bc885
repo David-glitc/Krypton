@@ -1,0 +1,38 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+const operationLabel = (operation) => operation === 'delegate' ? 'Delegation' : 'Revoke delegation';
+const firstCauseMessage = (failedWallets) => {
+    const [first] = failedWallets;
+    if (!first)
+        return 'unknown';
+    if (first.cause instanceof Error) {
+        return first.cause.message || first.cause.name;
+    }
+    return String(first.cause);
+};
+// Thrown by useWalletDelegation when one or more per-wallet operations fail.
+// Extends AggregateError so existing consumers reading `.errors` keep working;
+// adds structured `successfulWallets` / `failedWallets` so callers can decide
+// what to retry without parsing the message.
+class DelegationError extends AggregateError {
+    constructor({ operation, successfulWallets, failedWallets, }) {
+        const total = successfulWallets.length + failedWallets.length;
+        const message = `${operationLabel(operation)} failed for ${failedWallets.length} of ${total} wallet(s): ${firstCauseMessage(failedWallets)}`;
+        super(failedWallets.map((f) => f.cause), message);
+        this.name = 'DelegationError';
+        this.operation = operation;
+        this.successfulWallets = successfulWallets;
+        this.failedWallets = failedWallets;
+    }
+    get successCount() {
+        return this.successfulWallets.length;
+    }
+    get failureCount() {
+        return this.failedWallets.length;
+    }
+}
+
+exports.DelegationError = DelegationError;

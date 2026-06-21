@@ -1,0 +1,5 @@
+import type { WalletAddressWithType } from '../../walletAccount/walletAccount.types';
+import type { WalletProviderConnectResult } from '../../walletProvider/walletProvider.types';
+/** @not-instrumented */
+export declare const getAddressesWithTypesFromConnectionResult: (connectionResult: WalletProviderConnectResult) => WalletAddressWithType[];
+//# sourceMappingURL=getAddressesWithTypesFromConnectionResult.d.ts.map

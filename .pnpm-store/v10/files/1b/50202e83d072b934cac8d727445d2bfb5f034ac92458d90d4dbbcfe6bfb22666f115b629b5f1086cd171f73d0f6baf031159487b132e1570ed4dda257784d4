@@ -1,0 +1,40 @@
+/**
+ * Sourced from http://detectmobilebrowsers.com/
+ * @not-instrumented
+ */
+/** @not-instrumented */
+export declare const isMobile: (maxTouchPointsOverride?: number) => boolean;
+/** @not-instrumented */
+export declare const isIPhone: () => boolean;
+/** @not-instrumented */
+export declare const isIPhone8OrEarlier: () => boolean;
+/**
+ * @param [optional] maxTouchPointsOverride - this is used for testing since
+ * it seems that JSDOM doesn't support maxTouchPoints, so it was impossible
+ * to mock it
+ * @not-instrumented
+ */
+export declare const isIPad: (maxTouchPointsOverride?: number) => boolean;
+/** @not-instrumented */
+export declare const isIOS: (maxTouchPointsOverride?: number) => boolean;
+/** @not-instrumented */
+export declare const isAndroid: () => boolean;
+/** @not-instrumented */
+export declare const isLegacySafari: () => boolean;
+/** @not-instrumented */
+export declare const isSamsungBrowser: () => boolean;
+/** @not-instrumented */
+export declare const isSafariBrowser: () => boolean;
+/** @not-instrumented */
+export declare const isEdgeBrowser: () => boolean;
+/** @not-instrumented */
+export declare const isOperaBrowser: () => boolean;
+/** @not-instrumented */
+export declare const isFirefoxBrowser: () => boolean;
+/** @not-instrumented */
+export declare const isChromeBrowser: () => boolean;
+/** @not-instrumented */
+export declare const isWindows: () => boolean;
+/** @not-instrumented */
+export declare const getAndroidVersion: () => number | undefined;
+//# sourceMappingURL=isMobile.d.ts.map

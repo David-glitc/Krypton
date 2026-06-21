@@ -1,0 +1,4 @@
+import { type SdkUser } from '@dynamic-labs/sdk-api-core';
+/** @not-instrumented */
+export declare const userHasExternalWallet: (user: SdkUser) => boolean;
+//# sourceMappingURL=userHasExternalWallet.d.ts.map

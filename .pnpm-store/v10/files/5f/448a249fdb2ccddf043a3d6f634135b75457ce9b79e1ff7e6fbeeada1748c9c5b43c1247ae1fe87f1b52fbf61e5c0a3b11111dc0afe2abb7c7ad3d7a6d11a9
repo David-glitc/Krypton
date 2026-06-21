@@ -1,0 +1,22 @@
+/**
+ * Wallet Store - Zustand store with integrated business logic
+ * Includes state management, persistence, and wallet actions
+ */
+import { WalletState } from '../core/types';
+/**
+ * Create wallet store with integrated business logic and persistence
+ */
+export declare const useWalletStore: import("zustand").UseBoundStore<Omit<import("zustand").StoreApi<WalletState>, "setState" | "persist"> & {
+    setState(partial: WalletState | Partial<WalletState> | ((state: WalletState) => WalletState | Partial<WalletState>), replace?: false | undefined): unknown;
+    setState(state: WalletState | ((state: WalletState) => WalletState), replace: true): unknown;
+    persist: {
+        setOptions: (options: Partial<import("zustand/middleware").PersistOptions<WalletState, unknown, unknown>>) => void;
+        clearStorage: () => void;
+        rehydrate: () => Promise<void> | void;
+        hasHydrated: () => boolean;
+        onHydrate: (fn: (state: WalletState) => void) => () => void;
+        onFinishHydration: (fn: (state: WalletState) => void) => () => void;
+        getOptions: () => Partial<import("zustand/middleware").PersistOptions<WalletState, unknown, unknown>>;
+    };
+}>;
+//# sourceMappingURL=store.d.ts.map

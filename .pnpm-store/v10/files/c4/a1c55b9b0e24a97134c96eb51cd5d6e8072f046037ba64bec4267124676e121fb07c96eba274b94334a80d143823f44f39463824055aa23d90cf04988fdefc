@@ -1,0 +1,34 @@
+'use client'
+const firstCauseMessage = (failedWallets) => {
+    const [first] = failedWallets;
+    if (!first)
+        return 'unknown';
+    if (first.cause instanceof Error) {
+        return first.cause.message || first.cause.name;
+    }
+    return String(first.cause);
+};
+// Thrown by useWalletBackup.backupAllWallets when one or more per-wallet
+// backups fail. Extends AggregateError so consumers reading `.errors` keep
+// working; adds structured `successfulWallets` / `failedWallets` so callers
+// can decide what to retry without parsing the message.
+class BackupError extends AggregateError {
+    constructor({ provider, successfulWallets, failedWallets, }) {
+        const total = successfulWallets.length + failedWallets.length;
+        const message = `Backup failed for ${failedWallets.length} of ${total} wallet(s): ${firstCauseMessage(failedWallets)}`;
+        super(failedWallets.map((f) => f.cause), message);
+        this.name = 'BackupError';
+        this.operation = 'backup';
+        this.provider = provider;
+        this.successfulWallets = successfulWallets;
+        this.failedWallets = failedWallets;
+    }
+    get successCount() {
+        return this.successfulWallets.length;
+    }
+    get failureCount() {
+        return this.failedWallets.length;
+    }
+}
+
+export { BackupError };

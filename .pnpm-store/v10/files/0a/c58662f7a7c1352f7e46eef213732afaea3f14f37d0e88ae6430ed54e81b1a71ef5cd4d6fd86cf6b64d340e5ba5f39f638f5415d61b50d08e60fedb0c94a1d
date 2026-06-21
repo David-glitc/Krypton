@@ -1,0 +1,5 @@
+import { BaseError } from '../../../errors/base';
+export declare class ImportKeyNotSupportedError extends BaseError {
+    constructor();
+}
+//# sourceMappingURL=ImportKeyNotSupportedError.d.ts.map

@@ -1,0 +1,28 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var React = require('react');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var DynamicWidgetContext = require('../../../widgets/DynamicWidget/context/DynamicWidgetContext.cjs');
+
+/**
+ * Opens a view that lets the user choose between funding methods.
+ *
+ * Must be logged in to use.
+ */
+const useOpenFundingOptions = () => {
+    const { setDynamicWidgetView } = DynamicWidgetContext.useWidgetContext();
+    const { setShowDynamicUserProfile } = useInternalDynamicContext.useInternalDynamicContext();
+    const openFundingOptions = React.useCallback(() => {
+        setDynamicWidgetView('choose-wallet-funding-method');
+        setShowDynamicUserProfile(true);
+    }, [setDynamicWidgetView, setShowDynamicUserProfile]);
+    return React.useMemo(() => ({
+        openFundingOptions,
+    }), [openFundingOptions]);
+};
+
+exports.useOpenFundingOptions = useOpenFundingOptions;

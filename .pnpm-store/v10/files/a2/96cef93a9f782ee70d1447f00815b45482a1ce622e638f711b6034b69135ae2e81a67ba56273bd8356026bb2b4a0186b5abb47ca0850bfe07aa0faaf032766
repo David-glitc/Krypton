@@ -1,0 +1,48 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+var SwapFee = require('./SwapFee.cjs');
+var SwapGasCost = require('./SwapGasCost.cjs');
+var SwapStepSide = require('./SwapStepSide.cjs');
+
+/* tslint:disable */
+function SwapStepFromJSON(json) {
+    return SwapStepFromJSONTyped(json);
+}
+function SwapStepFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'feeCosts': !runtime.exists(json, 'feeCosts') ? undefined : (json['feeCosts'].map(SwapFee.SwapFeeFromJSON)),
+        'from': SwapStepSide.SwapStepSideFromJSON(json['from']),
+        'gasCosts': !runtime.exists(json, 'gasCosts') ? undefined : (json['gasCosts'].map(SwapGasCost.SwapGasCostFromJSON)),
+        'id': json['id'],
+        'to': SwapStepSide.SwapStepSideFromJSON(json['to']),
+        'tool': json['tool'],
+        'type': json['type'],
+    };
+}
+function SwapStepToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'feeCosts': value.feeCosts === undefined ? undefined : (value.feeCosts.map(SwapFee.SwapFeeToJSON)),
+        'from': SwapStepSide.SwapStepSideToJSON(value.from),
+        'gasCosts': value.gasCosts === undefined ? undefined : (value.gasCosts.map(SwapGasCost.SwapGasCostToJSON)),
+        'id': value.id,
+        'to': SwapStepSide.SwapStepSideToJSON(value.to),
+        'tool': value.tool,
+        'type': value.type,
+    };
+}
+
+exports.SwapStepFromJSON = SwapStepFromJSON;
+exports.SwapStepFromJSONTyped = SwapStepFromJSONTyped;
+exports.SwapStepToJSON = SwapStepToJSON;

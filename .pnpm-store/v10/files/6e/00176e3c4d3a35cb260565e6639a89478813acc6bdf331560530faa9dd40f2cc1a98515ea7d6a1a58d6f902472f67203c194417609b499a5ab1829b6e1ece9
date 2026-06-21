@@ -1,0 +1,31 @@
+{
+  "name": "@dynamic-labs-sdk/assert-package-version",
+  "version": "1.8.2",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.esm.js",
+  "types": "./dist/exports/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/exports/index.d.ts",
+      "import": "./dist/index.esm.js",
+      "default": "./dist/index.cjs"
+    }
+  },
+  "devDependencies": {
+    "vitest": "4.1.6"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsdown && pnpm exec tsc --emitDeclarationOnly -p ./tsconfig.lib.json",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test-with-coverage": "vitest run --coverage",
+    "check-versions": "pnpm --filter @tools/sync-package-versions run sync --check-only --package-filter assert-package-version"
+  }
+}

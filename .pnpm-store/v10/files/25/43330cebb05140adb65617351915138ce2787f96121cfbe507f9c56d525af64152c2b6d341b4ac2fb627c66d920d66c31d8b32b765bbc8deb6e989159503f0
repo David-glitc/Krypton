@@ -1,0 +1,16 @@
+/**
+ * Lazorkit Provider - Simplified (Mobile Adapter Pattern)
+ *
+ * Minimal provider that initializes configuration
+ * State management handled by store
+ */
+import type { ReactNode } from 'react';
+import { PaymasterConfig } from '../core/paymaster/paymaster';
+export interface LazorkitProviderProps {
+    children: ReactNode;
+    rpcUrl?: string;
+    portalUrl?: string;
+    paymasterConfig?: PaymasterConfig;
+}
+export declare const LazorkitProvider: (props: LazorkitProviderProps) => import("react/jsx-runtime").JSX.Element;
+//# sourceMappingURL=LazorkitProvider.d.ts.map

@@ -1,0 +1,28 @@
+import type { CheckoutTransaction } from '../checkout.types';
+export type PrepareCheckoutTransactionParams = {
+    /**
+     * Whether to assert the balance for the gas cost of the transaction.
+     * If true, the prepare signing request will fail if the balance is not sufficient for the gas cost.
+     * @default false
+     */
+    assertBalanceForGasCost?: boolean;
+    /**
+     * Whether to assert the balance for the transfer amount of the transaction.
+     * If true, the prepare signing request will fail if the balance is not sufficient for the transfer amount.
+     * @default false
+     */
+    assertBalanceForTransferAmount?: boolean;
+    transactionId: string;
+};
+/**
+ * Prepares a checkout transaction for signing
+ * This should be called immediately before triggering the transaction signing.
+ * It will confirm the quote is still valid, the risk state is cleared, and the transaction is ready to be signed.
+ *
+ * @param params PrepareCheckoutTransactionParams - The transaction to prepare.
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns The updated checkout transaction
+ * @instrumented
+ */
+export declare const prepareCheckoutTransaction: ({ assertBalanceForGasCost, assertBalanceForTransferAmount, transactionId, }: PrepareCheckoutTransactionParams, client?: import("../../../exports").DynamicClient) => Promise<CheckoutTransaction>;
+//# sourceMappingURL=prepareCheckoutTransaction.d.ts.map

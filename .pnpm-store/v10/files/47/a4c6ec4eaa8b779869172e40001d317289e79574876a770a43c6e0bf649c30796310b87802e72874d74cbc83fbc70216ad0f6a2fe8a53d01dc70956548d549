@@ -1,0 +1,16 @@
+'use client'
+import { createProviderHook } from '../../shared/utils/functions/createProviderHook/createProviderHook.js';
+import { ConnectWithOtpContext } from './ConnectWithOtpContext.js';
+
+const useConnectWithOtpContextValue = createProviderHook(ConnectWithOtpContext, 'DynamicContextProvider');
+const useConnectWithOtp = ({ emailProvider: defaultProvider, } = {}) => {
+    const context = useConnectWithOtpContextValue();
+    return {
+        connectWithEmail: (email, options = {}) => context.connectWithEmail(email, Object.assign({ provider: defaultProvider }, options)),
+        connectWithSms: context.connectWithSms,
+        retryOneTimePassword: context.retryOneTimePassword,
+        verifyOneTimePassword: context.verifyOneTimePassword,
+    };
+};
+
+export { useConnectWithOtp };

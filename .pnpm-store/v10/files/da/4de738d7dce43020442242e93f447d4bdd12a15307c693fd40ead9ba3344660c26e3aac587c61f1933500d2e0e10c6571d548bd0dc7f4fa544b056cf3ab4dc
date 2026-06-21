@@ -1,0 +1,18 @@
+import type { GetWalletResponse } from '@dynamic-labs-wallet/browser-wallet-client';
+import type { WalletAccount } from '../../wallets/walletAccount';
+type UnlockWalletParams = {
+    password: string;
+    walletAccount: WalletAccount;
+};
+/**
+ * Unlocks a WaaS wallet account.
+ *
+ * @param params.walletAccount - The WaaS wallet account to unlock.
+ * @param params.password - The password to unlock the wallet.
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns A promise that resolves with the wallet information.
+  * @not-instrumented
+ */
+export declare const unlockWallet: ({ password, walletAccount }: UnlockWalletParams, client?: import("../../../exports").DynamicClient) => Promise<GetWalletResponse>;
+export {};
+//# sourceMappingURL=unlockWallet.d.ts.map

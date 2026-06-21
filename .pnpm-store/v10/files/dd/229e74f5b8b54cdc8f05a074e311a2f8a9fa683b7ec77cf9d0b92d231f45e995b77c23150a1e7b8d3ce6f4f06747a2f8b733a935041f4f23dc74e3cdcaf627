@@ -1,0 +1,56 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+
+/* tslint:disable */
+/**
+* @export
+* @enum {string}
+*/
+exports.SwapStatusResponseStatusEnum = void 0;
+(function (SwapStatusResponseStatusEnum) {
+    SwapStatusResponseStatusEnum["Pending"] = "PENDING";
+    SwapStatusResponseStatusEnum["Done"] = "DONE";
+    SwapStatusResponseStatusEnum["Failed"] = "FAILED";
+    SwapStatusResponseStatusEnum["NotFound"] = "NOT_FOUND";
+})(exports.SwapStatusResponseStatusEnum || (exports.SwapStatusResponseStatusEnum = {}));
+function SwapStatusResponseFromJSON(json) {
+    return SwapStatusResponseFromJSONTyped(json);
+}
+function SwapStatusResponseFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'error': !runtime.exists(json, 'error') ? undefined : json['error'],
+        'explorerLink': !runtime.exists(json, 'explorerLink') ? undefined : json['explorerLink'],
+        'message': !runtime.exists(json, 'message') ? undefined : json['message'],
+        'receivingTxLink': !runtime.exists(json, 'receivingTxLink') ? undefined : json['receivingTxLink'],
+        'sendingTxLink': !runtime.exists(json, 'sendingTxLink') ? undefined : json['sendingTxLink'],
+        'status': json['status'],
+        'substatus': !runtime.exists(json, 'substatus') ? undefined : json['substatus'],
+    };
+}
+function SwapStatusResponseToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'error': value.error,
+        'explorerLink': value.explorerLink,
+        'message': value.message,
+        'receivingTxLink': value.receivingTxLink,
+        'sendingTxLink': value.sendingTxLink,
+        'status': value.status,
+        'substatus': value.substatus,
+    };
+}
+
+exports.SwapStatusResponseFromJSON = SwapStatusResponseFromJSON;
+exports.SwapStatusResponseFromJSONTyped = SwapStatusResponseFromJSONTyped;
+exports.SwapStatusResponseToJSON = SwapStatusResponseToJSON;

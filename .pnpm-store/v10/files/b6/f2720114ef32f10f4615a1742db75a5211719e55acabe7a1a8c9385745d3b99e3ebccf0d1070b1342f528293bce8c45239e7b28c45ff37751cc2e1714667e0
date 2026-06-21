@@ -1,0 +1,132 @@
+/**
+ * Dialog Manager - Web Portal Connection
+ * Handles portal communication via iframe/popup dialogs for web
+ */
+import { EventEmitter } from 'eventemitter3';
+export interface DialogResult {
+    readonly publicKey: string;
+    readonly credentialId: string;
+    readonly isCreated: boolean;
+    readonly connectionType: 'create' | 'get';
+    readonly timestamp: number;
+    readonly accountName?: string;
+}
+export interface SignResult {
+    readonly signature: string;
+    readonly clientDataJsonBase64: string;
+    readonly authenticatorDataBase64: string;
+    readonly signedPayload: string;
+}
+export interface DialogManagerConfig {
+    readonly portalUrl: string;
+    readonly rpcUrl?: string;
+    readonly paymasterUrl?: string;
+}
+export type DialogAction = 'connect' | 'sign' | string;
+/**
+ * Dialog Manager for Web Portal Connection
+ * Provides abstraction over iframe/popup portal communication
+ */
+export declare class DialogManager extends EventEmitter {
+    private config;
+    private dialogRef;
+    private iframeRef;
+    private popupWindow;
+    private popupCloseInterval;
+    private isClosing;
+    private isDestroyed;
+    private credentialManager;
+    private logger;
+    private _currentAction;
+    constructor(config: DialogManagerConfig);
+    /**
+     * Open portal connection dialog
+     * @returns Promise that resolves with connection result
+     */
+    openConnect(): Promise<DialogResult>;
+    /**
+     * Open portal signing dialog
+     * @param message - Message to sign
+     * @returns Promise that resolves with signature result
+     */
+    openSign(message: string, transaction: string, credentialId: string, clusterSimulation?: 'devnet' | 'mainnet'): Promise<SignResult>;
+    /**
+     * Open portal message signing dialog
+     * @param message - Message to sign
+     * @param credentialId - Credential ID
+     * @returns Promise that resolves with signature result
+     */
+    openSignMessage(message: string, credentialId: string): Promise<SignResult>;
+    /**
+     * Open connection dialog (modal only - popup handled separately)
+     */
+    private openConnectDialog;
+    private ensureFonts;
+    private ensureDialogBackdropCSS;
+    private createCloseButton;
+    /**
+     * Open signing dialog (always iframe to avoid popup blocking)
+     */
+    private openSignDialog;
+    /**
+     * Check if the current device is a mobile device
+     */
+    private isMobileDevice;
+    /**
+     * Check if the browser is Safari
+     */
+    private isSafari;
+    /**
+     * Determine if popup should be used instead of modal
+     */
+    private shouldUsePopup;
+    /**
+     * Get popup window dimensions
+     */
+    private getPopupDimensions;
+    /**
+     * Open popup window
+     */
+    private openPopup;
+    /**
+     * Start monitoring for popup window close
+     */
+    private startPopupMonitor;
+    /**
+     * Open modal dialog with iframe
+     */
+    private openModal;
+    /**
+     * Create modal dialog with iframe
+     */
+    private createModal;
+    /**
+     * Setup message listener for portal communication
+     */
+    private setupMessageListener;
+    /**
+     * Close any open dialogs or popups
+     */
+    closeDialog(): void;
+    /**
+     * Get the iframe reference
+     */
+    getIframeRef(): HTMLIFrameElement | null;
+    /**
+     * Get the dialog reference
+     */
+    getDialogRef(): HTMLDialogElement | null;
+    /**
+     * Get the popup window reference
+     */
+    getPopupWindow(): Window | null;
+    /**
+     * Get the current action
+     */
+    getCurrentAction(): DialogAction | null;
+    /**
+     * Clean up resources
+     */
+    destroy(): void;
+}
+//# sourceMappingURL=DialogManager.d.ts.map

@@ -1,0 +1,27 @@
+import { MoonPayCurrencyFromJSON, MoonPayCurrencyToJSON } from './MoonPayCurrency.js';
+
+/* tslint:disable */
+function MoonPayCurrenciesResponseFromJSON(json) {
+    return MoonPayCurrenciesResponseFromJSONTyped(json);
+}
+function MoonPayCurrenciesResponseFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'currencies': (json['currencies'].map(MoonPayCurrencyFromJSON)),
+    };
+}
+function MoonPayCurrenciesResponseToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'currencies': (value.currencies.map(MoonPayCurrencyToJSON)),
+    };
+}
+
+export { MoonPayCurrenciesResponseFromJSON, MoonPayCurrenciesResponseFromJSONTyped, MoonPayCurrenciesResponseToJSON };

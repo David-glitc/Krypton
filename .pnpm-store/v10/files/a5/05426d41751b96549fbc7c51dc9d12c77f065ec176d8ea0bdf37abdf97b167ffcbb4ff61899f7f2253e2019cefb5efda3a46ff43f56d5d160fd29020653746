@@ -1,0 +1,39 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+var CreateMfaToken = require('./CreateMfaToken.cjs');
+var TokenScope = require('./TokenScope.cjs');
+
+/* tslint:disable */
+function MFAAuthRecoveryDevicePostRequestFromJSON(json) {
+    return MFAAuthRecoveryDevicePostRequestFromJSONTyped(json);
+}
+function MFAAuthRecoveryDevicePostRequestFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'createMfaToken': !runtime.exists(json, 'createMfaToken') ? undefined : CreateMfaToken.CreateMfaTokenFromJSON(json['createMfaToken']),
+        'code': json['code'],
+        'requestedScopes': !runtime.exists(json, 'requestedScopes') ? undefined : (json['requestedScopes'].map(TokenScope.TokenScopeFromJSON)),
+    };
+}
+function MFAAuthRecoveryDevicePostRequestToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'createMfaToken': CreateMfaToken.CreateMfaTokenToJSON(value.createMfaToken),
+        'code': value.code,
+        'requestedScopes': value.requestedScopes === undefined ? undefined : (value.requestedScopes.map(TokenScope.TokenScopeToJSON)),
+    };
+}
+
+exports.MFAAuthRecoveryDevicePostRequestFromJSON = MFAAuthRecoveryDevicePostRequestFromJSON;
+exports.MFAAuthRecoveryDevicePostRequestFromJSONTyped = MFAAuthRecoveryDevicePostRequestFromJSONTyped;
+exports.MFAAuthRecoveryDevicePostRequestToJSON = MFAAuthRecoveryDevicePostRequestToJSON;

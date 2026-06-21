@@ -1,0 +1,42 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var StorageService = require('../services/StorageService/StorageService.cjs');
+require('../logger/logger.cjs');
+require('../services/StorageService/storageEvents.cjs');
+
+const WALLET_RETURN_ROUTE_KEY = 'dynamic-wallet-return-route';
+/**
+ * Utility for storing and retrieving the route to return to after
+ * a wallet deep link operation completes.
+ */
+const walletReturnRoute = {
+    /**
+     * Clear any stored return route without retrieving it.
+     */
+    clear: () => {
+        StorageService.StorageService.removeItem(WALLET_RETURN_ROUTE_KEY);
+    },
+    /**
+     * Get and clear the stored return route.
+     * Returns undefined if no route was stored.
+     */
+    getAndClear: () => {
+        const route = StorageService.StorageService.getItem(WALLET_RETURN_ROUTE_KEY);
+        if (route) {
+            StorageService.StorageService.removeItem(WALLET_RETURN_ROUTE_KEY);
+        }
+        return route !== null && route !== void 0 ? route : undefined;
+    },
+    /**
+     * Store the current route before opening a wallet deep link.
+     * This will be retrieved when the app returns from the wallet.
+     */
+    set: (route) => {
+        StorageService.StorageService.setItem(WALLET_RETURN_ROUTE_KEY, route);
+    },
+};
+
+exports.walletReturnRoute = walletReturnRoute;

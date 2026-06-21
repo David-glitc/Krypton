@@ -1,0 +1,128 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../../../_virtual/_tslib.cjs');
+var reactInternationalPhone = require('react-international-phone');
+var reactI18next = require('react-i18next');
+var utils = require('@dynamic-labs/utils');
+var locale = require('@dynamic-labs/locale');
+var CaptchaContext = require('../../../../../context/CaptchaContext/CaptchaContext.cjs');
+require('../../../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var VerificationContext = require('../../../../../context/VerificationContext/VerificationContext.cjs');
+var ViewContext = require('../../../../../context/ViewContext/ViewContext.cjs');
+require('@dynamic-labs-sdk/client');
+require('@dynamic-labs/sdk-api-core');
+require('@dynamic-labs-sdk/client/core');
+require('react');
+require('eventemitter3');
+require('../../../../../config/ApiEndpoint.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+require('../../../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('../../../../../utils/constants/colors.cjs');
+require('../../../../../utils/constants/values.cjs');
+require('../../../../../shared/consts/index.cjs');
+require('@dynamic-labs/multi-wallet');
+var formatPhone = require('../../../../../utils/functions/formatPhone/formatPhone.cjs');
+require('../../../../../store/state/nonce/nonce.cjs');
+require('../../../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../../../store/state/primaryWalletId/primaryWalletId.cjs');
+require('../../../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+require('../../../../../utils/functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+var dynamicEvents = require('../../../../../events/dynamicEvents.cjs');
+var sms = require('../../../../../data/api/sms/sms.cjs');
+var useFields = require('../../../../CollectUserDataView/useFields.cjs');
+
+const useSubmitPhoneNumber = ({ onSubmit, onSubmitError, country, phone, setInvalidNumberMessage, }) => {
+    const { engageCaptcha } = CaptchaContext.useCaptchaContext();
+    const { view, pushView } = ViewContext.useViewContext();
+    const { environmentId, projectSettings } = useInternalDynamicContext.useInternalDynamicContext();
+    const { setDisplayedDestination, setVerificationUUID, setRetryData } = VerificationContext.useVerification();
+    const { fieldsConfig } = useFields.useFields();
+    const { t } = reactI18next.useTranslation();
+    const submitPhoneNumber = (captchaToken) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        if (!country)
+            return;
+        try {
+            const phoneNumber = reactInternationalPhone.removeDialCode({
+                dialCode: country.dialCode,
+                phone,
+            });
+            const { verificationUUID } = yield sms.createSmsVerification({
+                captchaToken,
+                environmentId,
+                isoCountryCode: country.iso2,
+                phoneCountryCode: country.dialCode,
+                phoneNumber,
+            });
+            setRetryData({
+                dialCode: country.dialCode,
+                iso2: country.iso2,
+                phone: phoneNumber,
+            });
+            // we can safely assume phone number always requires verification here
+            // because this hook is only used for SMS sign in.
+            pushView('login-with-sms-verification');
+            setDisplayedDestination(formatPhone.formatPhone(phone));
+            setVerificationUUID(verificationUUID);
+            const phoneData = {
+                dialCode: country.dialCode,
+                iso2: country.iso2,
+                phone: phoneNumber,
+            };
+            dynamicEvents.dynamicEvents.emit('authInit', {
+                option: phoneData,
+                phone: phoneData,
+                type: 'sms',
+            });
+            onSubmit === null || onSubmit === void 0 ? void 0 : onSubmit();
+        }
+        catch (error) {
+            pushView(view.type);
+            if (error instanceof utils.SmsVerificationError) {
+                let message = t('dyn_login.helper.phone_number_form.invalid_phone');
+                if (error.code === 'too_many_sms_verification_attempts') {
+                    message = t('dyn_login.helper.phone_number_form.too_many_sms_verification_attempts');
+                }
+                // Use the code from error message if a translation for it exists
+                if (error.code &&
+                    error.code in locale.translation.dyn_login.helper.phone_number_form)
+                    message = t('dyn_login.helper.phone_number_form.' + error.code);
+                setInvalidNumberMessage(message);
+            }
+            else if (typeof error === 'string')
+                setInvalidNumberMessage(error);
+            onSubmitError === null || onSubmitError === void 0 ? void 0 : onSubmitError();
+        }
+    });
+    return (event) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        var _a;
+        if (!country)
+            return;
+        event.preventDefault();
+        try {
+            fieldsConfig.phoneNumber.validation.validateSync(phone);
+        }
+        catch (error) {
+            const { message } = error;
+            setInvalidNumberMessage(message);
+            onSubmitError === null || onSubmitError === void 0 ? void 0 : onSubmitError();
+            return;
+        }
+        if ((_a = projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.security.hCaptcha) === null || _a === void 0 ? void 0 : _a.enabled) {
+            engageCaptcha({
+                authMethod: 'phone',
+                onCaptchaSuccess: submitPhoneNumber,
+            });
+            return;
+        }
+        submitPhoneNumber();
+    });
+};
+
+exports.useSubmitPhoneNumber = useSubmitPhoneNumber;

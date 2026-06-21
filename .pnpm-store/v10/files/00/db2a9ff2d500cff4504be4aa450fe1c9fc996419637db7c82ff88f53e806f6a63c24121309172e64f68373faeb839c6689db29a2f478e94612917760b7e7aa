@@ -1,0 +1,9 @@
+import { BaseError } from './base';
+type InvalidRealtimePublishParams = {
+    channel: string;
+};
+export declare class InvalidRealtimePublishError extends BaseError {
+    constructor({ channel }: InvalidRealtimePublishParams);
+}
+export {};
+//# sourceMappingURL=InvalidRealtimePublishError.d.ts.map

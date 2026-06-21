@@ -1,0 +1,8 @@
+/**
+ * The reason a logout was triggered.
+ *
+ * Surfaced in Datadog logout events so we can understand why users are being
+ * signed out.
+ */
+export type LogoutReason = 'user-intent' | 'token-expired' | 'keychain-migration-failed' | 'keychain-key-missing' | 'session-refresh-unauthorized' | 'user-refresh-failed' | 'user-deleted' | 'device-revoked' | 'all-devices-revoked';
+//# sourceMappingURL=logoutReason.d.ts.map

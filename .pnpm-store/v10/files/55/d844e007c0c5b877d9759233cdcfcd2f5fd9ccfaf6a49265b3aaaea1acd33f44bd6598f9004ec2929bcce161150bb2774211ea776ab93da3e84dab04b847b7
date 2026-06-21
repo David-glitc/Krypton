@@ -1,0 +1,4 @@
+import type { DynamicClient } from '../../../client/types';
+/** @not-instrumented */
+export declare const restoreUserSharesForAllWalletAccounts: (client: DynamicClient) => Promise<void>;
+//# sourceMappingURL=restoreUserSharesForAllWalletAccounts.d.ts.map

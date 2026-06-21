@@ -1,0 +1,113 @@
+'use client'
+import { jsx } from 'react/jsx-runtime';
+import { createContext, useRef, useState, useCallback, useMemo } from 'react';
+import '../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { createProviderHook } from '../../../shared/utils/functions/createProviderHook/createProviderHook.js';
+import { useInternalDynamicEvents } from '../../../utils/hooks/events/useDynamicEvents/useDynamicEvents.js';
+import { useKYCFlag } from '../../../utils/hooks/useKYCFlag/useKYCFlag.js';
+import { useViewController } from '../hooks/useViewController/useViewController.js';
+
+const DynamicWidgetContext = createContext(undefined);
+const noop = () => undefined;
+const ssrSafeWidgetContext = {
+    availableWalletsContainerRef: { current: null },
+    dynamicWidgetView: 'wallets',
+    goToInitialDynamicWidgetView: noop,
+    goToProfileView: noop,
+    headerAlert: null,
+    inlineControlsRef: { current: null },
+    isOpen: false,
+    overridenWidgetView: 'wallets',
+    setDynamicWidgetView: noop,
+    setHeaderAlert: noop,
+    setIsOpen: noop,
+    viewProps: {},
+    widgetRef: { current: null },
+};
+const DynamicWidgetContextProvider = ({ children, }) => {
+    const widgetRef = useRef(null);
+    const inlineControlsRef = useRef(null);
+    const availableWalletsContainerRef = useRef(null);
+    const { setShowDynamicUserProfile, showDynamicUserProfile, multiWallet } = useInternalDynamicContext();
+    const isKYCEnabled = useKYCFlag();
+    const { view: dynamicWidgetView, setView, goToInitialView: goToInitialDynamicWidgetView, } = useViewController(isKYCEnabled && !multiWallet ? 'profile' : 'wallets');
+    const [headerAlert, _setHeaderAlert] = useState(null);
+    const headerAlertTimeoutRef = useRef(null);
+    const clearHeaderAlert = useCallback(() => {
+        _setHeaderAlert(null);
+        if (headerAlertTimeoutRef.current) {
+            clearTimeout(headerAlertTimeoutRef.current);
+            headerAlertTimeoutRef.current = null;
+        }
+    }, []);
+    const setHeaderAlert = useCallback((alert) => {
+        var _a;
+        const timeout = (_a = alert === null || alert === void 0 ? void 0 : alert.timeout) !== null && _a !== void 0 ? _a : 10000;
+        _setHeaderAlert(alert);
+        headerAlertTimeoutRef.current = setTimeout(clearHeaderAlert, timeout);
+    }, [clearHeaderAlert]);
+    const [viewProps, setViewProps] = useState({});
+    const setDynamicWidgetView = useCallback((view, props) => {
+        setView(view);
+        setViewProps(props || {});
+        clearHeaderAlert();
+    }, [clearHeaderAlert, setView]);
+    const goToProfileView = useCallback(() => {
+        if (isKYCEnabled)
+            return setDynamicWidgetView('profile');
+        setDynamicWidgetView('wallets');
+    }, [isKYCEnabled, setDynamicWidgetView]);
+    const overridenWidgetView = useMemo(() => {
+        if (dynamicWidgetView === 'manage-passkeys' ||
+            dynamicWidgetView === 'manage-totp-mfa' ||
+            dynamicWidgetView === 'manage-passkeys-mfa' ||
+            dynamicWidgetView === 'account-and-security-settings')
+            return 'settings';
+        if (!isKYCEnabled &&
+            !multiWallet &&
+            dynamicWidgetView !== 'settings' &&
+            dynamicWidgetView !== 'profile')
+            return 'wallets';
+        if (dynamicWidgetView === 'edit-profile')
+            return 'profile';
+        if (dynamicWidgetView === 'global-wallet')
+            return 'wallets';
+        return dynamicWidgetView;
+    }, [dynamicWidgetView, isKYCEnabled, multiWallet]);
+    useInternalDynamicEvents('logout', goToInitialDynamicWidgetView);
+    useInternalDynamicEvents('userProfileClose', () => {
+        // Use a timeout to avoid flicker
+        setTimeout(goToInitialDynamicWidgetView, 20);
+    });
+    const value = useMemo(() => ({
+        availableWalletsContainerRef,
+        dynamicWidgetView,
+        goToInitialDynamicWidgetView,
+        goToProfileView,
+        headerAlert,
+        inlineControlsRef,
+        isOpen: showDynamicUserProfile,
+        overridenWidgetView,
+        setDynamicWidgetView,
+        setHeaderAlert,
+        setIsOpen: setShowDynamicUserProfile,
+        viewProps,
+        widgetRef,
+    }), [
+        dynamicWidgetView,
+        goToInitialDynamicWidgetView,
+        goToProfileView,
+        showDynamicUserProfile,
+        setDynamicWidgetView,
+        setShowDynamicUserProfile,
+        overridenWidgetView,
+        viewProps,
+        headerAlert,
+        setHeaderAlert,
+    ]);
+    return (jsx(DynamicWidgetContext.Provider, { value: value, children: children }));
+};
+const useWidgetContext = createProviderHook(DynamicWidgetContext, 'DynamicWidgetContextProvider', ssrSafeWidgetContext);
+
+export { DynamicWidgetContext, DynamicWidgetContextProvider, useWidgetContext };

@@ -1,0 +1,20 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var jsxRuntime = require('react/jsx-runtime');
+var React = require('react');
+require('../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var ResetPasswordView = require('../../widgets/DynamicWidget/views/ResetPasswordView/ResetPasswordView.cjs');
+
+const ResetPasswordForSettingsView = () => {
+    const { setShowAuthFlow } = useInternalDynamicContext.useInternalDynamicContext();
+    const handleComplete = React.useCallback(() => {
+        setShowAuthFlow(false);
+    }, [setShowAuthFlow]);
+    return jsxRuntime.jsx(ResetPasswordView.ResetPasswordView, { onComplete: handleComplete });
+};
+
+exports.ResetPasswordForSettingsView = ResetPasswordForSettingsView;

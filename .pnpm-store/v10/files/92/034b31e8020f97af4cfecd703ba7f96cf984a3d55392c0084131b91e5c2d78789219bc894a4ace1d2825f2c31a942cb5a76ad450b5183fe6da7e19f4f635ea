@@ -1,0 +1,39 @@
+import { exists } from '../runtime.js';
+import { CheckoutModeEnumFromJSON, CheckoutModeEnumToJSON } from './CheckoutModeEnum.js';
+import { DepositAmountsConfigInputFromJSON, DepositAmountsConfigInputToJSON } from './DepositAmountsConfigInput.js';
+import { DestinationConfigInputFromJSON, DestinationConfigInputToJSON } from './DestinationConfigInput.js';
+import { SettlementConfigInputFromJSON, SettlementConfigInputToJSON } from './SettlementConfigInput.js';
+
+/* tslint:disable */
+function CheckoutCreateRequestFromJSON(json) {
+    return CheckoutCreateRequestFromJSONTyped(json);
+}
+function CheckoutCreateRequestFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'mode': CheckoutModeEnumFromJSON(json['mode']),
+        'settlementConfig': SettlementConfigInputFromJSON(json['settlementConfig']),
+        'destinationConfig': DestinationConfigInputFromJSON(json['destinationConfig']),
+        'depositConfig': !exists(json, 'depositConfig') ? undefined : DepositAmountsConfigInputFromJSON(json['depositConfig']),
+        'enableOrchestration': !exists(json, 'enableOrchestration') ? undefined : json['enableOrchestration'],
+    };
+}
+function CheckoutCreateRequestToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'mode': CheckoutModeEnumToJSON(value.mode),
+        'settlementConfig': SettlementConfigInputToJSON(value.settlementConfig),
+        'destinationConfig': DestinationConfigInputToJSON(value.destinationConfig),
+        'depositConfig': DepositAmountsConfigInputToJSON(value.depositConfig),
+        'enableOrchestration': value.enableOrchestration,
+    };
+}
+
+export { CheckoutCreateRequestFromJSON, CheckoutCreateRequestFromJSONTyped, CheckoutCreateRequestToJSON };

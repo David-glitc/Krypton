@@ -1,0 +1,89 @@
+export type GoogleDriveBackupReadinessStatus = 'idle' | 'ready' | 'needs-access' | 'error';
+export type GoogleDriveBackupReadiness = {
+    status: GoogleDriveBackupReadinessStatus;
+    isChecking: boolean;
+    missingScopes: readonly string[];
+    accessToken?: string;
+    error?: unknown;
+};
+export type UseGoogleDriveBackupReadinessReturn = GoogleDriveBackupReadiness & {
+    check: () => Promise<GoogleDriveBackupReadiness>;
+    requestAccess: () => Promise<GoogleDriveBackupReadiness>;
+    reset: () => void;
+};
+/**
+ * Pre-flight readiness check for backing up MPC keyshares to Google Drive.
+ *
+ * Recommended pattern: call `check()` when the user opens the "Backup to
+ * Google Drive" CTA. If `status` is `'needs-access'`, prompt the user and
+ * call `requestAccess()` to re-prompt the Google consent screen. Then
+ * proceed with `useWalletBackup().backupWallet(...)`.
+ *
+ * Status values:
+ * - `'idle'`: never checked / after `reset()`.
+ * - `'ready'`: stored scopes include both required Drive scopes; backup
+ *   should succeed (barring transient errors).
+ * - `'needs-access'`: backup likely won't succeed without user intervention.
+ *   Covers (a) missing scopes — `missingScopes` lists the gap, (b) no Google
+ *   account linked — `missingScopes` is populated with the full required set
+ *   so callers can render copy directly, and (c) legacy tokens captured
+ *   before scope tracking shipped (`scopes: []` from the API) — indicated
+ *   by an empty `missingScopes` array. Call `requestAccess()` to recover.
+ * - `'error'`: the underlying fetch or relink rejected. `error` holds
+ *   the cause.
+ *
+ * `isChecking` is true while a `check()` or `requestAccess()` is in flight.
+ *
+ * `missingScopes` lists the scopes the user still needs to grant. When no
+ * Google account is linked, this is the full required set; when scopes are
+ * known to be partially missing, only the missing ones; for legacy
+ * "unknown scopes" tokens, the array is empty.
+ *
+ * @example
+ * ```tsx
+ * function BackupButton({ wallet }) {
+ *   const { status, missingScopes, isChecking, check, requestAccess } =
+ *     useGoogleDriveBackupReadiness();
+ *   // Opt into the throw-based error surface; the default mode (legacy)
+ *   // sets `lastBackupError` and returns `false` instead.
+ *   const { backupWallet } = useWalletBackup({ throwOnError: true });
+ *
+ *   const onBackup = async () => {
+ *     // Layer 1: pre-flight readiness — saves an MPC reshare ceremony when
+ *     // we can already tell the upload will fail.
+ *     let r = await check();
+ *     if (r.status === 'needs-access') {
+ *       r = await requestAccess(); // popup re-consent
+ *       if (r.status !== 'ready') return; // user cancelled or relink failed
+ *     }
+ *
+ *     try {
+ *       await backupWallet(wallet, 'GoogleDrive');
+ *     } catch (err) {
+ *       // Layer 2: post-flight fallback — needed for legacy users where the
+ *       // stored `scopes` is empty so pre-flight returned 'unknown'. The
+ *       // type-guard discriminates the Drive scope/access case so we can
+ *       // re-prompt and let the caller retry.
+ *       if (isInsufficientGoogleDriveScopesError(err)) {
+ *         const recovered = await requestAccess();
+ *         if (recovered.status === 'ready') {
+ *           await backupWallet(wallet, 'GoogleDrive');
+ *         }
+ *       } else {
+ *         throw err;
+ *       }
+ *     }
+ *   };
+ *
+ *   return (
+ *     <>
+ *       {status === 'needs-access' && (
+ *         <p>We need access to: {missingScopes.join(', ')}</p>
+ *       )}
+ *       <button onClick={onBackup} disabled={isChecking}>Backup to Drive</button>
+ *     </>
+ *   );
+ * }
+ * ```
+ */
+export declare const useGoogleDriveBackupReadiness: () => UseGoogleDriveBackupReadinessReturn;

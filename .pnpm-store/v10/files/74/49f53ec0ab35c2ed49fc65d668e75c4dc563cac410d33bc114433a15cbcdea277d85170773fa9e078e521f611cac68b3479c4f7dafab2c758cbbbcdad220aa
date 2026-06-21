@@ -1,0 +1,2 @@
+export { derToP1363 } from './derToP1363';
+//# sourceMappingURL=index.d.ts.map

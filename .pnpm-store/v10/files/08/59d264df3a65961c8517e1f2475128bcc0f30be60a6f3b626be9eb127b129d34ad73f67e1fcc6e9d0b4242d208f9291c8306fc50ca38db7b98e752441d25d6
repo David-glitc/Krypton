@@ -1,0 +1,26 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var jsxRuntime = require('react/jsx-runtime');
+var React = require('react');
+require('../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var classNames = require('../../utils/functions/classNames/classNames.cjs');
+var NetworkControl = require('./components/NetworkControl/NetworkControl.cjs');
+var NetworkDropdown = require('./components/NetworkDropdown/NetworkDropdown.cjs');
+
+const NetworkPicker = ({ activeClassName = '', buttonClassName = '', checkboxClassName = '', connector, listClassName = '', mainClassName = '', showNetworkName, customCallbackOnSuccess, currentNetwork, isLoading = false, }) => {
+    const [isNetworkPickerOpen, setIsNetworkPickerOpen] = React.useState(false);
+    const pickerRef = React.useRef(null);
+    const { loadingNetwork } = useInternalDynamicContext.useInternalDynamicContext();
+    // Ref to anchor popper to
+    const anchorRef = React.useRef(null);
+    if (!connector) {
+        return null;
+    }
+    return (jsxRuntime.jsxs("div", { className: classNames.classNames('non-widget-network-picker', mainClassName), ref: pickerRef, "data-testid": 'network-picker', children: [jsxRuntime.jsxs("div", { className: 'network-picker-network-control', children: [jsxRuntime.jsx(NetworkControl.NetworkControl, { activeClassName: activeClassName, network: currentNetwork, loading: loadingNetwork || isLoading, isOpen: isNetworkPickerOpen, setIsOpen: setIsNetworkPickerOpen, walletConnector: connector, showNetworkName: showNetworkName, buttonClassName: buttonClassName }), jsxRuntime.jsx("div", { ref: anchorRef, className: 'network-picker-network-control__anchor' })] }), jsxRuntime.jsx(NetworkDropdown.NetworkDropdown, { anchorRef: anchorRef, customCallbackOnSuccess: customCallbackOnSuccess, connector: connector, className: listClassName, checkboxClassName: checkboxClassName, isNetworkPickerOpen: isNetworkPickerOpen, setIsNetworkPickerOpen: setIsNetworkPickerOpen, currentNetwork: currentNetwork })] }));
+};
+
+exports.NetworkPicker = NetworkPicker;

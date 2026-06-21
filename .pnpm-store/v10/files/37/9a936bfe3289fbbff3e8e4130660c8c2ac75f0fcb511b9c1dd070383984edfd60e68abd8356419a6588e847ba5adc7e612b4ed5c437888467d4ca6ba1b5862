@@ -1,0 +1,32 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var jsxRuntime = require('react/jsx-runtime');
+var React = require('react');
+var reactI18next = require('react-i18next');
+var client = require('@dynamic-labs-sdk/client');
+var Typography = require('../../../../../components/Typography/Typography.cjs');
+var TypographyButton = require('../../../../../components/TypographyButton/TypographyButton.cjs');
+var chevronLeft = require('../../../../../shared/assets/chevron-left.cjs');
+var monitorAndDevice = require('../../../../../shared/assets/monitor-and-device.cjs');
+require('@dynamic-labs/iconic');
+require('../../../../../context/ViewContext/ViewContext.cjs');
+var usePromise = require('../../../../../utils/hooks/usePromise/usePromise.cjs');
+var DynamicWidgetContext = require('../../../context/DynamicWidgetContext.cjs');
+
+const TrustedDevicesSection = () => {
+    const { t } = reactI18next.useTranslation();
+    const { setDynamicWidgetView } = DynamicWidgetContext.useWidgetContext();
+    const { data: devices, isLoading } = usePromise.usePromise(() => client.getRegisteredDevices(), { initialData: [] });
+    const handleClick = React.useCallback(() => setDynamicWidgetView('manage-trusted-devices'), [setDynamicWidgetView]);
+    if (isLoading || devices.length === 0) {
+        return null;
+    }
+    return (jsxRuntime.jsxs("div", { className: 'settings-view__body__section', children: [jsxRuntime.jsx("div", { className: 'settings-view__body__section__title', children: jsxRuntime.jsx(Typography.Typography, { copykey: 'dyn_device_management.trusted_devices_section_title', color: 'secondary', weight: 'medium', children: t('dyn_device_management.trusted_devices_section_title') }) }), jsxRuntime.jsx(TypographyButton.TypographyButton, { dataTestId: 'manage-trusted-devices-button', onClick: handleClick, buttonClassName: 'settings-view__body__section__button', startSlot: 
+                // eslint-disable-next-line react/jsx-wrap-multilines
+                jsxRuntime.jsxs("div", { className: 'settings-view__body__section__button__start-slot', children: [jsxRuntime.jsx(monitorAndDevice.ReactComponent, { className: 'settings-view__body__section__button__icon' }), jsxRuntime.jsx(Typography.Typography, { color: 'primary', weight: 'medium', copykey: 'dyn_device_management.manage_trusted_devices_button', children: t('dyn_device_management.manage_trusted_devices_button') })] }), endSlot: jsxRuntime.jsx(chevronLeft.ReactComponent, { className: 'settings-view__body__section__button__icon-secondary--rotate' }), showInternalLoading: false })] }));
+};
+
+exports.TrustedDevicesSection = TrustedDevicesSection;

@@ -1,0 +1,21 @@
+type DeleteMfaDeviceParams = {
+    deviceId: string;
+    mfaAuthToken?: string;
+};
+/**
+ * Deletes a specific MFA device from the user's account.
+ *
+ * When an elevated access token for `credential:unlink` is available,
+ * it is sent via the `x-dyn-elevated-access-token` header and the
+ * MFA auth token is not required. Otherwise, `mfaAuthToken` must be
+ * provided for backward compatibility with the legacy MFA flow.
+ *
+ * @param params.deviceId - The unique identifier of the MFA device to delete.
+ * @param params.mfaAuthToken - The MFA authentication token. Optional when using elevated access tokens.
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns A promise that resolves when the MFA device is successfully deleted.
+  * @instrumented
+ */
+export declare const deleteMfaDevice: ({ deviceId, mfaAuthToken }: DeleteMfaDeviceParams, client?: import("../../../exports").DynamicClient) => Promise<void>;
+export {};
+//# sourceMappingURL=deleteMfaDevice.d.ts.map

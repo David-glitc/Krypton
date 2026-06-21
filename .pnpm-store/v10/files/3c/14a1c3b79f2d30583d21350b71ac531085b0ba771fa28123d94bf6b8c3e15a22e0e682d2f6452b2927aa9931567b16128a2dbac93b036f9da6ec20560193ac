@@ -1,0 +1,40 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+var JwtVerifiedCredentialFormatEnum = require('./JwtVerifiedCredentialFormatEnum.cjs');
+
+/* tslint:disable */
+function StepUpCredentialFromJSON(json) {
+    return StepUpCredentialFromJSONTyped(json);
+}
+function StepUpCredentialFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'id': json['id'],
+        'format': JwtVerifiedCredentialFormatEnum.JwtVerifiedCredentialFormatEnumFromJSON(json['format']),
+        'type': !runtime.exists(json, 'type') ? undefined : json['type'],
+        'alias': !runtime.exists(json, 'alias') ? undefined : json['alias'],
+    };
+}
+function StepUpCredentialToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'id': value.id,
+        'format': JwtVerifiedCredentialFormatEnum.JwtVerifiedCredentialFormatEnumToJSON(value.format),
+        'type': value.type,
+        'alias': value.alias,
+    };
+}
+
+exports.StepUpCredentialFromJSON = StepUpCredentialFromJSON;
+exports.StepUpCredentialFromJSONTyped = StepUpCredentialFromJSONTyped;
+exports.StepUpCredentialToJSON = StepUpCredentialToJSON;

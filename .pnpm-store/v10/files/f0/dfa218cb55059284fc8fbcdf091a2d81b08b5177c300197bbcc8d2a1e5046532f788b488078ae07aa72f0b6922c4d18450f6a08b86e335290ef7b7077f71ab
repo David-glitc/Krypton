@@ -1,0 +1,16 @@
+import type { DynamicClient } from '../../client/types';
+export type AppMetadata = {
+    appLogoUrl: string | undefined;
+    appName: string;
+    appNativeLink?: string;
+    appUniversalLink?: string;
+};
+/**
+ * Reads the customer-supplied app name, logo, native link, and universal link.
+ * — preferring `core.metadata` (set on the client) over project-settings fallbacks.
+ *
+ * @param client - The Dynamic client whose configuration drives the result.
+ * @not-instrumented
+ */
+export declare const getAppMetadata: (client: DynamicClient) => AppMetadata;
+//# sourceMappingURL=getAppMetadata.d.ts.map

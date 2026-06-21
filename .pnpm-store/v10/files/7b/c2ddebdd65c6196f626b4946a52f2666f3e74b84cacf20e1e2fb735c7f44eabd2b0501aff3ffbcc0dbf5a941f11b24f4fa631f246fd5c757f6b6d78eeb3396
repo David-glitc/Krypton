@@ -1,0 +1,490 @@
+const require_isMfaRequiredForAction = require('./isMfaRequiredForAction-BNipdNF5.cjs');
+const require_InvalidParamError = require('./InvalidParamError-CmwKWCyr.cjs');
+const require_getNetworkProviderFromNetworkId = require('./getNetworkProviderFromNetworkId-DXzopnuR.cjs');
+const require_getVerifiedCredentialForWalletAccount = require('./getVerifiedCredentialForWalletAccount-DidFNLGP.cjs');
+const require_getSignedSessionId = require('./getSignedSessionId-CbWFH_TM.cjs');
+let _dynamic_labs_sdk_assert_package_version = require("@dynamic-labs-sdk/assert-package-version");
+let zod_mini = require("zod/mini");
+zod_mini = require_isMfaRequiredForAction.__toESM(zod_mini);
+let eventemitter3 = require("eventemitter3");
+eventemitter3 = require_isMfaRequiredForAction.__toESM(eventemitter3);
+
+//#region src/errors/ArrayMustNotBeEmptyError.ts
+var ArrayMustNotBeEmptyError = class extends require_InvalidParamError.BaseError {
+	constructor(message) {
+		super({
+			cause: null,
+			code: "array_must_not_be_empty_error",
+			docsUrl: null,
+			name: "ArrayMustNotBeEmpty",
+			shortMessage: message
+		});
+	}
+};
+
+//#endregion
+//#region src/errors/ClientsDoNotMatchError.ts
+var ClientsDoNotMatchError = class extends require_InvalidParamError.BaseError {
+	constructor() {
+		super({
+			cause: null,
+			code: "clients_do_not_match_error",
+			docsUrl: null,
+			name: "ClientsDoNotMatchError",
+			shortMessage: "Clients do not match"
+		});
+	}
+};
+
+//#endregion
+//#region src/errors/MultipleClientsFoundError.ts
+var MultipleClientsFoundError = class extends require_InvalidParamError.BaseError {
+	constructor() {
+		super({
+			cause: null,
+			code: "multiple_clients_found_error",
+			docsUrl: null,
+			name: "MultipleClientsFoundError",
+			shortMessage: "Multiple Dynamic clients have been initialized. Please provide the intended client for this action explicitly"
+		});
+	}
+};
+
+//#endregion
+//#region src/modules/extension/registerExtension/registerExtension.ts
+/**
+* Registers an extension to the client.
+*
+* Other extensions can be aware of which extensions are present,
+* and allows creating dependencies between extensions.
+*
+* @param client - The client instance.
+* @param extensionKey - The key of the extension to register.
+* @returns The client instance.
+* @not-instrumented
+*/
+const registerExtension = ({ extensionKey }, client) => {
+	require_InvalidParamError.getCore(client).extensions.add(extensionKey);
+};
+
+//#endregion
+//#region src/modules/initializeClient/waitForProjectSettings/waitForProjectSettings.ts
+/** @not-instrumented */
+const waitForProjectSettings = async (client) => {
+	const projectSettingsTracker = require_InvalidParamError.getCore(client).initTrack.getTracker(require_getNetworkProviderFromNetworkId.FETCH_PROJECT_SETTINGS_TRACKER_KEY);
+	require_InvalidParamError.assertDefined(projectSettingsTracker, "Project settings tracker not found");
+	await projectSettingsTracker.promise;
+	require_InvalidParamError.assertDefined(client.projectSettings, "Project settings still not available after awaiting its tracker");
+	return client.projectSettings;
+};
+
+//#endregion
+//#region src/modules/wallets/networks/createBaseNetworkProvider/createBaseNetworkProvider.ts
+/** @not-instrumented */
+const createBaseNetworkProvider = (chain, networkData) => ({
+	blockExplorerUrls: networkData.blockExplorerUrls,
+	chain,
+	displayName: networkData.displayName,
+	iconUrl: networkData.iconUrl,
+	id: `${chain}-${networkData.networkId}`,
+	name: networkData.name,
+	nativeCurrency: networkData.nativeCurrency,
+	networkId: networkData.networkId,
+	rpcUrls: networkData.rpcUrls,
+	testnet: networkData.testnet
+});
+
+//#endregion
+//#region src/modules/wallets/networks/getNetworkDataForNetworkId/getNetworkDataForNetworkId.ts
+/** @not-instrumented */
+const getNetworkDataForNetworkId = ({ networkId, chain }, client) => {
+	return require_getNetworkProviderFromNetworkId.getNetworksData(client).find((networkData) => networkData.networkId === networkId && networkData.chain === chain);
+};
+
+//#endregion
+//#region src/modules/wallets/networks/lastKnownNetworkRegistry/createLastKnownNetworkRegistry/schema.ts
+const networkRegistryStorageKeySchema = require_isMfaRequiredForAction.createStorageKeySchema({
+	key: "lastKnownNetworkRegistry",
+	schema: zod_mini.record(zod_mini.string(), zod_mini.string())
+});
+
+//#endregion
+//#region src/modules/wallets/networks/lastKnownNetworkRegistry/createLastKnownNetworkRegistry/createLastKnownNetworkRegistry.ts
+/**
+* Creates the registry that keeps tabs on which wallet provider is
+* connected to which network.
+*
+* Reminder that this will not be used for chains that have an internal way to
+* switch networks (ex EVM).
+* @not-instrumented
+*/
+const createLastKnownNetworkRegistry = (client) => {
+	const core = require_InvalidParamError.getCore(client);
+	const walletProviderKeyToNetworkId = /* @__PURE__ */ new Map();
+	const getNetworkId = async ({ walletProviderKey }) => {
+		if (walletProviderKeyToNetworkId.has(walletProviderKey)) return { networkId: walletProviderKeyToNetworkId.get(walletProviderKey) };
+		const storageRecords = await core.storage.getItem(networkRegistryStorageKeySchema);
+		if (storageRecords && storageRecords[walletProviderKey]) {
+			const networkId = storageRecords[walletProviderKey];
+			walletProviderKeyToNetworkId.set(walletProviderKey, networkId);
+			return { networkId };
+		}
+		const walletProvider = require_getVerifiedCredentialForWalletAccount.getWalletProviderByKey({ walletProviderKey }, client);
+		const networkProviders = require_getNetworkProviderFromNetworkId.getNetworkProviders(client);
+		if (networkProviders.length === 0) throw new require_getNetworkProviderFromNetworkId.NoNetworkProvidersError();
+		const defaultNetworkProvider = networkProviders.find((networkProvider) => networkProvider.chain === walletProvider.chain);
+		require_InvalidParamError.assertDefined(defaultNetworkProvider, `No networks found for chain ${walletProvider.chain}`);
+		walletProviderKeyToNetworkId.set(walletProviderKey, defaultNetworkProvider.networkId);
+		return { networkId: defaultNetworkProvider.networkId };
+	};
+	const setNetworkId = async ({ networkId, walletProviderKey }) => {
+		walletProviderKeyToNetworkId.set(walletProviderKey, networkId);
+		await core.storage.setItem(networkRegistryStorageKeySchema, Object.fromEntries(walletProviderKeyToNetworkId.entries()));
+	};
+	return {
+		getNetworkId,
+		setNetworkId
+	};
+};
+
+//#endregion
+//#region src/modules/wallets/networks/lastKnownNetworkRegistry/getLastKnownNetworkRegistry/getLastKnownNetworkRegistry.ts
+const getLastKnownNetworkRegistry = require_InvalidParamError.createRuntimeServiceAccessKey("last-known-network-registry", (client) => createLastKnownNetworkRegistry(client));
+
+//#endregion
+//#region src/modules/wallets/utils/formatWalletProviderGroupKey/formatWalletProviderGroupKey.ts
+/** @not-instrumented */
+const formatWalletProviderGroupKey = (walletName) => walletName.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+
+//#endregion
+//#region src/modules/wallets/utils/getAllProvidersFromWindow/getAllProvidersFromWindow.ts
+/**
+* Retrieves all providers from a window path.
+*
+* Unlike getInjectedProviderFromWindow which returns only the first provider,
+* this function returns ALL providers found at the path, including those
+* in a .providers array if present.
+*
+* This is particularly useful for detecting wallet providers in wallet app
+* in-app browsers, where wallets inject their provider into the window object.
+*
+* @param path - Dot-separated path to traverse (e.g., "ethereum")
+* @returns Array of all providers found, or empty array if none
+* @not-instrumented
+*/
+const getAllProvidersFromWindow = (path) => {
+	if (typeof window === "undefined") return [];
+	const target = path.split(".").reduce((acc, key) => acc == null ? null : acc[key], window);
+	if (typeof target !== "object" || target === null) return [];
+	if (Array.isArray(target)) return target;
+	const providers = [];
+	const providersArray = target.providers;
+	if (providersArray && Array.isArray(providersArray)) providers.push(...providersArray);
+	providers.push(target);
+	return providers;
+};
+
+//#endregion
+//#region src/modules/wallets/utils/getInjectedProviderFromWindow/getInjectedProviderFromWindow.ts
+/** @not-instrumented */
+const getInjectedProviderFromWindow = (path) => {
+	if (typeof window === "undefined") return null;
+	const target = path.split(".").reduce((acc, key) => acc == null ? null : acc[key], window);
+	if (typeof target !== "object" || target === null) return null;
+	if (Array.isArray(target)) return target.length > 0 ? target[0] : null;
+	const providersArray = target.providers;
+	if (providersArray && Array.isArray(providersArray)) return providersArray.length > 0 ? providersArray[0] : null;
+	return target;
+};
+
+//#endregion
+//#region src/modules/wallets/walletProvider/defaultImplementations/getActiveNetworkIdFromLastKnownRegistry/getActiveNetworkIdFromLastKnownRegistry.ts
+/** @not-instrumented */
+const getActiveNetworkIdFromLastKnownRegistry = async ({ client, walletProviderKey }) => {
+	return getLastKnownNetworkRegistry(client).getNetworkId({ walletProviderKey });
+};
+
+//#endregion
+//#region src/modules/wallets/walletProvider/defaultImplementations/switchActiveNetworkInLastKnownRegistry/switchActiveNetworkInLastKnownRegistry.ts
+/** @not-instrumented */
+const switchActiveNetworkInLastKnownRegistry = async ({ client, networkId, walletProviderKey }) => {
+	await getLastKnownNetworkRegistry(client).setNetworkId({
+		networkId,
+		walletProviderKey
+	});
+};
+
+//#endregion
+//#region src/modules/wallets/walletProvider/events/createWalletProviderEventEmitter/createWalletProviderEventEmitter.ts
+/**
+* Takes a callback that registers handlers for the external wallet provider.
+* Returns both a getter of an eventEmitter that can be exposed via the wallet provider
+* and a callback that will be used to destroy the listeners.
+* @not-instrumented
+*/
+const createWalletProviderEventEmitter = ({ removeEventListeners, setupEventListeners, supportedEvents = [
+	"accountsChanged",
+	"disconnected",
+	"networkChanged"
+] }) => {
+	let eventEmitter;
+	/** Value returned by setupEventListeners */
+	let setupReturnValue;
+	const handleAccountsChanged = (params) => {
+		require_InvalidParamError.assertDefined(eventEmitter, "Event emitter not defined");
+		eventEmitter.emit("accountsChanged", params);
+	};
+	const handleDisconnected = () => {
+		require_InvalidParamError.assertDefined(eventEmitter, "Event emitter not defined");
+		eventEmitter.emit("disconnected");
+	};
+	const handleNetworkChanged = (params) => {
+		require_InvalidParamError.assertDefined(eventEmitter, "Event emitter not defined");
+		eventEmitter.emit("networkChanged", params);
+	};
+	const cleanupEventEmitter = () => {
+		if (!eventEmitter) return;
+		removeEventListeners({
+			handleAccountsChanged,
+			handleDisconnected,
+			handleNetworkChanged,
+			setupReturnValue
+		});
+		eventEmitter = void 0;
+	};
+	const getEventEmitter = () => {
+		if (!eventEmitter) {
+			eventEmitter = new eventemitter3.default();
+			setupReturnValue = setupEventListeners({
+				handleAccountsChanged,
+				handleDisconnected,
+				handleNetworkChanged
+			});
+		}
+		return Object.assign(eventEmitter, { supportedEvents });
+	};
+	return {
+		cleanupEventEmitter,
+		getEventEmitter
+	};
+};
+
+//#endregion
+//#region src/services/realtime/createRealtimeChannelSchema/createRealtimeChannelSchema.ts
+/**
+* Defines a typed schema for a realtime channel — analogous to `createStorageKeySchema`
+* for storage. Pairs a channel name with a Zod schema that validates the shape of
+* messages sent and received on that channel. Pass the result to the realtime service's
+* `subscribe` / `unsubscribe` / `publish` methods to get end-to-end type safety.
+* @not-instrumented
+*/
+const createRealtimeChannelSchema = (params) => params;
+
+//#endregion
+//#region src/utils/assertNonEmptyArray/assertNonEmptyArray.ts
+/**
+* Asserts that a value is a non-empty array, throwing an error if it is null,
+* undefined, or has zero elements. This function acts as a type guard,
+* narrowing the type to a tuple of at least one element.
+*
+* @template T - The element type of the array being checked
+* @param value - The array (or possibly null/undefined value) to check
+* @param message - The error message to throw if the value is empty or missing
+* @throws Throws an error with the provided message if value is null, undefined, or empty
+* @example
+* ```typescript
+* const maybeNetworks: Network[] | undefined = getNetworks();
+* assertNonEmptyArray(maybeNetworks, 'At least one network is required');
+* // maybeNetworks is now typed as [Network, ...Network[]]
+* const first = maybeNetworks[0]; // safely accessible without `| undefined`
+* ```
+*/
+function assertNonEmptyArray(value, message) {
+	if (!value || value.length === 0) throw new ArrayMustNotBeEmptyError(message);
+}
+
+//#endregion
+//#region src/utils/bufferToBase64/bufferToBase64.ts
+/** @not-instrumented */
+const bufferToBase64 = (buf) => {
+	const binstr = Array.prototype.map.call(buf, (ch) => String.fromCharCode(ch)).join("");
+	return require_getNetworkProviderFromNetworkId.getBuffer().from(binstr, "binary").toString("base64");
+};
+
+//#endregion
+//#region src/utils/filterDuplicates/filterDuplicates.ts
+/**
+* Filter duplicates from an array by equality.
+* Uses a Set internally.
+* @not-instrumented
+*/
+const filterDuplicates = (array) => Array.from(new Set(array));
+
+//#endregion
+//#region src/utils/parseAmountToSmallestUnit/parseAmountToSmallestUnit.ts
+/**
+* Converts a human-readable decimal amount string to the smallest unit
+* representation as a bigint, using string-based arithmetic to avoid
+* floating-point precision loss.
+*
+* @example
+* parseAmountToSmallestUnit({ amount: '1.5', decimals: 9 })   // 1500000000n  (1.5 SOL in lamports)
+* parseAmountToSmallestUnit({ amount: '1.5', decimals: 8 })   // 150000000n   (1.5 BTC in satoshis)
+* parseAmountToSmallestUnit({ amount: '10.5', decimals: 6 })  // 10500000n    (10.5 USDC)
+* parseAmountToSmallestUnit({ amount: '0.1', decimals: 9 })   // 100000000n   (no float error)
+*
+* @param params.amount - The amount as a decimal string (e.g. "1.5").
+* @param params.decimals - The number of decimal places for the token.
+* @returns The amount in smallest units as a bigint.
+* @not-instrumented
+*/
+const parseAmountToSmallestUnit = ({ amount, decimals }) => {
+	const [whole = "0", fraction = ""] = amount.split(".");
+	const paddedFraction = fraction.padEnd(decimals, "0").slice(0, decimals);
+	return BigInt(whole + paddedFraction);
+};
+
+//#endregion
+//#region src/errors/ReactNativeOnlyError.ts
+var ReactNativeOnlyError = class extends require_InvalidParamError.BaseError {
+	constructor({ apiName }) {
+		super({
+			cause: null,
+			code: "react_native_only_error",
+			docsUrl: null,
+			name: "ReactNativeOnlyError",
+			shortMessage: `${apiName} is only available in React Native environments.`
+		});
+	}
+};
+
+//#endregion
+//#region src/services/nativeManifest/getReactNativeManifest/getReactNativeManifest.ts
+/**
+* Returns the React Native manifest containing native SDK metadata.
+*
+* This function is only available in React Native environments.
+* On web, it throws a `ReactNativeOnlyError`.
+*
+* @not-instrumented
+*/
+const getReactNativeManifest = () => {
+	throw new ReactNativeOnlyError({ apiName: "getReactNativeManifest" });
+};
+
+//#endregion
+//#region src/utils/getNativeLinkScheme/getNativeLinkScheme.ts
+const SCHEME_SEPARATOR = "://";
+/**
+* Reduces a native link to just its URL scheme (e.g.
+* `myapp://wallet/connect` -> `myapp://`), dropping anything after the scheme
+* separator. A native link may be configured with an in-app route, but a
+* consumer that only needs to deep link back into the app (rather than a
+* specific route) should use the scheme alone. Links without a scheme
+* separator are returned unchanged (they cannot carry a route), and
+* `undefined` passes through.
+*
+* @not-instrumented
+*/
+const getNativeLinkScheme = ({ nativeLink }) => {
+	if (nativeLink === void 0) return;
+	const schemeSeparatorIndex = nativeLink.indexOf(SCHEME_SEPARATOR);
+	if (schemeSeparatorIndex === -1) return nativeLink;
+	return nativeLink.slice(0, schemeSeparatorIndex + 3);
+};
+
+//#endregion
+//#region src/exports/core.ts
+(0, _dynamic_labs_sdk_assert_package_version.assertPackageVersion)(require_InvalidParamError.name, require_InvalidParamError.version);
+
+//#endregion
+exports.APIError = require_InvalidParamError.APIError;
+exports.ArrayMustNotBeEmptyError = ArrayMustNotBeEmptyError;
+exports.CHAINS_INFO_MAP = require_InvalidParamError.CHAINS_INFO_MAP;
+exports.CannotTrackError = require_getNetworkProviderFromNetworkId.CannotTrackError;
+exports.ClientNotFoundError = require_InvalidParamError.ClientNotFoundError;
+exports.ClientsDoNotMatchError = ClientsDoNotMatchError;
+exports.CrossTabBroadcastMessageSchema = require_getNetworkProviderFromNetworkId.CrossTabBroadcastMessageSchema;
+exports.DYNAMIC_ICONIC_SPRITE_URL = require_InvalidParamError.DYNAMIC_ICONIC_SPRITE_URL;
+exports.DYNAMIC_SDK_API_VERSION = require_InvalidParamError.DYNAMIC_SDK_API_VERSION;
+exports.InvalidStorageSet = require_getNetworkProviderFromNetworkId.InvalidStorageSet;
+exports.InvalidWalletProviderKeyError = require_InvalidParamError.InvalidWalletProviderKeyError;
+exports.MethodNotImplementedError = require_getNetworkProviderFromNetworkId.MethodNotImplementedError;
+exports.MultipleClientsFoundError = MultipleClientsFoundError;
+exports.NoWalletProviderFoundError = require_InvalidParamError.NoWalletProviderFoundError;
+exports.ValueMustBeDefinedError = require_InvalidParamError.ValueMustBeDefinedError;
+exports.WalletProviderPriority = require_InvalidParamError.WalletProviderPriority;
+exports.assertDefined = require_InvalidParamError.assertDefined;
+exports.assertNonEmptyArray = assertNonEmptyArray;
+exports.bufferToBase64 = bufferToBase64;
+exports.consumeCaptchaToken = require_getNetworkProviderFromNetworkId.consumeCaptchaToken;
+exports.consumeMfaTokenIfRequiredForAction = require_getSignedSessionId.consumeMfaTokenIfRequiredForAction;
+exports.createApiClient = require_InvalidParamError.createApiClient;
+exports.createBaseNetworkProvider = createBaseNetworkProvider;
+exports.createCrossTabBroadcast = require_getNetworkProviderFromNetworkId.createCrossTabBroadcast;
+exports.createDeferredPromise = require_getNetworkProviderFromNetworkId.createDeferredPromise;
+exports.createDeviceSignatureHeadersMiddleware = require_InvalidParamError.createDeviceSignatureHeadersMiddleware;
+exports.createKeychainService = require_getNetworkProviderFromNetworkId.createKeychainService;
+exports.createLocalStorageAdapter = require_getNetworkProviderFromNetworkId.createLocalStorageAdapter;
+exports.createLogger = require_getNetworkProviderFromNetworkId.createLogger;
+exports.createRealtimeChannelSchema = createRealtimeChannelSchema;
+exports.createRealtimeService = require_getNetworkProviderFromNetworkId.createRealtimeService;
+exports.createRuntimeServiceAccessKey = require_InvalidParamError.createRuntimeServiceAccessKey;
+exports.createSignInMessageStatement = require_getNetworkProviderFromNetworkId.createSignInMessageStatement;
+exports.createStorage = require_getNetworkProviderFromNetworkId.createStorage;
+exports.createStorageKeySchema = require_isMfaRequiredForAction.createStorageKeySchema;
+exports.createVisit = require_getNetworkProviderFromNetworkId.createVisit;
+exports.createWalletProviderEventEmitter = createWalletProviderEventEmitter;
+exports.emitEvent = require_InvalidParamError.emitEvent;
+exports.emitWalletAccountsChangedEvent = require_getVerifiedCredentialForWalletAccount.emitWalletAccountsChangedEvent;
+exports.filterDuplicates = filterDuplicates;
+exports.formatSignInMessage = require_getNetworkProviderFromNetworkId.formatSignInMessage;
+exports.formatWalletAccountId = require_InvalidParamError.formatWalletAccountId;
+exports.formatWalletProviderGroupKey = formatWalletProviderGroupKey;
+exports.formatWalletProviderKey = require_InvalidParamError.formatWalletProviderKey;
+exports.generateSessionKeys = require_isMfaRequiredForAction.generateSessionKeys;
+exports.getActiveNetworkIdFromLastKnownRegistry = getActiveNetworkIdFromLastKnownRegistry;
+exports.getAllProvidersFromWindow = getAllProvidersFromWindow;
+exports.getAppMetadata = require_getNetworkProviderFromNetworkId.getAppMetadata;
+exports.getBuffer = require_getNetworkProviderFromNetworkId.getBuffer;
+exports.getChainFromVerifiedCredentialChain = require_InvalidParamError.getChainFromVerifiedCredentialChain;
+exports.getCore = require_InvalidParamError.getCore;
+exports.getDefaultClient = require_InvalidParamError.getDefaultClient;
+exports.getDeviceSigner = require_InvalidParamError.getDeviceSigner;
+exports.getElevatedAccessToken = require_InvalidParamError.__getElevatedAccessToken_wrapped;
+exports.getHeadersForNonceSignedByDeviceSigners = require_InvalidParamError.getHeadersForNonceSignedByDeviceSigners;
+exports.getInjectedProviderFromWindow = getInjectedProviderFromWindow;
+exports.getKeychainIndexedDBName = require_getNetworkProviderFromNetworkId.getKeychainIndexedDBName;
+exports.getLastKnownNetworkRegistry = getLastKnownNetworkRegistry;
+exports.getNativeLinkScheme = getNativeLinkScheme;
+exports.getNetworkDataForNetworkId = getNetworkDataForNetworkId;
+exports.getNetworkProviderBuilderRegistry = require_getNetworkProviderFromNetworkId.getNetworkProviderBuilderRegistry;
+exports.getNetworkProviderFromNetworkId = require_getNetworkProviderFromNetworkId.getNetworkProviderFromNetworkId;
+exports.getNetworkProviders = require_getNetworkProviderFromNetworkId.getNetworkProviders;
+exports.getNonce = require_InvalidParamError.getNonce;
+exports.getReactNativeManifest = getReactNativeManifest;
+exports.getSessionKeys = require_InvalidParamError.getSessionKeys;
+exports.getSignedSessionId = require_getSignedSessionId.getSignedSessionId;
+exports.getVerifiedCredentialForWalletAccount = require_getVerifiedCredentialForWalletAccount.getVerifiedCredentialForWalletAccount;
+exports.getWalletProviderFromWalletAccount = require_InvalidParamError.getWalletProviderFromWalletAccount;
+exports.getWalletProviderRegistry = require_InvalidParamError.getWalletProviderRegistry;
+exports.getWalletProviders = require_getVerifiedCredentialForWalletAccount.getWalletProviders;
+exports.hasExtension = require_getNetworkProviderFromNetworkId.hasExtension;
+exports.isCookieEnabled = require_InvalidParamError.isCookieEnabled;
+exports.logoutWithReason = require_isMfaRequiredForAction.__logoutWithReason_wrapped;
+exports.normalizeWalletNameWithChain = require_InvalidParamError.normalizeWalletNameWithChain;
+exports.parseAmountToSmallestUnit = parseAmountToSmallestUnit;
+exports.randomString = require_InvalidParamError.randomString;
+exports.reconcileWalletAccountsAgainstClient = require_getNetworkProviderFromNetworkId.reconcileWalletAccountsAgainstClient;
+exports.registerExtension = registerExtension;
+exports.removeUnverifiedWalletAccount = require_getNetworkProviderFromNetworkId.removeUnverifiedWalletAccount;
+exports.setCaptchaToken = require_getNetworkProviderFromNetworkId.__setCaptchaToken_wrapped;
+exports.setUnverifiedWalletAccounts = require_getNetworkProviderFromNetworkId.setUnverifiedWalletAccounts;
+exports.splitWalletProviderKey = require_InvalidParamError.splitWalletProviderKey;
+exports.subscribeWithSelector = require_getNetworkProviderFromNetworkId.subscribeWithSelector;
+exports.switchActiveNetworkInLastKnownRegistry = switchActiveNetworkInLastKnownRegistry;
+exports.updateAuthFromVerifyResponse = require_getVerifiedCredentialForWalletAccount.updateAuthFromVerifyResponse;
+exports.updateWalletProviderKeysForVerifiedCredentials = require_getNetworkProviderFromNetworkId.updateWalletProviderKeysForVerifiedCredentials;
+exports.verifyMessageSignatureOwnership = require_getNetworkProviderFromNetworkId.verifyMessageSignatureOwnership;
+exports.waitForProjectSettings = waitForProjectSettings;
+//# sourceMappingURL=core.cjs.map

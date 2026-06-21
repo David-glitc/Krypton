@@ -1,0 +1,14 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var client = require('@dynamic-labs-sdk/client');
+
+/**
+ * Checks whether a valid elevated access token exists for the given scope.
+ * Delegates to the JS SDK's getElevatedAccessToken without consuming the token.
+ */
+const hasElevatedAccessToken = (scope) => client.getElevatedAccessToken({ consume: false, scope }) !== undefined;
+
+exports.hasElevatedAccessToken = hasElevatedAccessToken;

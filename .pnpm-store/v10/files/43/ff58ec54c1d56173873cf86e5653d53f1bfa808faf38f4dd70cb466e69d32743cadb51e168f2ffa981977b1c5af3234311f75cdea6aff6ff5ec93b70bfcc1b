@@ -1,0 +1,40 @@
+'use client'
+import { jsxs, jsx } from 'react/jsx-runtime';
+import { useMemo } from 'react';
+import { useViewContext } from '../../../context/ViewContext/ViewContext.js';
+import '../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { WalletListHelpContent } from './WalletListHelpContent/WalletListHelpContent.js';
+import { WalletMoreInfoContent } from './WalletMoreInfoContent/WalletMoreInfoContent.js';
+import { EmptyHelpContent } from './EmptyHelpContent/EmptyHelpContent.js';
+import { HelpHeader } from './HelpHeader/HelpHeader.js';
+import { PasskeyInfoHelper } from './PasskeyInfoHelper/PasskeyInfoHelper.js';
+
+const HelpContent = () => (jsxs("div", { children: [jsx(HelpHeader, {}), jsx(HelpContentSwitch, {})] }));
+const HelpContentSwitch = () => {
+    const { view } = useViewContext();
+    const { projectSettings, newToWeb3WalletChainMap, selectedWalletConnector } = useInternalDynamicContext();
+    const isWalletListTypeView = useMemo(() => view.type === 'wallet-connect-mobile-wallets-list' ||
+        view.type === 'wallet-list' ||
+        view.type === 'login-with-email-or-wallet-full-wallet-list' ||
+        view.type === 'login-with-wallet-only', [view]);
+    const isPendingSignatureTypeView = useMemo(() => view.type === 'pending-signature-without-back-button' ||
+        view.type === 'pending-signature', [view]);
+    const isPendingConnectTypeView = useMemo(() => view.type === 'pending-connect' || view.type === 'qr-code', [view]);
+    const isPasskeyIntroView = useMemo(() => view.type === 'passkey-intro', [view]);
+    if (isWalletListTypeView) {
+        return (jsx(WalletListHelpContent, { chains: projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.chains, newToWeb3WalletChainMap: newToWeb3WalletChainMap }));
+    }
+    if (isPendingSignatureTypeView) {
+        return (jsx(WalletMoreInfoContent, { variant: 'sign', wallet: selectedWalletConnector || undefined }));
+    }
+    if (isPendingConnectTypeView) {
+        return jsx(WalletMoreInfoContent, { variant: 'connect' });
+    }
+    if (isPasskeyIntroView) {
+        return jsx(PasskeyInfoHelper, {});
+    }
+    return jsx(EmptyHelpContent, {});
+};
+
+export { HelpContent };

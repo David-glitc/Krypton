@@ -1,0 +1,6 @@
+'use client'
+import { createDeviceSignatureHeadersMiddleware as createDeviceSignatureHeadersMiddleware$1, getDefaultClient } from '@dynamic-labs-sdk/client/core';
+
+const createDeviceSignatureHeadersMiddleware = () => createDeviceSignatureHeadersMiddleware$1(getDefaultClient());
+
+export { createDeviceSignatureHeadersMiddleware };

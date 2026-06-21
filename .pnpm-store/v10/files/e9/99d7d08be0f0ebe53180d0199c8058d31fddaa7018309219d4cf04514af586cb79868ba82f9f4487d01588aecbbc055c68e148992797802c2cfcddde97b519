@@ -1,0 +1,3 @@
+export { getAppMetadata } from './getAppMetadata';
+export type { AppMetadata } from './getAppMetadata';
+//# sourceMappingURL=index.d.ts.map

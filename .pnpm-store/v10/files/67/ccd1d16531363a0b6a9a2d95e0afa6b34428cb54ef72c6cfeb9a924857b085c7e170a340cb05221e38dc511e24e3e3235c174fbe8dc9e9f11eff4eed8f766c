@@ -1,0 +1,33 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var logger = require('../../../logger.cjs');
+
+const parseToken = (token) => {
+    var _a;
+    if (!token)
+        return undefined;
+    try {
+        const base64 = (_a = token.split('.')[1]) === null || _a === void 0 ? void 0 : _a.replace(/-/g, '+').replace(/_/g, '/');
+        if (!base64) {
+            logger.logger.error('Failed to parse token to base64 payload');
+            return undefined;
+        }
+        const decodedBase64 = atob(base64);
+        const jsonPayload = decodeURIComponent(decodedBase64
+            .split('')
+            .map((c) => `%${`00${c.charCodeAt(0).toString(16)}`.slice(-2)}`)
+            .join(''));
+        return JSON.parse(jsonPayload);
+    }
+    catch (error) {
+        logger.logger.error('Failed to parse token', {
+            error: error instanceof Error ? error.message : String(error),
+        });
+        return undefined;
+    }
+};
+
+exports.parseToken = parseToken;

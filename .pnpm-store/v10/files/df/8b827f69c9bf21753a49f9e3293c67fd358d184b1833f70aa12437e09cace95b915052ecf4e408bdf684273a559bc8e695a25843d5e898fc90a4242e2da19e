@@ -1,0 +1,21 @@
+declare global {
+    interface DynamicEvents {
+        /**
+         * Fired when device registration completes successfully in the current tab.
+         *
+         * This event is emitted after the completeDeviceRegistration function
+         * successfully registers the device and updates authentication state.
+         */
+        deviceRegistrationCompleted: () => void;
+        /**
+         * Fired when device registration completes successfully in another tab.
+         *
+         * This event is broadcast across tabs using the CrossTabBroadcast service,
+         * allowing all tabs to be notified when device registration completes
+         * in any tab.
+         */
+        deviceRegistrationCompletedInAnotherTab: () => void;
+    }
+}
+export {};
+//# sourceMappingURL=events.d.ts.map

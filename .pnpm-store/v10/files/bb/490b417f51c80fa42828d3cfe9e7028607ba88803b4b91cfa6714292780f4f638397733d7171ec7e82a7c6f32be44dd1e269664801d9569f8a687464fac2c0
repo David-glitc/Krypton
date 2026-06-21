@@ -1,0 +1,66 @@
+'use client'
+import { persist, createStore } from '@dynamic-labs/store';
+import { STORE_STORAGE_KEY } from '../../utils/constants/localStorage.js';
+import '../../utils/constants/colors.js';
+import '../../utils/constants/values.js';
+import { transformStateForLocalStorage, createInitialState, storeVersion } from '../stateConfig.js';
+import { syncLegacyStorage } from './utils/syncLegacyStorage/syncLegacyStorage.js';
+
+// Store the zustand store instance on globalThis so it survives dual-package
+// loading. See client.ts for full explanation of the dual-package hazard.
+const GLOBAL_KEY = Symbol.for('@dynamic-labs/sdk-react-core/store');
+const getStoreHolder = () => {
+    const g = globalThis;
+    if (!g[GLOBAL_KEY]) {
+        g[GLOBAL_KEY] = { instance: undefined };
+    }
+    return g[GLOBAL_KEY];
+};
+const getStore = () => {
+    const { instance } = getStoreHolder();
+    if (!instance) {
+        throw new Error('Store not initialized');
+    }
+    return instance;
+};
+const removeStoreInstance = () => {
+    getStoreHolder().instance = undefined;
+};
+const clearPersistedStore = (localStorageSuffix) => {
+    if (typeof localStorage === 'undefined')
+        return;
+    const persistName = localStorageSuffix
+        ? `${STORE_STORAGE_KEY}_${localStorageSuffix}`
+        : STORE_STORAGE_KEY;
+    localStorage.removeItem(persistName);
+};
+const initializeStore = (props) => {
+    var _a;
+    const holder = getStoreHolder();
+    if (holder.instance) {
+        return;
+    }
+    const { localStorageSuffix } = (_a = props.settings) !== null && _a !== void 0 ? _a : {};
+    const persistName = localStorageSuffix
+        ? `${STORE_STORAGE_KEY}_${localStorageSuffix}`
+        : STORE_STORAGE_KEY;
+    holder.instance = syncLegacyStorage(persist({
+        name: persistName,
+        partialize: transformStateForLocalStorage,
+        storage: getStorage(),
+        // Map each entry to its initialValue
+        store: createStore(() => createInitialState(props)),
+        version: storeVersion,
+    }));
+};
+const getStorage = () => {
+    if (typeof localStorage === 'undefined') {
+        return {
+            getItem: () => null,
+            setItem: () => { },
+        };
+    }
+    return window.localStorage;
+};
+
+export { clearPersistedStore, getStore, initializeStore, removeStoreInstance };

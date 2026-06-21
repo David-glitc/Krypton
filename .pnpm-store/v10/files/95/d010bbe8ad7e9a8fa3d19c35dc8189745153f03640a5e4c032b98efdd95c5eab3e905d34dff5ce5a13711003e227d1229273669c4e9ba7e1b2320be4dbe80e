@@ -1,0 +1,54 @@
+const require_isMfaRequiredForAction = require('./isMfaRequiredForAction-BNipdNF5.cjs');
+const require_InvalidParamError = require('./InvalidParamError-CmwKWCyr.cjs');
+
+//#region src/modules/mfa/consumeMfaTokenIfRequiredForAction/consumeMfaTokenIfRequiredForAction.ts
+/** @not-instrumented */
+const consumeMfaTokenIfRequiredForAction = async ({ mfaAction }, client) => {
+	if (!await require_isMfaRequiredForAction.isMfaRequiredForAction({ mfaAction }, client)) return;
+	return require_isMfaRequiredForAction.__consumeMfaToken_wrapped(client);
+};
+
+//#endregion
+//#region src/modules/sessionKeys/generateNonceSignature/generateNonceSignature.ts
+/** @not-instrumented */
+const generateNonceSignature = async ({ nonce }, client) => {
+	const core = require_InvalidParamError.getCore(client);
+	require_InvalidParamError.assertDefined(core.keychain, "Keychain service not available");
+	return { signature: await core.keychain.sign("session", nonce) };
+};
+
+//#endregion
+//#region src/modules/sessionKeys/generateSessionSignature/generateSessionSignature.ts
+/** @not-instrumented */
+const generateSessionSignature = async ({ sessionId }, client) => {
+	return { signature: await require_InvalidParamError.getCore(client).keychain.sign("session", sessionId) };
+};
+
+//#endregion
+//#region src/modules/sessionKeys/getSignedSessionId/getSignedSessionId.ts
+/** @not-instrumented */
+const getSignedSessionId = async (client) => {
+	const sessionId = require_InvalidParamError.getCore(client).state.get().user?.sessionId;
+	require_InvalidParamError.assertDefined(sessionId, "Session ID is required");
+	const { signature: signedSessionId } = await generateSessionSignature({ sessionId }, client);
+	require_InvalidParamError.assertDefined(signedSessionId, "Signed session ID is required");
+	const nonce = await require_InvalidParamError.getNonce(client);
+	const { signature: nonceSignature } = await generateNonceSignature({ nonce }, client);
+	require_InvalidParamError.assertDefined(nonceSignature, "Nonce signature is required");
+	return { signature: `${signedSessionId}/${nonceSignature}/${nonce}` };
+};
+
+//#endregion
+Object.defineProperty(exports, 'consumeMfaTokenIfRequiredForAction', {
+  enumerable: true,
+  get: function () {
+    return consumeMfaTokenIfRequiredForAction;
+  }
+});
+Object.defineProperty(exports, 'getSignedSessionId', {
+  enumerable: true,
+  get: function () {
+    return getSignedSessionId;
+  }
+});
+//# sourceMappingURL=getSignedSessionId-CbWFH_TM.cjs.map

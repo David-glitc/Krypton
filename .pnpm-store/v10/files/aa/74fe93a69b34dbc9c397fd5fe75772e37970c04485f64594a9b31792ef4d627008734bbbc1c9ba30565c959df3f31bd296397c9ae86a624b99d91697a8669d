@@ -1,0 +1,11 @@
+import type { KeychainService } from '../keychain.types';
+export type StoredKey = {
+    keyName: string;
+    privateKey: CryptoKey;
+    publicKeyHex: string;
+};
+export type CreateKeychainServiceParams = {
+    dbName?: string;
+};
+export type CreateKeychainService = (params?: CreateKeychainServiceParams) => KeychainService;
+//# sourceMappingURL=createKeychainService.types.d.ts.map

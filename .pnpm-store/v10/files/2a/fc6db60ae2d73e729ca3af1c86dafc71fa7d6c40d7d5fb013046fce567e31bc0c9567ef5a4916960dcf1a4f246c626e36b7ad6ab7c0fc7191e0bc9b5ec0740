@@ -1,0 +1,13 @@
+import type { ExternalAuthAssertionResponse } from '@dynamic-labs/sdk-api-core';
+import { UserProfile } from '../../../..';
+type Props = {
+    externalUserId: string;
+    externalJwt?: string;
+};
+export declare const useExternalAuth: () => {
+    signInWithExternalJwt: (props: Props) => Promise<UserProfile | undefined>;
+    verifyWithExternalJwt: (props: {
+        externalJwt: string;
+    }) => Promise<ExternalAuthAssertionResponse>;
+};
+export {};

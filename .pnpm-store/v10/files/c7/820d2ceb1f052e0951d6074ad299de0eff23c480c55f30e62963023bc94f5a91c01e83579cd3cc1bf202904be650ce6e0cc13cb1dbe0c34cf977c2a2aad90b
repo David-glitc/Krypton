@@ -1,0 +1,28 @@
+import type { WalletProviderData } from '../../wallets/walletProvider/walletProvider.types';
+import type { WalletConnectCatalog } from '../getWalletConnectCatalog/getWalletConnectCatalog.types';
+type ExcludeInstalledFromCatalogParams = {
+    catalog: WalletConnectCatalog;
+    walletProviders: WalletProviderData[];
+};
+/**
+ * Returns a new WalletConnect catalog with the wallets and groups that the
+ * user already has installed removed.
+ *
+ * Useful when rendering a combined wallet list (installed + WalletConnect
+ * catalog) where each wallet should appear exactly once: installed wallets
+ * win and the corresponding catalog entries get hidden.
+ *
+ * Matching is delegated to {@link collectInstalledGroupIds}, so a single
+ * installed provider removes every wallet that shares its group — e.g. an
+ * installed MetaMask hides both the EVM and SOL catalog entries.
+ *
+ * The original catalog object is not mutated.
+ *
+ * @param params.catalog - The full WalletConnect catalog (typically from `getWalletConnectCatalog`).
+ * @param params.walletProviders - Currently available wallet providers.
+ * @returns A new catalog with only the wallets and groups the user does not have installed.
+ * @not-instrumented
+ */
+export declare const excludeInstalledFromCatalog: ({ catalog, walletProviders, }: ExcludeInstalledFromCatalogParams) => WalletConnectCatalog;
+export {};
+//# sourceMappingURL=excludeInstalledFromCatalog.d.ts.map

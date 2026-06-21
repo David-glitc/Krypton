@@ -1,0 +1,42 @@
+import { exists } from '../runtime.js';
+import { SwapFeeFromJSON, SwapFeeToJSON } from './SwapFee.js';
+import { SwapGasCostFromJSON, SwapGasCostToJSON } from './SwapGasCost.js';
+import { SwapStepSideFromJSON, SwapStepSideToJSON } from './SwapStepSide.js';
+
+/* tslint:disable */
+function SwapStepFromJSON(json) {
+    return SwapStepFromJSONTyped(json);
+}
+function SwapStepFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'feeCosts': !exists(json, 'feeCosts') ? undefined : (json['feeCosts'].map(SwapFeeFromJSON)),
+        'from': SwapStepSideFromJSON(json['from']),
+        'gasCosts': !exists(json, 'gasCosts') ? undefined : (json['gasCosts'].map(SwapGasCostFromJSON)),
+        'id': json['id'],
+        'to': SwapStepSideFromJSON(json['to']),
+        'tool': json['tool'],
+        'type': json['type'],
+    };
+}
+function SwapStepToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'feeCosts': value.feeCosts === undefined ? undefined : (value.feeCosts.map(SwapFeeToJSON)),
+        'from': SwapStepSideToJSON(value.from),
+        'gasCosts': value.gasCosts === undefined ? undefined : (value.gasCosts.map(SwapGasCostToJSON)),
+        'id': value.id,
+        'to': SwapStepSideToJSON(value.to),
+        'tool': value.tool,
+        'type': value.type,
+    };
+}
+
+export { SwapStepFromJSON, SwapStepFromJSONTyped, SwapStepToJSON };

@@ -1,0 +1,17 @@
+'use client'
+import { useContext } from 'react';
+import { isSSR } from '../isSSR/isSSR.js';
+
+const ssrSafeProxy = () => new Proxy({}, { get: () => undefined });
+const createProviderHook = (context, providerName, ssrSafeDefault) => () => {
+    const value = useContext(context);
+    if (value === undefined) {
+        if (isSSR()) {
+            return ssrSafeDefault !== null && ssrSafeDefault !== void 0 ? ssrSafeDefault : ssrSafeProxy();
+        }
+        throw new Error(`Hook must be used within <${providerName}>.`);
+    }
+    return value;
+};
+
+export { createProviderHook };

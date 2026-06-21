@@ -1,0 +1,72 @@
+/**
+ * Paymaster service for handling transaction fees and signing
+ */
+import { Transaction, PublicKey, VersionedTransaction } from '@solana/web3.js';
+export interface PaymasterConfig {
+    paymasterUrl: string;
+    apiKey?: string;
+}
+export declare class Paymaster {
+    private endpoint;
+    private apiKey?;
+    private logger;
+    /**
+     * Create a new Paymaster instance
+     * @param config Configuration for the paymaster service
+     */
+    constructor(config: PaymasterConfig);
+    private getHeaders;
+    /**
+     * Get the public key of the fee payer from the paymaster service
+     * @returns Public key of the fee payer
+     */
+    getPayer(): Promise<PublicKey>;
+    /**
+     * Get a recent blockhash from the paymaster service
+     * @returns Recent blockhash as a string
+     */
+    getBlockhash(): Promise<string>;
+    /**
+     * Sign a transaction using the paymaster service
+     * @param transaction Transaction to sign
+     * @returns Signed transaction
+     */
+    private attemptSign;
+    /**
+     * Sign a transaction using the paymaster service with retries
+     * @param transaction Transaction to sign
+     * @param maxRetries Maximum number of retry attempts (default: 3)
+     * @param baseDelay Base delay between retries in ms (default: 1000)
+     * @returns Signed transaction
+     */
+    sign(transaction: Transaction, maxRetries?: number, baseDelay?: number): Promise<Transaction>;
+    /**
+     * Sign and send a transaction using the paymaster service
+     * @param transaction Transaction to sign and send
+     * @returns Transaction hash as a string
+     */
+    private attemptSignAndSend;
+    /**
+     * Sign and send a transaction with retries
+     * @param transaction Transaction to sign and send
+     * @param maxRetries Maximum number of retry attempts (default: 3)
+     * @param baseDelay Base delay between retries in ms (default: 1000)
+     * @returns Transaction signature
+     */
+    signAndSend(transaction: Transaction, maxRetries?: number, baseDelay?: number): Promise<string>;
+    /**
+   * Sign and send a transaction using the paymaster service
+   * @param transaction Transaction to sign and send
+   * @returns Transaction hash as a string
+   */
+    private attemptSignAndSendVersionedTransaction;
+    /**
+     * Sign and send a transaction with retries
+     * @param transaction Transaction to sign and send
+     * @param maxRetries Maximum number of retry attempts (default: 3)
+     * @param baseDelay Base delay between retries in ms (default: 1000)
+     * @returns Transaction signature
+     */
+    signAndSendVersionedTransaction(transaction: VersionedTransaction, maxRetries?: number, baseDelay?: number): Promise<string>;
+}
+//# sourceMappingURL=paymaster.d.ts.map

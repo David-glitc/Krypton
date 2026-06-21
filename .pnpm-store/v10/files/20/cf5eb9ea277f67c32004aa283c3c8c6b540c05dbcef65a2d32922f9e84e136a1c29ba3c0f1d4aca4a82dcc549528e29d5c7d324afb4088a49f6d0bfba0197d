@@ -1,0 +1,2 @@
+export { matchWalletProvidersToCatalogGroup } from './matchWalletProvidersToCatalogGroup';
+//# sourceMappingURL=index.d.ts.map

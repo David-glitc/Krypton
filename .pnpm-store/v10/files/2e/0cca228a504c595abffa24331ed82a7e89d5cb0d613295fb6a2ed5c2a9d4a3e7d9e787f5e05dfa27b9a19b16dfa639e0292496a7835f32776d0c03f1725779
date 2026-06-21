@@ -1,0 +1,5 @@
+export declare const EMPTY_PDA_RENT_EXEMPT_BALANCE = 890880;
+export declare const PASSKEY_PUBLIC_KEY_SIZE = 33;
+export declare const CREDENTIAL_HASH_SIZE = 32;
+export declare const SIGNATURE_SIZE = 64;
+//# sourceMappingURL=constants.d.ts.map

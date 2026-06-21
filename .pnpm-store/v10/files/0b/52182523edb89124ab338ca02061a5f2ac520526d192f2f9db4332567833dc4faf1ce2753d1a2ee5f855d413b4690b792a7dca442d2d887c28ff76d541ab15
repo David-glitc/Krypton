@@ -1,0 +1,48 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+
+/* tslint:disable */
+/**
+* @export
+* @enum {string}
+*/
+exports.GetEVMSponsoredTransactionStatusResponseStatusEnum = void 0;
+(function (GetEVMSponsoredTransactionStatusResponseStatusEnum) {
+    GetEVMSponsoredTransactionStatusResponseStatusEnum["Pending"] = "pending";
+    GetEVMSponsoredTransactionStatusResponseStatusEnum["Submitted"] = "submitted";
+    GetEVMSponsoredTransactionStatusResponseStatusEnum["Success"] = "success";
+    GetEVMSponsoredTransactionStatusResponseStatusEnum["Failure"] = "failure";
+})(exports.GetEVMSponsoredTransactionStatusResponseStatusEnum || (exports.GetEVMSponsoredTransactionStatusResponseStatusEnum = {}));
+function GetEVMSponsoredTransactionStatusResponseFromJSON(json) {
+    return GetEVMSponsoredTransactionStatusResponseFromJSONTyped(json);
+}
+function GetEVMSponsoredTransactionStatusResponseFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'errorMessage': !runtime.exists(json, 'errorMessage') ? undefined : json['errorMessage'],
+        'status': json['status'],
+        'transactionHash': !runtime.exists(json, 'transactionHash') ? undefined : json['transactionHash'],
+    };
+}
+function GetEVMSponsoredTransactionStatusResponseToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'errorMessage': value.errorMessage,
+        'status': value.status,
+        'transactionHash': value.transactionHash,
+    };
+}
+
+exports.GetEVMSponsoredTransactionStatusResponseFromJSON = GetEVMSponsoredTransactionStatusResponseFromJSON;
+exports.GetEVMSponsoredTransactionStatusResponseFromJSONTyped = GetEVMSponsoredTransactionStatusResponseFromJSONTyped;
+exports.GetEVMSponsoredTransactionStatusResponseToJSON = GetEVMSponsoredTransactionStatusResponseToJSON;

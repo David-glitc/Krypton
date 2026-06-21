@@ -1,0 +1,36 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+var CheckoutGasEstimate = require('./CheckoutGasEstimate.cjs');
+
+/* tslint:disable */
+function CheckoutFeeBreakdownFromJSON(json) {
+    return CheckoutFeeBreakdownFromJSONTyped(json);
+}
+function CheckoutFeeBreakdownFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'totalFeeUsd': !runtime.exists(json, 'totalFeeUsd') ? undefined : json['totalFeeUsd'],
+        'gasEstimate': !runtime.exists(json, 'gasEstimate') ? undefined : CheckoutGasEstimate.CheckoutGasEstimateFromJSON(json['gasEstimate']),
+    };
+}
+function CheckoutFeeBreakdownToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'totalFeeUsd': value.totalFeeUsd,
+        'gasEstimate': CheckoutGasEstimate.CheckoutGasEstimateToJSON(value.gasEstimate),
+    };
+}
+
+exports.CheckoutFeeBreakdownFromJSON = CheckoutFeeBreakdownFromJSON;
+exports.CheckoutFeeBreakdownFromJSONTyped = CheckoutFeeBreakdownFromJSONTyped;
+exports.CheckoutFeeBreakdownToJSON = CheckoutFeeBreakdownToJSON;

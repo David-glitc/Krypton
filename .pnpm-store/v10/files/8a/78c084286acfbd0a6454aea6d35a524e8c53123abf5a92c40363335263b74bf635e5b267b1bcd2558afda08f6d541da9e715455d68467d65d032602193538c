@@ -1,0 +1,34 @@
+{
+  "name": "@dynamic-labs-wallet/browser-wallet-client",
+  "version": "1.0.16",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "@dynamic-labs-wallet/core": "1.0.16",
+    "@dynamic-labs/logger": "^4.45.2",
+    "@dynamic-labs/message-transport": "^4.45.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "nx": {
+    "sourceRoot": "packages/browser-wallet-client/src",
+    "projectType": "library",
+    "name": "browser-wallet-client",
+    "targets": {
+      "build": {}
+    }
+  },
+  "main": "./index.cjs",
+  "module": "./index.esm.js",
+  "types": "./index.esm.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./index.esm.d.ts",
+      "import": "./index.esm.js",
+      "require": "./index.cjs",
+      "default": "./index.esm.js"
+    }
+  }
+}

@@ -1,0 +1,86 @@
+import Foundation
+import Security
+import CryptoKit
+
+/// Production implementation of `SecKeyAPI` — each method is a thin
+/// passthrough to the real Security/CryptoKit C call.
+///
+/// This file is excluded from coverage measurement
+/// (`sonar.coverage.exclusions`) because every method is a one-line
+/// passthrough that cannot be exercised on the iOS Simulator. The
+/// behaviour these calls perform is verified manually on a real
+/// device before each release.
+final class LiveSecKeyAPI: SecKeyAPI {
+  func isSecureEnclaveAvailable() -> Bool {
+    if #available(iOS 13.0, *) {
+      return SecureEnclave.isAvailable
+    }
+    return false
+  }
+
+  func itemCopyMatching(query: CFDictionary) -> (status: OSStatus, item: CFTypeRef?) {
+    var item: CFTypeRef?
+    let status = SecItemCopyMatching(query, &item)
+    return (status, item)
+  }
+
+  func itemDelete(query: CFDictionary) -> OSStatus {
+    return SecItemDelete(query)
+  }
+
+  func createAccessControl(
+    protection: CFTypeRef,
+    flags: SecAccessControlCreateFlags
+  ) -> SecAccessControl? {
+    return SecAccessControlCreateWithFlags(kCFAllocatorDefault, protection, flags, nil)
+  }
+
+  func createRandomKey(attributes: CFDictionary) throws -> SecKey {
+    var error: Unmanaged<CFError>?
+    guard let key = SecKeyCreateRandomKey(attributes, &error) else {
+      throw LiveSecKeyAPI.error(from: error)
+    }
+    return key
+  }
+
+  func copyPublicKey(_ key: SecKey) -> SecKey? {
+    return SecKeyCopyPublicKey(key)
+  }
+
+  func createSignature(
+    key: SecKey,
+    algorithm: SecKeyAlgorithm,
+    data: CFData
+  ) throws -> Data {
+    var error: Unmanaged<CFError>?
+    guard let signature = SecKeyCreateSignature(key, algorithm, data, &error) else {
+      throw LiveSecKeyAPI.error(from: error)
+    }
+    return signature as Data
+  }
+
+  func copyExternalRepresentation(_ key: SecKey) throws -> Data {
+    var error: Unmanaged<CFError>?
+    guard let data = SecKeyCopyExternalRepresentation(key, &error) else {
+      throw LiveSecKeyAPI.error(from: error)
+    }
+    return data as Data
+  }
+
+  // Mirrors the string-interpolation form the original code used so
+  // that the NSError's localizedDescription remains byte-identical to
+  // pre-refactor output.
+  private static func error(from cfError: Unmanaged<CFError>?) -> NSError {
+    let description: String
+    if let cfError = cfError {
+      description = "\(cfError.takeRetainedValue())"
+    } else {
+      description = "Unknown"
+    }
+    return NSError(
+      domain: "SecKeyAPI",
+      code: 0,
+      userInfo: [NSLocalizedDescriptionKey: description]
+    )
+  }
+}

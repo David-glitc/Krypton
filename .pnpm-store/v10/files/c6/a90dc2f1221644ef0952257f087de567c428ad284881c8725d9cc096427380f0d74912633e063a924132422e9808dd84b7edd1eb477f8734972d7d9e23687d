@@ -1,0 +1,5 @@
+/**
+ * The vendor of a hardware wallet device.
+ */
+export type HardwareWalletVendor = 'ledger';
+//# sourceMappingURL=hardwareWallet.types.d.ts.map

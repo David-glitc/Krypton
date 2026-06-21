@@ -1,0 +1,52 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var OnrampContext = require('../../../context/OnrampContext/OnrampContext.cjs');
+var getOnrampProviders = require('../../../context/OnrampContext/utils/getOnrampProviders.cjs');
+var dynamicContextProps = require('../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+
+const useOnramp = () => {
+    const { onrampEnabled, enabledOnrampProviders, openOnramp } = OnrampContext.useOnrampContext();
+    const { primaryWallet, network } = useInternalDynamicContext.useInternalDynamicContext();
+    const environmentId = dynamicContextProps.useEnvironmentId();
+    const getMatchingProvider = (params) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        var _a, _b;
+        if (!environmentId)
+            return undefined;
+        const providers = yield getOnrampProviders.getOnrampProviders({
+            address: params.address,
+            chainName: params.chainName,
+            currency: params.currency,
+            environmentId,
+            includeDisabled: true,
+            merchantName: params.merchantName,
+            network: (_b = (_a = params.network) !== null && _a !== void 0 ? _a : network) !== null && _b !== void 0 ? _b : undefined,
+            primaryWallet,
+            token: params.token,
+            tokenAmount: params.tokenAmount,
+        });
+        return providers.find((p) => String(p.provider) === String(params.onrampProvider));
+    });
+    const getOnrampUrl = (params) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        const match = yield getMatchingProvider(params);
+        return match === null || match === void 0 ? void 0 : match.url;
+    });
+    const getOnrampQrCode = (params) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        const match = yield getMatchingProvider(params);
+        return match === null || match === void 0 ? void 0 : match.qrCode;
+    });
+    return {
+        enabled: onrampEnabled,
+        getOnrampQrCode,
+        getOnrampUrl,
+        open: openOnramp,
+        providers: enabledOnrampProviders,
+    };
+};
+
+exports.useOnramp = useOnramp;

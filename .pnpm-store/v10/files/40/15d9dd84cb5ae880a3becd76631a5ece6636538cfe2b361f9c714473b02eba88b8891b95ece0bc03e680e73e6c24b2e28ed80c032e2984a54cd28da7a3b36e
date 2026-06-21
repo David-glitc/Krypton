@@ -1,0 +1,19 @@
+import type { GetWalletOptionsCatalogueParams, WalletOptionsCatalogue } from '../walletOptionsCatalogue.types';
+/**
+ * Returns the catalogue of external wallet options a user can sign in
+ * with through this client. Always includes installed wallet providers;
+ * pass `includeMobileOptions: true` to additionally surface
+ * WalletConnect, in-app-browser, and install links.
+ *
+ * Pass `excludedConnectionOptionTypes` to drop specific connection types
+ * from the catalogue (e.g. `['inAppBrowser']` on desktop). Wallets whose
+ * only connection was an excluded type fall through to the install-only
+ * tier of the relevance ordering.
+ *
+ * @param [params] - Inclusion flag + ordering preference + exclusions.
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns A promise that resolves to the wallet options catalogue.
+ * @not-instrumented
+ */
+export declare const getWalletOptionsCatalogue: (params?: GetWalletOptionsCatalogueParams, client?: import("../../../exports").DynamicClient) => Promise<WalletOptionsCatalogue>;
+//# sourceMappingURL=getWalletOptionsCatalogue.d.ts.map

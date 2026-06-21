@@ -1,0 +1,35 @@
+import type { ProviderEnum, TokenScope } from '@dynamic-labs/sdk-api-core';
+export type StepUpReauthOptionType = 'email' | 'sms' | 'wallet' | 'oauth';
+export type StepUpReauthOption = {
+    credentialId: string;
+    label: string;
+    type: StepUpReauthOptionType;
+    oauthProvider?: ProviderEnum;
+};
+export type StepUpReauthChooseMethodViewProps = {
+    onError: (error: Error) => void;
+    onSuccess: () => void;
+    otherOptions: StepUpReauthOption[];
+    primaryOption?: StepUpReauthOption;
+    requestedScopes?: TokenScope[];
+};
+export type StepUpReauthOtpViewProps = {
+    credentialId: string;
+    displayLabel: string;
+    onError: (error: Error) => void;
+    onSuccess: () => void;
+    requestedScopes?: TokenScope[];
+    type: 'email' | 'sms';
+};
+export type StepUpReauthWalletViewProps = {
+    credentialId: string;
+    onError: (error: Error) => void;
+    onSuccess: () => void;
+    requestedScopes?: TokenScope[];
+};
+export type StepUpReauthSocialViewProps = {
+    onError: (error: Error) => void;
+    onSuccess: () => void;
+    provider: ProviderEnum;
+    requestedScopes?: TokenScope[];
+};

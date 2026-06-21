@@ -1,0 +1,26 @@
+import type { MultichainAccountBalanceResponse, MultichainAccountBalancesRequest, MultichainAccountBalancesRequestBalanceRequests } from '@dynamic-labs/sdk-api-core';
+import type { Chain } from '../../chain/chain.types';
+export type GetMultichainTokenBalancesBalanceRequest = Omit<MultichainAccountBalancesRequest, 'balanceRequests'> & {
+    balanceRequests: Array<Omit<MultichainAccountBalancesRequestBalanceRequests, 'chain'> & {
+        chain: Chain;
+    }>;
+};
+export type GetMultichainTokenBalancesParams = {
+    balanceRequest: GetMultichainTokenBalancesBalanceRequest;
+};
+/**
+ * Retrieves token balances across multiple chains, networks, and addresses
+ * in a single batched API request.
+ *
+ * Use this for portfolio-style views that need to render a user's holdings
+ * across their entire multi-chain wallet set. For a single account on one
+ * chain, use {@link getTokenBalances}; for native-only balance, use
+ * {@link getNativeBalance}.
+ *
+ * @param params.balanceRequest - The balance request configuration specifying which chains, networks and addresses to query.
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns A promise that resolves to the chain balances across multiple networks.
+ * @not-instrumented
+ */
+export declare const getMultichainTokenBalances: ({ balanceRequest }: GetMultichainTokenBalancesParams, client?: import("../../../exports").DynamicClient) => Promise<MultichainAccountBalanceResponse["chainBalances"]>;
+//# sourceMappingURL=getMultichainTokenBalances.d.ts.map

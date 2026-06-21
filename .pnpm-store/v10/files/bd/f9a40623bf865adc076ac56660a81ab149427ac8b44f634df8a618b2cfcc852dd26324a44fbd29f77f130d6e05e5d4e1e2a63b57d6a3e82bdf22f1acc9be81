@@ -1,0 +1,17 @@
+'use client'
+import { jsx } from 'react/jsx-runtime';
+import { createContext, useState, useMemo } from 'react';
+import { createProviderHook } from '../../shared/utils/functions/createProviderHook/createProviderHook.js';
+
+const WalletContext = createContext(undefined);
+const WalletContextProvider = ({ children, }) => {
+    const [isLoadingEmbeddedWallet, setIsLoadingEmbeddedWallet] = useState(false);
+    const value = useMemo(() => ({
+        isLoadingEmbeddedWallet,
+        setIsLoadingEmbeddedWallet,
+    }), [isLoadingEmbeddedWallet]);
+    return (jsx(WalletContext.Provider, { value: value, children: children }));
+};
+const useWalletContext = createProviderHook(WalletContext, 'WalletContextProvider');
+
+export { WalletContext, WalletContextProvider, useWalletContext };

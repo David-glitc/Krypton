@@ -1,69 +1,36 @@
-# Krypton
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-Programmable Capital Policy Engine for Solana.
+## Getting Started
 
-## Monorepo
-
-| Path | Purpose | MVP status |
-|------|---------|------------|
-| `apps/web` | TanStack Start + React (landing, app, policy builder) | ✅ Live (mock data) |
-| `programs/krypton_core` | Anchor program — vault, policy, constraint engine | ✅ Compiles, 7 instructions |
-| `packages/policy-schema` | Capital Policy Zod schema | ✅ 21 tests |
-| `packages/sdk` | Shared types + env constants | ✅ 6 tests |
-| `packages/ui` | PolicyBlock, ConstraintBars, PendingActionCard | ✅ 10 tests |
-| `services/orchestrator` | AI agent pipeline | 🔄 Phase 2 scaffold |
-| `services/krypton-sim-rs` | Simulation engine | 🔄 Phase 2 scaffold |
-
-## Quick start
+First, run the development server:
 
 ```bash
-pnpm install
-pnpm dev          # TanStack Start @ http://localhost:3000
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-```bash
-cd programs && cargo build --package krypton_core
-```
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## Tests
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-```bash
-# All packages
-cd packages/policy-schema && npx vitest run
-cd packages/sdk && npx vitest run
-cd packages/ui && npx vitest run
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-# Full workspace type-check
-pnpm build
-```
+## Learn More
 
-Total: **37 tests** across 3 packages, all passing.
+To learn more about Next.js, take a look at the following resources:
 
-## Docs
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-- [AGENTS.md](./AGENTS.md) — Cursor agent skill index
-- [docs/MAINNET-PRIVATE-BETA-MAP.md](./docs/MAINNET-PRIVATE-BETA-MAP.md) — launch checklist
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Routes
+## Deploy on Vercel
 
-| Route | Description |
-|-------|-------------|
-| `/` | Marketing landing |
-| `/docs` | Policy schema reference |
-| `/app` | Vault list (wallet + invite gate) |
-| `/app/create` | Policy builder wizard |
-| `/app/vault/:id` | Dashboard |
-| `/app/vault/:id/activity` | Level 2 pending actions |
-| `/app/vault/:id/policy` | Policy detail |
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-## Program instructions (Phase 1 MVP)
-
-| Instruction | Description |
-|-------------|-------------|
-| `create_vault` | Initialize vault with owner + constraint bounds |
-| `submit_policy` | Anchor policy hash on-chain, activate vault |
-| `deposit` | Increase NAV |
-| `pause_vault` / `unpause_vault` | Owner pause/unpause |
-| `check_constraints` | Constraint Engine gate (leverage, concentration, drawdown) |
-
-Program ID (devnet): `4Xs4pQ2vA9bv8dTxoe6cA9sQZBLZr6aKD4RrGnCdB1g6`
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

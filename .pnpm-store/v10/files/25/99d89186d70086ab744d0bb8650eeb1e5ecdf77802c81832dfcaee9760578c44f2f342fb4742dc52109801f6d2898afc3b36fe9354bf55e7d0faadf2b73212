@@ -1,0 +1,33 @@
+{
+  "name": "@dynamic-labs/waas",
+  "version": "4.89.0",
+  "type": "module",
+  "author": "Dynamic Labs, Inc.",
+  "license": "MIT",
+  "main": "./src/index.cjs",
+  "module": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js",
+      "require": "./src/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@dynamic-labs-sdk/client": "1.8.2",
+    "@dynamic-labs/assert-package-version": "4.89.0",
+    "@dynamic-labs/sdk-api-core": "0.0.1015",
+    "@dynamic-labs-wallet/browser-wallet-client": "1.0.16",
+    "@dynamic-labs-wallet/forward-mpc-client": "0.10.1",
+    "@dynamic-labs/ethereum-core": "4.89.0",
+    "@dynamic-labs/logger": "4.89.0",
+    "@dynamic-labs/solana-core": "4.89.0",
+    "@dynamic-labs/sui-core": "4.89.0",
+    "@dynamic-labs/utils": "4.89.0",
+    "@dynamic-labs/wallet-book": "4.89.0",
+    "@dynamic-labs/wallet-connector-core": "4.89.0"
+  },
+  "peerDependencies": {}
+}

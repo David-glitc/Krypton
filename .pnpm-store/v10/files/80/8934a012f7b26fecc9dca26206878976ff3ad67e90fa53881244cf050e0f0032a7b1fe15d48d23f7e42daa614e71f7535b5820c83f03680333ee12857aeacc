@@ -1,0 +1,5 @@
+import { SdkLogoutReason, UseHandleLogoutParams } from './types';
+export declare const useHandleLogout: (params: UseHandleLogoutParams) => {
+    handleLogOut: () => Promise<void>;
+    handleLogOutWithReason: (reason: SdkLogoutReason) => Promise<void>;
+};

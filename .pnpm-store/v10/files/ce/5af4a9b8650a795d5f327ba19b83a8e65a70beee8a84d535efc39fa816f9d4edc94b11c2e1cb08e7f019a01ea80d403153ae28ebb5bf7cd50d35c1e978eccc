@@ -1,0 +1,8 @@
+import { Injected } from './injected';
+export declare class FallbackSuiConnector extends Injected {
+    name: string;
+    overrideKey: string;
+    isAvailable: boolean;
+    constructor(props: any);
+    isInstalledOnBrowser(): boolean;
+}

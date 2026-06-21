@@ -1,0 +1,3 @@
+/** @not-instrumented */
+export declare const createCheckoutSessionTokenStorageKey: (transactionId: string) => import("../../../../services/storage").StorageKeySchema<string>;
+//# sourceMappingURL=createCheckoutSessionTokenStorageKey.d.ts.map

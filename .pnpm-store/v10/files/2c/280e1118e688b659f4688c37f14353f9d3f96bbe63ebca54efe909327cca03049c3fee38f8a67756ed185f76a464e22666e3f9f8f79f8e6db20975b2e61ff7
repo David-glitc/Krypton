@@ -1,0 +1,594 @@
+'use client'
+import { __awaiter } from '../../../../../../_virtual/_tslib.js';
+import { jsx, jsxs } from 'react/jsx-runtime';
+import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import '../../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { useTokenBalances } from '../../../../utils/hooks/useTokenBalances/useTokenBalances.js';
+import { useAleoShieldedBalances } from '../../../../utils/hooks/useAleoShieldedBalances/useAleoShieldedBalances.js';
+import { useAleoAutoMergeRecords } from '../../../../utils/hooks/useAleoAutoMergeRecords/useAleoAutoMergeRecords.js';
+import { buildTokenKey } from '../../../../utils/hooks/useAleoAutoShieldSponsoredTokens/buildTokenKey.js';
+import { useAleoAutoShieldSponsoredTokens } from '../../../../utils/hooks/useAleoAutoShieldSponsoredTokens/useAleoAutoShieldSponsoredTokens.js';
+import { pollOnShielded } from '../../../../utils/hooks/useAleoAutoShieldSponsoredTokens/pollOnShielded.js';
+import { AccordionItem } from '../../../../components/Accordion/components/AccordionItem/AccordionItem.js';
+import '@dynamic-labs/iconic';
+import '@dynamic-labs/wallet-connector-core';
+import { ReactComponent as SvgCheck } from '../../../../shared/assets/check.js';
+import { ReactComponent as SvgChevronDown } from '../../../../shared/assets/chevron-down.js';
+import { ReactComponent as SvgReloadIcon } from '../../../../shared/assets/reload-icon.js';
+import '../../../../context/ViewContext/ViewContext.js';
+import { logger } from '../../../../shared/logger.js';
+import '@dynamic-labs/wallet-book';
+import '@dynamic-labs/utils';
+import '../../../../utils/constants/colors.js';
+import '../../../../utils/constants/values.js';
+import '@dynamic-labs/sdk-api-core';
+import { authModalZIndex } from '../../../../shared/consts/index.js';
+import { Skeleton } from '../../../../components/Skeleton/Skeleton.js';
+import { Typography } from '../../../../components/Typography/Typography.js';
+import { Modal } from '../../../../components/Modal/Modal.js';
+import { ModalCard } from '../../../../components/ModalCard/ModalCard.js';
+import { Portal } from '../../../../components/Portal/Portal.js';
+import { Button } from '../../../../components/Button/Button.js';
+import { Balance } from '../Balance/Balance.js';
+import '@dynamic-labs-sdk/client/core';
+import 'eventemitter3';
+import '@dynamic-labs-sdk/client';
+import '../../../../config/ApiEndpoint.js';
+import '@dynamic-labs/multi-wallet';
+import 'react-international-phone';
+import '../../../../store/state/nonce/nonce.js';
+import '@dynamic-labs/locale';
+import '../../../../store/state/dynamicContextProps/dynamicContextProps.js';
+import '../../../../store/state/primaryWalletId/primaryWalletId.js';
+import '../../../../store/state/connectedWalletsInfo/connectedWalletsInfo.js';
+import '../../../../utils/functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.js';
+import '../../../../events/dynamicEvents.js';
+import { useProjectSettings } from '../../../../client/extension/projectSettings/useProjectSettings/useProjectSettings.js';
+import { useAuthMode } from '../../../../store/state/authMode/authMode.js';
+import '../../../../context/CaptchaContext/CaptchaContext.js';
+import '../../../../context/ErrorContext/ErrorContext.js';
+import '../../../../context/AccessDeniedContext/AccessDeniedContext.js';
+import '../../../../context/AccountExistsContext/AccountExistsContext.js';
+import '../../../../context/UserWalletsContext/UserWalletsContext.js';
+import '../../../../store/state/loadingAndLifecycle/loadingAndLifecycle.js';
+import '../../../../context/VerificationContext/VerificationContext.js';
+import 'react-dom';
+import '../../../../utils/functions/compareChains/compareChains.js';
+import '../../../../views/Passkey/utils/findPrimaryEmbeddedChain/findPrimaryEmbeddedChain.js';
+import '../../../../context/ThemeContext/ThemeContext.js';
+import '../../../../utils/hooks/useUserUpdateRequest/useUpdateUser/userFieldsSchema.js';
+import 'bs58';
+import { usePromise } from '../../../../utils/hooks/usePromise/usePromise.js';
+import '@dynamic-labs/types';
+import '../../../../context/SocialRedirectContext/SocialRedirectContext.js';
+import '../../../../context/LoadingContext/LoadingContext.js';
+import '../../../../context/WalletContext/WalletContext.js';
+import '../../../../utils/hooks/useEmbeddedWallet/useSecureEnclaveEmbeddedWallet/constants.js';
+import 'yup';
+import '../../../../context/MockContext/MockContext.js';
+import '../../../../views/CollectUserDataView/useFields.js';
+import '../../../../context/FieldsStateContext/FieldsStateContext.js';
+import '../../../../context/UserFieldEditorContext/UserFieldEditorContext.js';
+import '@dynamic-labs/rpc-providers';
+import '../../../../store/state/walletOptions/walletOptions.js';
+import '../../../../components/Alert/Alert.js';
+import '../../../../components/ShadowDOM/ShadowDOM.js';
+import '../../../../components/IconButton/IconButton.js';
+import '../../../../components/InlineWidget/InlineWidget.js';
+import '../../../../components/Input/Input.js';
+import '../../../../components/IsBrowser/IsBrowser.js';
+import '../../../../components/MenuList/Dropdown/Dropdown.js';
+import '../../../../components/OverlayCard/OverlayCard.js';
+import '../../../../components/Transition/ZoomTransition/ZoomTransition.js';
+import '../../../../components/Transition/SlideInUpTransition/SlideInUpTransition.js';
+import '../../../../components/Transition/OpacityTransition/OpacityTransition.js';
+import '../../../../components/PasskeyCreatedSuccessBanner/PasskeyCreatedSuccessBanner.js';
+import '../../../../components/Popper/Popper/Popper.js';
+import '../../../../components/Popper/PopperContext/PopperContext.js';
+import 'qrcode';
+import 'formik';
+import '../../../../utils/hooks/useSubdomainCheck/useSubdomainCheck.js';
+import '../../../../context/WalletGroupContext/WalletGroupContext.js';
+import '../../context/DynamicWidgetContext.js';
+import '../../../../utils/hooks/useGetMfaToken/useGetMfaToken.js';
+import '../../../../utils/hooks/useWalletBackup/useWalletBackup.js';
+import '../../../../utils/hooks/useWalletBackup/BackupError.js';
+import '../../../../utils/hooks/useWalletBackup/types.js';
+import '../../../../utils/hooks/useWalletBackup/cloudProviders.js';
+import '../../../../context/IpConfigurationContext/IpConfigurationContext.js';
+import '../../../../context/ConnectWithOtpContext/ConnectWithOtpContext.js';
+import '../../../DynamicBridgeWidget/views/WalletsView/components/SecondaryWallets/SecondaryWallets.js';
+import '@hcaptcha/react-hcaptcha';
+import '../../helpers/convertExchangeKeyAndProviderEnum.js';
+import '../../../../views/ExchangeWhitelistWarning/ExchangeWhitelistWarning.js';
+import '../../../../context/ErrorContext/hooks/useErrorText/useErrorText.js';
+import '../../../../context/FooterAnimationContext/index.js';
+import '../../../../views/MfaChooseDeviceView/useGetMfaOptions/useGetMfaOptions.js';
+import '../../../../context/PasskeyContext/PasskeyContext.js';
+import '../../../../context/OnrampContext/OnrampContext.js';
+import '../../../../utils/hooks/useWalletDelegation/DelegationError.js';
+import '../../../../store/state/sendBalances.js';
+import '../../../../store/state/connectorsInitializing/connectorsInitializing.js';
+import '../../../../components/OverlayCardBase/OverlayCardTarget/OverlayCardTarget.js';
+import '../DynamicWidgetHeader/DynamicWidgetHeader.js';
+import '../../../../views/TransactionConfirmationView/TransactionConfirmationView.js';
+import '../PasskeyCard/PasskeyCard.js';
+import '../../views/CryptoComOnramp/CryptoComOnramp.js';
+import '../../../../../index.js';
+import '../../views/ManagePasskeysMfaWidgetView/ManagePasskeysMfaWidgetView.js';
+import '../../views/ManageTotpMfaWidgetView/ManageTotpMfaWidgetView.js';
+import '../../views/ReceiveWalletFunds/ReceiveWalletFunds.js';
+import '../../../../store/state/multichainBalances.js';
+import '@dynamic-labs/store';
+import '../../../../shared/utils/functions/getInitialUrl/getInitialUrl.js';
+import { applyOptimisticUnshieldedDeductions, applyOptimisticShieldedAdditions, reconcileOptimisticShields } from './optimisticShield.js';
+import { TokenBalanceList } from './TokenBalanceList/TokenBalanceList.js';
+
+/** Component to display token balances for the primary wallet */
+const ActiveWalletBalance = ({ isLoading = false, }) => {
+    var _a, _b, _c, _d, _e;
+    const { t } = useTranslation();
+    /** Controls for the multi asset balance accordion */
+    const [balanceIsExpanded, setBalanceIsExpanded] = useState(false);
+    /** Controls for the shadow on scroll of the multi asset balance section */
+    const [hasShadow, setHasShadow] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [isSuccess, setIsSuccess] = useState(false);
+    const contentRef = useRef(null);
+    const successTimeoutRef = useRef(null);
+    const refreshTimeoutRef = useRef(null);
+    const { primaryWallet, network, showFiat, multiAsset } = useInternalDynamicContext();
+    const hasNativeToken = (_b = (_a = primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.connector) === null || _a === void 0 ? void 0 : _a.hasNativeToken) !== null && _b !== void 0 ? _b : true;
+    const authMode = useAuthMode();
+    const projectSettings = useProjectSettings();
+    const { data: testnet } = usePromise(() => __awaiter(void 0, void 0, void 0, function* () { return Boolean(yield (primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.connector.isTestnet())); }), { deps: [network], initialData: false });
+    const { isLoading: isLoadingTokenBalances, tokenBalances: unshieldedTokenBalances, error: errorTokenBalances, fetchAccountBalances, } = useTokenBalances({
+        chainName: primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.connector.connectedChain,
+        includeFiat: showFiat || !hasNativeToken,
+        includeNativeBalance: true,
+    });
+    const { tokenBalances: shieldedTokenBalances, isLoading: isLoadingShielded, refetch: refetchShielded, supportsShielded, } = useAleoShieldedBalances();
+    // Optimistic shield ledger. A shield broadcast resolves before the
+    //  public-balance mapping flips and well before the RecordScanner
+    //  index reflects the new private record, so naively trusting the
+    //  server feed shows a stale unshielded balance and an unchanged
+    //  shielded balance for ~10–90s after the user clicks. Pushing an
+    //  entry here deducts the burned amount from unshielded and prepends
+    //  / bumps the matching shielded row, then `reconcileOptimisticShields`
+    //  drops the entry as soon as either server feed catches up.
+    const [optimisticShields, setOptimisticShields] = useState([]);
+    const effectiveUnshieldedTokenBalances = useMemo(() => applyOptimisticUnshieldedDeductions(unshieldedTokenBalances !== null && unshieldedTokenBalances !== void 0 ? unshieldedTokenBalances : [], optimisticShields), [unshieldedTokenBalances, optimisticShields]);
+    const effectiveShieldedTokenBalances = useMemo(() => applyOptimisticShieldedAdditions(shieldedTokenBalances, optimisticShields), [shieldedTokenBalances, optimisticShields]);
+    // Reconcile + GC optimistic entries whenever either server feed
+    //  updates. The reconciler is pure; we short-circuit the state write
+    //  when nothing changed so downstream memos don't churn on every
+    //  refresh tick.
+    useEffect(() => {
+        setOptimisticShields((current) => {
+            if (current.length === 0)
+                return current;
+            const next = reconcileOptimisticShields(current, unshieldedTokenBalances !== null && unshieldedTokenBalances !== void 0 ? unshieldedTokenBalances : [], shieldedTokenBalances, Date.now());
+            return next.length === current.length ? current : next;
+        });
+    }, [unshieldedTokenBalances, shieldedTokenBalances]);
+    // Push helper used by both the manual Shield Manually CTA and the
+    //  auto-shield hook so the optimistic UI semantics are identical
+    //  whichever flow dispatches the broadcast.
+    const recordOptimisticShield = useCallback((info) => {
+        const { token, amount } = info;
+        const matchingShielded = shieldedTokenBalances.find((t) => token.isNative
+            ? Boolean(t.isNative)
+            : !t.isNative && t.address === token.address);
+        setOptimisticShields((current) => {
+            var _a, _b, _c, _d;
+            return [
+                ...current,
+                {
+                    amount,
+                    createdAtMs: Date.now(),
+                    decimals: (_a = token.decimals) !== null && _a !== void 0 ? _a : 0,
+                    isNative: Boolean(token.isNative),
+                    logoURI: (_b = token.logoURI) !== null && _b !== void 0 ? _b : '',
+                    name: token.name,
+                    preShieldShieldedRaw: BigInt(Math.round((_c = matchingShielded === null || matchingShielded === void 0 ? void 0 : matchingShielded.rawBalance) !== null && _c !== void 0 ? _c : 0)),
+                    preShieldUnshieldedRaw: BigInt(Math.round((_d = token.rawBalance) !== null && _d !== void 0 ? _d : 0)),
+                    price: token.price,
+                    symbol: token.symbol,
+                    tokenAddress: token.address,
+                },
+            ];
+        });
+    }, [shieldedTokenBalances]);
+    /**
+     * Tab state for chains that have a shielded/unshielded split. Defaults to
+     * shielded so Aleo wallets land on their primary balance type. Other
+     * chains render unchanged: when `supportsShielded` is false, the
+     * `tokenBalances` selector below short-circuits to unshielded
+     * regardless of this state, so the default has no visible effect for
+     * non-Aleo wallets. Only Aleo wallets see the toggle (gated by
+     * `supportsShielded`); they should land on Shielded since that's the
+     * privacy-first default for Aleo.
+     */
+    const [activeShieldTab, setActiveShieldTab] = useState('shielded');
+    /**
+     * Address of the token currently being shielded (during a click → broadcast
+     * cycle on the Unshielded tab's "Shield Manually" CTA). Used to flip that
+     * row's button to a `Working…` disabled state. Single-flight: one shield in
+     * flight at a time across the entire list — the form-level UX would get
+     * confusing otherwise (user-paid fees + multiple in-flight DPS proves).
+     */
+    const [shieldingAddress, setShieldingAddress] = useState(undefined);
+    // Duck-typed handle to the Aleo connector's shield helpers — only present
+    //  on `DynamicWaasAleoConnector`. We deliberately avoid an `instanceof`
+    //  check so this file doesn't pull a hard dependency on the Aleo package.
+    const aleoShieldHandle = useMemo(() => {
+        const c = primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.connector;
+        if (c &&
+            typeof c.canShieldToken === 'function' &&
+            typeof c.shieldToken === 'function') {
+            return c;
+        }
+        return undefined;
+    }, [primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.connector]);
+    // Auto-merge sponsored programs on wallet load. Reads owned records,
+    //  groups by program, and silently fires `joinRecords` per program with
+    //  ≥2 records when the Aleo Feemaster covers `join`. Programs that
+    //  Feemaster doesn't sponsor are skipped — the manual "Merge all
+    //  records" demo CTA still dispatches user-paid for those.
+    useAleoAutoMergeRecords();
+    // Auto-shield sponsored tokens on wallet load (and on each unshielded
+    //  balance refresh). Iterates the unshielded list and silently fires
+    //  `shieldToken` for tokens whose `transfer_public_to_private` is
+    //  Feemaster-sponsored. Unsponsored tokens stay on the manual Shield
+    //  Manually CTA, which prompts the user-paid confirmation modal.
+    const { isShielding: isAutoShielding, currentlyShieldingTokenKeys: autoShieldingTokenKeys, } = useAleoAutoShieldSponsoredTokens({
+        accountAddress: primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.address,
+        onShieldDispatched: recordOptimisticShield,
+        onShielded: useCallback(
+        // Parallel refresh — same reasoning as the manual shield path:
+        //  shield ops move value across both tabs, and serializing the
+        //  two refreshes doubled the visible latency for the Shielded
+        //  tab in the common case.
+        () => __awaiter(void 0, void 0, void 0, function* () {
+            return Promise.all([fetchAccountBalances(true), refetchShielded()]).then(() => undefined);
+        }), [fetchAccountBalances, refetchShielded]),
+        shieldHandle: aleoShieldHandle,
+        // Auto-shield reads the raw server feed (not the optimistic one):
+        //  once we deduct optimistically the to-be-shielded token drops to
+        //  zero in the effective list, which would suppress the next
+        //  auto-shield run before this one finishes. The auto-shield hook
+        //  has its own per-session idempotency (`seenKeys`) so it won't
+        //  re-fire for the same token anyway.
+        unshieldedTokenBalances: unshieldedTokenBalances,
+    });
+    // Liveness handle for the manual post-shield poll — set to true when
+    //  the component unmounts so `pollOnShielded` exits its backoff loop
+    //  instead of firing `fetchAccountBalances` on a torn-down tree.
+    const isUnmountedRef = useRef(false);
+    useEffect(() => {
+        isUnmountedRef.current = false;
+        return () => {
+            isUnmountedRef.current = true;
+        };
+    }, []);
+    // Latest server-side unshielded list mirrored into a ref so the
+    //  post-shield convergence check can read the freshest value after
+    //  each polled refresh. `unshieldedTokenBalances` is closure-captured
+    //  by `handleShieldToken` at callback construction time, so without
+    //  this ref the predicate would read the pre-shield list forever and
+    //  the poll would never exit early. Reads from the raw server feed,
+    //  NOT the optimistic one — convergence means "on-chain effect
+    //  observed", which is only meaningful against the actual server
+    //  state.
+    const unshieldedTokenBalancesRef = useRef(unshieldedTokenBalances);
+    useEffect(() => {
+        unshieldedTokenBalancesRef.current = unshieldedTokenBalances;
+    }, [unshieldedTokenBalances]);
+    // Token currently awaiting user-paid fee confirmation. Set when
+    //  Shield Manually is clicked on a token Feemaster doesn't sponsor;
+    //  cleared on Cancel or after the modal's Shield button dispatches.
+    const [pendingShieldToken, setPendingShieldToken] = useState(null);
+    const handleShieldToken = useCallback((token) => __awaiter(void 0, void 0, void 0, function* () {
+        var _f, _g;
+        if (!aleoShieldHandle || shieldingAddress)
+            return;
+        // `rawBalance` is the atomic-units count redcoast surfaces (number).
+        // Convert to bigint via Math.round to absorb any float drift from a
+        // decimal-shifted display value. <=0 entries get filtered out before
+        // the CTA renders, but the guard here is a safety net.
+        const atomic = BigInt(Math.round((_f = token.rawBalance) !== null && _f !== void 0 ? _f : 0));
+        if (atomic <= BigInt(0))
+            return;
+        // Snapshot the pre-shield unshielded balance for the convergence
+        //  predicate below. Aleo's `transfer_public_to_private` burns the
+        //  public mapping value, so a successful shield must show up as a
+        //  drop in this token's `rawBalance`. Polling exits early once
+        //  that drop materializes — no need to keep refreshing on the
+        //  long-tail schedule when we've already observed the on-chain
+        //  effect.
+        const preShieldRawBalance = (_g = token.rawBalance) !== null && _g !== void 0 ? _g : 0;
+        setShieldingAddress(token.address);
+        let didBroadcast = false;
+        try {
+            yield aleoShieldHandle.shieldToken({
+                amount: atomic,
+                isNative: token.isNative,
+                tokenAddress: token.address,
+            });
+            didBroadcast = true;
+            // Optimistic balance update: deduct the burned amount from
+            //  unshielded and bump (or synthesise) the matching shielded
+            //  row before the server-side feeds catch up. Without this the
+            //  Shield Manually CTA flickers back into view during the
+            //  indexing tail and a fast user can issue a second shield
+            //  that fails server-side (validator rejects the now-zero
+            //  public balance) and looks to them like the first one
+            //  failed.
+            recordOptimisticShield({ amount: atomic, token });
+            // Refresh both tabs in parallel. Shield moves value across the
+            //  shielded/unshielded boundary, so both lists need to
+            //  converge. Running them in parallel (vs. sequential) halves
+            //  the visible refresh latency and shortens the window where
+            //  `useTokenBalances`' `isLoading` guard could drop a
+            //  concurrent fetch.
+            yield Promise.all([fetchAccountBalances(true), refetchShielded()]);
+        }
+        catch (err) {
+            logger.debug('[ActiveWalletBalance] shieldToken failed', err);
+        }
+        finally {
+            setShieldingAddress(undefined);
+        }
+        // The relay-accepted broadcast resolves *before* the
+        //  public→private transition finalizes on-chain, so the immediate
+        //  refresh above sees the pre-confirmation balance. Re-poll on the
+        //  shared backoff so the Unshielded row visibly drops and the
+        //  Shielded row picks the new record up without a manual reload.
+        //  Polling is best-effort — errors are swallowed inside
+        //  `pollOnShielded`. Skip when the broadcast itself failed; there's
+        //  nothing new to converge on.
+        if (!didBroadcast)
+            return;
+        yield pollOnShielded(() => __awaiter(void 0, void 0, void 0, function* () {
+            yield Promise.all([fetchAccountBalances(true), refetchShielded()]);
+        }), () => isUnmountedRef.current, () => {
+            var _a, _b;
+            // Convergence: the just-shielded token's unshielded raw
+            //  balance has dropped below the pre-shield value. We read
+            //  via the ref so we see whatever the store published after
+            //  the most recent poll, not the closure-captured list from
+            //  callback construction time. We don't require an exact 0
+            //  — additional unshielded credits could land between scans;
+            //  any decrease is sufficient evidence the burn took effect.
+            const current = (_a = unshieldedTokenBalancesRef.current) === null || _a === void 0 ? void 0 : _a.find((t) => t.address === token.address && t.isNative === token.isNative);
+            const currentRaw = (_b = current === null || current === void 0 ? void 0 : current.rawBalance) !== null && _b !== void 0 ? _b : 0;
+            return currentRaw < preShieldRawBalance;
+        });
+    }), [
+        aleoShieldHandle,
+        fetchAccountBalances,
+        recordOptimisticShield,
+        refetchShielded,
+        shieldingAddress,
+    ]);
+    const getSecondaryAction = useCallback((token) => {
+        // Only on the Unshielded tab, only when the connector exposes shield
+        // helpers, only for tokens registered as shieldable, only for tokens
+        // with a non-zero unshielded balance.
+        if (activeShieldTab !== 'unshielded')
+            return undefined;
+        if (!aleoShieldHandle)
+            return undefined;
+        if (!aleoShieldHandle.canShieldToken({
+            address: token.address,
+            isNative: token.isNative,
+        }))
+            return undefined;
+        if (!token.rawBalance || token.rawBalance <= 0)
+            return undefined;
+        // Hide the CTA while auto-shield is mid-broadcast for this token.
+        //  The connector dedupes regardless, but suppressing the button
+        //  prevents two click-then-spinner cycles for a single underlying
+        //  shield. Once auto-shield resolves, the row re-renders with the
+        //  freshly-zero balance, the `rawBalance <= 0` guard above kicks in,
+        //  and the CTA stays hidden until a new unshielded balance arrives.
+        const tokenKey = buildTokenKey(token);
+        if (tokenKey && autoShieldingTokenKeys.has(tokenKey))
+            return undefined;
+        return {
+            dataTestId: `shield-manually-${token.symbol}`,
+            isLoading: shieldingAddress === token.address,
+            label: 'Shield Manually',
+            onClick: () => {
+                // Pre-check Feemaster sponsorship — if covered, dispatch the
+                //  shield silently (current behaviour). If not covered (e.g.
+                //  policy gap, quota exhausted, lookup error), open a user-paid
+                //  confirmation modal so the user knows they'll pay an ALEO
+                //  network fee before we sign anything. The connector resolves
+                //  the registry token's programId internally.
+                (() => __awaiter(void 0, void 0, void 0, function* () {
+                    var _a;
+                    const sponsored = yield ((_a = aleoShieldHandle.isShieldSponsored) === null || _a === void 0 ? void 0 : _a.call(aleoShieldHandle, {
+                        address: token.address,
+                        isNative: token.isNative,
+                    }));
+                    if (sponsored) {
+                        handleShieldToken(token).catch(() => {
+                            /* error surfaced via state inside handleShieldToken */
+                        });
+                    }
+                    else {
+                        setPendingShieldToken(token);
+                    }
+                }))().catch(() => {
+                    /* error surfaced via state inside the callback */
+                });
+            },
+        };
+    }, [
+        activeShieldTab,
+        aleoShieldHandle,
+        autoShieldingTokenKeys,
+        handleShieldToken,
+        shieldingAddress,
+    ]);
+    const tokenBalances = useMemo(() => supportsShielded && activeShieldTab === 'shielded'
+        ? effectiveShieldedTokenBalances
+        : effectiveUnshieldedTokenBalances, [
+        activeShieldTab,
+        effectiveShieldedTokenBalances,
+        effectiveUnshieldedTokenBalances,
+        supportsShielded,
+    ]);
+    const filteredTokenBalances = useMemo(() => (tokenBalances === null || tokenBalances === void 0 ? void 0 : tokenBalances.filter((token) => token.name)) || [], [tokenBalances]);
+    const totalValue = useMemo(() => filteredTokenBalances.reduce((acc, token) => acc + ((token === null || token === void 0 ? void 0 : token.marketValue) || 0), 0), [filteredTokenBalances]);
+    const enableMultiAsset = useMemo(() => {
+        var _a;
+        return (authMode === 'connect-and-sign' ||
+            (authMode === 'connect-only' &&
+                ((_a = projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.sdk.featureFlags) === null || _a === void 0 ? void 0 : _a.connectOnlyMultiAsset))) &&
+            multiAsset;
+    }, [
+        authMode,
+        (_c = projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.sdk.featureFlags) === null || _c === void 0 ? void 0 : _c.connectOnlyMultiAsset,
+        multiAsset,
+    ]);
+    const isTooManyRequests = errorTokenBalances === 'Too many requests fetching balances';
+    const showMultiAsset = !isTooManyRequests && enableMultiAsset;
+    const currencyFormatter = new Intl.NumberFormat('en-US', {
+        currency: 'USD',
+        style: 'currency',
+    });
+    const canShowFiat = useMemo(() => !testnet && showFiat && showMultiAsset && !errorTokenBalances, [testnet, showFiat, showMultiAsset, errorTokenBalances]);
+    const handleScroll = () => {
+        if (contentRef.current) {
+            setHasShadow(contentRef.current.scrollTop > 0);
+        }
+    };
+    const handleRefresh = useCallback((event) => __awaiter(void 0, void 0, void 0, function* () {
+        event.stopPropagation();
+        if (isRefreshing || isSuccess)
+            return;
+        // Clear any existing timeouts
+        if (successTimeoutRef.current) {
+            clearTimeout(successTimeoutRef.current);
+            successTimeoutRef.current = null;
+        }
+        if (refreshTimeoutRef.current) {
+            clearTimeout(refreshTimeoutRef.current);
+            refreshTimeoutRef.current = null;
+        }
+        setIsRefreshing(true);
+        setIsSuccess(false);
+        try {
+            // Chains with a shielded/unshielded split (Aleo) refresh BOTH
+            //  tabs on a single click. A shield op moves value across the
+            //  boundary, so refreshing only the active tab leaves the other
+            //  visibly stale — the original complaint that drove this fix.
+            //  Other chains never had `refetchShielded` (no-op fallback) so
+            //  they still just hit `fetchAccountBalances` here.
+            if (supportsShielded) {
+                yield Promise.all([refetchShielded(), fetchAccountBalances(true)]);
+            }
+            else {
+                yield fetchAccountBalances(true);
+            }
+            setIsRefreshing(false);
+            setIsSuccess(true);
+            successTimeoutRef.current = setTimeout(() => {
+                setIsSuccess(false);
+                successTimeoutRef.current = null;
+            }, 5000);
+        }
+        catch (error) {
+            refreshTimeoutRef.current = setTimeout(() => {
+                setIsRefreshing(false);
+                refreshTimeoutRef.current = null;
+            }, 1000);
+        }
+    }), [
+        isRefreshing,
+        isSuccess,
+        fetchAccountBalances,
+        refetchShielded,
+        supportsShielded,
+    ]);
+    const primaryWalletNativeBalance = () => {
+        if (!primaryWallet ||
+            isLoadingTokenBalances ||
+            isLoading ||
+            (supportsShielded && activeShieldTab === 'shielded' && isLoadingShielded)) {
+            return jsx(Skeleton, { className: 'balance-container__skeleton' });
+        }
+        // Chain has no native token - show aggregated fiat token values
+        if (!hasNativeToken) {
+            return (jsx(Typography, { variant: 'numbers_display', color: 'primary', children: totalValue === 0 || totalValue >= 0.01
+                    ? currencyFormatter.format(parseFloat(totalValue.toFixed(2)))
+                    : '<$0.01' }));
+        }
+        return canShowFiat ? (jsx(Typography, { variant: 'numbers_display', color: 'primary', children: totalValue === 0 || totalValue >= 0.01
+                ? currencyFormatter.format(parseFloat(totalValue.toFixed(2)))
+                : '<$0.01' })) : (jsx(Balance, { className: 'balance-header__balance', wallet: primaryWallet, network: network, variant: 'numbers_display' }));
+    };
+    const balanceHeaderTitle = () => (jsxs("div", { className: 'balance-header__title', children: [isLoadingTokenBalances ||
+                isLoading ||
+                (supportsShielded &&
+                    activeShieldTab === 'shielded' &&
+                    isLoadingShielded) ? (jsx(Skeleton, { className: 'balance-header__title-skeleton' })) : (jsx(Typography, { color: 'secondary', variant: 'body_normal', copykey: 'dyn_active_wallet_info.balance', children: t('dyn_active_wallet_info.balance') })), jsxs("div", { className: 'balance-header__balance', children: [primaryWalletNativeBalance(), isSuccess ? (jsx("div", { className: 'balance-header__success-icon', children: jsx(SvgCheck, { "data-testid": 'success-icon' }) })) : (jsx(SvgReloadIcon, { "data-testid": 'refresh-balances', className: `balance-header__refresh-icon ${isRefreshing ? 'balance-header__refresh-icon--spinning' : ''}`, onClick: handleRefresh, style: {
+                            cursor: isRefreshing ? 'not-allowed' : 'pointer',
+                            opacity: isRefreshing ? 0.5 : 1,
+                        }, title: 'Refresh balances' }))] })] }));
+    const toggleBalanceAccordion = useCallback(() => {
+        if (!isLoadingTokenBalances) {
+            setBalanceIsExpanded(!balanceIsExpanded);
+        }
+    }, [isLoadingTokenBalances, balanceIsExpanded]);
+    if (!showMultiAsset) {
+        return jsx("div", { className: 'balance-container', children: balanceHeaderTitle() });
+    }
+    return (jsxs("div", { className: 'balance-container', children: [jsxs("div", { className: 'multi-asset-balance-container', children: [jsx("div", { className: `${hasShadow ? 'shadow' : ''}`, children: jsxs("button", { onClick: toggleBalanceAccordion, className: 'balance-header', "data-testid": 'balance-header', children: [balanceHeaderTitle(), !isLoadingTokenBalances && (jsx("div", { className: balanceIsExpanded ? 'balance-header__chevron' : '', children: jsx(SvgChevronDown, {}) }))] }) }), jsxs(AccordionItem, { isOpen: balanceIsExpanded, className: `multi-asset-balance-container__accordion ${'multi-asset-balance-container__accordion' +
+                            (balanceIsExpanded ? '--expanded' : '--collapsed')}`, handleScroll: handleScroll, ref: contentRef, dataTestId: 'multi-asset-balance-accordion', children: [supportsShielded && (jsxs("div", { className: 'shield-tabs', "data-testid": 'shield-tabs', role: 'tablist', style: {
+                                    display: 'flex',
+                                    gap: 16,
+                                    padding: '12px 16px 8px 16px',
+                                }, children: [jsx("button", { type: 'button', role: 'tab', "aria-selected": activeShieldTab === 'shielded', onClick: (e) => {
+                                            e.stopPropagation();
+                                            setActiveShieldTab('shielded');
+                                        }, style: {
+                                            background: 'none',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            fontWeight: activeShieldTab === 'shielded' ? 600 : 400,
+                                            opacity: activeShieldTab === 'shielded' ? 1 : 0.5,
+                                            padding: 0,
+                                        }, children: jsx(Typography, { variant: 'body_normal', children: "Shielded" }) }), jsx("button", { type: 'button', role: 'tab', "aria-selected": activeShieldTab === 'unshielded', onClick: (e) => {
+                                            e.stopPropagation();
+                                            setActiveShieldTab('unshielded');
+                                        }, style: {
+                                            background: 'none',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            fontWeight: activeShieldTab === 'unshielded' ? 600 : 400,
+                                            opacity: activeShieldTab === 'unshielded' ? 1 : 0.5,
+                                            padding: 0,
+                                        }, children: jsx(Typography, { variant: 'body_normal', children: "Unshielded" }) })] })), isAutoShielding && (jsx("div", { className: 'auto-shield-status', "data-testid": 'auto-shield-status', style: {
+                                    opacity: 0.7,
+                                    padding: '4px 16px 8px 16px',
+                                }, children: jsx(Typography, { variant: 'body_small', children: "Auto-shielding\u2026" }) })), jsx(TokenBalanceList, { tokenBalances: filteredTokenBalances, getSecondaryAction: getSecondaryAction })] })] }), jsx(Portal, { elementId: 'dynamic-shield-confirm', isShown: Boolean(pendingShieldToken), zIndex: authModalZIndex, withBackdrop: true, handleClose: () => setPendingShieldToken(null), children: jsx(Modal, { children: jsx(ModalCard, { children: jsxs("div", { style: { padding: 24 }, children: [jsxs(Typography, { variant: 'title', weight: 'medium', color: 'primary', children: ["Shield ", (_d = pendingShieldToken === null || pendingShieldToken === void 0 ? void 0 : pendingShieldToken.balance) !== null && _d !== void 0 ? _d : '', ' ', (_e = pendingShieldToken === null || pendingShieldToken === void 0 ? void 0 : pendingShieldToken.symbol) !== null && _e !== void 0 ? _e : ''] }), jsx(Typography, { variant: 'body_normal', color: 'secondary', style: { display: 'block', marginTop: 8 }, children: "This token doesn't support auto-shielding. A network fee is required to shield manually." }), jsxs("div", { style: {
+                                        display: 'flex',
+                                        gap: 8,
+                                        marginTop: 24,
+                                    }, children: [jsx(Button, { buttonVariant: 'secondary', expanded: true, onClick: () => setPendingShieldToken(null), dataTestId: 'shield-confirm-modal-cancel', children: "Cancel" }), jsx(Button, { buttonVariant: 'primary', expanded: true, onClick: () => {
+                                                const target = pendingShieldToken;
+                                                setPendingShieldToken(null);
+                                                if (target) {
+                                                    handleShieldToken(target).catch(() => {
+                                                        /* error surfaced via state inside handleShieldToken */
+                                                    });
+                                                }
+                                            }, dataTestId: 'shield-confirm-modal-confirm', children: "Shield" })] })] }) }) }) })] }));
+};
+
+export { ActiveWalletBalance };

@@ -1,0 +1,33 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../../_virtual/_tslib.cjs');
+var client = require('@dynamic-labs-sdk/client');
+var core = require('@dynamic-labs-sdk/client/core');
+
+/**
+ * Returns the nonce, nonce signature, and session public key needed for
+ * Turnkey session key registration headers.
+ *
+ * Parses the combined session chaining signature format:
+ * `${signedSessionId}/${nonceSignature}/${nonce}`
+ *
+ * Note: signatures are hex-encoded (no slashes), so splitting on '/' is safe.
+ */
+const getClientSessionNonceHeaders = () => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
+    const client$1 = client.getDefaultClient();
+    const { signature } = yield core.getSignedSessionId(client$1);
+    // signature format: "${signedSessionId}/${nonceSignature}/${nonce}"
+    const parts = signature.split('/');
+    if (parts.length < 3) {
+        throw new Error(`Unexpected session chaining signature format: expected 3 parts, got ${parts.length}`);
+    }
+    const [, nonceSignature, nonce] = parts;
+    const publicKey = (_b = (_a = core.getSessionKeys(client$1)) === null || _a === void 0 ? void 0 : _a.publicKey) !== null && _b !== void 0 ? _b : '';
+    return { nonce, nonceSignature, publicKey };
+});
+
+exports.getClientSessionNonceHeaders = getClientSessionNonceHeaders;

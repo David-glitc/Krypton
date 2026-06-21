@@ -1,0 +1,21 @@
+/**
+ * A type representing a device signer service.
+ *
+ * This service is used to sign payloads using a device signer.
+ */
+export type DeviceSigner = {
+    /**
+     * Gets the public key associated with the device signer.
+     *
+     * @returns A promise that resolves to the public key as a string.
+     */
+    getPublicKey(): Promise<string>;
+    /**
+     * Signs a payload using the device signer.
+     *
+     * @param payload - The payload to sign as a string.
+     * @returns A promise that resolves to the signature as a string.
+     */
+    sign(payload: string): Promise<string>;
+};
+//# sourceMappingURL=deviceSigner.types.d.ts.map

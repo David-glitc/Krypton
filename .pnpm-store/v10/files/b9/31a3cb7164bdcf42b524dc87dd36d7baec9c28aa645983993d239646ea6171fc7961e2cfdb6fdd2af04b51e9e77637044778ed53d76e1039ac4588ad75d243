@@ -1,0 +1,2 @@
+export { completeDeviceRegistration } from './completeDeviceRegistration';
+//# sourceMappingURL=index.d.ts.map

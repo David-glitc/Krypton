@@ -1,0 +1,24 @@
+import type { WalletAccount } from '../../walletAccount';
+type GetNativeBalanceParams = {
+    walletAccount: WalletAccount;
+};
+/**
+ * Retrieves the native token balance for a wallet account on its active
+ * network. Reads directly from the chain's network provider (RPC), not
+ * the Dynamic API.
+ *
+ * Use this when you only need the user's gas / native-currency balance
+ * (ETH, SOL, BTC, etc.). For token balances, use
+ * {@link getTokenBalances}; for a multi-chain portfolio snapshot, use
+ * {@link getMultichainTokenBalances}.
+ *
+ * @param params.walletAccount - The wallet account to get the balance for.
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns A promise that resolves to an object containing the balance as a string or null.
+ * @not-instrumented
+ */
+export declare const getNativeBalance: ({ walletAccount }: GetNativeBalanceParams, client?: import("../../../../exports").DynamicClient) => Promise<{
+    balance: string | null;
+}>;
+export {};
+//# sourceMappingURL=getNativeBalance.d.ts.map

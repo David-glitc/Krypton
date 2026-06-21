@@ -1,0 +1,55 @@
+/// <reference types="vitest/globals" />
+
+const turboModuleGetMock = vi.fn();
+
+vi.mock('react-native', () => ({
+  TurboModuleRegistry: {
+    get get() {
+      return turboModuleGetMock;
+    },
+  },
+}));
+
+describe('NativeReactNativeManifest', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  describe('when the TurboModuleRegistry resolves the native module', () => {
+    const resolvedModule = { getManifest: vi.fn() };
+
+    beforeEach(() => {
+      turboModuleGetMock.mockReturnValue(resolvedModule);
+    });
+
+    it('should expose the resolved module as the default export', async () => {
+      const imported = await import('./NativeReactNativeManifest');
+
+      expect(imported.default).toBe(resolvedModule);
+    });
+
+    it("should look up the native module under the 'DynamicClientManifest' key that matches the iOS and Android registration", async () => {
+      await import('./NativeReactNativeManifest');
+
+      expect(turboModuleGetMock).toHaveBeenCalledWith('DynamicClientManifest');
+    });
+
+    it('should resolve the native module exactly once at import time', async () => {
+      await import('./NativeReactNativeManifest');
+
+      expect(turboModuleGetMock).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe('when the TurboModuleRegistry cannot resolve the native module', () => {
+    beforeEach(() => {
+      turboModuleGetMock.mockReturnValue(null);
+    });
+
+    it('should expose null as the default export so consumers can surface a linking error', async () => {
+      const imported = await import('./NativeReactNativeManifest');
+
+      expect(imported.default).toBeNull();
+    });
+  });
+});

@@ -1,0 +1,10 @@
+import type { Chain } from '../../../chain';
+export type NormalizeAddressOptions = {
+    /** The raw address to normalize. */
+    address: string;
+    /** The chain the address belongs to. */
+    chain: Chain;
+};
+/** @not-instrumented */
+export declare const normalizeAddress: ({ address, chain }: NormalizeAddressOptions) => string;
+//# sourceMappingURL=normalizeAddress.d.ts.map

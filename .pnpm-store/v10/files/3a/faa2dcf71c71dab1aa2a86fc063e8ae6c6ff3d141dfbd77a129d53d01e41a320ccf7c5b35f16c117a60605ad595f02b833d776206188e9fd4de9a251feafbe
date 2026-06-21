@@ -1,0 +1,222 @@
+'use client'
+import { __awaiter } from '../../../../../_virtual/_tslib.js';
+import { useState, useCallback } from 'react';
+import { ProviderEnum } from '@dynamic-labs/sdk-api-core';
+import '@dynamic-labs-sdk/client/core';
+import 'eventemitter3';
+import '@dynamic-labs/utils';
+import '@dynamic-labs-sdk/client';
+import '../../../config/ApiEndpoint.js';
+import '@dynamic-labs/iconic';
+import '@dynamic-labs/wallet-connector-core';
+import 'react/jsx-runtime';
+import '../../../context/ViewContext/ViewContext.js';
+import '../../../shared/logger.js';
+import '@dynamic-labs/wallet-book';
+import '../../constants/colors.js';
+import '../../constants/values.js';
+import '../../../shared/consts/index.js';
+import '@dynamic-labs/multi-wallet';
+import 'react-international-phone';
+import '../../../store/state/nonce/nonce.js';
+import { sdkApi } from '../../../data/api/api.js';
+import '@dynamic-labs/locale';
+import { useEnvironmentId } from '../../../store/state/dynamicContextProps/dynamicContextProps.js';
+import '../../../store/state/primaryWalletId/primaryWalletId.js';
+import '../../../store/state/connectedWalletsInfo/connectedWalletsInfo.js';
+import '../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.js';
+import '../../../events/dynamicEvents.js';
+import { useUser } from '../../../client/extension/user/useUser/useUser.js';
+import { useRefreshAuth } from '../useRefreshAuth/useRefreshAuth.js';
+import { useSocialAccounts } from '../useSocialAccounts/useSocialAccounts.js';
+import { findMissingGoogleDriveBackupScopes, GOOGLE_DRIVE_BACKUP_REQUIRED_SCOPES } from '../useWalletBackup/googleDriveScopes.js';
+
+const IDLE = {
+    isChecking: false,
+    missingScopes: [],
+    status: 'idle',
+};
+// Returns the UUID of the user_oauth_accounts row backing the linked Google
+// credential. The path param of /sdk/.../oauthAccounts/:id/accessToken expects
+// this UUID — *not* the third-party `oauthAccountId` (Google's numeric profile
+// ID), which is what JwtVerifiedCredential.oauthAccountId stores.
+const findGoogleOauthAccountId = (credentials) => {
+    var _a, _b;
+    return (_b = (_a = credentials === null || credentials === void 0 ? void 0 : credentials.find((cred) => cred.format === 'oauth' && cred.oauthProvider === ProviderEnum.Google)) === null || _a === void 0 ? void 0 : _a.id) !== null && _b !== void 0 ? _b : undefined;
+};
+/**
+ * Pre-flight readiness check for backing up MPC keyshares to Google Drive.
+ *
+ * Recommended pattern: call `check()` when the user opens the "Backup to
+ * Google Drive" CTA. If `status` is `'needs-access'`, prompt the user and
+ * call `requestAccess()` to re-prompt the Google consent screen. Then
+ * proceed with `useWalletBackup().backupWallet(...)`.
+ *
+ * Status values:
+ * - `'idle'`: never checked / after `reset()`.
+ * - `'ready'`: stored scopes include both required Drive scopes; backup
+ *   should succeed (barring transient errors).
+ * - `'needs-access'`: backup likely won't succeed without user intervention.
+ *   Covers (a) missing scopes — `missingScopes` lists the gap, (b) no Google
+ *   account linked — `missingScopes` is populated with the full required set
+ *   so callers can render copy directly, and (c) legacy tokens captured
+ *   before scope tracking shipped (`scopes: []` from the API) — indicated
+ *   by an empty `missingScopes` array. Call `requestAccess()` to recover.
+ * - `'error'`: the underlying fetch or relink rejected. `error` holds
+ *   the cause.
+ *
+ * `isChecking` is true while a `check()` or `requestAccess()` is in flight.
+ *
+ * `missingScopes` lists the scopes the user still needs to grant. When no
+ * Google account is linked, this is the full required set; when scopes are
+ * known to be partially missing, only the missing ones; for legacy
+ * "unknown scopes" tokens, the array is empty.
+ *
+ * @example
+ * ```tsx
+ * function BackupButton({ wallet }) {
+ *   const { status, missingScopes, isChecking, check, requestAccess } =
+ *     useGoogleDriveBackupReadiness();
+ *   // Opt into the throw-based error surface; the default mode (legacy)
+ *   // sets `lastBackupError` and returns `false` instead.
+ *   const { backupWallet } = useWalletBackup({ throwOnError: true });
+ *
+ *   const onBackup = async () => {
+ *     // Layer 1: pre-flight readiness — saves an MPC reshare ceremony when
+ *     // we can already tell the upload will fail.
+ *     let r = await check();
+ *     if (r.status === 'needs-access') {
+ *       r = await requestAccess(); // popup re-consent
+ *       if (r.status !== 'ready') return; // user cancelled or relink failed
+ *     }
+ *
+ *     try {
+ *       await backupWallet(wallet, 'GoogleDrive');
+ *     } catch (err) {
+ *       // Layer 2: post-flight fallback — needed for legacy users where the
+ *       // stored `scopes` is empty so pre-flight returned 'unknown'. The
+ *       // type-guard discriminates the Drive scope/access case so we can
+ *       // re-prompt and let the caller retry.
+ *       if (isInsufficientGoogleDriveScopesError(err)) {
+ *         const recovered = await requestAccess();
+ *         if (recovered.status === 'ready') {
+ *           await backupWallet(wallet, 'GoogleDrive');
+ *         }
+ *       } else {
+ *         throw err;
+ *       }
+ *     }
+ *   };
+ *
+ *   return (
+ *     <>
+ *       {status === 'needs-access' && (
+ *         <p>We need access to: {missingScopes.join(', ')}</p>
+ *       )}
+ *       <button onClick={onBackup} disabled={isChecking}>Backup to Drive</button>
+ *     </>
+ *   );
+ * }
+ * ```
+ */
+const useGoogleDriveBackupReadiness = () => {
+    const user = useUser();
+    const environmentId = useEnvironmentId();
+    const refresh = useRefreshAuth();
+    const { linkSocialAccount } = useSocialAccounts();
+    const [readiness, setReadiness] = useState(IDLE);
+    const performCheck = useCallback((verifiedCredentials) => __awaiter(void 0, void 0, void 0, function* () {
+        const oauthAccountId = findGoogleOauthAccountId(verifiedCredentials);
+        if (!oauthAccountId) {
+            // No Google credential linked — every required scope is effectively
+            // missing, so populate the full set so callers can render
+            // "we need access to ..." UX without checking the empty case.
+            const result = {
+                isChecking: false,
+                missingScopes: GOOGLE_DRIVE_BACKUP_REQUIRED_SCOPES,
+                status: 'needs-access',
+            };
+            setReadiness(result);
+            return result;
+        }
+        try {
+            const { accessToken, scopes } = yield sdkApi().getEndUserOauthAccessToken({
+                environmentId,
+                oauthAccountId,
+            });
+            // Empty scopes = legacy token captured before scope tracking; we
+            // can't confirm the upload will work, so surface as needs-access
+            // (with empty missingScopes to differentiate from the explicit
+            // missing case). requestAccess() forces a fresh token so the
+            // column populates.
+            if (scopes.length === 0) {
+                const result = {
+                    accessToken,
+                    isChecking: false,
+                    missingScopes: [],
+                    status: 'needs-access',
+                };
+                setReadiness(result);
+                return result;
+            }
+            const missing = findMissingGoogleDriveBackupScopes(scopes);
+            const result = missing.length === 0
+                ? {
+                    accessToken,
+                    isChecking: false,
+                    missingScopes: [],
+                    status: 'ready',
+                }
+                : {
+                    accessToken,
+                    isChecking: false,
+                    missingScopes: missing,
+                    status: 'needs-access',
+                };
+            setReadiness(result);
+            return result;
+        }
+        catch (error) {
+            const result = {
+                error,
+                isChecking: false,
+                missingScopes: [],
+                status: 'error',
+            };
+            setReadiness(result);
+            return result;
+        }
+    }), [environmentId]);
+    const check = useCallback(() => __awaiter(void 0, void 0, void 0, function* () {
+        setReadiness((prev) => (Object.assign(Object.assign({}, prev), { isChecking: true })));
+        return performCheck(user === null || user === void 0 ? void 0 : user.verifiedCredentials);
+    }), [performCheck, user]);
+    const requestAccess = useCallback(() => __awaiter(void 0, void 0, void 0, function* () {
+        var _a;
+        setReadiness((prev) => (Object.assign(Object.assign({}, prev), { isChecking: true })));
+        try {
+            yield linkSocialAccount(ProviderEnum.Google, {
+                forcePopup: true,
+                showWidgetAfterConnection: false,
+            });
+            const updatedUser = yield refresh();
+            return performCheck((_a = updatedUser === null || updatedUser === void 0 ? void 0 : updatedUser.verifiedCredentials) !== null && _a !== void 0 ? _a : user === null || user === void 0 ? void 0 : user.verifiedCredentials);
+        }
+        catch (error) {
+            const result = {
+                error,
+                isChecking: false,
+                missingScopes: [],
+                status: 'error',
+            };
+            setReadiness(result);
+            return result;
+        }
+    }), [linkSocialAccount, performCheck, refresh, user]);
+    const reset = useCallback(() => setReadiness(IDLE), []);
+    return Object.assign(Object.assign({}, readiness), { check,
+        requestAccess,
+        reset });
+};
+
+export { useGoogleDriveBackupReadiness };

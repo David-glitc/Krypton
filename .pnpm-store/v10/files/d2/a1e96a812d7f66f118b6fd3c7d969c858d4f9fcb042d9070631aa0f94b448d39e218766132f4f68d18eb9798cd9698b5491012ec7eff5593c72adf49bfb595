@@ -1,0 +1,249 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../_virtual/_tslib.cjs');
+var jsxRuntime = require('react/jsx-runtime');
+var React = require('react');
+var sdkApiCore = require('@dynamic-labs/sdk-api-core');
+var utils = require('@dynamic-labs/utils');
+var createProviderHook = require('../../shared/utils/functions/createProviderHook/createProviderHook.cjs');
+var onrampConfigurationToOnrampOption = require('../../utils/functions/onrampConfigurationToOnrampOption/onrampConfigurationToOnrampOption.cjs');
+var openOnrampPopup = require('../../utils/functions/openOnrampPopup.cjs');
+var rejectPromiseRef = require('../../utils/functions/rejectPromiseRef/rejectPromiseRef.cjs');
+var DynamicWidgetContext = require('../../widgets/DynamicWidget/context/DynamicWidgetContext.cjs');
+require('../DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var useOnrampProviders = require('./useOnrampProviders/useOnrampProviders.cjs');
+var getOnrampProviders = require('./utils/getOnrampProviders.cjs');
+
+const OnrampContext = React.createContext(undefined);
+const OnrampContextProvider = ({ children, }) => {
+    var _a, _b, _c, _d, _e;
+    const promiseRef = React.useRef(null);
+    const [selectedOnrampProvider, setSelectedOnrampProvider] = React.useState();
+    const [showOnramp, _setShowOnramp] = React.useState(false);
+    const [override, setOverride] = React.useState(false);
+    const [overrideOnrampProvider, setOverrideOnrampProvider] = React.useState(undefined);
+    const { environmentId, network, primaryWallet, projectSettings, overrides } = useInternalDynamicContext.useInternalDynamicContext();
+    const { setDynamicWidgetView } = DynamicWidgetContext.useWidgetContext();
+    const [enabledOnrampProvidersTarget, setEnabledOnrampProvidersTarget] = React.useState({});
+    // Fetch onramp providers by default so Buy button is available in funding methods
+    const [shouldFetchOnramps, setShouldFetchOnramps] = React.useState(true);
+    const setShowOnramp = React.useCallback((value) => {
+        _setShowOnramp(value);
+        if (!value && promiseRef.current) {
+            rejectPromiseRef.rejectPromiseRef(promiseRef, new utils.DynamicError('User cancelled'));
+        }
+    }, []);
+    const setEnabledOnrampProvidersTargetValue = React.useCallback(({ address, token, network, tokenAmount, chainName, currency, }) => {
+        setEnabledOnrampProvidersTarget({
+            address,
+            chainName,
+            currency,
+            network,
+            token,
+            tokenAmount,
+        });
+        // Trigger fetch when target is set with specific parameters
+        if (address || token || network || tokenAmount || chainName || currency) {
+            setShouldFetchOnramps(true);
+        }
+    }, []);
+    const resetOverrides = React.useCallback(() => {
+        setOverrideOnrampProvider(undefined);
+        setOverride(false);
+    }, []);
+    const { enabledOnRamps: enabledOnrampProvidersInDashboard } = useOnrampProviders.useOnrampProviders({
+        environmentId,
+        includeDisabled: true,
+        network,
+        primaryWallet,
+        projectSettingsOnramps: (_b = (_a = projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.sdk) === null || _a === void 0 ? void 0 : _a.funding) === null || _b === void 0 ? void 0 : _b.onramps,
+        shouldFetch: shouldFetchOnramps,
+        target: enabledOnrampProvidersTarget,
+    });
+    const enabledOnrampProvidersInDashboardOptions = React.useMemo(() => {
+        const options = enabledOnrampProvidersInDashboard.map((provider) => {
+            const option = onrampConfigurationToOnrampOption.onrampConfigurationToOnrampOption(provider);
+            // Route Crypto.com selection to a custom UI instead of immediate popup/link
+            if (option.id === sdkApiCore.ProviderEnum.CryptoDotCom) {
+                option.onClick = () => setDynamicWidgetView('crypto-com-onramp');
+            }
+            return option;
+        });
+        return options;
+    }, [enabledOnrampProvidersInDashboard, setDynamicWidgetView]);
+    const onrampOverrides = React.useMemo(() => {
+        const configuredOverrides = overrides === null || overrides === void 0 ? void 0 : overrides.onrampOptions;
+        if (typeof configuredOverrides === 'function') {
+            return configuredOverrides(enabledOnrampProvidersInDashboardOptions);
+        }
+        return configuredOverrides || [];
+    }, [overrides === null || overrides === void 0 ? void 0 : overrides.onrampOptions, enabledOnrampProvidersInDashboardOptions]);
+    const onrampEnabled = React.useMemo(() => {
+        var _a, _b, _c;
+        // If onrampOptions is explicitly defined and results in an empty array, disable onramp
+        if ((overrides === null || overrides === void 0 ? void 0 : overrides.onrampOptions) !== undefined &&
+            onrampOverrides.length === 0) {
+            return false;
+        }
+        // If we have overrides with items, enable onramp
+        if (onrampOverrides.length > 0) {
+            return true;
+        }
+        // Otherwise use the original logic for dashboard providers
+        return Boolean(((_c = (_b = (_a = projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.sdk) === null || _a === void 0 ? void 0 : _a.funding) === null || _b === void 0 ? void 0 : _b.onramps) === null || _c === void 0 ? void 0 : _c.length) &&
+            enabledOnrampProvidersInDashboard.length);
+    }, [
+        (_e = (_d = (_c = projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.sdk) === null || _c === void 0 ? void 0 : _c.funding) === null || _d === void 0 ? void 0 : _d.onramps) === null || _e === void 0 ? void 0 : _e.length,
+        enabledOnrampProvidersInDashboard.length,
+        onrampOverrides.length,
+        overrides === null || overrides === void 0 ? void 0 : overrides.onrampOptions,
+    ]);
+    const hasPrimaryWallet = React.useMemo(() => Boolean(primaryWallet), [primaryWallet]);
+    const setSelectedAndShowOnramp = React.useCallback(({ provider, wallet, payingWithDynamic, }) => {
+        var _a;
+        if (hasPrimaryWallet || payingWithDynamic) {
+            setSelectedOnrampProvider(provider.id);
+        }
+        setShowOnramp(true);
+        const shouldOpenPopup = provider.openMode === 'popup' && provider.url && setShowOnramp;
+        if (!shouldOpenPopup) {
+            return;
+        }
+        return openOnrampPopup.openOnrampPopup((_a = provider.url) !== null && _a !== void 0 ? _a : '', wallet, setShowOnramp, provider.id);
+    }, [hasPrimaryWallet, setShowOnramp]);
+    const enabledOnrampProviders = React.useMemo(() => {
+        // If we have explicit overrides (even empty array), use them
+        if ((overrides === null || overrides === void 0 ? void 0 : overrides.onrampOptions) !== undefined) {
+            return onrampOverrides;
+        }
+        // Otherwise fall back to dashboard options
+        return enabledOnrampProvidersInDashboardOptions;
+    }, [
+        enabledOnrampProvidersInDashboardOptions,
+        onrampOverrides,
+        overrides === null || overrides === void 0 ? void 0 : overrides.onrampOptions,
+    ]);
+    const openOnramp = React.useCallback((_f) => _tslib.__awaiter(void 0, [_f], void 0, function* ({ onrampProvider, address, token, tokenAmount, network: networkOverride, chainName, currency, overrideOnRamp, payingWithDynamic, merchantName, }) {
+        var _g, _h, _j, _k;
+        if (!onrampEnabled && !overrideOnRamp && !payingWithDynamic) {
+            throw new Error('Onramp is not enabled');
+        }
+        setOverride(false);
+        if (promiseRef.current) {
+            return promiseRef.current.promise;
+        }
+        promiseRef.current = new utils.DeferredPromise();
+        // Trigger onramp providers fetch if not already done
+        if (!shouldFetchOnramps) {
+            setShouldFetchOnramps(true);
+        }
+        let localOnrampProviders = enabledOnrampProvidersInDashboardOptions;
+        const networkToUse = networkOverride || network;
+        const shouldOverrideOnrampProviders = overrideOnRamp ||
+            Boolean(address) ||
+            Boolean(token) ||
+            Boolean(networkOverride) ||
+            Boolean(tokenAmount) ||
+            Boolean(chainName) ||
+            Boolean(currency) ||
+            Boolean(merchantName);
+        const allPayingParameters = Boolean(chainName) &&
+            Boolean(networkToUse) &&
+            Boolean(token) &&
+            Boolean(tokenAmount) &&
+            Boolean(address);
+        if (payingWithDynamic && !allPayingParameters) {
+            rejectPromiseRef.rejectPromiseRef(promiseRef, new Error('PayingWithDynamic: Missing parameters'));
+            return (_g = promiseRef.current) === null || _g === void 0 ? void 0 : _g.promise;
+        }
+        if (shouldOverrideOnrampProviders)
+            setOverride(true);
+        if (shouldOverrideOnrampProviders ||
+            (payingWithDynamic && allPayingParameters)) {
+            localOnrampProviders = (yield getOnrampProviders.getOnrampProviders({
+                address,
+                chainName,
+                currency,
+                environmentId,
+                includeDisabled: overrideOnRamp,
+                merchantName,
+                network: networkToUse,
+                primaryWallet,
+                token,
+                tokenAmount,
+            })).map((provider) => onrampConfigurationToOnrampOption.onrampConfigurationToOnrampOption(provider));
+        }
+        const onrampOption = localOnrampProviders.find((p) => p.id === onrampProvider);
+        if (payingWithDynamic && !onrampOption) {
+            rejectPromiseRef.rejectPromiseRef(promiseRef, new Error('PayingWithDynamic: Onramp provider not found'));
+            return (_h = promiseRef.current) === null || _h === void 0 ? void 0 : _h.promise;
+        }
+        if (!onrampOption) {
+            rejectPromiseRef.rejectPromiseRef(promiseRef, new Error('Onramp provider not found'));
+            return (_j = promiseRef.current) === null || _j === void 0 ? void 0 : _j.promise;
+        }
+        setOverrideOnrampProvider(onrampOption);
+        setSelectedAndShowOnramp({ payingWithDynamic, provider: onrampOption });
+        return (_k = promiseRef.current) === null || _k === void 0 ? void 0 : _k.promise;
+    }), [
+        enabledOnrampProvidersInDashboardOptions,
+        environmentId,
+        onrampEnabled,
+        primaryWallet,
+        network,
+        setSelectedAndShowOnramp,
+        shouldFetchOnramps,
+    ]);
+    const selectedOnramp = React.useMemo(() => {
+        let selected;
+        if (override) {
+            selected = overrideOnrampProvider;
+        }
+        else if (enabledOnrampProviders.length) {
+            selected = enabledOnrampProviders.find((p) => p.id === selectedOnrampProvider);
+        }
+        return selected;
+    }, [
+        overrideOnrampProvider,
+        enabledOnrampProviders,
+        override,
+        selectedOnrampProvider,
+    ]);
+    const selectOnrampProvider = React.useCallback(({ provider, wallet }) => {
+        if (provider.onClick) {
+            provider.onClick({ wallet });
+            return;
+        }
+        resetOverrides();
+        setSelectedAndShowOnramp({ provider, wallet });
+    }, [setSelectedAndShowOnramp, resetOverrides]);
+    const value = React.useMemo(() => ({
+        enabledOnrampProviders,
+        onrampEnabled,
+        openOnramp,
+        selectOnrampProvider,
+        selectedOnramp,
+        setEnabledOnrampProvidersTargetValue,
+        setShowOnramp,
+        showOnramp,
+    }), [
+        enabledOnrampProviders,
+        onrampEnabled,
+        openOnramp,
+        selectedOnramp,
+        setEnabledOnrampProvidersTargetValue,
+        showOnramp,
+        setShowOnramp,
+        selectOnrampProvider,
+    ]);
+    return (jsxRuntime.jsx(OnrampContext.Provider, { value: value, children: children }));
+};
+const useOnrampContext = createProviderHook.createProviderHook(OnrampContext, 'OnrampContextProvider');
+
+exports.OnrampContext = OnrampContext;
+exports.OnrampContextProvider = OnrampContextProvider;
+exports.useOnrampContext = useOnrampContext;

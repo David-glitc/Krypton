@@ -1,0 +1,5 @@
+'use client'
+const RATE_LIMIT_ERROR_CODE = 'rate_limit_error';
+const UNKNOWN_ERROR_CODE = 'unknown_error';
+
+export { RATE_LIMIT_ERROR_CODE, UNKNOWN_ERROR_CODE };

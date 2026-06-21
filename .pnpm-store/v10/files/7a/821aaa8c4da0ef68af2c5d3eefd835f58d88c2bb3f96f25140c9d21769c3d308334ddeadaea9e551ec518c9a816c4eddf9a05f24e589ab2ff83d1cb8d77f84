@@ -1,0 +1,7 @@
+import type { DynamicCoreState } from '../types';
+/**
+ * The initial values for the state of the client.
+ * @not-instrumented
+ */
+export declare const getInitialState: () => DynamicCoreState;
+//# sourceMappingURL=getInitialState.d.ts.map

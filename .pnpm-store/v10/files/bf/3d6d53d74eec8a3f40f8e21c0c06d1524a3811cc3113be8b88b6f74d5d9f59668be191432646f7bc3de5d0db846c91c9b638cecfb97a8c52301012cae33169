@@ -1,0 +1,6 @@
+import { DynamicError } from './DynamicError';
+export declare class RateLimitError extends DynamicError {
+    requestId: string | undefined;
+    cfRay: string | undefined;
+    constructor(message: string, requestId?: string, cfRay?: string);
+}

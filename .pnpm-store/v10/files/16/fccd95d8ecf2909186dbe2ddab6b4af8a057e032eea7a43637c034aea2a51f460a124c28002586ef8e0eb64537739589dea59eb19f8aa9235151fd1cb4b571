@@ -1,0 +1,5 @@
+import { type SdkUser } from '@dynamic-labs/sdk-api-core';
+import type { DynamicClient } from '../../../../../client/types/DynamicClient';
+/** @not-instrumented */
+export declare const validateUserCredentialsForCoinbaseOnrampOrder: (client: DynamicClient) => SdkUser;
+//# sourceMappingURL=validateUserCredentialsForCoinbaseOnrampOrder.d.ts.map

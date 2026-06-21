@@ -1,0 +1,51 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../../_virtual/_tslib.cjs');
+var client = require('@dynamic-labs-sdk/client');
+var core = require('@dynamic-labs-sdk/client/core');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react');
+require('react/jsx-runtime');
+require('../../../../context/ViewContext/ViewContext.cjs');
+var logger = require('../../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('@dynamic-labs/utils');
+require('../../../../utils/constants/colors.cjs');
+require('../../../../utils/constants/values.cjs');
+require('@dynamic-labs/sdk-api-core');
+require('../../../../shared/consts/index.cjs');
+var getClientSessionKeys = require('../../../../utils/functions/clientSessionKeys/getClientSessionKeys.cjs');
+
+const migrateClientSessionKey = () => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+    try {
+        // Wait for the SDK to finish initializing (including its own migration phase)
+        // before overwriting the keychain — react-SDK keys always take precedence.
+        const client$1 = client.getDefaultClient();
+        yield client.waitForClientInitialized(client$1);
+        logger.logger.debug('[migrateClientSessionKey] Checking for legacy session key in storage');
+        const legacy = getClientSessionKeys.getClientSessionKeys();
+        if (!legacy) {
+            logger.logger.debug('[migrateClientSessionKey] No legacy session key found in storage, skipping migration');
+            return;
+        }
+        const { keychain } = core.getCore(client$1);
+        logger.logger.debug('[migrateClientSessionKey] Found legacy session key, importing into keychain', { expectedPublicKey: legacy.publicKey });
+        const importedPublicKey = yield keychain.importKey('session', legacy.privateKeyJwk);
+        logger.logger.debug('[migrateClientSessionKey] Key imported into IndexedDB', {
+            expectedPublicKey: legacy.publicKey,
+            importedPublicKey,
+        });
+        core.getCore(client$1).state.set({ sessionKeys: importedPublicKey });
+        getClientSessionKeys.clearClientSessionKeys();
+        logger.logger.debug('[migrateClientSessionKey] Migration complete, legacy entry removed from storage');
+    }
+    catch (error) {
+        logger.logger.debug('[migrateClientSessionKey] Migration failed, ignoring:', error);
+    }
+});
+
+exports.migrateClientSessionKey = migrateClientSessionKey;

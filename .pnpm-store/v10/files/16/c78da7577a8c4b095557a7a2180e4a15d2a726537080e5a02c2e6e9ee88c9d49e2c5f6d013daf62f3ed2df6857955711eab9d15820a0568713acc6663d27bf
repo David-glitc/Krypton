@@ -1,0 +1,78 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var React = require('react');
+var sdkApiCore = require('@dynamic-labs/sdk-api-core');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var findWalletOptionFor = require('../../functions/findWalletOptionFor/findWalletOptionFor.cjs');
+
+const useSmartWallets = () => {
+    const { user, walletConnectorOptions } = useInternalDynamicContext.useInternalDynamicContext();
+    const getSCWAccount = React.useCallback((wallet) => {
+        const { verifiedCredentials } = user !== null && user !== void 0 ? user : {};
+        if (!verifiedCredentials)
+            return;
+        // Ensure this is a SCW wallet
+        const scwAccount = verifiedCredentials.find((credential) => credential.id === wallet.id);
+        return (scwAccount === null || scwAccount === void 0 ? void 0 : scwAccount.walletProvider) ===
+            sdkApiCore.WalletProviderEnum.SmartContractWallet
+            ? scwAccount
+            : undefined;
+    }, [user]);
+    const getEOAWallet = React.useCallback((wallet) => {
+        var _a, _b, _c;
+        const verifiedCredentials = user === null || user === void 0 ? void 0 : user.verifiedCredentials;
+        if (!verifiedCredentials)
+            return;
+        // Ensure this is a SCW wallet
+        const scwAccount = getSCWAccount(wallet);
+        // Find the EOA account for this SCW
+        const eoaAccount = verifiedCredentials.find((credential) => credential.id === (scwAccount === null || scwAccount === void 0 ? void 0 : scwAccount.signerRefId));
+        if (!(eoaAccount === null || eoaAccount === void 0 ? void 0 : eoaAccount.address) || !(eoaAccount === null || eoaAccount === void 0 ? void 0 : eoaAccount.chain))
+            return;
+        const { walletConnector } = (_a = findWalletOptionFor.findWalletOptionFor(eoaAccount, walletConnectorOptions)) !== null && _a !== void 0 ? _a : {};
+        // It's always authenticated, unless it's a turnkey wallet that still hasn't created a passkey
+        const isTurnkey = (_b = eoaAccount.walletName) === null || _b === void 0 ? void 0 : _b.startsWith('turnkey');
+        const isAuthenticated = !isTurnkey ||
+            Boolean((_c = eoaAccount.walletProperties) === null || _c === void 0 ? void 0 : _c.isAuthenticatorAttached);
+        return walletConnector === null || walletConnector === void 0 ? void 0 : walletConnector.createWallet({
+            address: eoaAccount.address,
+            chain: walletConnector.connectedChain,
+            connector: walletConnector,
+            id: eoaAccount.id,
+            isAuthenticated,
+            key: walletConnector.key,
+        });
+    }, [getSCWAccount, user === null || user === void 0 ? void 0 : user.verifiedCredentials, walletConnectorOptions]);
+    const getSmartWallet = React.useCallback((wallet) => {
+        var _a;
+        const verifiedCredentials = user === null || user === void 0 ? void 0 : user.verifiedCredentials;
+        if (!verifiedCredentials)
+            return;
+        // Get the EOA account for this wallet
+        const eoaAccount = verifiedCredentials.find((credential) => credential.id === wallet.id);
+        // Find the smart wallet account for this EOA
+        const scwAccount = verifiedCredentials.find((credential) => credential.signerRefId === (eoaAccount === null || eoaAccount === void 0 ? void 0 : eoaAccount.id));
+        if (!(scwAccount === null || scwAccount === void 0 ? void 0 : scwAccount.address) || !(scwAccount === null || scwAccount === void 0 ? void 0 : scwAccount.chain))
+            return;
+        const { walletConnector } = (_a = findWalletOptionFor.findWalletOptionFor(scwAccount, walletConnectorOptions)) !== null && _a !== void 0 ? _a : {};
+        return walletConnector === null || walletConnector === void 0 ? void 0 : walletConnector.createWallet({
+            address: scwAccount.address,
+            chain: walletConnector.connectedChain,
+            connector: walletConnector,
+            id: scwAccount.id,
+            isAuthenticated: true,
+            key: walletConnector.key,
+        });
+    }, [user === null || user === void 0 ? void 0 : user.verifiedCredentials, walletConnectorOptions]);
+    return React.useMemo(() => ({
+        getEOAWallet,
+        getSmartWallet,
+        isSmartWallet: (wallet) => getSCWAccount(wallet) !== undefined,
+    }), [getEOAWallet, getSCWAccount, getSmartWallet]);
+};
+
+exports.useSmartWallets = useSmartWallets;

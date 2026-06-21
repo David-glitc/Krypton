@@ -1,0 +1,26 @@
+'use client'
+import { jsxs, jsx } from 'react/jsx-runtime';
+import { useTranslation } from 'react-i18next';
+import { parseUserAgent } from '@dynamic-labs-sdk/client';
+import { Badge } from '../../../../../../components/Badge/Badge.js';
+import { Icon } from '../../../../../../components/Icon/Icon.js';
+import { IconButton } from '../../../../../../components/IconButton/IconButton.js';
+import { Typography } from '../../../../../../components/Typography/Typography.js';
+import 'react';
+import { ReactComponent as SvgMonitor } from '../../../../../../shared/assets/monitor.js';
+import { ReactComponent as SvgPhone } from '../../../../../../shared/assets/phone.js';
+import { ReactComponent as SvgTrash } from '../../../../../../shared/assets/trash.js';
+import '@dynamic-labs/iconic';
+import '../../../../../../context/ViewContext/ViewContext.js';
+
+const TrustedDeviceTile = ({ userAgent, createdAt, isCurrentDevice, onClickDelete, }) => {
+    var _a;
+    const { t } = useTranslation();
+    const parsedUserAgent = parseUserAgent({ userAgent });
+    const deviceName = (_a = parsedUserAgent === null || parsedUserAgent === void 0 ? void 0 : parsedUserAgent.displayText) !== null && _a !== void 0 ? _a : t('dyn_device_management.manage_title');
+    const isMobile = (parsedUserAgent === null || parsedUserAgent === void 0 ? void 0 : parsedUserAgent.type) === 'mobile';
+    const createdDate = new Date(createdAt).toLocaleDateString();
+    return (jsxs("div", { className: 'trusted-device-tile', "data-testid": 'trusted-device-tile', children: [jsx("div", { className: 'trusted-device-tile__leading', children: jsx(Icon, { color: 'text-secondary', children: isMobile ? (jsx(SvgPhone, { "data-testid": 'phone-icon' })) : (jsx(SvgMonitor, { "data-testid": 'monitor-icon' })) }) }), jsxs("div", { className: 'trusted-device-tile__content', children: [jsx(Typography, { variant: 'body_normal', weight: 'medium', color: 'primary', as: 'span', truncate: true, children: deviceName }), jsx(Typography, { variant: 'body_small', color: 'secondary', as: 'span', children: createdDate })] }), jsx("div", { className: 'trusted-device-tile__trailing-container', children: jsxs("div", { className: 'trusted-device-tile__trailing', children: [isCurrentDevice && (jsx(Badge, { variant: 'primary', text: t('dyn_device_management.this_device'), copykey: 'dyn_device_management.this_device' })), onClickDelete && (jsx(IconButton, { type: 'button', onClick: onClickDelete, "data-testid": 'remove-device-button', children: jsx(SvgTrash, {}) }))] }) })] }));
+};
+
+export { TrustedDeviceTile };

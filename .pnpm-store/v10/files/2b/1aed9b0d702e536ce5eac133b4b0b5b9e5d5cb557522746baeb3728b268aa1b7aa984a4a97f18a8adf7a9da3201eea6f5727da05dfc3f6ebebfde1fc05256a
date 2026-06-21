@@ -1,0 +1,12 @@
+type DetectOAuthRedirectParams = {
+    url: URL;
+};
+/**
+ * @deprecated Renamed to {@link detectSocialRedirectUrl}. This alias will be
+ * removed in a future major version.
+ *
+ * @not-instrumented
+ */
+export declare const detectOAuthRedirect: (params: DetectOAuthRedirectParams, client?: import("../../../../../exports").DynamicClient) => Promise<boolean>;
+export {};
+//# sourceMappingURL=detectOAuthRedirect.d.ts.map

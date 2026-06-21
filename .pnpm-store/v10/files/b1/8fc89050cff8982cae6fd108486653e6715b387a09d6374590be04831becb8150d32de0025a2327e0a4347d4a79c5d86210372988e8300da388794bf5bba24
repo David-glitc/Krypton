@@ -1,0 +1,13 @@
+import { WalletBookSchema } from '@dynamic-labs/wallet-book';
+import { WalletConnectorConstructor } from '@dynamic-labs/wallet-connector-core';
+import type { AuthMode } from '@dynamic-labs/types';
+export declare const injectedWalletOverrides: WalletConnectorConstructor[];
+/**
+ * Stops the active wallet-standard discovery (register listener + poll).
+ * @internal - Exposed for test cleanup.
+ */
+export declare const stopSolanaWalletStandardDiscovery: () => void;
+export declare const fetchInjectedWalletConnectors: ({ walletBook, authMode, }: {
+    walletBook: WalletBookSchema;
+    authMode: AuthMode;
+}) => WalletConnectorConstructor[];

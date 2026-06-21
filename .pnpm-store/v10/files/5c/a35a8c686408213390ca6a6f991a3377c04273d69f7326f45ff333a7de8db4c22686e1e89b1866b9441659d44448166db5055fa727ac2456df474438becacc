@@ -1,0 +1,43 @@
+/**
+ * Wallet Hook - Provides clean interface to wallet functionality
+ * Business logic is handled by store actions
+ */
+import { PublicKey, TransactionInstruction, AddressLookupTableAccount } from '@solana/web3.js';
+import { WalletInfo } from '../core/storage';
+export interface WalletHookInterface {
+    smartWalletPubkey: PublicKey | null;
+    isConnected: boolean;
+    isLoading: boolean;
+    isConnecting: boolean;
+    isSigning: boolean;
+    error: Error | null;
+    wallet: WalletInfo | null;
+    connect: (options?: {
+        feeMode?: 'paymaster' | 'user';
+    }) => Promise<WalletInfo>;
+    disconnect: () => Promise<void>;
+    signAndSendTransaction: (payload: {
+        instructions: TransactionInstruction[];
+        transactionOptions?: {
+            feeToken?: string;
+            addressLookupTableAccounts?: AddressLookupTableAccount[];
+            computeUnitLimit?: number;
+            clusterSimulation?: 'devnet' | 'mainnet';
+        };
+    }) => Promise<string>;
+    signMessage: (message: string) => Promise<{
+        signature: string;
+        signedPayload: string;
+    }>;
+    verifyMessage: (args: {
+        signedPayload: Uint8Array;
+        signature: Uint8Array;
+        publicKey: Uint8Array;
+    }) => Promise<boolean>;
+}
+/**
+ * Hook for interacting with the Lazorkit wallet
+ * Simplified interface for wallet functionality
+ */
+export declare const useWallet: () => WalletHookInterface;
+//# sourceMappingURL=useWallet.d.ts.map

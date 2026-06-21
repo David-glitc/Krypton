@@ -1,0 +1,4 @@
+import type { DynamicClient } from '../../../../../client/types';
+/** @not-instrumented */
+export declare const createSignInMessageStatement: (client: DynamicClient) => string;
+//# sourceMappingURL=createSignInMessageStatement.d.ts.map

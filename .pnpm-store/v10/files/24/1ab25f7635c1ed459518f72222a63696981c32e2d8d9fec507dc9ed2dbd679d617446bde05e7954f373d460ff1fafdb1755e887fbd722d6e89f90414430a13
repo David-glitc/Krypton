@@ -1,0 +1,2 @@
+export { getInstallationLinkForCurrentPlatform } from './getInstallationLinkForCurrentPlatform';
+//# sourceMappingURL=index.d.ts.map

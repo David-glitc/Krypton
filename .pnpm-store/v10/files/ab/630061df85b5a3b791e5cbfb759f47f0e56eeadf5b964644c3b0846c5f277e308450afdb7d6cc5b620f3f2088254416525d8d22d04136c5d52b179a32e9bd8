@@ -1,0 +1,75 @@
+import type { AssetDiff, PriceData } from '@dynamic-labs/sdk-api-core';
+/**
+ * Base transaction fee data structure shared across all chains.
+ *
+ * Contains fee information in multiple formats for different use cases.
+ */
+export type TransactionFeeData = {
+    /**
+     * Human-readable fee amount in native token units (e.g., "0.001234" ETH)
+     */
+    humanReadableAmount: string;
+    /**
+     * Fee amount in native token atomic units (wei for EVM, lamports for Solana, etc.)
+     */
+    nativeAmount: bigint;
+    /**
+     * USD equivalent of the fee, if native token price data is available
+     */
+    usdAmount?: string;
+};
+/**
+ * Blockaid security validation result.
+ */
+export type BlockaidValidation = {
+    /**
+     * Detailed description of the validation result
+     */
+    description?: string;
+    /**
+     * Reason for the validation result
+     */
+    reason?: string;
+    /**
+     * Security validation result status
+     */
+    result: 'benign' | 'warning' | 'malicious';
+};
+/**
+ * Generic transaction simulation result structure shared across all chains.
+ *
+ * Contains information about asset transfers, security validation, and optional fee data.
+ *
+ * @template TFeeData - Chain-specific fee data type (e.g., EvmTransactionFeeData)
+ */
+export type SimulationResult<TFeeData = unknown> = {
+    /**
+     * Addresses of other parties involved in the transaction
+     */
+    counterparties?: string[];
+    /**
+     * Fee data for the transaction. Only present if includeFees parameter was true.
+     */
+    feeData?: TFeeData;
+    /**
+     * Assets being transferred into the wallet
+     */
+    inAssets: AssetDiff[];
+    /**
+     * Assets being transferred out of the wallet
+     */
+    outAssets: AssetDiff[];
+    /**
+     * Price data for assets involved in the transaction
+     */
+    priceData: PriceData;
+    /**
+     * Whether fiat values should be displayed in the UI
+     */
+    showTotalFiat: boolean;
+    /**
+     * Security validation result from Blockaid API
+     */
+    validation?: BlockaidValidation;
+};
+//# sourceMappingURL=simulation.types.d.ts.map

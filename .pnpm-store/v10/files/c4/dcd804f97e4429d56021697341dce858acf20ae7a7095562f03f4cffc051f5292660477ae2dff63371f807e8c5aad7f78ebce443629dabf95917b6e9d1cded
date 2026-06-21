@@ -1,0 +1,18 @@
+import { type JwtVerifiedCredential } from '@dynamic-labs/sdk-api-core';
+/**
+ * Returns the verified-credential `id` (UUID of the user_oauth_accounts row)
+ * for the user's linked Google account, or `undefined` if no Google account
+ * is linked.
+ *
+ * The `getEndUserOauthAccessToken` API path parameter expects this UUID, NOT
+ * the third-party `oauthAccountId` (Google's numeric profile ID) — those are
+ * stored in the same credential under different fields.
+ *
+ * @param credentials - The user's verified credentials, typically from
+ *   `client.user?.verifiedCredentials`.
+ * @returns The credential id of the linked Google oauth account, or
+ *   `undefined`.
+ * @not-instrumented
+ */
+export declare const findGoogleOauthAccountId: (credentials: readonly JwtVerifiedCredential[] | undefined) => string | undefined;
+//# sourceMappingURL=findGoogleOauthAccountId.d.ts.map

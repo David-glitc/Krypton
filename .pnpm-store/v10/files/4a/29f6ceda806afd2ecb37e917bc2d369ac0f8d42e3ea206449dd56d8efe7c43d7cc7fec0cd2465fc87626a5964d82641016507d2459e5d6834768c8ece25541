@@ -1,0 +1,24 @@
+import { ChainEnum, TokenBalance } from '@dynamic-labs/sdk-api-core';
+/**
+ * Optional inputs that intentionally mirror the corresponding
+ *  `useTokenBalances` params so callers can move between the public
+ *  and private hooks with minimal call-site changes. Boolean defaults
+ *  match `useTokenBalances` (`includeNativeBalance: false`,
+ *  `includeFiat: false`) — opt in explicitly when you want either.
+ */
+export type UsePrivateTokenBalancesArgs = {
+    accountAddress?: string;
+    tokenAddresses?: string[];
+    includeNativeBalance?: boolean;
+    includeFiat?: boolean;
+    chainName?: ChainEnum;
+    networkId?: number;
+};
+export type UsePrivateTokenBalancesReturn = {
+    tokenBalances: TokenBalance[];
+    isLoading: boolean;
+    error: string | undefined;
+    refetch: () => Promise<void>;
+    supportsPrivateBalances: boolean;
+};
+export declare const usePrivateTokenBalances: (args?: UsePrivateTokenBalancesArgs) => UsePrivateTokenBalancesReturn;

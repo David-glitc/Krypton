@@ -1,0 +1,62 @@
+export interface WalletInfo {
+    readonly credentialId: string;
+    readonly passkeyPubkey: number[];
+    readonly expo: string;
+    readonly platform: string;
+    readonly smartWallet: string;
+    readonly walletDevice: string;
+    readonly accountName?: string;
+}
+import { PaymasterConfig } from '../paymaster/paymaster';
+export interface WalletConfig {
+    readonly portalUrl: string;
+    readonly paymasterConfig: PaymasterConfig;
+    readonly rpcUrl?: string;
+}
+/**
+ * Web storage implementation using localStorage
+ */
+export declare const storage: {
+    getItem: (name: string) => Promise<string | null>;
+    setItem: (name: string, value: string) => Promise<void>;
+    removeItem: (name: string) => Promise<void>;
+};
+/**
+ * Storage Manager Class
+ * Provides unified interface for credential storage
+ */
+export declare class StorageManager {
+    /**
+     * Save wallet information to storage
+     */
+    static saveWallet(wallet: WalletInfo): Promise<void>;
+    /**
+     * Get wallet information from storage
+     */
+    static getWallet(): Promise<WalletInfo | null>;
+    /**
+     * Save wallet configuration to storage
+     */
+    static saveConfig(config: WalletConfig): Promise<void>;
+    /**
+     * Get wallet configuration from storage
+     */
+    static getConfig(): Promise<WalletConfig | null>;
+    /**
+     * Clear all wallet data from storage
+     */
+    static clearWallet(): Promise<void>;
+    /**
+     * Get item from storage (generic)
+     */
+    static getItem(key: string): Promise<string | null>;
+    /**
+     * Set item in storage (generic)
+     */
+    static setItem(key: string, value: string): Promise<void>;
+    /**
+     * Remove item from storage (generic)
+     */
+    static removeItem(key: string): Promise<void>;
+}
+//# sourceMappingURL=StorageManager.d.ts.map

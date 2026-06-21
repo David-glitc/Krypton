@@ -1,0 +1,16 @@
+import type { User } from '../../../../user/user.types';
+import type { SignInWithSocialPopUpParams } from './signInWithSocialPopUp.types';
+export type { SignInWithSocialPopUpParams } from './signInWithSocialPopUp.types';
+/**
+ * Sign in with a social provider via an in-app popup (ASWebAuthenticationSession
+ * on iOS, Chrome Custom Tabs on Android).
+ *
+ * This method is **only available on React Native**. On web, use
+ * {@link signInWithSocialRedirect} + {@link completeSocialRedirect} instead —
+ * the browser already owns the tab so there is no popup to open.
+ *
+ * @throws MethodNotImplementedError Always on web.
+ * @instrumented
+ */
+export declare const signInWithSocialPopUp: ({ provider }: SignInWithSocialPopUpParams, client?: import("../../../../../exports").DynamicClient) => Promise<User | null>;
+//# sourceMappingURL=signInWithSocialPopUp.d.ts.map

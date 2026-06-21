@@ -1,0 +1,15 @@
+/**
+ * Wallet option keys `getWalletOptionsCatalogue` drops before returning.
+ * Curated, product-level suppression.
+ *
+ * Example: Base Account SDK is the recommended entry point for
+ * Coinbase-managed users, so the legacy Coinbase Wallet entries are
+ * suppressed in favor of the SDK-backed `baseaccount` tile. Both the
+ * wallet book group key (`coinbase`) and the normalized display-name
+ * key (`coinbasewallet`) are listed so suppression holds regardless of
+ * how the resolver lands on a key.
+ *
+ * Used in: `getWalletOptionsCatalogue`.
+ */
+export declare const EXCLUDED_WALLET_OPTION_KEYS: ReadonlySet<string>;
+//# sourceMappingURL=excludedWalletOptionKeys.d.ts.map

@@ -1,0 +1,40 @@
+// This file is a TurboModule spec consumed by React Native codegen.
+// The `interface`, `default export`, and the `react-native` import are hard
+// requirements of the codegen parser and intentionally deviate from the
+// project's conventions. Codegen discovers specs by the `Native*` filename
+// prefix, so this file cannot be renamed to `.native.ts`.
+
+import { type TurboModule, TurboModuleRegistry } from 'react-native';
+import type { UnsafeObject } from 'react-native/Libraries/Types/CodegenTypes';
+
+export interface Spec extends TurboModule {
+  addListener(eventName: string): void;
+  close(instanceId: string): void;
+  /**
+   * Creates a WKWebView for the given instanceId and begins loading `url`.
+   *
+   * Resolves on `didCommit` — i.e. the first byte of a 2xx/3xx HTTP
+   * response has been received and content parsing has started. Page-ready
+   * (e.g. the hosted iframe's `iframe-ready-*` handshake) is a separate
+   * concern and must be observed by the caller via the message bus; this
+   * Promise does not wait for it.
+   *
+   * Rejects with a `code` of `webview_<reason>` where `<reason>` is one of:
+   *   - `invalid_url` — URL string was not parseable
+   *   - `no_host_view` — no foreground window to attach the WebView
+   *   - `http_error` — response status was >= 400 (userInfo contains `DynamicWebViewStatusCode`)
+   *   - `navigation_failed` — DNS, TLS, connection failure, or post-commit abort
+   *   - `cancelled` — `close(instanceId)` was called while this open was pending
+   *   - `instance_busy` — `open` was called for an instanceId that already has an active WebView
+   *   - `content_process_terminated` — the WKWebView WebContent process died during load
+   *   - `unsupported` — the device's Android System WebView is too old to support the secure bridge (Android only)
+   *
+   * rejection codes into typed `WebViewLoadFailedError` instances.
+   */
+  open(instanceId: string, url: string): Promise<void>;
+  removeListeners(count: number): void;
+  sendMessage(instanceId: string, data: UnsafeObject): void;
+}
+
+// eslint-disable-next-line import/no-default-export
+export default TurboModuleRegistry.get<Spec>('DynamicClientWebView');

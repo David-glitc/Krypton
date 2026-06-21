@@ -1,0 +1,35 @@
+import { exists } from '../runtime.js';
+
+/* tslint:disable */
+function RefreshKeySharesResponseFromJSON(json) {
+    return RefreshKeySharesResponseFromJSONTyped(json);
+}
+function RefreshKeySharesResponseFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'roomId': json['roomId'],
+        'serverKeygenIds': json['serverKeygenIds'],
+        'newServerKeygenIds': !exists(json, 'newServerKeygenIds') ? undefined : json['newServerKeygenIds'],
+        'walletId': !exists(json, 'walletId') ? undefined : json['walletId'],
+        'shareSetId': !exists(json, 'shareSetId') ? undefined : json['shareSetId'],
+    };
+}
+function RefreshKeySharesResponseToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'roomId': value.roomId,
+        'serverKeygenIds': value.serverKeygenIds,
+        'newServerKeygenIds': value.newServerKeygenIds,
+        'walletId': value.walletId,
+        'shareSetId': value.shareSetId,
+    };
+}
+
+export { RefreshKeySharesResponseFromJSON, RefreshKeySharesResponseFromJSONTyped, RefreshKeySharesResponseToJSON };

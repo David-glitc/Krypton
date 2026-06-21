@@ -1,0 +1,2 @@
+import SignClient from '@walletconnect/sign-client';
+export declare const reconcileOrphanedPairings: (signClient: SignClient) => Promise<void>;

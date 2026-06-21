@@ -1,0 +1,31 @@
+import { exists } from '../runtime.js';
+
+/* tslint:disable */
+function CheckoutGasEstimateFromJSON(json) {
+    return CheckoutGasEstimateFromJSONTyped(json);
+}
+function CheckoutGasEstimateFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'usdValue': !exists(json, 'usdValue') ? undefined : json['usdValue'],
+        'nativeValue': !exists(json, 'nativeValue') ? undefined : json['nativeValue'],
+        'nativeSymbol': !exists(json, 'nativeSymbol') ? undefined : json['nativeSymbol'],
+    };
+}
+function CheckoutGasEstimateToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'usdValue': value.usdValue,
+        'nativeValue': value.nativeValue,
+        'nativeSymbol': value.nativeSymbol,
+    };
+}
+
+export { CheckoutGasEstimateFromJSON, CheckoutGasEstimateFromJSONTyped, CheckoutGasEstimateToJSON };

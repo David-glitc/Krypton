@@ -1,0 +1,1 @@
+{"version":3,"file":"createStorage.d.ts","sourceRoot":"","sources":["../../../../src/services/storage/createStorage/createStorage.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,OAAO,EAAE,cAAc,EAAsC,MAAM,kBAAkB,CAAC;AAKpG,KAAK,sBAAsB,GAAG;IAC5B,MAAM,CAAC,EAAE,MAAM,CAAC;IAChB,cAAc,EAAE,cAAc,CAAC;CAChC,CAAC;AAEF;;;;;GAKG;AACH,eAAO,MAAM,aAAa,gCAGvB,sBAAsB,KAAG,OAgE3B,CAAC"}

@@ -1,0 +1,22 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var jsxRuntime = require('react/jsx-runtime');
+var React = require('react');
+var createProviderHook = require('../../../shared/utils/functions/createProviderHook/createProviderHook.cjs');
+
+const popperContext = React.createContext(undefined);
+const PopperProvider = ({ children, className, style, }) => {
+    const { Provider } = popperContext;
+    const containerRef = React.useRef(null);
+    return (jsxRuntime.jsx(Provider, { value: {
+            containerRef,
+        }, children: jsxRuntime.jsx("div", { ref: containerRef, style: Object.assign({ position: 'relative' }, style), className: className, children: children }) }));
+};
+const usePopper = createProviderHook.createProviderHook(popperContext, 'PopperProvider');
+
+exports.PopperProvider = PopperProvider;
+exports.popperContext = popperContext;
+exports.usePopper = usePopper;

@@ -1,0 +1,108 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+var client$1 = require('@dynamic-labs-sdk/client');
+var sdkApiCore = require('@dynamic-labs/sdk-api-core');
+var utils = require('@dynamic-labs/utils');
+var ViewContext = require('../../../context/ViewContext/ViewContext.cjs');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var client = require('../../../client/client.cjs');
+var dynamicEvents = require('../../../events/dynamicEvents.cjs');
+var useGetUserMfaMethods = require('../useGetUserMfaMethods/useGetUserMfaMethods.cjs');
+var useAuthenticatePasskeyMFA = require('../useAuthenticatePasskeyMFA/useAuthenticatePasskeyMFA.cjs');
+
+const useStepUpPromptMfa = () => {
+    const { setShowAuthFlow } = useInternalDynamicContext.useInternalDynamicContext();
+    const { pushView } = ViewContext.useViewContext();
+    const getUserMfaMethods = useGetUserMfaMethods.useGetUserMfaMethods();
+    const authenticatePasskeyMFA = useAuthenticatePasskeyMFA.useAuthenticatePasskeyMFA();
+    const dynamicClient = client.useDynamicClient();
+    const promptMfa = React.useCallback((props, prefetchedMethods) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        var _a;
+        const methods = prefetchedMethods !== null && prefetchedMethods !== void 0 ? prefetchedMethods : (yield getUserMfaMethods());
+        const allMethods = [
+            ...methods.passkeys.map((passkey) => (Object.assign(Object.assign({}, passkey), { type: sdkApiCore.MFADeviceType.Passkey }))),
+            ...methods.devices.map((device) => (Object.assign(Object.assign({}, device), { type: sdkApiCore.MFADeviceType.Totp }))),
+        ];
+        if (!methods.userHasVerifiedMfaMethods || allMethods.length === 0) {
+            setShowAuthFlow(true);
+            pushView('mfa-choose-device', {
+                createMfaToken: props === null || props === void 0 ? void 0 : props.createMfaToken,
+                requestedScopes: props === null || props === void 0 ? void 0 : props.requestedScopes,
+            });
+            return;
+        }
+        const lastCreatedMethod = allMethods.reduce((a, b) => {
+            if (a === undefined || a === null)
+                return b;
+            if (b === undefined || b === null)
+                return a;
+            if (a.createdAt && b.createdAt) {
+                return a.createdAt >= b.createdAt ? a : b;
+            }
+            if (b.createdAt) {
+                return b;
+            }
+            return a;
+        });
+        switch (lastCreatedMethod.type) {
+            case sdkApiCore.MFADeviceType.Passkey: {
+                const createMfaTokenOptions = (props === null || props === void 0 ? void 0 : props.createMfaToken)
+                    ? { singleUse: true }
+                    : undefined;
+                const authenticatePasskeyPromise = authenticatePasskeyMFA({
+                    createMfaToken: createMfaTokenOptions,
+                    requestedScopes: props === null || props === void 0 ? void 0 : props.requestedScopes,
+                });
+                setShowAuthFlow(true);
+                pushView('passkey-confirm', {
+                    authenticatePasskeyPromise,
+                    createMfaToken: props === null || props === void 0 ? void 0 : props.createMfaToken,
+                    requestedScopes: props === null || props === void 0 ? void 0 : props.requestedScopes,
+                });
+                return authenticatePasskeyPromise;
+            }
+            case sdkApiCore.MFADeviceType.Totp: {
+                if ((dynamicClient === null || dynamicClient === void 0 ? void 0 : dynamicClient.mfaToken) && !((_a = props === null || props === void 0 ? void 0 : props.requestedScopes) === null || _a === void 0 ? void 0 : _a.length)) {
+                    return dynamicClient === null || dynamicClient === void 0 ? void 0 : dynamicClient.mfaToken;
+                }
+                const deferred = new utils.DeferredPromise();
+                setShowAuthFlow(true);
+                pushView('mfa-verification', {
+                    createMfaToken: props === null || props === void 0 ? void 0 : props.createMfaToken,
+                    requestedScopes: props === null || props === void 0 ? void 0 : props.requestedScopes,
+                });
+                const mfaCompletionSuccessOff = client$1.onEvent({
+                    event: 'mfaCompletionSuccess',
+                    listener: ({ mfaToken }) => deferred.resolve(mfaToken),
+                }, dynamicClient);
+                const onAuthFlowCloseHandler = () => deferred.reject(new Error('MFA view closed'));
+                dynamicEvents.dynamicEvents.on('authFlowClose', onAuthFlowCloseHandler);
+                deferred.promise.finally(() => {
+                    mfaCompletionSuccessOff();
+                    dynamicEvents.dynamicEvents.off('authFlowClose', onAuthFlowCloseHandler);
+                });
+                return deferred.promise.then((result) => {
+                    setShowAuthFlow(false);
+                    return result;
+                });
+            }
+            default:
+                throw new Error('Error determining MFA method to use');
+        }
+    }), [
+        authenticatePasskeyMFA,
+        dynamicClient,
+        getUserMfaMethods,
+        pushView,
+        setShowAuthFlow,
+    ]);
+    return { promptMfa };
+};
+
+exports.useStepUpPromptMfa = useStepUpPromptMfa;

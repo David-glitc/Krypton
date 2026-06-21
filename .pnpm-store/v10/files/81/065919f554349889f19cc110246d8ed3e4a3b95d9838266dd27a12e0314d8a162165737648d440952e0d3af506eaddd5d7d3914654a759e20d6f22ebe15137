@@ -1,0 +1,35 @@
+import type { GoogleDriveBackupReadiness } from '../googleDrive.types';
+/**
+ * Pre-flight readiness check for backing up MPC keyshares to Google Drive.
+ *
+ * Call this before initiating the keyshare backup ceremony. When the result
+ * is `'needs-access'`, have the user re-link their Google account so the
+ * required Drive scopes are granted, then call this again before retrying
+ * the backup. This avoids spending an MPC reshare ceremony on a backup that
+ * will predictably fail.
+ *
+ * Status values:
+ * - `'ready'`: stored scopes include both required Drive scopes; backup
+ *   should succeed (barring transient errors).
+ * - `'needs-access'`: backup likely won't succeed without user intervention.
+ *   Three sub-cases, distinguished by `missingScopes`:
+ *   - No Google account linked → `missingScopes` is the full required set.
+ *   - Some scopes granted but not all → `missingScopes` lists the gap.
+ *   - Legacy token captured before scope tracking shipped (`scopes: []` from
+ *     the API) → `missingScopes` is empty. Forcing a fresh consent will
+ *     populate the scopes column for subsequent calls.
+ *
+ * Failures of the underlying access-token fetch propagate as Promise
+ * rejections — the caller is expected to surface or retry them.
+ *
+ * Pair with `isInsufficientGoogleDriveScopesError` to detect post-flight
+ * scope failures (e.g. for the legacy "unknown scopes" case where pre-flight
+ * cannot prove failure).
+ *
+ * @param [client] - The Dynamic client instance. Only required when using
+ *   multiple Dynamic clients.
+ * @returns The readiness result.
+ * @instrumented
+ */
+export declare const getGoogleDriveBackupReadiness: (client?: import("../../../../exports").DynamicClient) => Promise<GoogleDriveBackupReadiness>;
+//# sourceMappingURL=getGoogleDriveBackupReadiness.d.ts.map

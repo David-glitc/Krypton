@@ -1,0 +1,34 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+var useGetUserMfaMethods = require('../useGetUserMfaMethods/useGetUserMfaMethods.cjs');
+var useStepUpPromptMfa = require('./useStepUpPromptMfa.cjs');
+var useStepUpPromptReauth = require('./useStepUpPromptReauth.cjs');
+
+/**
+ * Single entry point for step-up auth that chooses between MFA prompt and
+ * reauthenticate based on whether the user has registered MFA.
+ * Use promptMfa when the user has verified MFA methods; otherwise use
+ * promptReauthenticate (OTP or wallet).
+ */
+const usePromptStepUpAuth = () => {
+    const getUserMfaMethods = useGetUserMfaMethods.useGetUserMfaMethods();
+    const { promptMfa } = useStepUpPromptMfa.useStepUpPromptMfa();
+    const { promptReauthenticate } = useStepUpPromptReauth.useStepUpPromptReauth();
+    const promptStepUpAuth = React.useCallback((props) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        const methods = yield getUserMfaMethods();
+        const hasMfa = methods.userHasVerifiedMfaMethods &&
+            methods.passkeys.length + methods.devices.length > 0;
+        if (hasMfa) {
+            return promptMfa(props, methods);
+        }
+        return promptReauthenticate(props);
+    }), [getUserMfaMethods, promptMfa, promptReauthenticate]);
+    return { promptStepUpAuth };
+};
+
+exports.usePromptStepUpAuth = usePromptStepUpAuth;

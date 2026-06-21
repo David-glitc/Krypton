@@ -1,0 +1,20 @@
+import type { ParsedElevatedAccessToken } from '../elevatedAccessTokens.types';
+export type ParseElevatedAccessTokenOptions = {
+    /** JWT string containing the elevated access token. */
+    token: string;
+};
+/**
+ * Validates and parses an elevated access token from a JWT string.
+ * Extracts scopes, expiration, and validates the token structure.
+ *
+ * Policy decisions:
+ * - Tokens without scopes are rejected (returns null)
+ * - Tokens with empty scopes array are rejected (returns null)
+ * - Tokens without exp field are rejected (returns null)
+ * - Expired tokens are rejected (returns null)
+ *
+ * @returns Parsed token data or null if token is invalid/expired
+ * @not-instrumented
+ */
+export declare const parseElevatedAccessToken: ({ token, }: ParseElevatedAccessTokenOptions) => ParsedElevatedAccessToken | null;
+//# sourceMappingURL=parseElevatedAccessToken.d.ts.map

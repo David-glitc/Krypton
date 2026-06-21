@@ -1,0 +1,22 @@
+'use client'
+import { jsx } from 'react/jsx-runtime';
+import { createContext, useState, useEffect, useMemo } from 'react';
+import { createProviderHook } from '../../shared/utils/functions/createProviderHook/createProviderHook.js';
+import { useViewContext } from '../ViewContext/ViewContext.js';
+
+const FooterAnimationContext = createContext(undefined);
+const FooterAnimationContextProvider = ({ children, }) => {
+    const { view } = useViewContext();
+    const [isFooterExpanded, setIsFooterExpanded] = useState(false);
+    useEffect(() => {
+        setIsFooterExpanded(false);
+    }, [view]);
+    const value = useMemo(() => ({
+        isFooterExpanded,
+        setIsFooterExpanded,
+    }), [isFooterExpanded]);
+    return (jsx(FooterAnimationContext.Provider, { value: value, children: jsx("div", { children: children }) }));
+};
+const useFooterAnimationContext = createProviderHook(FooterAnimationContext, 'FooterAnimationContextProvider');
+
+export { FooterAnimationContext, FooterAnimationContextProvider, useFooterAnimationContext };

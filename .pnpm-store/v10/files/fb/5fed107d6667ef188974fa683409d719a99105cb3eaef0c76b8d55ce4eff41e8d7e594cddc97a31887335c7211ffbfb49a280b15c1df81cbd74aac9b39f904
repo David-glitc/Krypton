@@ -1,0 +1,286 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+var client = require('../../../client/client.cjs');
+require('@dynamic-labs-sdk/client/core');
+require('@dynamic-labs/sdk-api-core');
+require('@dynamic-labs-sdk/client');
+require('../../../config/ApiEndpoint.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+var ViewContext = require('../../../context/ViewContext/ViewContext.cjs');
+var logger = require('../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('@dynamic-labs/utils');
+require('../../constants/colors.cjs');
+require('../../constants/values.cjs');
+require('../../../shared/consts/index.cjs');
+require('@dynamic-labs/multi-wallet');
+require('react-international-phone');
+require('../../../store/state/nonce/nonce.cjs');
+require('@dynamic-labs/locale');
+var dynamicContextProps = require('../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../store/state/primaryWalletId/primaryWalletId.cjs');
+require('../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+require('../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+require('../../../events/dynamicEvents.cjs');
+var useOnboardingCompleteUser = require('../../../client/extension/user/useOnboardingCompleteUser/useOnboardingCompleteUser.cjs');
+var useProjectSettings = require('../../../client/extension/projectSettings/useProjectSettings/useProjectSettings.cjs');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var LoadingContext = require('../../../context/LoadingContext/LoadingContext.cjs');
+var walletOptions = require('../../../store/state/walletOptions/walletOptions.cjs');
+var useDynamicEvents = require('../events/useDynamicEvents/useDynamicEvents.cjs');
+var useDynamicWaas = require('../useDynamicWaas/useDynamicWaas.cjs');
+var useMutation = require('../useMutation/useMutation.cjs');
+var useSetupPassword = require('../useSetupPassword/useSetupPassword.cjs');
+var useWalletDelegation = require('../useWalletDelegation/useWalletDelegation.cjs');
+require('../useWalletDelegation/DelegationError.cjs');
+var instrumentWalletCreation = require('./instrumentWalletCreation.cjs');
+
+// Validate if all required conditions are met for wallet creation
+const useWalletCreationValidation = () => {
+    const user = useOnboardingCompleteUser.useOnboardingCompleteUser();
+    const projectSettings = useProjectSettings.useProjectSettings();
+    const walletConnectorOptions = walletOptions.useWalletConnectorOptions();
+    const { loading: globalLoading } = LoadingContext.useLoadingContext();
+    return React.useCallback(() => {
+        // Check if user is properly authenticated
+        const hasUser = Boolean(user && client.getDynamicClient().user);
+        if (!hasUser) {
+            return { isValid: false, reason: 'User not authenticated' };
+        }
+        if (!projectSettings) {
+            return { isValid: false, reason: 'Project settings not loaded' };
+        }
+        if (!walletConnectorOptions.length) {
+            return { isValid: false, reason: 'No wallet connectors available' };
+        }
+        if (globalLoading) {
+            return { isValid: false, reason: 'Authentication in progress' };
+        }
+        return { isValid: true };
+    }, [user, projectSettings, walletConnectorOptions, globalLoading]);
+};
+// Manage wallet creation with proper error handling
+const useWalletCreation = () => {
+    const { setShowAuthFlow } = useInternalDynamicContext.useInternalDynamicContext();
+    const { clearStackAndPush } = ViewContext.useViewContext();
+    const { createWalletAccount } = useDynamicWaas.useDynamicWaas();
+    const { setupPassword } = useSetupPassword.useSetupPassword();
+    const user = useOnboardingCompleteUser.useOnboardingCompleteUser();
+    const environmentId = dynamicContextProps.useEnvironmentId();
+    return useMutation.useMutation((requirements) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        const startTime = Date.now();
+        const chainsString = requirements.map((req) => req.chain).join(',');
+        const baseLogData = {
+            chainCount: requirements.length,
+            chains: chainsString,
+            environmentId,
+            userId: user === null || user === void 0 ? void 0 : user.id,
+        };
+        // Log wallet creation initiation to DataDog
+        logger.logger.instrument('Auto wallet creation initiated', Object.assign(Object.assign({}, baseLogData), { key: 'auto_wallet_creation_initiated', time: 0 }));
+        try {
+            // If passcodeRequired is enabled, prompt user to set up password first
+            const password = yield setupPassword();
+            // Wrap the ceremony so a hang or mid-flow page exit emits a reason
+            // instead of leaving a silent "initiated" with no resolution.
+            yield instrumentWalletCreation.instrumentWalletCreation({
+                logData: baseLogData,
+                run: () => createWalletAccount(requirements, password, undefined, {
+                    skipCloseAuthFlow: Boolean(password),
+                }),
+            });
+            const duration = Date.now() - startTime;
+            // Log successful wallet creation to DataDog
+            logger.logger.instrument('Auto wallet creation successful', Object.assign(Object.assign({}, baseLogData), { key: 'auto_wallet_creation_success', time: duration }));
+        }
+        catch (error) {
+            const duration = Date.now() - startTime;
+            // Don't count password setup cancellations as failures — they're intentional
+            // user actions, not errors. The onFailure handler already suppresses the error
+            // UI for this case; the metric should be consistent with that intent.
+            if (!(error instanceof Error &&
+                error.message === useSetupPassword.PASSWORD_SETUP_CANCELLED_ERROR)) {
+                logger.logger.instrument('Auto wallet creation failed', Object.assign(Object.assign({}, baseLogData), { error: error instanceof Error ? error.message : 'Unknown error', key: 'auto_wallet_creation_failed', time: duration }));
+            }
+            throw error;
+        }
+    }), {
+        onFailure: (error) => {
+            // Don't show error view if user cancelled password setup
+            if (error.message === useSetupPassword.PASSWORD_SETUP_CANCELLED_ERROR) {
+                logger.logger.debug('Password setup cancelled by user');
+                return;
+            }
+            logger.logger.error('Error creating dynamic waas wallet', error);
+            setShowAuthFlow(true, { ignoreIfIsEmbeddedWidget: false });
+            clearStackAndPush('backup-unsuccessful');
+        },
+    });
+};
+const useWalletSettingsProcessor = () => {
+    const { processSignOnWalletSettings } = useDynamicWaas.useDynamicWaas();
+    return useMutation.useMutation(() => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        yield processSignOnWalletSettings();
+    }), {
+        onFailure: (error) => {
+            logger.logger.error('Error processing wallet settings', error);
+        },
+    });
+};
+/**
+ * Hook that synchronizes Dynamic WaaS wallet creation based on user state and configuration.
+ *
+ * This hook automatically creates embedded wallets for enabled chains when:
+ * - User is authenticated and onboarding is complete
+ * - Project settings allow automatic wallet creation
+ * - Required chains don't already have wallets
+ * - No authentication is currently in progress
+ *
+ * The hook ensures wallet creation only happens once per session until logout.
+ */
+const useSyncDynamicWaas = () => {
+    const { areWalletsReadyForSettings, clearRecoveredWallets, needsAutoCreateWalletChains, initializeWaas, shouldInitializeWaas, } = useDynamicWaas.useDynamicWaas();
+    const validateWalletCreation = useWalletCreationValidation();
+    const { mutate: createWallets, isLoading: isCreatingWallets } = useWalletCreation();
+    const { mutate: processSettings, isLoading: isProcessingSettings } = useWalletSettingsProcessor();
+    const { initDelegationProcess, shouldPromptWalletDelegation } = useWalletDelegation.useWalletDelegation();
+    const user = useOnboardingCompleteUser.useOnboardingCompleteUser();
+    const environmentId = dynamicContextProps.useEnvironmentId();
+    const triggeredCreate = React.useRef(false);
+    const triggeredSettingsProcessing = React.useRef(false);
+    const hasWaasInitializedRef = React.useRef(false);
+    const sessionIdRef = React.useRef(undefined);
+    const initializingWaasRef = React.useRef(false);
+    useDynamicEvents.useInternalDynamicEvents('logout', () => {
+        triggeredCreate.current = false;
+        triggeredSettingsProcessing.current = false;
+        clearRecoveredWallets();
+    });
+    const shouldCreateWallets = React.useCallback(() => {
+        if (triggeredCreate.current || isCreatingWallets) {
+            return false;
+        }
+        if (!(needsAutoCreateWalletChains === null || needsAutoCreateWalletChains === void 0 ? void 0 : needsAutoCreateWalletChains.length)) {
+            return false;
+        }
+        const validation = validateWalletCreation();
+        return validation.isValid;
+    }, [needsAutoCreateWalletChains, validateWalletCreation, isCreatingWallets]);
+    const shouldProcessSettings = React.useCallback(() => {
+        if (triggeredSettingsProcessing.current || isProcessingSettings) {
+            return false;
+        }
+        // Settings processing requires wallets to be recovered first
+        if (!areWalletsReadyForSettings()) {
+            return false;
+        }
+        const validation = validateWalletCreation();
+        return validation.isValid;
+    }, [
+        areWalletsReadyForSettings,
+        validateWalletCreation,
+        isProcessingSettings,
+    ]);
+    const handleSettingsProcessing = React.useCallback(() => {
+        if (!shouldProcessSettings()) {
+            return;
+        }
+        processSettings();
+        triggeredSettingsProcessing.current = true;
+    }, [shouldProcessSettings, processSettings]);
+    React.useEffect(() => {
+        if (shouldProcessSettings()) {
+            handleSettingsProcessing();
+        }
+    }, [shouldProcessSettings, handleSettingsProcessing]);
+    const handleWalletCreation = React.useCallback(() => {
+        if (!shouldCreateWallets() || !needsAutoCreateWalletChains) {
+            return;
+        }
+        logger.logger.debug('Auto wallet creation triggered', {
+            chainCount: needsAutoCreateWalletChains.length,
+            chains: needsAutoCreateWalletChains.map((req) => req.chain),
+        });
+        // Call the mutation - it handles its own async logic and error handling
+        createWallets(needsAutoCreateWalletChains);
+        // Set the flag immediately to prevent duplicate calls
+        triggeredCreate.current = true;
+    }, [shouldCreateWallets, needsAutoCreateWalletChains, createWallets]);
+    // Initialize waas iframe when user is authenticated
+    // This handles both page reload (user already authenticated) and fresh authentication
+    React.useEffect(() => {
+        // handle logout case where user is logged out but session id is still valid
+        if (sessionIdRef.current && !(user === null || user === void 0 ? void 0 : user.sessionId)) {
+            sessionIdRef.current = undefined;
+            hasWaasInitializedRef.current = false;
+            initializingWaasRef.current = false;
+            clearRecoveredWallets();
+        }
+        if (shouldInitializeWaas && (user === null || user === void 0 ? void 0 : user.sessionId)) {
+            const { sessionId, id: userId } = user;
+            const shouldInitialize = !initializingWaasRef.current &&
+                (!hasWaasInitializedRef.current || sessionIdRef.current !== sessionId);
+            if (shouldInitialize) {
+                const isSessionIdChanged = sessionIdRef.current !== sessionId;
+                logger.logger.debug(isSessionIdChanged
+                    ? '[useSyncDynamicWaas] session id changed, initializing waas'
+                    : '[useSyncDynamicWaas] waas not initialized, initializing waas');
+                initializingWaasRef.current = true;
+                const initStartedAt = Date.now();
+                initializeWaas()
+                    .then(() => {
+                    logger.logger.debug('[useSyncDynamicWaas] waas initialized');
+                    hasWaasInitializedRef.current = true;
+                    sessionIdRef.current = sessionId;
+                    // Host-observed time to get the WaaS iframe/client ready. Ships to
+                    // Datadog (sliced by @version + environmentId) as the host-side
+                    // companion to the iframe app's `waas_iframe_*` timing — used to
+                    // quantify the per-page cost the bwc 0.x -> 1.x rewrite introduced.
+                    logger.logger.instrument('WaaS host init', {
+                        environmentId,
+                        key: 'waas_host_init',
+                        time: Date.now() - initStartedAt,
+                        userId,
+                    });
+                })
+                    .catch((error) => {
+                    logger.logger.warn('[useSyncDynamicWaas] Error initializing waas', {
+                        error,
+                        sessionId,
+                        userId,
+                    });
+                    logger.logger.instrument('WaaS host init failed', {
+                        environmentId,
+                        key: 'waas_host_init_failed',
+                        reason: error instanceof Error ? error.message : String(error),
+                        time: Date.now() - initStartedAt,
+                        userId,
+                    });
+                })
+                    .finally(() => {
+                    initializingWaasRef.current = false;
+                });
+            }
+        }
+    }, [initializeWaas, shouldInitializeWaas, user]);
+    React.useEffect(() => {
+        if (shouldCreateWallets()) {
+            handleWalletCreation();
+        }
+    }, [shouldCreateWallets, handleWalletCreation]);
+    React.useEffect(() => {
+        if (shouldPromptWalletDelegation()) {
+            initDelegationProcess();
+        }
+    }, [shouldPromptWalletDelegation, initDelegationProcess]);
+};
+
+exports.useSyncDynamicWaas = useSyncDynamicWaas;

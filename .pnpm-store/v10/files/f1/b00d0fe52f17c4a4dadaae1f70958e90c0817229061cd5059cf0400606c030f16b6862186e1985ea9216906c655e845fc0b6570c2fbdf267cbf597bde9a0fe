@@ -1,0 +1,8 @@
+/// <reference types="react" />
+/**
+ * Inline SVG icons for the TransactionModeSegmentedControl. We deliberately
+ * inline these rather than depending on an icon set so the segmented
+ * control is self-contained and easy to drop into other widgets.
+ */
+export declare const IndividualIcon: () => JSX.Element;
+export declare const ExchangeIcon: () => JSX.Element;

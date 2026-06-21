@@ -1,0 +1,26 @@
+import type { WalletProviderData } from '../../../wallets/walletProvider/walletProvider.types';
+import type { WalletConnectCatalog } from '../../getWalletConnectCatalog/getWalletConnectCatalog.types';
+type CollectInstalledGroupIdsParams = {
+    catalog: WalletConnectCatalog;
+    walletProviders: WalletProviderData[];
+};
+/**
+ * Scans the catalog and returns the set of group identifiers for which at
+ * least one installed wallet provider matches.
+ *
+ * Walks the catalog twice on purpose:
+ * - First through `wallets`, to cover wallets that point to a `groupId`
+ *   with no matching entry in `groups` (we fall back to the wallet's own
+ *   name for matching in that case).
+ * - Then through `groups`, to catch orphan group entries that have no
+ *   wallet referencing them.
+ *
+ * The check is skipped for any group already known to be installed, so a
+ * multi-chain wallet (same `groupId` across EVM + SOL entries) only runs
+ * the match once.
+ *
+ * @not-instrumented
+ */
+export declare const collectInstalledGroupIds: ({ catalog, walletProviders, }: CollectInstalledGroupIdsParams) => Set<string>;
+export {};
+//# sourceMappingURL=collectInstalledGroupIds.d.ts.map

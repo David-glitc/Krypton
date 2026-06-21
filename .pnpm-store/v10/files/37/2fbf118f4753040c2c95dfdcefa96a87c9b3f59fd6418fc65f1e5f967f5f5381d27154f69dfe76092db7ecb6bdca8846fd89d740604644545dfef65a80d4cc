@@ -1,0 +1,33 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+
+/* tslint:disable */
+function RecordBroadcastRequestFromJSON(json) {
+    return RecordBroadcastRequestFromJSONTyped(json);
+}
+function RecordBroadcastRequestFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'txHash': !runtime.exists(json, 'txHash') ? undefined : json['txHash'],
+    };
+}
+function RecordBroadcastRequestToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'txHash': value.txHash,
+    };
+}
+
+exports.RecordBroadcastRequestFromJSON = RecordBroadcastRequestFromJSON;
+exports.RecordBroadcastRequestFromJSONTyped = RecordBroadcastRequestFromJSONTyped;
+exports.RecordBroadcastRequestToJSON = RecordBroadcastRequestToJSON;

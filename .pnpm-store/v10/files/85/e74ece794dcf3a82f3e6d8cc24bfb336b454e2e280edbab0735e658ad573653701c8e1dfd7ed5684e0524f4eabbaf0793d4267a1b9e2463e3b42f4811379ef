@@ -1,0 +1,106 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react');
+require('react/jsx-runtime');
+require('../../../context/ViewContext/ViewContext.cjs');
+var logger = require('../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('@dynamic-labs/utils');
+require('../../constants/colors.cjs');
+require('../../constants/values.cjs');
+require('@dynamic-labs/sdk-api-core');
+require('../../../shared/consts/index.cjs');
+
+/**
+ * Soft watchdog for the embedded-wallet auto-creation ceremony. Long enough to
+ * clear a healthy MPC ceremony (observed ~7s, iframe load timeout is 10s) so a
+ * fire here means the flow genuinely stalled rather than just being slow.
+ */
+const AUTO_WALLET_CREATION_TIMEOUT_MS = 30000;
+/**
+ * A page must stay hidden this long before we count the ceremony as abandoned.
+ * Android webviews and bfcache navigations fire `pagehide`/`visibilitychange`
+ * transiently — frequently ~1s into the flow — and webviews pause JS timers
+ * while backgrounded. Requiring a *sustained* hide (and ignoring reversible
+ * bfcache `pagehide`) stops a user who never actually left from being logged as
+ * abandoned (DYNT-870 follow-up).
+ */
+const ABANDON_CONFIRM_MS = 5000;
+/**
+ * Wraps the auto-wallet-creation ceremony so that "silent" failures carry a
+ * reason. Without this, a ceremony that hangs (promise never settles) or a user
+ * who navigates away mid-flow produces an `initiated` log with no `success` or
+ * `failed` counterpart, leaving the failure undiagnosable.
+ *
+ * Emits:
+ * - `auto_wallet_creation_timeout` if `run` has not settled within `timeoutMs`.
+ * - `auto_wallet_creation_abandoned` if the user genuinely leaves while `run` is
+ *   still in flight — either a terminal unload (`pagehide`, non-bfcache) or a
+ *   hide that stays hidden for `ABANDON_CONFIRM_MS`. Transient hides (tab
+ *   switch, OS pause, the ~1s webview flicker) are ignored. Relies on the
+ *   logger's keepalive transport to survive unload.
+ *
+ * The watchdog is observational: it never aborts `run`, and its return value /
+ * rejection is passed through unchanged.
+ */
+const instrumentWalletCreation = (_a) => _tslib.__awaiter(void 0, [_a], void 0, function* ({ run, logData, timeoutMs = AUTO_WALLET_CREATION_TIMEOUT_MS, }) {
+    var _b, _c, _d, _e;
+    const startTime = Date.now();
+    const doc = globalThis.document;
+    const timeoutId = setTimeout(() => {
+        logger.logger.instrument('Auto wallet creation timed out', Object.assign(Object.assign({}, logData), { key: 'auto_wallet_creation_timeout', reason: 'timeout', time: Date.now() - startTime }));
+    }, timeoutMs);
+    let abandonReported = false;
+    let hiddenTimer = null;
+    const reportAbandoned = (reason) => {
+        if (abandonReported) {
+            return;
+        }
+        abandonReported = true;
+        logger.logger.instrument('Auto wallet creation abandoned', Object.assign(Object.assign({}, logData), { key: 'auto_wallet_creation_abandoned', reason, time: Date.now() - startTime }));
+    };
+    // A terminal unload (not a reversible bfcache freeze) is a genuine exit:
+    // report immediately and let the logger's keepalive transport flush it.
+    const handlePageHide = (event) => {
+        if (event.persisted) {
+            return;
+        }
+        reportAbandoned('page_hidden');
+    };
+    // Transient backgrounding (tab switch, OS pause, the ~1s webview flicker)
+    // fires `hidden` then `visible` again; only a hide that *stays* hidden counts.
+    // If the webview pauses JS while hidden, the timer simply never fires — which
+    // is the desired outcome (the user did not actually abandon).
+    const handleVisibilityChange = () => {
+        if ((doc === null || doc === void 0 ? void 0 : doc.visibilityState) === 'hidden') {
+            hiddenTimer = setTimeout(() => reportAbandoned('backgrounded'), ABANDON_CONFIRM_MS);
+        }
+        else if (hiddenTimer) {
+            clearTimeout(hiddenTimer);
+            hiddenTimer = null;
+        }
+    };
+    (_b = globalThis.addEventListener) === null || _b === void 0 ? void 0 : _b.call(globalThis, 'pagehide', handlePageHide);
+    (_c = doc === null || doc === void 0 ? void 0 : doc.addEventListener) === null || _c === void 0 ? void 0 : _c.call(doc, 'visibilitychange', handleVisibilityChange);
+    try {
+        return yield run();
+    }
+    finally {
+        clearTimeout(timeoutId);
+        if (hiddenTimer) {
+            clearTimeout(hiddenTimer);
+        }
+        (_d = globalThis.removeEventListener) === null || _d === void 0 ? void 0 : _d.call(globalThis, 'pagehide', handlePageHide);
+        (_e = doc === null || doc === void 0 ? void 0 : doc.removeEventListener) === null || _e === void 0 ? void 0 : _e.call(doc, 'visibilitychange', handleVisibilityChange);
+    }
+});
+
+exports.ABANDON_CONFIRM_MS = ABANDON_CONFIRM_MS;
+exports.AUTO_WALLET_CREATION_TIMEOUT_MS = AUTO_WALLET_CREATION_TIMEOUT_MS;
+exports.instrumentWalletCreation = instrumentWalletCreation;

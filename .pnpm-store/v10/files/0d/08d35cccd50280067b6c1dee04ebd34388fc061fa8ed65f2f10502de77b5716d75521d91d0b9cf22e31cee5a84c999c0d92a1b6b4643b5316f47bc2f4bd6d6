@@ -1,0 +1,14 @@
+import type { WalletAccount } from '../../walletAccount';
+type IsHardwareWalletAccountParams = {
+    walletAccount: WalletAccount;
+};
+/**
+ * Checks whether a wallet account was connected via a hardware wallet.
+ *
+ * @param params.walletAccount - The wallet account to check.
+ * @returns Whether the wallet account has a hardware wallet vendor set.
+  * @not-instrumented
+ */
+export declare const isHardwareWalletAccount: ({ walletAccount, }: IsHardwareWalletAccountParams) => boolean;
+export {};
+//# sourceMappingURL=isHardwareWalletAccount.d.ts.map

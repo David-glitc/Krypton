@@ -1,0 +1,11 @@
+import type { BackupLocationWithExternalKeyShareId } from '../types.js';
+export declare const getRequiredExternalKeyShareId: (ks: BackupLocationWithExternalKeyShareId) => string;
+/**
+ * A `dynamic` key share is retrievable only via its `externalKeyShareId`, so
+ * recording one without that reference persists an unrecoverable share that
+ * locks the user out at recovery time (where `getRequiredExternalKeyShareId`
+ * throws). Throw the same error here so the bad backup location is rejected
+ * before it is posted and surfaces in Datadog exactly as the recovery path does.
+ */
+export declare const assertDynamicLocationsHaveExternalKeyShareId: (locations: BackupLocationWithExternalKeyShareId[]) => void;
+//# sourceMappingURL=keyShare.d.ts.map

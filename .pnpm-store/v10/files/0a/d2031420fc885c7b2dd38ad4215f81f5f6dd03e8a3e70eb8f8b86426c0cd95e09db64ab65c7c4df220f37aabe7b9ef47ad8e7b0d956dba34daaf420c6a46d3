@@ -1,0 +1,63 @@
+export type InstrumentationEventPhase = 'started' | 'resolved' | 'rejected';
+/**
+ * Datadog reserved attribute for log severity. DD uses this field to colour-
+ * code rows and power the Status facet — must be one of its recognised values.
+ */
+export type InstrumentationStatus = 'error' | 'info' | 'debug';
+/**
+ * Common fields shared by all instrumentation events.
+ *
+ * All string values that match piiFields are redacted before this event is
+ * constructed, so it is safe to forward to an external transport.
+ */
+export type InstrumentationEvent = {
+    environmentId: string;
+    parameters: Record<string, unknown>;
+    /** Extension keys registered on the client at the time the event was emitted. */
+    registeredExtensionKeys: string[];
+    sdkSessionId: string;
+    sdkVersion: string;
+    status: InstrumentationStatus;
+    timestamp: string;
+    tokenSessionId: string | null;
+    userAgent: string;
+    userId: string | null;
+};
+/**
+ * A telemetry record emitted by instrumentFunction for each phase of a
+ * function call (started, resolved, rejected). Extends InstrumentationEvent
+ * with function-execution-specific fields.
+ */
+/** Serializable representation of a caught error, safe for JSON.stringify. */
+export type SerializedError = {
+    message: string;
+    name: string;
+    stack?: string;
+};
+export type FunctionInstrumentationEvent = InstrumentationEvent & {
+    functionName: string;
+    phase: InstrumentationEventPhase;
+    rejectedError?: SerializedError;
+    resolvedValue?: unknown;
+};
+export type InstrumentationConfig = {
+    enabled: boolean;
+    piiFields: string[];
+};
+/** Pluggable sink that receives fully-scrubbed events for forwarding. */
+export type InstrumentationTransport = {
+    log: (event: InstrumentationEvent) => void;
+};
+/**
+ * The instrumentation service instance held on DynamicCore.
+ * Acts as a gatekeeper: events are only forwarded to the transport when
+ * enabled, and the transport can be swapped at any time without restarting.
+ */
+export type Instrumentation = {
+    config: InstrumentationConfig;
+    log: (event: InstrumentationEvent) => void;
+    logFunction: (event: FunctionInstrumentationEvent) => void;
+    setEnabled: (enabled: boolean) => void;
+    setTransport: (transport: InstrumentationTransport) => void;
+};
+//# sourceMappingURL=instrumentation.types.d.ts.map

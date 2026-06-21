@@ -1,0 +1,94 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+require('@dynamic-labs-sdk/client/core');
+require('@dynamic-labs/sdk-api-core');
+require('react');
+require('eventemitter3');
+require('@dynamic-labs/utils');
+require('@dynamic-labs-sdk/client');
+require('../../../config/ApiEndpoint.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+var ViewContext = require('../../../context/ViewContext/ViewContext.cjs');
+require('../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('../../constants/colors.cjs');
+require('../../constants/values.cjs');
+require('../../../shared/consts/index.cjs');
+require('../../../../../_virtual/_tslib.cjs');
+require('@dynamic-labs/multi-wallet');
+require('react-international-phone');
+require('../../../store/state/nonce/nonce.cjs');
+require('@dynamic-labs/locale');
+require('../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../store/state/primaryWalletId/primaryWalletId.cjs');
+require('../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+require('../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+require('../../../events/dynamicEvents.cjs');
+var useUser = require('../../../client/extension/user/useUser/useUser.cjs');
+var useProjectSettings = require('../../../client/extension/projectSettings/useProjectSettings/useProjectSettings.cjs');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var index = require('../../../context/FooterAnimationContext/index.cjs');
+var MockContext = require('../../../context/MockContext/MockContext.cjs');
+var isUserLinkingWallet = require('../../../shared/utils/functions/isUserLinkingWallet/isUserLinkingWallet.cjs');
+var authViewLayoutChecks = require('../../constants/authViewLayoutChecks.cjs');
+var useDynamicLayoutData = require('../useDynamicLayoutData/useDynamicLayoutData.cjs');
+var useAllowClose = require('./useAllowClose/useAllowClose.cjs');
+
+const useAuthLayoutChecks = () => {
+    var _a;
+    const { view } = ViewContext.useViewContext();
+    const { customPrivacyPolicy, customTermsOfServices, privacyPolicyUrl, termsOfServiceUrl, isBridgeFlow, } = useInternalDynamicContext.useInternalDynamicContext();
+    const { isFooterExpanded } = index.useFooterAnimationContext();
+    const { mockedSDK } = MockContext.useMockContext();
+    const { helpHeaderData } = useDynamicLayoutData.useDynamicLayoutData({
+        view: view.type,
+    });
+    const user = useUser.useUserProfile();
+    const projectSettings = useProjectSettings.useProjectSettings();
+    const isLinkingWallet = isUserLinkingWallet.isUserLinkingWallet(user, view.type, mockedSDK);
+    const displayBorderBelowHeader = !authViewLayoutChecks.viewsThatPreventBorderBelowHeader.includes(view.type) || isFooterExpanded;
+    const isWalletListTypeView = authViewLayoutChecks.viewsWithWalletListType.includes(view.type);
+    const showHelpContent = Boolean(helpHeaderData &&
+        !authViewLayoutChecks.viewsThatHideHelpContent.includes(view.type) &&
+        !isLinkingWallet);
+    const showHeader = !authViewLayoutChecks.viewsThatHideHeader.includes(view.type);
+    const showConnectedWalletProgress = isBridgeFlow && authViewLayoutChecks.viewsThatShowConnectedWalletProgress.includes(view.type);
+    const showToSFooter = Boolean(!isLinkingWallet &&
+        (view.type === 'wallet-list' ||
+            view.type === 'wallet-connect-mobile-wallets-list' ||
+            // Don't show empty footer during the login
+            ((view.type === 'login-with-email-or-wallet' ||
+                view.type === 'login-with-email-or-wallet-full-wallet-list' ||
+                view.type === 'login-with-wallet-only' ||
+                view.type === 'multi-wallet-wallet-list') &&
+                (termsOfServiceUrl ||
+                    privacyPolicyUrl ||
+                    customPrivacyPolicy ||
+                    customTermsOfServices))));
+    const showDynamicFooter = Boolean((_a = projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.sdk) === null || _a === void 0 ? void 0 : _a.displayDynamicMessaging) &&
+        authViewLayoutChecks.viewsThatShowDynamicFooter.includes(view.type);
+    const showDefaultFooter = !showConnectedWalletProgress && !showDynamicFooter && !showToSFooter;
+    const shouldHideDynamicFooterSeparator = showDynamicFooter && showToSFooter;
+    const { allowsClosing, showCloseButton } = useAllowClose.useAllowClose();
+    return {
+        allowsClosing,
+        displayBorderBelowHeader,
+        isWalletListTypeView,
+        shouldHideDynamicFooterSeparator,
+        showCloseButton,
+        showConnectedWalletProgress,
+        showDefaultFooter,
+        showDynamicFooter,
+        showHeader,
+        showHelpContent,
+        showToSFooter,
+    };
+};
+
+exports.useAuthLayoutChecks = useAuthLayoutChecks;

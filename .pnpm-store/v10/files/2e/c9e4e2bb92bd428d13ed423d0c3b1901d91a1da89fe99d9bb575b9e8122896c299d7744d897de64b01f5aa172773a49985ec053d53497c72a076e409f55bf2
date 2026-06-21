@@ -1,0 +1,36 @@
+import { exists } from '../runtime.js';
+import { DepositAmountsConfigInputFromJSON, DepositAmountsConfigInputToJSON } from './DepositAmountsConfigInput.js';
+import { DestinationConfigInputFromJSON, DestinationConfigInputToJSON } from './DestinationConfigInput.js';
+import { SettlementConfigInputFromJSON, SettlementConfigInputToJSON } from './SettlementConfigInput.js';
+
+/* tslint:disable */
+function CheckoutUpdateRequestFromJSON(json) {
+    return CheckoutUpdateRequestFromJSONTyped(json);
+}
+function CheckoutUpdateRequestFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'settlementConfig': !exists(json, 'settlementConfig') ? undefined : SettlementConfigInputFromJSON(json['settlementConfig']),
+        'destinationConfig': !exists(json, 'destinationConfig') ? undefined : DestinationConfigInputFromJSON(json['destinationConfig']),
+        'depositConfig': !exists(json, 'depositConfig') ? undefined : DepositAmountsConfigInputFromJSON(json['depositConfig']),
+        'enableOrchestration': !exists(json, 'enableOrchestration') ? undefined : json['enableOrchestration'],
+    };
+}
+function CheckoutUpdateRequestToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'settlementConfig': SettlementConfigInputToJSON(value.settlementConfig),
+        'destinationConfig': DestinationConfigInputToJSON(value.destinationConfig),
+        'depositConfig': DepositAmountsConfigInputToJSON(value.depositConfig),
+        'enableOrchestration': value.enableOrchestration,
+    };
+}
+
+export { CheckoutUpdateRequestFromJSON, CheckoutUpdateRequestFromJSONTyped, CheckoutUpdateRequestToJSON };

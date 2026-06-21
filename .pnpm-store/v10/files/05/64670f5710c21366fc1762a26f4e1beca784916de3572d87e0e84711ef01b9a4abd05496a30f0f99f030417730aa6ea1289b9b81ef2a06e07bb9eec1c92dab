@@ -1,0 +1,11 @@
+import { Dispatch, FC, SetStateAction } from 'react';
+import { TokenBalance } from '@dynamic-labs/sdk-api-core';
+import './FeeTokenSelector.scss';
+type FeeTokenSelectorProps = {
+    feeTokenOptions: TokenBalance[];
+    currentFeeToken: TokenBalance | undefined;
+    setCurrentFeeToken: Dispatch<SetStateAction<TokenBalance | undefined>>;
+    label?: string;
+};
+export declare const FeeTokenSelector: FC<FeeTokenSelectorProps>;
+export {};

@@ -1,0 +1,11 @@
+import { GetAddressOpts, InternalWalletConnector } from '@dynamic-labs/wallet-connector-core';
+import { TokenScope } from '@dynamic-labs/sdk-api-core';
+export type ConnectAndSignProps = {
+    getAddressOpts?: GetAddressOpts;
+    walletConnector: InternalWalletConnector;
+    requestedScopes?: TokenScope[];
+};
+export declare const useConnectAndSign: ({ shouldUpdateWallets, shouldCallCallback, }?: {
+    shouldUpdateWallets?: boolean | undefined;
+    shouldCallCallback?: boolean | undefined;
+}) => ({ walletConnector, getAddressOpts, requestedScopes, }: ConnectAndSignProps) => Promise<void>;

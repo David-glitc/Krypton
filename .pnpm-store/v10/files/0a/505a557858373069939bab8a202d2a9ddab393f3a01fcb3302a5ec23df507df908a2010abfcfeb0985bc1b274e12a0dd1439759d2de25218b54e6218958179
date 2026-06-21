@@ -1,0 +1,34 @@
+{
+  "name": "@dynamic-labs/wallet-connector-core",
+  "version": "4.89.0",
+  "description": "Core package for utilities and types for handling multiple wallet/chain support Dynamic SDK",
+  "author": "Dynamic Labs, Inc.",
+  "license": "MIT",
+  "main": "./src/index.cjs",
+  "module": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js",
+      "require": "./src/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "homepage": "https://www.dynamic.xyz/",
+  "dependencies": {
+    "@dynamic-labs-sdk/client": "1.8.2",
+    "@dynamic-labs/sdk-api-core": "0.0.1015",
+    "@dynamic-labs-wallet/browser-wallet-client": "1.0.16",
+    "@dynamic-labs-wallet/forward-mpc-client": "0.10.1",
+    "@dynamic-labs/assert-package-version": "4.89.0",
+    "@dynamic-labs/logger": "4.89.0",
+    "@dynamic-labs/rpc-providers": "4.89.0",
+    "@dynamic-labs/types": "4.89.0",
+    "@dynamic-labs/utils": "4.89.0",
+    "@dynamic-labs/wallet-book": "4.89.0",
+    "eventemitter3": "5.0.1"
+  },
+  "peerDependencies": {}
+}

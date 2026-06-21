@@ -1,0 +1,18 @@
+import type { AuthenticationResponseJSON, PublicKeyCredentialCreationOptionsJSON, PublicKeyCredentialRequestOptionsJSON, RegistrationResponseJSON } from '@simplewebauthn/browser';
+import type { DynamicClientConfig } from '../../client/types/DynamicClientConfig';
+export type CreatePasskeyServiceParams = {
+    metadata: DynamicClientConfig['metadata'];
+};
+export type PasskeyService = {
+    authenticate: (options: {
+        optionsJSON: PublicKeyCredentialRequestOptionsJSON;
+        useBrowserAutofill?: boolean;
+        verifyBrowserAutofillInput?: boolean;
+    }) => Promise<AuthenticationResponseJSON>;
+    isSupported: () => boolean;
+    register: (options: {
+        optionsJSON: PublicKeyCredentialCreationOptionsJSON;
+        useAutoRegister?: boolean;
+    }) => Promise<RegistrationResponseJSON>;
+};
+//# sourceMappingURL=passkey.types.d.ts.map

@@ -1,0 +1,104 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+var client = require('@dynamic-labs-sdk/client');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var dynamicEvents = require('../../../events/dynamicEvents.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+require('../../../context/ViewContext/ViewContext.cjs');
+require('../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('@dynamic-labs/utils');
+require('../../constants/colors.cjs');
+require('../../constants/values.cjs');
+require('@dynamic-labs/sdk-api-core');
+var hasPendingRequirements = require('../../../shared/utils/functions/hasPendingRequirements/hasPendingRequirements.cjs');
+require('../../../shared/consts/index.cjs');
+var useEmbeddedWalletSessionKeys = require('../useEmbeddedWalletSessionKeys/useEmbeddedWalletSessionKeys.cjs');
+require('@dynamic-labs-sdk/client/core');
+require('eventemitter3');
+require('../../../config/ApiEndpoint.cjs');
+require('@dynamic-labs/multi-wallet');
+require('react-international-phone');
+require('../../../store/state/nonce/nonce.cjs');
+require('@dynamic-labs/locale');
+require('../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../store/state/primaryWalletId/primaryWalletId.cjs');
+require('../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+require('../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+var convertSdkUserToUserProfile = require('../../../client/extension/user/convertSdkUserToUserProfile/convertSdkUserToUserProfile.cjs');
+var generateSessionKeys = require('../../../client/extension/functions/generateSessionKeys/generateSessionKeys.cjs');
+
+const useExternalAuth = () => {
+    const { environmentId, setShowAuthFlow, setCallback, projectSettings } = useInternalDynamicContext.useInternalDynamicContext();
+    const { generateSessionKey, shouldRegisterSessionKeysOnSignin } = useEmbeddedWalletSessionKeys.useEmbeddedWalletSessionKeys({
+        environmentId,
+        projectSettings,
+    });
+    /**
+     * Uses a properly-conifigured non-Dynamic external JWT and user ID to sign-in to Dynamic.
+     * When successful, this should grant the user the ability to access Dynamic's functionality
+     * available to only signed-in users, such as wallet linking, etc.
+     *
+     * @param {string} props.externalJwt - JWT issued outside of Dynamic
+     * @param {string} props.externalUserId - User ID to identify the user outside of Dynamic
+     *
+     * @returns {UserProfile} - User profile for successfully signed in user
+     */
+    const signInWithExternalJwt = React.useCallback((_a) => _tslib.__awaiter(void 0, [_a], void 0, function* ({ externalUserId, externalJwt, }) {
+        try {
+            const sessionPublicKey = shouldRegisterSessionKeysOnSignin()
+                ? (yield generateSessionKey()).publicKey
+                : undefined;
+            yield generateSessionKeys.generateSessionKeys();
+            const response = yield client.signInWithExternalJwt({
+                externalJwt,
+                sessionPublicKey,
+            });
+            const userProfile = convertSdkUserToUserProfile.convertSdkUserToUserProfile(response.user);
+            setCallback('authSuccess');
+            if (userProfile && !hasPendingRequirements.hasPendingRequirements(userProfile)) {
+                setShowAuthFlow(false);
+            }
+            return userProfile;
+        }
+        catch (e) {
+            dynamicEvents.dynamicEvents.emit('authFailure', {
+                externalUserId,
+                option: externalUserId,
+                type: 'externalAuth',
+            }, { error: e });
+            throw e;
+        }
+    }), [
+        setCallback,
+        setShowAuthFlow,
+        generateSessionKey,
+        shouldRegisterSessionKeysOnSignin,
+    ]);
+    /**
+     * Requests an elevated access token using an external auth assertion JWT.
+     *
+     * The assertion JWT must be signed by the customer's backend using the same key
+     * registered in the environment's external auth JWKS URL. It must include
+     * `sub`, `scope`, `jti`, and `exp` claims.
+     *
+     * @param {string} props.externalJwt - Assertion JWT signed by the customer's backend
+     *
+     * @returns The assertion response containing the elevated access token
+     */
+    const verifyWithExternalJwt = React.useCallback((_b) => _tslib.__awaiter(void 0, [_b], void 0, function* ({ externalJwt, }) { return client.requestExternalAuthElevatedToken({ externalJwt }); }), []);
+    return React.useMemo(() => ({
+        signInWithExternalJwt,
+        verifyWithExternalJwt,
+    }), [signInWithExternalJwt, verifyWithExternalJwt]);
+};
+
+exports.useExternalAuth = useExternalAuth;

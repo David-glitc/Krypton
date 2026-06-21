@@ -1,0 +1,46 @@
+'use client'
+import '../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { useViewContext } from '../../../context/ViewContext/ViewContext.js';
+
+const useHandleWalletsToConnect = () => {
+    const { bridgeChains, bridgeChainsToConnect, setShowAuthFlow, bridgeOnboardingCompleted, setBridgeOnboardingCompleted, } = useInternalDynamicContext();
+    const { pushView, clearStackAndPushInitialView } = useViewContext();
+    const handleWalletsToConnect = ({ walletConnector, }) => {
+        if (!bridgeChains) {
+            setShowAuthFlow(false);
+            return;
+        }
+        if (!bridgeChainsToConnect) {
+            setBridgeOnboardingCompleted(true);
+            setShowAuthFlow(false);
+            return;
+        }
+        // Avoid showing wallet-list when wallet updates network to the correct one in run time (bridge mode)
+        if (bridgeChainsToConnect.length === 0) {
+            setShowAuthFlow(false);
+            return clearStackAndPushInitialView();
+        }
+        if (!walletConnector || !walletConnector.connectedChain) {
+            setShowAuthFlow(false);
+            return clearStackAndPushInitialView();
+        }
+        const restOfWallets = bridgeChainsToConnect.filter((wallet) => wallet.chain !== (walletConnector === null || walletConnector === void 0 ? void 0 : walletConnector.connectedChain));
+        const allWalletsConnected = restOfWallets.length === 0;
+        if (allWalletsConnected) {
+            if (!bridgeOnboardingCompleted) {
+                setBridgeOnboardingCompleted(true);
+                pushView('bridge-summary');
+            }
+            else {
+                setShowAuthFlow(false);
+                clearStackAndPushInitialView();
+            }
+            return;
+        }
+        pushView('bridge-next-wallet-connection');
+    };
+    return { handleWalletsToConnect };
+};
+
+export { useHandleWalletsToConnect };

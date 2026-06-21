@@ -1,0 +1,22 @@
+'use client'
+import { jsxs, jsx } from 'react/jsx-runtime';
+import { useState, useRef } from 'react';
+import '../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { classNames } from '../../utils/functions/classNames/classNames.js';
+import { NetworkControl } from './components/NetworkControl/NetworkControl.js';
+import { NetworkDropdown } from './components/NetworkDropdown/NetworkDropdown.js';
+
+const NetworkPicker = ({ activeClassName = '', buttonClassName = '', checkboxClassName = '', connector, listClassName = '', mainClassName = '', showNetworkName, customCallbackOnSuccess, currentNetwork, isLoading = false, }) => {
+    const [isNetworkPickerOpen, setIsNetworkPickerOpen] = useState(false);
+    const pickerRef = useRef(null);
+    const { loadingNetwork } = useInternalDynamicContext();
+    // Ref to anchor popper to
+    const anchorRef = useRef(null);
+    if (!connector) {
+        return null;
+    }
+    return (jsxs("div", { className: classNames('non-widget-network-picker', mainClassName), ref: pickerRef, "data-testid": 'network-picker', children: [jsxs("div", { className: 'network-picker-network-control', children: [jsx(NetworkControl, { activeClassName: activeClassName, network: currentNetwork, loading: loadingNetwork || isLoading, isOpen: isNetworkPickerOpen, setIsOpen: setIsNetworkPickerOpen, walletConnector: connector, showNetworkName: showNetworkName, buttonClassName: buttonClassName }), jsx("div", { ref: anchorRef, className: 'network-picker-network-control__anchor' })] }), jsx(NetworkDropdown, { anchorRef: anchorRef, customCallbackOnSuccess: customCallbackOnSuccess, connector: connector, className: listClassName, checkboxClassName: checkboxClassName, isNetworkPickerOpen: isNetworkPickerOpen, setIsNetworkPickerOpen: setIsNetworkPickerOpen, currentNetwork: currentNetwork })] }));
+};
+
+export { NetworkPicker };

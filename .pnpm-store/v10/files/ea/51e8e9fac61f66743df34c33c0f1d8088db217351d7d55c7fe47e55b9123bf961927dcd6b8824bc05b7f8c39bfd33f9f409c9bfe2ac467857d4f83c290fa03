@@ -1,0 +1,39 @@
+type GetElevatedAccessTokenParams = {
+    /**
+     * Whether to consume single-use tokens after retrieval.
+     * Set to `false` to check for token existence without side-effects.
+     * @default true
+      * @instrumented
+   */
+    consume?: boolean;
+    scope: string;
+};
+/**
+ * Gets an elevated access token by scope.
+ *
+ * This function retrieves an elevated access token that contains the specified scope.
+ * Expired tokens are automatically filtered out.
+ *
+ * By default, if the token has `singleUse: true`, it will be automatically
+ * consumed (removed from state) after retrieval. Pass `consume: false` to
+ * check for token existence without consuming it.
+ *
+ * @param params - The parameters object.
+ * @param params.scope - The scope to match (e.g., 'wallet:export').
+ * @param params.consume - Whether to consume single-use tokens (default: true).
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns The elevated access token if found and not expired, or undefined if not found or expired.
+ *
+ * @example
+ * ```typescript
+ * // Retrieve and consume (default)
+ * const token = getElevatedAccessToken({ scope: 'wallet:export' });
+ *
+ * // Check existence without consuming
+ * const token = getElevatedAccessToken({ scope: 'credential:unlink', consume: false });
+ * ```
+  * @not-instrumented
+ */
+export declare const getElevatedAccessToken: ({ consume, scope }: GetElevatedAccessTokenParams, client?: import("../../../exports").DynamicClient) => string | undefined;
+export {};
+//# sourceMappingURL=getElevatedAccessToken.d.ts.map

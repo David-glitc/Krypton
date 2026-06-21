@@ -1,0 +1,37 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var React = require('react');
+var utils = require('@dynamic-labs/utils');
+var dynamicEvents = require('../../../events/dynamicEvents.cjs');
+
+/**
+ * Hook that listens for URL updates (from wallet deep link returns) and
+ * emits the walletReturnFromDeepLink event with the previous route.
+ *
+ * This allows customers to navigate back to where the user was before
+ * the wallet operation.
+ */
+const useWalletReturnRoute = () => {
+    React.useEffect(() => {
+        // Check immediately on mount in case the WebView was unmounted while the wallet
+        // was open and the URL redirect arrived before listeners were registered
+        const routeOnMount = utils.walletReturnRoute.getAndClear();
+        if (routeOnMount) {
+            dynamicEvents.dynamicEvents.emit('walletReturnFromDeepLink', {
+                previousRoute: routeOnMount,
+            });
+        }
+        const unsubscribe = utils.PlatformService.onUrlUpdate(() => {
+            const previousRoute = utils.walletReturnRoute.getAndClear();
+            if (previousRoute) {
+                dynamicEvents.dynamicEvents.emit('walletReturnFromDeepLink', { previousRoute });
+            }
+        });
+        return unsubscribe;
+    }, []);
+};
+
+exports.useWalletReturnRoute = useWalletReturnRoute;

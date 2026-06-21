@@ -1,0 +1,26 @@
+'use client'
+import { MinifiedDynamicJwtFromJSON } from '@dynamic-labs/sdk-api-core';
+import { parseToken } from '../../../../shared/utils/functions/parseToken/parseToken.js';
+import { getMinAuthToken } from '../getMinAuthToken/getMinAuthToken.js';
+
+/**
+ * Reads signin_credential_id from the current min JWT claims.
+ * Returns undefined if no token, decode fails, or claim is missing.
+ */
+const getSignInCredentialIdFromMinToken = () => {
+    const token = getMinAuthToken();
+    if (!token)
+        return undefined;
+    const payload = parseToken(token);
+    if (!payload || typeof payload !== 'object')
+        return undefined;
+    try {
+        const minJwt = MinifiedDynamicJwtFromJSON(payload);
+        return minJwt.signinCredentialId;
+    }
+    catch (_a) {
+        return undefined;
+    }
+};
+
+export { getSignInCredentialIdFromMinToken };

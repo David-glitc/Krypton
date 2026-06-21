@@ -1,0 +1,11 @@
+'use client'
+import { DynamicError } from './DynamicError.js';
+
+class TransactionConfirmationTimeoutError extends DynamicError {
+    constructor(transactionSignature) {
+        super(`Transaction confirmation timed out. Signature: ${transactionSignature}`);
+        this.transactionSignature = transactionSignature;
+    }
+}
+
+export { TransactionConfirmationTimeoutError };

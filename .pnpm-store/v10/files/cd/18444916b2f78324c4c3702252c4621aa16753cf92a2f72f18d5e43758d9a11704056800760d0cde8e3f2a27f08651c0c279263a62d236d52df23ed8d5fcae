@@ -1,0 +1,51 @@
+import { type AxiosInstance } from 'axios';
+import { AuthMode, type ILogger } from '../types.js';
+import type { ForwardMPCClientV2 } from '@dynamic-labs-wallet/forward-mpc-client';
+export declare class BaseClient {
+    apiClient: AxiosInstance;
+    baseApiUrl: string;
+    environmentId: string;
+    clientKeysharesRelayBaseApiUrl: string;
+    clientRelayApiClient: AxiosInstance;
+    _forwardMpcClient: ForwardMPCClientV2 | undefined;
+    logger: ILogger;
+    protected authMode: AuthMode;
+    protected backupServiceAuthToken?: string;
+    /** Notifies the host (via the reverse channel) when a 401 is seen. */
+    protected onUnauthorized?: () => void;
+    constructor({ environmentId, baseApiUrl, authToken, backupServiceAuthToken, baseClientKeysharesRelayApiUrl, authMode, sdkVersion, forwardMPCClient, logger, onUnauthorized, }: {
+        environmentId: string;
+        baseApiUrl?: string;
+        authToken?: string;
+        backupServiceAuthToken?: string;
+        baseClientKeysharesRelayApiUrl?: string;
+        authMode?: AuthMode;
+        sdkVersion?: string;
+        forwardMPCClient?: ForwardMPCClientV2;
+        logger?: ILogger;
+        /**
+         * Invoked when a backend call returns 401. Used inside the iframe to notify
+         * the host so it can log the user out. Fire-and-forget — the originating
+         * request still rejects/propagates as before.
+         */
+        onUnauthorized?: () => void;
+    });
+    /**
+     * Fire {@link onUnauthorized} whenever a request on this axios instance sees a
+     * 401, so the iframe can tell the host to log the user out.
+     *
+     * Both branches are needed: ordinary requests reject on 401 (onRejected),
+     * but the SSE sign/keygen path uses the fetch adapter with
+     * `responseType: 'stream'`, where a non-2xx response can arrive *resolved*
+     * (see createSuccessErrorEventStreamHandler) — so the fulfilled branch must
+     * inspect `response.status` too. The interceptor never alters the
+     * response/error; it only signals out-of-band, leaving existing error
+     * handling unchanged.
+     */
+    private installUnauthorizedInterceptor;
+    get forwardMPCClient(): ForwardMPCClientV2;
+    set forwardMPCClient(forwardMPCClient: ForwardMPCClientV2 | undefined);
+    syncAuthToken(authToken: string): void;
+    syncBackupServiceAuthToken(backupServiceAuthToken: string): void;
+}
+//# sourceMappingURL=client.d.ts.map

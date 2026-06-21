@@ -1,0 +1,15 @@
+/// <reference types="react" />
+import type { StepUpAuthenticationState } from './useStepUpAuthentication.types';
+export type LogContext = {
+    environmentId: string;
+    userId: string | undefined;
+};
+export declare const useStepUpState: () => {
+    logContext: LogContext;
+    resetState: () => void;
+    setError: (errorMessage: string) => void;
+    setLoading: () => void;
+    setState: import("react").Dispatch<import("react").SetStateAction<StepUpAuthenticationState>>;
+    setSuccess: (patch?: Partial<StepUpAuthenticationState>) => void;
+    state: StepUpAuthenticationState;
+};

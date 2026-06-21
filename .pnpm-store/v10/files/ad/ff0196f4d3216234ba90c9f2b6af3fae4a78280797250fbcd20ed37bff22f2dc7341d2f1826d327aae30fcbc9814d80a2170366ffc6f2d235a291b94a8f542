@@ -1,0 +1,32 @@
+import { BaseError } from './base/BaseError';
+/**
+ * Discriminator for `WebViewLoadFailedError`. Identifies the specific
+ * failure mode so callers can branch on it (e.g. retry on transient
+ * navigation failures, abort on invalid URL, treat HTTP errors distinct
+ * from network errors).
+ */
+export type WebViewLoadFailureReason = 'invalid_url' | 'no_host_view' | 'http_error' | 'navigation_failed' | 'cancelled' | 'instance_busy' | 'content_process_terminated' | 'unsupported';
+type WebViewLoadFailedErrorParams = {
+    cause?: Error | null;
+    reason: WebViewLoadFailureReason;
+    shortMessage: string;
+    /** HTTP response status code. Populated only when `reason === 'http_error'`. */
+    statusCode?: number;
+    /** Underlying OS-level error description (e.g. `NSURLErrorDomain`
+     *  localizedDescription). Populated for `reason === 'navigation_failed'`. */
+    underlyingError?: string;
+};
+/**
+ * Thrown when `DynamicWebView.open()` (via the WaaS transport provider)
+ * fails to establish a usable load. Inspect `reason` to distinguish the
+ * failure mode; `statusCode` and `underlyingError` provide structured
+ * metadata for the cases that have it.
+ */
+export declare class WebViewLoadFailedError extends BaseError {
+    readonly reason: WebViewLoadFailureReason;
+    readonly statusCode: number | undefined;
+    readonly underlyingError: string | undefined;
+    constructor({ reason, shortMessage, cause, statusCode, underlyingError, }: WebViewLoadFailedErrorParams);
+}
+export {};
+//# sourceMappingURL=WebViewLoadFailedError.d.ts.map

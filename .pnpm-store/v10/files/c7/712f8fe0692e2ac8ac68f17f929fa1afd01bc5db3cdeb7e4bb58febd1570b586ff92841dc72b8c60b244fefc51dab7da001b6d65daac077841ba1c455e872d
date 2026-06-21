@@ -1,0 +1,92 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+var utils = require('@dynamic-labs/utils');
+require('../../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var UserFieldEditorContext = require('../../../../context/UserFieldEditorContext/UserFieldEditorContext.cjs');
+var ViewContext = require('../../../../context/ViewContext/ViewContext.cjs');
+var dynamicEvents = require('../../../../events/dynamicEvents.cjs');
+var validateUpdateRequest = require('./validateUpdateRequest/validateUpdateRequest.cjs');
+
+/** Saves the values updated by the user */
+const saveUserValues = (_a, setShowAuthFlow_1, pushView_1, resolve_1, reject_1) => _tslib.__awaiter(void 0, [_a, setShowAuthFlow_1, pushView_1, resolve_1, reject_1], void 0, function* ({ fields: newValues, updateUserResult: { isEmailVerificationRequired, isSmsVerificationRequired, }, }, setShowAuthFlow, pushView, resolve, reject) {
+    // If no verification is needed, we are done
+    if (!isEmailVerificationRequired && !isSmsVerificationRequired) {
+        resolve(newValues);
+        return;
+    }
+    // Show verification view
+    setShowAuthFlow(true, {
+        ignoreIfIsEmbeddedWidget: false,
+        performMultiWalletChecks: false,
+    });
+    if (isEmailVerificationRequired) {
+        pushView('verify-email');
+        // Subscribe to email verification result
+        dynamicEvents.dynamicEvents.once('emailVerificationResult', (wasSuccessful, newEmail) => {
+            // Make sure we're using the correct, updated email. User might have changed it mid-OTP
+            newValues.email = newEmail;
+            wasSuccessful
+                ? resolve(newValues)
+                : reject('Failed to verify email, no fields were updated');
+        });
+        return;
+    }
+    pushView('verify-sms');
+    // Subscribe to sms verification result
+    dynamicEvents.dynamicEvents.once('smsVerificationResult', (wasSuccessful, { phone: newPhone }) => {
+        // Make sure we're using the correct, updated phone number. User might have changed it mid-OTP
+        newValues.phoneNumber = newPhone;
+        wasSuccessful
+            ? resolve(newValues)
+            : reject('Failed to verify phone number, no fields were updated');
+    });
+});
+// eslint-disable-next-line multiline-comment-style
+/** This hook allows to open the widget modal and expose any fields for editing.
+ * The fields must have been previously enabled in the dashboard
+ */
+const useUpdateUserWithModal = (updateUser) => {
+    const { user, projectSettings, setShowAuthFlow } = useInternalDynamicContext.useInternalDynamicContext();
+    const { pushView } = ViewContext.useViewContext();
+    const editorContext = React.useContext(UserFieldEditorContext.UserFieldEditorContext);
+    if (!editorContext)
+        throw new utils.DynamicError('useUserUpdateRequest can only be used inside the context of DynamicContextProvider');
+    const { open: promptUserForValues } = editorContext;
+    const updateUserWithModal = React.useCallback((fields, options) => new Promise((resolve, reject) => {
+        // Catch invalid requests
+        const errorResponse = validateUpdateRequest.validateUpdateRequest(fields, user, projectSettings);
+        if (errorResponse) {
+            reject(errorResponse);
+            return;
+        }
+        // Get user values
+        promptUserForValues({
+            fields,
+            submitText: options === null || options === void 0 ? void 0 : options.submitText,
+            subtitle: options === null || options === void 0 ? void 0 : options.subtitle,
+            title: options === null || options === void 0 ? void 0 : options.title,
+        }, updateUser)
+            .then((updateValues) => saveUserValues(updateValues, setShowAuthFlow, pushView, resolve, reject))
+            .catch((error) => {
+            if (/email already exists/gi.test(error))
+                throw error;
+            reject(error);
+        });
+    }), [
+        user,
+        projectSettings,
+        promptUserForValues,
+        updateUser,
+        setShowAuthFlow,
+        pushView,
+    ]);
+    return updateUserWithModal;
+};
+
+exports.useUpdateUserWithModal = useUpdateUserWithModal;

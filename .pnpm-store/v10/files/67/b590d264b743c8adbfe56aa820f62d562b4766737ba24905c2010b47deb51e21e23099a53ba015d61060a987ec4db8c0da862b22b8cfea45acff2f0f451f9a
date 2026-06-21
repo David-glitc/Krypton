@@ -1,0 +1,30 @@
+import type { DynamicClient } from '../../../client/types';
+import type { Chain } from '../../chain';
+import type { CheckoutTransactionCreateResponse } from '../checkout.types';
+export type DestinationAddress = {
+    address: string;
+    chain: Chain;
+};
+export type CreateCheckoutTransactionParams = {
+    amount: string;
+    checkoutId?: string;
+    currency: string;
+    /**
+     * The destination addresses for each settlement token destination.
+     * Must be provided for each settlement token chain, unless the
+     * addresses have already been provided on the checkout creation.
+     */
+    destinationAddresses?: DestinationAddress[];
+    expiresIn?: number;
+    memo?: object;
+};
+/**
+ * Creates a new checkout transaction and stores the session token for subsequent calls
+ *
+ * @param params CreateCheckoutTransactionParams - The parameters for the checkout transaction.
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns The created transaction with session token
+ * @instrumented
+ */
+export declare const createCheckoutTransaction: (params: CreateCheckoutTransactionParams, client?: DynamicClient) => Promise<CheckoutTransactionCreateResponse>;
+//# sourceMappingURL=createCheckoutTransaction.d.ts.map

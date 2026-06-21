@@ -1,0 +1,14 @@
+import type * as z from 'zod/mini';
+import type { RealtimeChannelSchema } from '../realtime.types';
+/**
+ * Defines a typed schema for a realtime channel — analogous to `createStorageKeySchema`
+ * for storage. Pairs a channel name with a Zod schema that validates the shape of
+ * messages sent and received on that channel. Pass the result to the realtime service's
+ * `subscribe` / `unsubscribe` / `publish` methods to get end-to-end type safety.
+  * @not-instrumented
+ */
+export declare const createRealtimeChannelSchema: <T>(params: {
+    channel: string;
+    schema: z.ZodMiniType<T>;
+}) => RealtimeChannelSchema<T>;
+//# sourceMappingURL=createRealtimeChannelSchema.d.ts.map

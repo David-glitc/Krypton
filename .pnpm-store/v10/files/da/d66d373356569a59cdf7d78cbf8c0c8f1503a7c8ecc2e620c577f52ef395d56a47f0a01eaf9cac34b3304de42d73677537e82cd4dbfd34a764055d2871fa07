@@ -1,0 +1,17 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var logger = require('../../../logger.cjs');
+
+const instrumentAuthLoginFailed = (err, context) => {
+    const errLike = err;
+    const message = typeof (errLike === null || errLike === void 0 ? void 0 : errLike.message) === 'string' ? errLike.message : undefined;
+    const code = (errLike === null || errLike === void 0 ? void 0 : errLike.code) !== undefined && errLike.code !== null
+        ? String(errLike.code)
+        : undefined;
+    logger.logger.instrument('auth.login_failed', Object.assign({ error: err instanceof Error ? err.message : message, errorCode: code !== null && code !== void 0 ? code : 'unknown', errorMessage: message, key: 'auth.login_failed', time: 0 }, context));
+};
+
+exports.instrumentAuthLoginFailed = instrumentAuthLoginFailed;

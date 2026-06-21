@@ -1,0 +1,31 @@
+import type { WalletProviderRegistryEntry } from '../../wallets/walletProviderRegistry';
+import type { WithWalletProviderSource } from '../walletOptionsCatalogue.types';
+type ClassifyWithWalletProviderSourceParams = {
+    entry: WalletProviderRegistryEntry;
+};
+/**
+ * Maps a registered wallet provider's registration priority to the
+ * `WithWalletProviderSource` value that should appear on its catalogue option.
+ *
+ * Priority mapping (set by each chain extension when it calls
+ * `registry.register`):
+ *
+ * - `WALLET_SDK` → `'sdk'` — branded SDKs wrapped by chain extensions
+ *   (Base Account via `@base-org/account`, MetaMask Connect, …).
+ * - `WALLET_SELF_ANNOUNCEMENT_STANDARD` → `'selfAnnounced'` — in-page
+ *   self-announcement standards (EIP-6963 on EVM, Wallet Standard on
+ *   Solana / Sui / …).
+ * - `WINDOW_INJECT` → `'windowInjected'` — legacy `window.*` injection.
+ *
+ * Returns `undefined` for providers whose registration priority does not
+ * correspond to a connectable external-wallet source — callers filter these
+ * out before emitting catalogue options.
+ *
+ * @param params.entry - The registry entry to classify.
+ * @returns The matching source, or `undefined` if this entry should not
+ *   surface a `withWalletProvider` option.
+ * @not-instrumented
+ */
+export declare const classifyWithWalletProviderSource: ({ entry, }: ClassifyWithWalletProviderSourceParams) => WithWalletProviderSource | undefined;
+export {};
+//# sourceMappingURL=classifyWithWalletProviderSource.d.ts.map

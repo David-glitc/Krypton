@@ -1,0 +1,46 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+var useSocialAuth = require('../useSocialAuth/useSocialAuth.cjs');
+
+const useStepUpSocial = ({ stateActions }) => {
+    const { setError, setLoading, setSuccess } = stateActions;
+    const socialErrorRef = React.useRef(null);
+    const { connectSocialAccount } = useSocialAuth.useSocialAuth({
+        onError: (error) => {
+            socialErrorRef.current = error;
+        },
+    });
+    const verifySocial = React.useCallback((_a) => _tslib.__awaiter(void 0, [_a], void 0, function* ({ provider, requestedScopes, }) {
+        socialErrorRef.current = null;
+        setLoading();
+        try {
+            yield connectSocialAccount({
+                authMode: 'stepup',
+                provider,
+                requestedScopes,
+            });
+            if (socialErrorRef.current) {
+                const errorMessage = socialErrorRef.current instanceof Error
+                    ? socialErrorRef.current.message
+                    : 'Social authentication failed';
+                setError(errorMessage);
+                return;
+            }
+            setSuccess();
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error
+                ? error.message
+                : 'Social authentication failed';
+            setError(errorMessage);
+        }
+    }), [connectSocialAccount, setError, setLoading, setSuccess]);
+    return { verifySocial };
+};
+
+exports.useStepUpSocial = useStepUpSocial;

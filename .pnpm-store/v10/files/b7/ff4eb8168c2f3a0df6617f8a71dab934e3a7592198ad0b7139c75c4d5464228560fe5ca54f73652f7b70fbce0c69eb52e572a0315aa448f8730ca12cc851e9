@@ -1,0 +1,9 @@
+import * as z from 'zod/mini';
+/**
+ * Schema for validating cross-tab broadcast messages.
+ */
+export declare const CrossTabBroadcastMessageSchema: z.ZodMiniObject<{
+    args: z.ZodMiniOptional<z.ZodMiniUnknown>;
+    event: z.ZodMiniString<string>;
+}, z.core.$strip>;
+//# sourceMappingURL=crossTabBroadcast.schema.d.ts.map

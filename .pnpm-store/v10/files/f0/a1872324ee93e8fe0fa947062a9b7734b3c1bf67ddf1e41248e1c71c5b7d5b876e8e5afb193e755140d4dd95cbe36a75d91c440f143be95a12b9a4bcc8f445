@@ -1,0 +1,24 @@
+import { DialogManager } from '../portal';
+import { WalletConfig } from '../storage';
+import { WalletState } from '../types';
+/**
+ * Creates a configured DialogManager instance
+ */
+export declare const createDialogManager: (config: WalletConfig) => DialogManager;
+/**
+ * Computes the credential hash from a base64 credential ID
+ */
+export declare const getCredentialHash: (credentialIdBase64: string) => number[];
+/**
+ * Standardized error handling for wallet actions
+ */
+export declare const handleActionError: (error: unknown, set: (state: Partial<WalletState>) => void, onFail?: (error: Error) => void) => never;
+/**
+ * Cleans up legacy local storage data
+ */
+export declare const cleanupLegacyStorage: () => void;
+/**
+ * Converts base64 public key to number array
+ */
+export declare const getPasskeyPublicKey: (publicKeyBase64: string | undefined) => number[];
+//# sourceMappingURL=utils.d.ts.map

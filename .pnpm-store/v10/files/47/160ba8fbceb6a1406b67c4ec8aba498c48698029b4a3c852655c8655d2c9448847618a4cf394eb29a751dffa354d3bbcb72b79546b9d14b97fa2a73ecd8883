@@ -1,0 +1,4 @@
+import type { CreateWaasClient } from './createWaasClient.types';
+/** @not-instrumented */
+export declare const createWaasClient: CreateWaasClient;
+//# sourceMappingURL=createWaasClient.d.ts.map

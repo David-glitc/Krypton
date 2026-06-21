@@ -1,0 +1,47 @@
+import type { AuthMode, BackupKeySharesToGoogleDriveRequest, BackupKeySharesToICloudRequest, CreateWalletAccountRequest, CreateWalletAccountResponse, DelegateKeySharesRequest, ExportClientKeysharesFromGoogleDriveRequest, ExportClientKeysharesRequest, ExportPrivateKeyRequest, GetWalletRecoveryStateRequest, GetWalletRequest, GetAllWalletsRequest, GetWalletResponse, GetWalletsRequest, IframeRequestMessages, ImportPrivateKeyRequest, IsPasswordEncryptedRequest, MessageTransportErrorResponse, OfflineExportPrivateKeyRequest, OfflineExportPrivateKeyResponse, FindAleoOwnedRecordsRequest, FindAleoOwnedRecordsResponse, ProveAleoTransactionRequest, ProveAleoTransactionResponse, RefreshWalletAccountSharesRequest, RequestWithElevatedAccessToken, RequestWithTraceContext, RequiresPasswordForOperationRequest, ReshareRequest, RevokeDelegationRequest, SetPasswordRequest, SignMessageRequest, SignRawMessageRequest, SignTransactionRequest, SignTypedDataRequest, TraceContext, UnlockWalletRequest, UpdatePasswordRequest, VerifyPasswordRequest, WalletRecoveryState } from '@dynamic-labs-wallet/core';
+import { type MessageTransportWithDefaultOrigin, type RequestChannel } from '@dynamic-labs/message-transport';
+export declare class iframeMessageHandler {
+    requestChannel: RequestChannel<IframeRequestMessages>;
+    constructor(messageTransport: MessageTransportWithDefaultOrigin);
+    private handleIframeMessageResponseError;
+    getWallets(request: RequestWithTraceContext<GetWalletsRequest>): Promise<GetWalletResponse[]>;
+    getAllWallets(request: RequestWithTraceContext<GetAllWalletsRequest>): Promise<GetWalletResponse[]>;
+    getWallet(request: RequestWithTraceContext<GetWalletRequest>): Promise<GetWalletResponse>;
+    createWalletAccount(request: RequestWithTraceContext<CreateWalletAccountRequest>): Promise<CreateWalletAccountResponse>;
+    requiresPasswordForOperation(request: RequestWithTraceContext<RequiresPasswordForOperationRequest>): Promise<boolean>;
+    signMessage(request: RequestWithTraceContext<RequestWithElevatedAccessToken<SignMessageRequest>>): Promise<string>;
+    signRawMessage(request: RequestWithTraceContext<RequestWithElevatedAccessToken<SignRawMessageRequest>>): Promise<string>;
+    signTransaction(request: RequestWithTraceContext<RequestWithElevatedAccessToken<SignTransactionRequest>>): Promise<string>;
+    isPasswordEncrypted(request: RequestWithTraceContext<IsPasswordEncryptedRequest>): Promise<boolean>;
+    backupKeySharesToGoogleDrive(request: RequestWithTraceContext<BackupKeySharesToGoogleDriveRequest>): Promise<void>;
+    backupKeySharesToICloud(request: RequestWithTraceContext<BackupKeySharesToICloudRequest>): Promise<void>;
+    displayICloudSignIn(chainName: string): Promise<void>;
+    hideICloudSignIn(): Promise<void>;
+    isICloudAuthenticated(chainName: string): Promise<boolean>;
+    delegateKeyShares(request: RequestWithTraceContext<DelegateKeySharesRequest>): Promise<void>;
+    revokeDelegation(request: RequestWithTraceContext<RevokeDelegationRequest>): Promise<void>;
+    exportClientKeysharesFromGoogleDrive(request: RequestWithTraceContext<ExportClientKeysharesFromGoogleDriveRequest>): Promise<void>;
+    refreshWalletAccountShares(request: RequestWithTraceContext<RequestWithElevatedAccessToken<RefreshWalletAccountSharesRequest>>): Promise<void>;
+    reshare(request: RequestWithTraceContext<RequestWithElevatedAccessToken<ReshareRequest>>): Promise<void>;
+    exportPrivateKey(request: RequestWithTraceContext<RequestWithElevatedAccessToken<ExportPrivateKeyRequest>>): Promise<void>;
+    proveAleoTransaction(request: RequestWithTraceContext<RequestWithElevatedAccessToken<ProveAleoTransactionRequest>>): Promise<ProveAleoTransactionResponse>;
+    findAleoOwnedRecords(request: RequestWithTraceContext<RequestWithElevatedAccessToken<FindAleoOwnedRecordsRequest>>): Promise<FindAleoOwnedRecordsResponse>;
+    isAleoFeemasterCovered(request: RequestWithTraceContext<{
+        chainName: string;
+        programId: string;
+        functionName: string;
+        chainId?: string | number;
+    }>): Promise<boolean>;
+    verifyPassword(request: RequestWithTraceContext<VerifyPasswordRequest>): Promise<void>;
+    updatePassword(request: RequestWithTraceContext<UpdatePasswordRequest>): Promise<void>;
+    setPassword(request: RequestWithTraceContext<SetPasswordRequest>): Promise<void>;
+    importPrivateKey(request: RequestWithTraceContext<ImportPrivateKeyRequest>): Promise<CreateWalletAccountResponse>;
+    sendAuthToken(token?: string, authMode?: AuthMode, traceContext?: TraceContext): Promise<void>;
+    exportClientKeyshares(request: RequestWithTraceContext<ExportClientKeysharesRequest>): Promise<void>;
+    offlineExportPrivateKey(request: RequestWithTraceContext<OfflineExportPrivateKeyRequest>): Promise<OfflineExportPrivateKeyResponse>;
+    signTypedData(request: RequestWithTraceContext<RequestWithElevatedAccessToken<SignTypedDataRequest>>): Promise<string>;
+    cleanup(): Promise<void | MessageTransportErrorResponse>;
+    getWalletRecoveryState(request: RequestWithTraceContext<GetWalletRecoveryStateRequest>): Promise<WalletRecoveryState>;
+    unlockWallet(request: RequestWithTraceContext<UnlockWalletRequest>): Promise<GetWalletResponse>;
+}
+//# sourceMappingURL=iframeMessageHandler.d.ts.map

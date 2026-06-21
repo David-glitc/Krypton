@@ -1,0 +1,14 @@
+import type { DynamicClient } from '../../../../client/types';
+import type { GetMoonPayCurrenciesParams, MoonPayCurrency } from '../moonpay.types';
+/**
+ * Fetches the list of crypto currencies supported by MoonPay for the given chain
+ * and network, filtered to active currencies only. Requires a MoonPay publishable
+ * API key to be configured for the environment.
+ *
+ * @param params - The chain and optional network ID to filter currencies by.
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns An array of supported MoonPay currencies.
+ * @instrumented
+ */
+export declare const getMoonPayCurrencies: (params: GetMoonPayCurrenciesParams, client?: DynamicClient) => Promise<MoonPayCurrency[]>;
+//# sourceMappingURL=getMoonPayCurrencies.d.ts.map

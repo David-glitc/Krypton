@@ -1,0 +1,51 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+var SwapFee = require('./SwapFee.cjs');
+var SwapQuoteResponseSide = require('./SwapQuoteResponseSide.cjs');
+var SwapSigningPayload = require('./SwapSigningPayload.cjs');
+var SwapStep = require('./SwapStep.cjs');
+
+/* tslint:disable */
+function SwapQuoteResponseFromJSON(json) {
+    return SwapQuoteResponseFromJSONTyped(json);
+}
+function SwapQuoteResponseFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'approvalAddress': !runtime.exists(json, 'approvalAddress') ? undefined : json['approvalAddress'],
+        'feeCosts': !runtime.exists(json, 'feeCosts') ? undefined : (json['feeCosts'].map(SwapFee.SwapFeeFromJSON)),
+        'from': SwapQuoteResponseSide.SwapQuoteResponseSideFromJSON(json['from']),
+        'gasCostUSD': !runtime.exists(json, 'gasCostUSD') ? undefined : json['gasCostUSD'],
+        'id': json['id'],
+        'signingPayload': !runtime.exists(json, 'signingPayload') ? undefined : SwapSigningPayload.SwapSigningPayloadFromJSON(json['signingPayload']),
+        'steps': (json['steps'].map(SwapStep.SwapStepFromJSON)),
+        'to': SwapQuoteResponseSide.SwapQuoteResponseSideFromJSON(json['to']),
+    };
+}
+function SwapQuoteResponseToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'approvalAddress': value.approvalAddress,
+        'feeCosts': value.feeCosts === undefined ? undefined : (value.feeCosts.map(SwapFee.SwapFeeToJSON)),
+        'from': SwapQuoteResponseSide.SwapQuoteResponseSideToJSON(value.from),
+        'gasCostUSD': value.gasCostUSD,
+        'id': value.id,
+        'signingPayload': SwapSigningPayload.SwapSigningPayloadToJSON(value.signingPayload),
+        'steps': (value.steps.map(SwapStep.SwapStepToJSON)),
+        'to': SwapQuoteResponseSide.SwapQuoteResponseSideToJSON(value.to),
+    };
+}
+
+exports.SwapQuoteResponseFromJSON = SwapQuoteResponseFromJSON;
+exports.SwapQuoteResponseFromJSONTyped = SwapQuoteResponseFromJSONTyped;
+exports.SwapQuoteResponseToJSON = SwapQuoteResponseToJSON;

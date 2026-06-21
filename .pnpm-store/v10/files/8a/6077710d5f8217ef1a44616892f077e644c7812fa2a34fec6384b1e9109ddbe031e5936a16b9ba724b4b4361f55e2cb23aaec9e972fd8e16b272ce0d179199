@@ -1,0 +1,72 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../../_virtual/_tslib.cjs');
+var jsxRuntime = require('react/jsx-runtime');
+var React = require('react');
+var reactI18next = require('react-i18next');
+var utils = require('@dynamic-labs/utils');
+var ErrorContainer = require('../../../../components/ErrorContainer/ErrorContainer.cjs');
+var NeedHelpSection = require('../../../../components/NeedHelpSection/NeedHelpSection.cjs');
+var PasskeyCreatedSuccessBanner = require('../../../../components/PasskeyCreatedSuccessBanner/PasskeyCreatedSuccessBanner.cjs');
+var Typography = require('../../../../components/Typography/Typography.cjs');
+var TypographyButton = require('../../../../components/TypographyButton/TypographyButton.cjs');
+require('../../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var dynamicEvents = require('../../../../events/dynamicEvents.cjs');
+var getProperErrorMessage = require('../../../../modals/SignMessageConfirmationModal/getProperErrorMessage.cjs');
+var passkeyIntroIcon = require('../../../../shared/assets/passkey-intro-icon.cjs');
+require('@dynamic-labs/iconic');
+require('../../../../context/ViewContext/ViewContext.cjs');
+var logger = require('../../../../shared/logger.cjs');
+var useIsTurnkeyWallet = require('../../../../utils/hooks/useIsTurnkeyWallet/useIsTurnkeyWallet.cjs');
+var useMutation = require('../../../../utils/hooks/useMutation/useMutation.cjs');
+var useSmartWallets = require('../../../../utils/hooks/useSmartWallets/useSmartWallets.cjs');
+var PasskeyDeviceIcon = require('../../PasskeyDeviceIcon/PasskeyDeviceIcon.cjs');
+var passkeyRecovery = require('../../utils/passkeyRecovery/passkeyRecovery.cjs');
+
+const PasskeyCompleteRecovery = ({ goBack, }) => {
+    const { primaryWallet, environmentId, user, setPasskeySuccessPopup } = useInternalDynamicContext.useInternalDynamicContext();
+    const { isTurnkeyWalletWithoutAuthenticator } = useIsTurnkeyWallet.useIsTurnkeyWallet();
+    const { getEOAWallet } = useSmartWallets.useSmartWallets();
+    const { t } = reactI18next.useTranslation();
+    const { mutate: completeRecovery, isLoading, error, } = useMutation.useMutation(() => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        var _a;
+        const wallet = (_a = (primaryWallet && getEOAWallet(primaryWallet))) !== null && _a !== void 0 ? _a : primaryWallet;
+        const updatedUser = yield passkeyRecovery.completePasskeyRecovery({
+            environmentId,
+            user,
+            wallet,
+        });
+        if (!updatedUser) {
+            throw new utils.DynamicError('Error completing passkey recovery');
+        }
+        dynamicEvents.dynamicEvents.emit('passkeyRecoveryCompleted', primaryWallet);
+        goBack();
+        setPasskeySuccessPopup(PasskeyCreatedSuccessBanner.PasskeySuccessEnum.CREATED);
+    }), {
+        onFailure: (err) => {
+            logger.logger.error('Failed to init passkey recovery', err);
+            dynamicEvents.dynamicEvents.emit('passkeyRecoveryFailed', err);
+        },
+    });
+    const errorText = React.useMemo(() => {
+        if (!error) {
+            return undefined;
+        }
+        if (error instanceof utils.DynamicError) {
+            return error.message;
+        }
+        return getProperErrorMessage.getProperErrorMessage(error);
+    }, [error]);
+    const translationKey = isTurnkeyWalletWithoutAuthenticator
+        ? 'dyn_passkey_secure_modal'
+        : 'dyn_passkey_recovery';
+    return (jsxRuntime.jsxs("div", { className: 'passkey-recovery-view', children: [jsxRuntime.jsx("div", { className: 'passkey-recovery-view__header', children: jsxRuntime.jsx(passkeyIntroIcon.ReactComponent, {}) }), jsxRuntime.jsx(Typography.Typography, { variant: 'body_normal', weight: 'regular', color: 'secondary', className: 'passkey-recovery-view__subtitle', children: t(`${translationKey}.complete.description`) }), errorText && jsxRuntime.jsx(ErrorContainer.ErrorContainer, { children: errorText }), jsxRuntime.jsx("div", { className: 'passkey-recovery-view__actions', children: jsxRuntime.jsx(TypographyButton.TypographyButton, { buttonVariant: 'brand-primary', buttonPadding: 'large', dataTestId: 'passkey-recovery-complete-button', onClick: () => completeRecovery(), disabled: isLoading, showInternalLoading: false, typographyProps: {
+                        color: 'inherit',
+                    }, children: jsxRuntime.jsxs("div", { className: 'passkey-recovery-view__inline-button', children: [jsxRuntime.jsx(PasskeyDeviceIcon.PasskeyDeviceIcon, { size: 'small' }), jsxRuntime.jsx(Typography.Typography, { copykey: `${translationKey}.complete.complete_button`, children: t(`${translationKey}.complete.complete_button`) })] }) }) }), jsxRuntime.jsx(NeedHelpSection.NeedHelpSection, { isRecoveryFlow: true })] }));
+};
+
+exports.PasskeyCompleteRecovery = PasskeyCompleteRecovery;

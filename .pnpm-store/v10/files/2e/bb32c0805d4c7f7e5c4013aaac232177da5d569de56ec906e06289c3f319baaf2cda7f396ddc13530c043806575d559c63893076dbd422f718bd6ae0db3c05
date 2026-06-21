@@ -1,0 +1,159 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var React = require('react');
+var utils = require('@dynamic-labs/utils');
+var walletConnectorCore = require('@dynamic-labs/wallet-connector-core');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var ViewContext = require('../../../context/ViewContext/ViewContext.cjs');
+var WalletGroupContext = require('../../../context/WalletGroupContext/WalletGroupContext.cjs');
+var dynamicEvents = require('../../../events/dynamicEvents.cjs');
+require('@dynamic-labs/iconic');
+require('react/jsx-runtime');
+var logger = require('../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('../../constants/colors.cjs');
+require('../../constants/values.cjs');
+var isWalletGroup = require('../../functions/walletListBuilder/utils/isWalletGroup/isWalletGroup.cjs');
+require('@dynamic-labs/sdk-api-core');
+require('../../../shared/consts/index.cjs');
+var walletOptions = require('../../../store/state/walletOptions/walletOptions.cjs');
+var groupWalletOptions = require('../../functions/walletListBuilder/utils/groupWalletOptions/groupWalletOptions.cjs');
+var useWalletItemActions = require('../useWalletItemActions/useWalletItemActions.cjs');
+
+const embeddedWalletsKeys = [
+    'magicemailotp',
+    'magiclink',
+    'magicsocial',
+    'turnkey',
+    'turnkeyhd',
+    'zerodev',
+    'dynamicwaas',
+];
+const useWalletOptions = () => {
+    const { walletConnectorOptions, setShowAuthFlow } = useInternalDynamicContext.useInternalDynamicContext();
+    const walletGroups = walletOptions.useWalletGroups();
+    const { pushView } = ViewContext.useViewContext();
+    const { navigateToWalletGroup } = WalletGroupContext.useWalletGroupContext();
+    const { handleWalletItemClick } = useWalletItemActions.useWalletItemActions();
+    const getFilteredWalletOptions = React.useCallback((filter) => {
+        const nonEmbeddedOptions = walletConnectorOptions.filter((option) => !embeddedWalletsKeys.includes(option.walletConnector.key));
+        return filter(nonEmbeddedOptions).map((option) => {
+            var _a, _b;
+            const groupName = option.group && ((_a = walletGroups[option.group]) === null || _a === void 0 ? void 0 : _a.name);
+            return {
+                chain: option.walletConnector.connectedChain,
+                group: (_b = option.group) !== null && _b !== void 0 ? _b : null,
+                groupName: groupName !== null && groupName !== void 0 ? groupName : null,
+                isInstalledOnBrowser: option.isInstalledOnBrowser,
+                isWalletConnect: option.walletConnector.isWalletConnect,
+                key: option.walletConnector.key,
+                metadata: option.walletConnector.metadata,
+                name: option.name,
+                supportedChains: option.walletConnector.supportedChains,
+            };
+        });
+    }, [walletConnectorOptions, walletGroups]);
+    const allWalletOptions = React.useMemo(() => getFilteredWalletOptions((options) => options), [getFilteredWalletOptions]);
+    const addListenersToHandleWalletSelectionPromise = React.useCallback(({ walletKey, connectorName, resolve, reject, }) => {
+        const walletAdded = (wallet) => {
+            if (wallet.key !== walletKey) {
+                return;
+            }
+            resolve(wallet);
+            setShowAuthFlow(false);
+            cleanup();
+        };
+        const walletConnectionFailed = (walletConnector, error) => {
+            if (walletConnector.key !== walletKey) {
+                return;
+            }
+            reject(error);
+            setShowAuthFlow(false);
+            cleanup();
+        };
+        const authFailure = (method, reason) => {
+            if (method.type !== 'wallet' ||
+                method.connectorName !== connectorName) {
+                return;
+            }
+            const error = typeof reason === 'object' ? reason.error : reason;
+            reject(error);
+            setShowAuthFlow(false);
+            cleanup();
+        };
+        const cleanup = () => {
+            dynamicEvents.dynamicEvents.off('walletConnectionFailed', walletConnectionFailed);
+            dynamicEvents.dynamicEvents.off('authFailure', authFailure);
+            dynamicEvents.dynamicEvents.off('walletAdded', walletAdded);
+        };
+        dynamicEvents.dynamicEvents.on('walletAdded', walletAdded);
+        dynamicEvents.dynamicEvents.on('walletConnectionFailed', walletConnectionFailed);
+        dynamicEvents.dynamicEvents.on('authFailure', authFailure);
+    }, [setShowAuthFlow]);
+    const selectWalletOption = React.useCallback((walletKey, selectGroupIfAvailable = true, skipAllSelectionUi = false, chain) => new Promise((resolve, reject) => {
+        const group = groupWalletOptions.groupWalletOptions(walletGroups, walletConnectorOptions);
+        const walletGroup = group.find((wallet) => wallet.key === walletKey);
+        // Filter by chain if provided
+        const walletOption = walletConnectorOptions === null || walletConnectorOptions === void 0 ? void 0 : walletConnectorOptions.find((wallet) => wallet.key === walletKey &&
+            (!chain || wallet.walletConnector.connectedChain === chain));
+        logger.logger.logVerboseTroubleshootingMessage('[useWalletOptions] selectWalletOption', {
+            chain,
+            selectGroupIfAvailable,
+            walletGroup: walletGroup === null || walletGroup === void 0 ? void 0 : walletGroup.key,
+            walletKey,
+            walletOption: walletOption === null || walletOption === void 0 ? void 0 : walletOption.key,
+        });
+        if (!walletOption) {
+            const errorMessage = chain
+                ? `No wallet found with key "${walletKey}" for chain "${chain}".`
+                : `No wallet found with key "${walletKey}".`;
+            reject(new utils.DynamicError(errorMessage));
+            return;
+        }
+        addListenersToHandleWalletSelectionPromise({
+            connectorName: walletOption.walletConnector.name,
+            reject,
+            resolve,
+            walletKey,
+        });
+        if (skipAllSelectionUi) {
+            handleWalletItemClick(walletOption);
+            return;
+        }
+        if (selectGroupIfAvailable &&
+            walletGroup &&
+            isWalletGroup.isWalletGroup(walletGroup)) {
+            navigateToWalletGroup(walletGroup);
+        }
+        else if (walletConnectorCore.isHardwareWalletConnector(walletOption.walletConnector) &&
+            walletOption.walletConnector.canConnectWithHardwareWallet()) {
+            pushView('select-hardware-wallet', {
+                onSelectWallet: handleWalletItemClick,
+                wallet: walletOption,
+            });
+        }
+        else {
+            handleWalletItemClick(walletOption);
+        }
+        setShowAuthFlow(true);
+    }), [
+        addListenersToHandleWalletSelectionPromise,
+        handleWalletItemClick,
+        navigateToWalletGroup,
+        setShowAuthFlow,
+        pushView,
+        walletConnectorOptions,
+        walletGroups,
+    ]);
+    return {
+        getFilteredWalletOptions,
+        selectWalletOption,
+        walletOptions: allWalletOptions,
+    };
+};
+
+exports.useWalletOptions = useWalletOptions;

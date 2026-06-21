@@ -1,0 +1,8 @@
+import { FC } from 'react';
+export type SetupPasswordKnowledgeCheckViewProps = {
+    onContinue: () => void;
+    onBack: () => void;
+    isLoading?: boolean;
+    error?: string | null;
+};
+export declare const SetupPasswordKnowledgeCheckView: FC<SetupPasswordKnowledgeCheckViewProps>;

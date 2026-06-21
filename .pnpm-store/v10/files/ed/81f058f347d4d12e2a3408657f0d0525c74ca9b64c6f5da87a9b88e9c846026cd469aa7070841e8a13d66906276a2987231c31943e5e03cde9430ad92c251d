@@ -1,0 +1,2 @@
+export { createCrossTabBroadcast } from './createCrossTabBroadcast';
+//# sourceMappingURL=index.d.ts.map

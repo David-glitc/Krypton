@@ -1,0 +1,16 @@
+/**
+ * @deprecated Use {@link GetMultichainTokenBalancesBalanceRequest} instead. Renamed for clarity.
+ */
+export type { GetMultichainTokenBalancesBalanceRequest as GetMultichainBalancesBalanceRequest } from '../getMultichainTokenBalances/getMultichainTokenBalances';
+/**
+ * @deprecated Use {@link GetMultichainTokenBalancesParams} instead. Renamed for clarity.
+ */
+export type { GetMultichainTokenBalancesParams as GetMultichainBalancesParams } from '../getMultichainTokenBalances/getMultichainTokenBalances';
+/**
+ * @deprecated Use {@link getMultichainTokenBalances} instead. Renamed so
+ * the name aligns with `getTokenBalances` and signals that this fetches
+ * token balances (not native-only) across multiple chains.
+ * @not-instrumented
+ */
+export { getMultichainTokenBalances as getMultichainBalances } from '../getMultichainTokenBalances/getMultichainTokenBalances';
+//# sourceMappingURL=getMultichainBalances.d.ts.map

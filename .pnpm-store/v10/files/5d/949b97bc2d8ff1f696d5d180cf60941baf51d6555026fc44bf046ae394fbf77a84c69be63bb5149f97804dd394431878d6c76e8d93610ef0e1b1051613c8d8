@@ -1,0 +1,108 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../../_virtual/_tslib.cjs');
+var jsxRuntime = require('react/jsx-runtime');
+var React = require('react');
+var reactI18next = require('react-i18next');
+var DynamicWidgetContext = require('../../context/DynamicWidgetContext.cjs');
+var SetupPasswordConfirmView = require('../SetupPasswordConfirmView/SetupPasswordConfirmView.cjs');
+var SetupPasswordEnterView = require('../SetupPasswordEnterView/SetupPasswordEnterView.cjs');
+require('@dynamic-labs/utils');
+require('@dynamic-labs/iconic');
+require('../../../../context/ViewContext/ViewContext.cjs');
+var SetupPasswordKnowledgeCheckView = require('../SetupPasswordKnowledgeCheckView/SetupPasswordKnowledgeCheckView.cjs');
+var SetupPasswordSuccessView = require('../SetupPasswordSuccessView/SetupPasswordSuccessView.cjs');
+var SetupPasswordTermsView = require('../SetupPasswordTermsView/SetupPasswordTermsView.cjs');
+
+const SetupPasswordView = ({ onComplete, onCancel, onDone, skipKnowledgeCheck = false, }) => {
+    const { t } = reactI18next.useTranslation();
+    const { setDynamicWidgetView, setIsOpen } = DynamicWidgetContext.useWidgetContext();
+    const [currentStep, setCurrentStep] = React.useState('terms');
+    const [password, setPassword] = React.useState('');
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
+    const [submitError, setSubmitError] = React.useState(null);
+    const goToAccountAndSecurity = React.useCallback(() => {
+        setDynamicWidgetView('account-and-security-settings');
+    }, [setDynamicWidgetView]);
+    const handleCancel = React.useCallback(() => {
+        if (onCancel) {
+            onCancel();
+        }
+        else {
+            goToAccountAndSecurity();
+        }
+    }, [onCancel, goToAccountAndSecurity]);
+    const handleTermsContinue = React.useCallback(() => {
+        setCurrentStep('enter');
+    }, []);
+    const handleEnterContinue = React.useCallback((newPassword) => {
+        setPassword(newPassword);
+        setCurrentStep('confirm');
+    }, []);
+    const handleEnterBack = React.useCallback(() => {
+        setCurrentStep('terms');
+    }, []);
+    const runOnComplete = React.useCallback((pwd) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        setIsSubmitting(true);
+        setSubmitError(null);
+        try {
+            yield onComplete(pwd);
+            setCurrentStep('success');
+        }
+        catch (_a) {
+            setSubmitError(t('dyn_setup_password.confirm.error.failed'));
+        }
+        finally {
+            setIsSubmitting(false);
+        }
+    }), [onComplete, t]);
+    const handleConfirmContinue = React.useCallback(() => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        if (skipKnowledgeCheck) {
+            yield runOnComplete(password);
+        }
+        else {
+            setCurrentStep('knowledge-check');
+        }
+    }), [skipKnowledgeCheck, runOnComplete, password]);
+    const handleConfirmBack = React.useCallback(() => {
+        setCurrentStep('enter');
+    }, []);
+    const handleKnowledgeCheckContinue = React.useCallback(() => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        yield runOnComplete(password);
+    }), [runOnComplete, password]);
+    const handleKnowledgeCheckBack = React.useCallback(() => {
+        setCurrentStep('confirm');
+    }, []);
+    const goToWallets = React.useCallback(() => {
+        setDynamicWidgetView('wallets');
+    }, [setDynamicWidgetView]);
+    const handleSuccess = React.useCallback(() => {
+        onDone === null || onDone === void 0 ? void 0 : onDone();
+        if (onCancel) {
+            goToWallets();
+            setIsOpen(false);
+        }
+        else {
+            goToAccountAndSecurity();
+        }
+    }, [onDone, onCancel, goToAccountAndSecurity, goToWallets, setIsOpen]);
+    switch (currentStep) {
+        case 'terms':
+            return (jsxRuntime.jsx(SetupPasswordTermsView.SetupPasswordTermsView, { onContinue: handleTermsContinue, onBack: onCancel ? undefined : handleCancel }));
+        case 'enter':
+            return (jsxRuntime.jsx(SetupPasswordEnterView.SetupPasswordEnterView, { onContinue: handleEnterContinue, onBack: handleEnterBack }));
+        case 'confirm':
+            return (jsxRuntime.jsx(SetupPasswordConfirmView.SetupPasswordConfirmView, { password: password, onContinue: handleConfirmContinue, onBack: handleConfirmBack, isLoading: isSubmitting && skipKnowledgeCheck, error: skipKnowledgeCheck ? submitError : null }));
+        case 'knowledge-check':
+            return (jsxRuntime.jsx(SetupPasswordKnowledgeCheckView.SetupPasswordKnowledgeCheckView, { onContinue: handleKnowledgeCheckContinue, onBack: handleKnowledgeCheckBack, isLoading: isSubmitting, error: submitError }));
+        case 'success':
+            return jsxRuntime.jsx(SetupPasswordSuccessView.SetupPasswordSuccessView, { onDone: handleSuccess });
+        default:
+            return null;
+    }
+};
+
+exports.SetupPasswordView = SetupPasswordView;

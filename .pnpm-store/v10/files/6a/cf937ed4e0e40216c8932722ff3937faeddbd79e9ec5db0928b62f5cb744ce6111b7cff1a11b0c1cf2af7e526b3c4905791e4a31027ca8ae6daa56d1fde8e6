@@ -1,0 +1,1 @@
+{"version":3,"file":"DeeplinkConnectAndVerifyUnsupportedError.d.ts","sourceRoot":"","sources":["../../src/errors/DeeplinkConnectAndVerifyUnsupportedError.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,SAAS,EAAE,MAAM,QAAQ,CAAC;AAEnC,KAAK,8CAA8C,GAAG;IACpD,iBAAiB,EAAE,MAAM,CAAC;CAC3B,CAAC;AAEF,qBAAa,wCAAyC,SAAQ,SAAS;gBACzD,EACV,iBAAiB,GAClB,EAAE,8CAA8C;CAiBlD"}

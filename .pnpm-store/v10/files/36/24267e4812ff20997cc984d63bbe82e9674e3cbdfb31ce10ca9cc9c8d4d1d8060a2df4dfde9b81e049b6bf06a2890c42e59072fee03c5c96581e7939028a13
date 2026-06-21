@@ -1,0 +1,31 @@
+import { exists } from '../runtime.js';
+
+/* tslint:disable */
+function QuoteRequestFromJSON(json) {
+    return QuoteRequestFromJSONTyped(json);
+}
+function QuoteRequestFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'fromTokenAddress': !exists(json, 'fromTokenAddress') ? undefined : json['fromTokenAddress'],
+        'fromChainId': !exists(json, 'fromChainId') ? undefined : json['fromChainId'],
+        'slippage': !exists(json, 'slippage') ? undefined : json['slippage'],
+    };
+}
+function QuoteRequestToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'fromTokenAddress': value.fromTokenAddress,
+        'fromChainId': value.fromChainId,
+        'slippage': value.slippage,
+    };
+}
+
+export { QuoteRequestFromJSON, QuoteRequestFromJSONTyped, QuoteRequestToJSON };

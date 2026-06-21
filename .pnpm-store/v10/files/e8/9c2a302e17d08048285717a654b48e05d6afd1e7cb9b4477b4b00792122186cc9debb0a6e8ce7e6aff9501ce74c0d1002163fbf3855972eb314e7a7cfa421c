@@ -1,0 +1,32 @@
+'use client'
+import { jsxs, jsx } from 'react/jsx-runtime';
+import { useTranslation } from 'react-i18next';
+import { isSessionKeyCompatibleWallet } from '@dynamic-labs/wallet-connector-core';
+import '../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { usePasskeyContext } from '../../context/PasskeyContext/PasskeyContext.js';
+import 'react';
+import { ReactComponent as SvgClose } from '../../shared/assets/close.js';
+import '@dynamic-labs/iconic';
+import '../../context/ViewContext/ViewContext.js';
+import { classNames } from '../../utils/functions/classNames/classNames.js';
+import { usePasskeyRecovery } from '../../utils/hooks/usePasskeyRecovery/usePasskeyRecovery.js';
+import { useSmartWallets } from '../../utils/hooks/useSmartWallets/useSmartWallets.js';
+import { IconButton } from '../IconButton/IconButton.js';
+import { Typography } from '../Typography/Typography.js';
+
+const SecureEmbeddedWalletCard = ({ className }) => {
+    const { t } = useTranslation();
+    const { primaryWallet } = useInternalDynamicContext();
+    const { initPasskeyRecoveryProcess } = usePasskeyRecovery();
+    const { showSecureAccountBanner, setShowSecureAccountBanner } = usePasskeyContext();
+    const { getEOAWallet } = useSmartWallets();
+    const eoaWallet = primaryWallet && getEOAWallet(primaryWallet);
+    const isSessionKeyCompatible = (primaryWallet && isSessionKeyCompatibleWallet(primaryWallet)) ||
+        (eoaWallet && isSessionKeyCompatibleWallet(eoaWallet));
+    if (!showSecureAccountBanner || isSessionKeyCompatible)
+        return null;
+    return (jsxs("div", { className: classNames('secure-embedded-wallet-card', className), children: [jsxs("div", { className: 'secure-embedded-wallet-card__text-content', "data-testid": 'secure-wallet-button', onClick: () => initPasskeyRecoveryProcess(), children: [jsx(Typography, { variant: 'body_small', color: 'primary', copykey: 'dyn_secure_pregenerated_wallet.description', children: t('dyn_secure_pregenerated_wallet.description') }), jsx(Typography, { variant: 'body_small', weight: 'bold', color: 'brand-primary', copykey: 'dyn_secure_pregenerated_wallet.action', className: 'secure-embedded-wallet-card__link', children: t('dyn_secure_pregenerated_wallet.action') })] }), jsx("div", { children: jsx(IconButton, { color: 'text-secondary', onClick: () => setShowSecureAccountBanner(false), children: jsx(SvgClose, { width: 16, height: 16 }) }) })] }));
+};
+
+export { SecureEmbeddedWalletCard };

@@ -1,0 +1,19 @@
+import { BaseError } from './base';
+type CorruptedKeyShareErrorParams = {
+    cause?: Error | null;
+};
+/**
+ * Thrown when a persisted client key share cannot be parsed back into its
+ * structured form (e.g. a partially-written or corrupted keychain entry).
+ *
+ * Surfaced as a typed error rather than swallowed so callers can distinguish
+ * "no key share stored" (empty result) from "key share exists but is
+ * unreadable" — the latter must never be silently treated as the former,
+ * which could trigger an unintended re-keygen that overwrites recoverable
+ * material.
+ */
+export declare class CorruptedKeyShareError extends BaseError {
+    constructor({ cause }?: CorruptedKeyShareErrorParams);
+}
+export {};
+//# sourceMappingURL=CorruptedKeyShareError.d.ts.map

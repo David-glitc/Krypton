@@ -1,0 +1,2 @@
+export type { DeviceSigner } from './deviceSigner.types';
+//# sourceMappingURL=index.d.ts.map

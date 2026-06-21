@@ -1,0 +1,3 @@
+import { type WalletConnectorConstructor } from '@dynamic-labs/wallet-connector-core';
+export { MetaMaskSolanaWalletConnector } from './MetaMaskSolanaWalletConnector.js';
+export declare const MetaMaskSolanaWalletConnectors: (_props: unknown) => WalletConnectorConstructor[];

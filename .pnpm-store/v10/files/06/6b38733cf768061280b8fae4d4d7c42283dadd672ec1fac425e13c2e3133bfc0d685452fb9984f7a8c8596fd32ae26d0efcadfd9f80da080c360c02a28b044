@@ -1,0 +1,5 @@
+export declare const createWaasClientSecureStorage: () => {
+    getClientKeyShare: (accountAddress: string) => Promise<any>;
+    removeClientKeyShare: (accountAddress: string) => Promise<void>;
+    setClientKeyShare: (accountAddress: string, shares: unknown[]) => Promise<void>;
+};

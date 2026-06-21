@@ -1,0 +1,20 @@
+/**
+ * Utility for storing and retrieving the route to return to after
+ * a wallet deep link operation completes.
+ */
+export declare const walletReturnRoute: {
+    /**
+     * Clear any stored return route without retrieving it.
+     */
+    clear: () => void;
+    /**
+     * Get and clear the stored return route.
+     * Returns undefined if no route was stored.
+     */
+    getAndClear: () => string | undefined;
+    /**
+     * Store the current route before opening a wallet deep link.
+     * This will be retrieved when the app returns from the wallet.
+     */
+    set: (route: string) => void;
+};

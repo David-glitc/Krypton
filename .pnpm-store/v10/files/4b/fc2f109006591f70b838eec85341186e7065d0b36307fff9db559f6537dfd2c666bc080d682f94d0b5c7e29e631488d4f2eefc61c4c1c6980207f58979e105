@@ -1,0 +1,65 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+var utils = require('@dynamic-labs/utils');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+
+/**
+ * Hook for signing EIP-7702 authorizations for ZeroDev kernel delegation.
+ *
+ * This hook provides a way to sign EIP-7702 authorizations that enable
+ * single-use MFA flows where the authorization signing step is separated
+ * from the transaction execution step.
+ *
+ * The signed authorization can be passed to kernel account client creation
+ * functions like `createEcdsaKernelAccountClientWith7702`.
+ *
+ * @returns An object containing the `signEip7702Authorization` function
+ *
+ * @example
+ * ```tsx
+ * import { useSignEip7702Authorization } from '@dynamic-labs/sdk-react-core';
+ *
+ * function MyComponent() {
+ *   const { signEip7702Authorization } = useSignEip7702Authorization();
+ *
+ *   const handleSign = async () => {
+ *     try {
+ *       const auth = await signEip7702Authorization();
+ *       console.log('Signed authorization:', auth);
+ *       // Use auth with kernel client creation
+ *     } catch (error) {
+ *       console.error('Failed to sign authorization:', error);
+ *     }
+ *   };
+ *
+ *   return <button onClick={handleSign}>Sign Authorization</button>;
+ * }
+ * ```
+ */
+const useSignEip7702Authorization = () => {
+    const { primaryWallet } = useInternalDynamicContext.useInternalDynamicContext();
+    const signEip7702Auth = React.useCallback((params) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        var _a;
+        const { wallet: providedWallet, chainId: providedChainId } = params !== null && params !== void 0 ? params : {};
+        // Use provided wallet or fallback to primary wallet
+        const wallet = providedWallet !== null && providedWallet !== void 0 ? providedWallet : primaryWallet;
+        if (!wallet) {
+            throw new utils.DynamicError('No wallet available. Please connect a wallet first.');
+        }
+        if (((_a = wallet.connector) === null || _a === void 0 ? void 0 : _a.key) !== 'zerodev') {
+            throw new utils.DynamicError('The wallet connector must be a ZeroDev connector to sign EIP-7702 authorizations.');
+        }
+        return wallet.connector.signEip7702PreAuth(providedChainId);
+    }), [primaryWallet]);
+    return {
+        signEip7702Authorization: signEip7702Auth,
+    };
+};
+
+exports.useSignEip7702Authorization = useSignEip7702Authorization;

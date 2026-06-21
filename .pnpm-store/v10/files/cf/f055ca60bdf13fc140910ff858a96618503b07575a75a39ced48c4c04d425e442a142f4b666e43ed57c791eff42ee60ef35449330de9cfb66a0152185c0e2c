@@ -1,0 +1,88 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var React = require('react');
+var walletConnectorCore = require('@dynamic-labs/wallet-connector-core');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+require('@dynamic-labs/sdk-api-core');
+require('../../constants/values.cjs');
+require('@dynamic-labs/utils');
+require('../../../../../_virtual/_tslib.cjs');
+require('@dynamic-labs/multi-wallet');
+var logger = require('../../../shared/logger.cjs');
+require('react-international-phone');
+require('../../constants/colors.cjs');
+require('@dynamic-labs/iconic');
+require('react/jsx-runtime');
+require('../../../context/ViewContext/ViewContext.cjs');
+require('@dynamic-labs/wallet-book');
+require('../../../shared/consts/index.cjs');
+require('../../../store/state/nonce/nonce.cjs');
+var isTurnkeyEnabled = require('../../functions/isTurnkeyEnabled/isTurnkeyEnabled.cjs');
+require('@dynamic-labs-sdk/client/core');
+require('eventemitter3');
+require('@dynamic-labs-sdk/client');
+require('../../../config/ApiEndpoint.cjs');
+require('../../../events/dynamicEvents.cjs');
+require('@dynamic-labs/locale');
+require('../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../store/state/primaryWalletId/primaryWalletId.cjs');
+require('../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+var usingV3Wallets = require('../../functions/usingV3Wallets/usingV3Wallets.cjs');
+require('../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+var useSmartWallets = require('../useSmartWallets/useSmartWallets.cjs');
+var authMode = require('../../../store/state/authMode/authMode.cjs');
+
+const useIsLoggedIn = () => {
+    var _a, _b, _c;
+    const { user, primaryWallet, projectSettings } = useInternalDynamicContext.useInternalDynamicContext();
+    const authMode$1 = authMode.useAuthMode();
+    const { getEOAWallet } = useSmartWallets.useSmartWallets();
+    const eoaWallet = primaryWallet && getEOAWallet(primaryWallet);
+    const isSessionKeyCompatible = (primaryWallet && walletConnectorCore.isSessionKeyCompatibleWallet(primaryWallet)) ||
+        (eoaWallet && walletConnectorCore.isSessionKeyCompatibleWallet(eoaWallet));
+    const isTurnkeyProviderEnabled = isTurnkeyEnabled.isTurnkeyEnabled(projectSettings);
+    // a user is set even when on connect-only mode if signing in with social,
+    // but it won't have a primaryWallet in this case
+    const isLoggedIn = Boolean(user) || (authMode$1 === 'connect-only' && Boolean(primaryWallet));
+    const userWalletsCredentials = (_a = user === null || user === void 0 ? void 0 : user.verifiedCredentials) === null || _a === void 0 ? void 0 : _a.filter(({ walletProvider }) => walletProvider);
+    const hasEmbeddedWalletVerifiedCredential = Boolean(userWalletsCredentials === null || userWalletsCredentials === void 0 ? void 0 : userWalletsCredentials.find(({ walletProvider }) => walletProvider === 'embeddedWallet'));
+    const isTurnkeyPregen = !usingV3Wallets.usingV3Wallets(projectSettings) &&
+        isTurnkeyProviderEnabled &&
+        ((_c = (_b = projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.sdk) === null || _b === void 0 ? void 0 : _b.embeddedWallets) === null || _c === void 0 ? void 0 : _c.automaticEmbeddedWalletCreation) &&
+        (!(projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.sdk.embeddedWallets.forceAuthenticatorAtSignup) ||
+            isSessionKeyCompatible);
+    const shouldHaveTurnkeyWallet = isTurnkeyPregen &&
+        // if user doesn't have a branded wallet only
+        (!(userWalletsCredentials === null || userWalletsCredentials === void 0 ? void 0 : userWalletsCredentials.length) || hasEmbeddedWalletVerifiedCredential);
+    React.useEffect(() => {
+        logger.logger.logVerboseTroubleshootingMessage('useIsLoggedIn', {
+            authMode: authMode$1,
+            eoaWallet,
+            isSessionKeyCompatible,
+            isTurnkeyProviderEnabled,
+            primaryWallet,
+            projectSettings,
+            user,
+        });
+    }, [
+        authMode$1,
+        eoaWallet,
+        isSessionKeyCompatible,
+        isTurnkeyProviderEnabled,
+        primaryWallet,
+        projectSettings,
+        user,
+    ]);
+    // if turnkey is enabled we need to check if the user that is logged/connected
+    // has a primaryWallet to not show the widget without secure
+    if (shouldHaveTurnkeyWallet) {
+        return Boolean(primaryWallet && isLoggedIn);
+    }
+    return isLoggedIn;
+};
+
+exports.useIsLoggedIn = useIsLoggedIn;

@@ -1,0 +1,22 @@
+type RequestExternalAuthElevatedTokenParams = {
+    externalJwt: string;
+};
+/**
+ * Requests an elevated access token using an external auth assertion JWT.
+ *
+ * The assertion JWT must be signed by the customer's backend using the same key
+ * registered in the environment's external auth JWKS URL. It must include
+ * `sub`, `scope`, `jti`, and `exp` claims.
+ *
+ * The returned elevated access token is automatically parsed and stored in state,
+ * and can be retrieved via `getElevatedAccessToken`.
+ *
+ * @param params.externalJwt - The assertion JWT signed by the customer's backend.
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns A promise that resolves to the assertion response containing the elevated access token.
+ * @instrumented
+ * @redact-params
+ */
+export declare const requestExternalAuthElevatedToken: ({ externalJwt }: RequestExternalAuthElevatedTokenParams, client?: import("../../../../exports").DynamicClient) => Promise<import("@dynamic-labs/sdk-api-core").ExternalAuthAssertionResponse>;
+export {};
+//# sourceMappingURL=requestExternalAuthElevatedToken.d.ts.map

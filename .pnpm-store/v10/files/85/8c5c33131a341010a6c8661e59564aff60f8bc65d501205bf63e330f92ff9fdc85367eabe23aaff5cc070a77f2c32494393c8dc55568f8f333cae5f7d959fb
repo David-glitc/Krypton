@@ -1,0 +1,11 @@
+type ParseUserAgentParams = {
+    userAgent: string;
+};
+type ParsedUserAgent = {
+    displayText: string;
+    type: 'mobile' | 'desktop';
+};
+/** @not-instrumented */
+export declare const parseUserAgent: ({ userAgent, }: ParseUserAgentParams) => ParsedUserAgent | null;
+export {};
+//# sourceMappingURL=parseUserAgent.d.ts.map

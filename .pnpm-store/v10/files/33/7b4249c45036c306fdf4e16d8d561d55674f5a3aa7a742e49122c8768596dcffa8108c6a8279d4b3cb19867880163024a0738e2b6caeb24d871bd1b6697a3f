@@ -1,0 +1,4 @@
+export type SessionKeys = {
+    publicKey: string;
+};
+//# sourceMappingURL=sessionKeys.types.d.ts.map

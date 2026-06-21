@@ -1,0 +1,2 @@
+export { getNonce } from './getNonce';
+//# sourceMappingURL=index.d.ts.map

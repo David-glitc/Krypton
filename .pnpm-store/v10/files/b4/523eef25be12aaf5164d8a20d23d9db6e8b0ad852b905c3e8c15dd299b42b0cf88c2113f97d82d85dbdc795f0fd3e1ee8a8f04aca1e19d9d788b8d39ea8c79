@@ -1,0 +1,2 @@
+export { upsertElevatedAccessToken } from './upsertElevatedAccessToken';
+//# sourceMappingURL=index.d.ts.map

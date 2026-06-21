@@ -1,0 +1,20 @@
+import type { DynamicClient } from '../../../client/types';
+/**
+ * Sets up bidirectional event synchronization between the core event emitter
+ * and the CrossTabBroadcast service.
+ *
+ * This enables events fired in one tab to be received in other tabs.
+ *
+ * **Local → Cross-Tab (Forwarding)**
+ * - Listens to specific events on core.eventEmitter
+ * - Forwards them to other tabs via core.crossTabBroadcast.send()
+ *
+ * **Cross-Tab → Local (Receiving)**
+ * - Listens to cross-tab events via core.crossTabBroadcast.on()
+ * - Emits corresponding "*InAnotherTab" events on core.eventEmitter
+ *
+ * @param client - The Dynamic client instance
+  * @not-instrumented
+ */
+export declare const setupCrossTabEventSync: (client: DynamicClient) => void;
+//# sourceMappingURL=setupCrossTabEventSync.d.ts.map

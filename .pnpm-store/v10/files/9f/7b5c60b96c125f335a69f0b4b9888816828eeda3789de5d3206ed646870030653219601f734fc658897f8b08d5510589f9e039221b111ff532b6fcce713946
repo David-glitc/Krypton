@@ -1,0 +1,18 @@
+import type { WalletOption } from '../walletOptionsCatalogue.types';
+type CompareByRelevanceParams = {
+    a: WalletOption;
+    b: WalletOption;
+};
+/**
+ * Compares two wallet options for relevance ordering: priority-list index
+ * first, then alphabetical-by-name as the tie-break. Suitable for passing
+ * straight to `Array.prototype.sort`.
+ *
+ * @param params.a - First wallet option.
+ * @param params.b - Second wallet option.
+ * @returns Negative when `a` ranks first, positive when `b` ranks first.
+ * @not-instrumented
+ */
+export declare const compareByRelevance: ({ a, b, }: CompareByRelevanceParams) => number;
+export {};
+//# sourceMappingURL=compareByRelevance.d.ts.map

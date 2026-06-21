@@ -1,0 +1,1 @@
+{"version":3,"file":"SimulationFailedError.d.ts","sourceRoot":"","sources":["../../src/errors/SimulationFailedError.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,SAAS,EAAE,MAAM,QAAQ,CAAC;AAEnC,qBAAa,qBAAsB,SAAQ,SAAS;gBACtC,MAAM,EAAE;QAAE,KAAK,CAAC,EAAE,KAAK,CAAC;QAAC,OAAO,EAAE,MAAM,CAAA;KAAE;CASvD"}

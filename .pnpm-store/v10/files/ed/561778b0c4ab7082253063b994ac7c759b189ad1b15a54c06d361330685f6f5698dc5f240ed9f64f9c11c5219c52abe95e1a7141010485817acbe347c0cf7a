@@ -1,0 +1,107 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+require('@dynamic-labs-sdk/client/core');
+require('@dynamic-labs/sdk-api-core');
+require('eventemitter3');
+require('@dynamic-labs/utils');
+require('@dynamic-labs-sdk/client');
+require('../../../config/ApiEndpoint.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+require('../../../context/ViewContext/ViewContext.cjs');
+require('../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('../../constants/colors.cjs');
+require('../../constants/values.cjs');
+require('../../../shared/consts/index.cjs');
+require('@dynamic-labs/multi-wallet');
+require('react-international-phone');
+require('../../../store/state/nonce/nonce.cjs');
+require('@dynamic-labs/locale');
+require('../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../store/state/primaryWalletId/primaryWalletId.cjs');
+require('../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+require('../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+require('../../../events/dynamicEvents.cjs');
+var useProjectSettings = require('../../../client/extension/projectSettings/useProjectSettings/useProjectSettings.cjs');
+var useChooseLinkedWallet = require('./useChooseLinkedWallet/useChooseLinkedWallet.cjs');
+var useConnectWalletForFunding = require('./useConnectWalletForFunding/useConnectWalletForFunding.cjs');
+var useFund = require('./useFund/useFund.cjs');
+var usePromptAmountAndFundWithWallet = require('./usePromptAmountAndFundWithWallet/usePromptAmountAndFundWithWallet.cjs');
+
+const useInternalFundWithWallet = () => {
+    var _a, _b;
+    const projectSettings = useProjectSettings.useProjectSettings();
+    const fundWithWallet = useFund.useFund();
+    const connectWalletForFunding = useConnectWalletForFunding.useConnectWalletForFunding();
+    const promptAmountAndFundWithWallet = usePromptAmountAndFundWithWallet.usePromptAmountAndFundWithWallet();
+    const { chooseLinkedWallet, filteredWallets } = useChooseLinkedWallet.useChooseLinkedWallet();
+    return React.useMemo(() => {
+        var _a, _b;
+        return ({
+            /**
+             * Shows a modal to pick a linked wallet and returns the picked wallet.
+             */
+            chooseLinkedWallet,
+            /**
+             * Connects an external wallet and returns the wallet.
+             */
+            connectWalletForFunding,
+            /**
+             * Whether external wallet funding is enabled.
+             */
+            externalWalletFundingEnabled: Boolean((_b = (_a = projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.sdk.funding) === null || _a === void 0 ? void 0 : _a.externalWallets) === null || _b === void 0 ? void 0 : _b.enabled),
+            /**
+             * The linked wallets available for funding the primary wallet.
+             */
+            filteredLinkedWallets: filteredWallets,
+            /**
+             * Triggers a funding transaction from the given wallet to the primary wallet.
+             */
+            fund: fundWithWallet,
+            /**
+             * Prompts the user for an amount and token and triggers a funding transaction
+             * from the given wallet to the primary wallet.
+             */
+            promptAmountAndFund: promptAmountAndFundWithWallet,
+        });
+    }, [
+        chooseLinkedWallet,
+        connectWalletForFunding,
+        (_b = (_a = projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.sdk.funding) === null || _a === void 0 ? void 0 : _a.externalWallets) === null || _b === void 0 ? void 0 : _b.enabled,
+        filteredWallets,
+        fundWithWallet,
+        promptAmountAndFundWithWallet,
+    ]);
+};
+const useFundWithWallet = () => {
+    const { setShowDynamicUserProfile } = useInternalDynamicContext.useInternalDynamicContext();
+    const _a = useInternalFundWithWallet(), { connectWalletForFunding, chooseLinkedWallet: _chooseLinkedWallet } = _a, otherMethods = _tslib.__rest(_a, ["connectWalletForFunding", "chooseLinkedWallet"]);
+    // When called from headless mode, let's close the modal afterwards
+    // Also ensure back button is not shown and prop is not passed
+    const chooseLinkedWallet = React.useCallback(() => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        const wallet = yield _chooseLinkedWallet({ showBackButton: false });
+        setShowDynamicUserProfile(false);
+        return wallet;
+    }), [_chooseLinkedWallet, setShowDynamicUserProfile]);
+    return Object.assign(Object.assign({}, otherMethods), { 
+        /**
+         * Shows a modal to pick a linked wallet and returns the picked wallet.
+         */
+        chooseLinkedWallet, 
+        /**
+         * Connects an external wallet and returns the wallet.
+         */
+        connectWalletForFunding: () => connectWalletForFunding({ initiatedByWidget: false }) });
+};
+
+exports.useFundWithWallet = useFundWithWallet;
+exports.useInternalFundWithWallet = useInternalFundWithWallet;

@@ -1,0 +1,19 @@
+import type { Instrumentation, InstrumentationConfig } from '../instrumentation.types';
+type CreateInstrumentationParams = {
+    config?: Partial<InstrumentationConfig>;
+};
+/**
+ * Creates the instrumentation service that gates event emission behind an
+ * enabled flag and delegates to a pluggable transport.
+ *
+ * The transport is intentionally optional at creation time — it is wired in
+ * later via setTransport so the SDK can initialise without one. Events logged
+ * before a transport is set are simply dropped.
+ *
+ * Custom piiFields are merged with and deduplicated against the defaults so
+ * callers only need to list additional fields, not replicate the baseline.
+  * @not-instrumented
+ */
+export declare const createInstrumentation: ({ config: inputConfig, }?: CreateInstrumentationParams) => Instrumentation;
+export {};
+//# sourceMappingURL=createInstrumentation.d.ts.map

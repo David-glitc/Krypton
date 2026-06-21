@@ -1,0 +1,33 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var MoonPayCurrency = require('./MoonPayCurrency.cjs');
+
+/* tslint:disable */
+function MoonPayCurrenciesResponseFromJSON(json) {
+    return MoonPayCurrenciesResponseFromJSONTyped(json);
+}
+function MoonPayCurrenciesResponseFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'currencies': (json['currencies'].map(MoonPayCurrency.MoonPayCurrencyFromJSON)),
+    };
+}
+function MoonPayCurrenciesResponseToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'currencies': (value.currencies.map(MoonPayCurrency.MoonPayCurrencyToJSON)),
+    };
+}
+
+exports.MoonPayCurrenciesResponseFromJSON = MoonPayCurrenciesResponseFromJSON;
+exports.MoonPayCurrenciesResponseFromJSONTyped = MoonPayCurrenciesResponseFromJSONTyped;
+exports.MoonPayCurrenciesResponseToJSON = MoonPayCurrenciesResponseToJSON;

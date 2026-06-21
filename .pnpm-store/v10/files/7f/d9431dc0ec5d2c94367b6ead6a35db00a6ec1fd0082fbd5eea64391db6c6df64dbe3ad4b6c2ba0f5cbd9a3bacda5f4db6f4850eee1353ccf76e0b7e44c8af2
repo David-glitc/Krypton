@@ -1,0 +1,2 @@
+export { getReactNativeManifest } from './getReactNativeManifest';
+//# sourceMappingURL=index.d.ts.map

@@ -1,0 +1,45 @@
+import { exists } from '../runtime.js';
+import { CheckoutFeeBreakdownFromJSON, CheckoutFeeBreakdownToJSON } from './CheckoutFeeBreakdown.js';
+import { SwapSigningPayloadFromJSON, SwapSigningPayloadToJSON } from './SwapSigningPayload.js';
+
+/* tslint:disable */
+function CheckoutTransactionQuoteFromJSON(json) {
+    return CheckoutTransactionQuoteFromJSONTyped(json);
+}
+function CheckoutTransactionQuoteFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'version': json['version'],
+        'fromAmount': json['fromAmount'],
+        'toAmount': json['toAmount'],
+        'fees': !exists(json, 'fees') ? undefined : CheckoutFeeBreakdownFromJSON(json['fees']),
+        'estimatedTimeSec': !exists(json, 'estimatedTimeSec') ? undefined : json['estimatedTimeSec'],
+        'rawQuote': !exists(json, 'rawQuote') ? undefined : json['rawQuote'],
+        'signingPayload': !exists(json, 'signingPayload') ? undefined : SwapSigningPayloadFromJSON(json['signingPayload']),
+        'createdAt': (new Date(json['createdAt'])),
+        'expiresAt': (new Date(json['expiresAt'])),
+    };
+}
+function CheckoutTransactionQuoteToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'version': value.version,
+        'fromAmount': value.fromAmount,
+        'toAmount': value.toAmount,
+        'fees': CheckoutFeeBreakdownToJSON(value.fees),
+        'estimatedTimeSec': value.estimatedTimeSec,
+        'rawQuote': value.rawQuote,
+        'signingPayload': SwapSigningPayloadToJSON(value.signingPayload),
+        'createdAt': (value.createdAt.toISOString()),
+        'expiresAt': (value.expiresAt.toISOString()),
+    };
+}
+
+export { CheckoutTransactionQuoteFromJSON, CheckoutTransactionQuoteFromJSONTyped, CheckoutTransactionQuoteToJSON };

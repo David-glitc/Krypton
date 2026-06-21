@@ -1,0 +1,9 @@
+import type { AxiosError } from 'axios';
+export declare class WalletApiError extends Error {
+    status: number;
+    constructor(status: number, message: string);
+}
+export declare const handleAxiosError: (error: AxiosError, message: string, context: Record<string, unknown>, _logger?: unknown) => never;
+export type { AxiosError } from 'axios';
+export { isAxiosError } from 'axios';
+//# sourceMappingURL=axiosErrorResponse.d.ts.map

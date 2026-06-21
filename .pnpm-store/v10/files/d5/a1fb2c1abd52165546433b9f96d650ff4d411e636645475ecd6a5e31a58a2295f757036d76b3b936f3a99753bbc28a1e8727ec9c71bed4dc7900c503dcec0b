@@ -1,0 +1,35 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+
+/* tslint:disable */
+function SignTransactionWithWaasRequestFromJSON(json) {
+    return SignTransactionWithWaasRequestFromJSONTyped(json);
+}
+function SignTransactionWithWaasRequestFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'transactionHash': json['transactionHash'],
+        'shareSetId': !runtime.exists(json, 'shareSetId') ? undefined : json['shareSetId'],
+    };
+}
+function SignTransactionWithWaasRequestToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'transactionHash': value.transactionHash,
+        'shareSetId': value.shareSetId,
+    };
+}
+
+exports.SignTransactionWithWaasRequestFromJSON = SignTransactionWithWaasRequestFromJSON;
+exports.SignTransactionWithWaasRequestFromJSONTyped = SignTransactionWithWaasRequestFromJSONTyped;
+exports.SignTransactionWithWaasRequestToJSON = SignTransactionWithWaasRequestToJSON;

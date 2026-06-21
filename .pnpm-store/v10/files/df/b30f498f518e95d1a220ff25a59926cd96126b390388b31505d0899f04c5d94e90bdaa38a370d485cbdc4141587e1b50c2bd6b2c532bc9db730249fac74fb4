@@ -1,0 +1,30 @@
+/**
+ * Outcome of a Google Drive backup readiness pre-flight check.
+ *
+ * - `'ready'`: stored scopes include both required Drive scopes; backup
+ *   should succeed (barring transient errors).
+ * - `'needs-access'`: backup likely won't succeed without user intervention.
+ *   Caller should have the user re-link their Google account before
+ *   initiating the backup. Covers three sub-cases — see
+ *   `GoogleDriveBackupReadiness.missingScopes`.
+ *
+ * Failures of the underlying access-token fetch propagate as Promise
+ * rejections from `getGoogleDriveBackupReadiness`.
+ */
+export type GoogleDriveBackupReadinessStatus = 'ready' | 'needs-access';
+/**
+ * Result of a Google Drive backup readiness pre-flight check.
+ *
+ * `missingScopes` semantics when `status === 'needs-access'`:
+ * - Populated with the full required set when no Google account is linked.
+ * - Populated with only the missing scopes when some are granted but not all.
+ * - Empty array for legacy tokens captured before scope tracking shipped
+ *   (the API returns `scopes: []`); we can't confirm the upload will work,
+ *   so the caller should re-prompt consent to force a fresh token.
+ */
+export type GoogleDriveBackupReadiness = {
+    accessToken?: string;
+    missingScopes: readonly string[];
+    status: GoogleDriveBackupReadinessStatus;
+};
+//# sourceMappingURL=googleDrive.types.d.ts.map

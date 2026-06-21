@@ -1,0 +1,99 @@
+import { exists } from '../runtime.js';
+import { ChainEnumFromJSON, ChainEnumToJSON } from './ChainEnum.js';
+import { CheckoutExecutionStateEnumFromJSON, CheckoutExecutionStateEnumToJSON } from './CheckoutExecutionStateEnum.js';
+import { CheckoutFailureFromJSON, CheckoutFailureToJSON } from './CheckoutFailure.js';
+import { CheckoutRiskStateEnumFromJSON, CheckoutRiskStateEnumToJSON } from './CheckoutRiskStateEnum.js';
+import { CheckoutSettlementDataFromJSON, CheckoutSettlementDataToJSON } from './CheckoutSettlementData.js';
+import { CheckoutSettlementStateEnumFromJSON, CheckoutSettlementStateEnumToJSON } from './CheckoutSettlementStateEnum.js';
+import { CheckoutSourceTypeEnumFromJSON, CheckoutSourceTypeEnumToJSON } from './CheckoutSourceTypeEnum.js';
+import { CheckoutTransactionDestinationAddressFromJSON, CheckoutTransactionDestinationAddressToJSON } from './CheckoutTransactionDestinationAddress.js';
+import { CheckoutTransactionExchangeSourceFromJSON, CheckoutTransactionExchangeSourceToJSON } from './CheckoutTransactionExchangeSource.js';
+import { CheckoutTransactionQuoteFromJSON, CheckoutTransactionQuoteToJSON } from './CheckoutTransactionQuote.js';
+
+/* tslint:disable */
+function CheckoutTransactionFromJSON(json) {
+    return CheckoutTransactionFromJSONTyped(json);
+}
+function CheckoutTransactionFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'id': json['id'],
+        'checkoutId': json['checkoutId'],
+        'memo': !exists(json, 'memo') ? undefined : json['memo'],
+        'userId': !exists(json, 'userId') ? undefined : json['userId'],
+        'amount': json['amount'],
+        'currency': json['currency'],
+        'destinationAddresses': !exists(json, 'destinationAddresses') ? undefined : (json['destinationAddresses'].map(CheckoutTransactionDestinationAddressFromJSON)),
+        'executionState': CheckoutExecutionStateEnumFromJSON(json['executionState']),
+        'settlementState': CheckoutSettlementStateEnumFromJSON(json['settlementState']),
+        'riskState': CheckoutRiskStateEnumFromJSON(json['riskState']),
+        'sourceType': !exists(json, 'sourceType') ? undefined : CheckoutSourceTypeEnumFromJSON(json['sourceType']),
+        'fromAddress': !exists(json, 'fromAddress') ? undefined : json['fromAddress'],
+        'fromChainId': !exists(json, 'fromChainId') ? undefined : json['fromChainId'],
+        'fromChainName': !exists(json, 'fromChainName') ? undefined : ChainEnumFromJSON(json['fromChainName']),
+        'fromToken': !exists(json, 'fromToken') ? undefined : json['fromToken'],
+        'toAddress': !exists(json, 'toAddress') ? undefined : json['toAddress'],
+        'toChainId': !exists(json, 'toChainId') ? undefined : json['toChainId'],
+        'toChainName': !exists(json, 'toChainName') ? undefined : ChainEnumFromJSON(json['toChainName']),
+        'toToken': !exists(json, 'toToken') ? undefined : json['toToken'],
+        'quoteVersion': json['quoteVersion'],
+        'quote': !exists(json, 'quote') ? undefined : CheckoutTransactionQuoteFromJSON(json['quote']),
+        'txHash': !exists(json, 'txHash') ? undefined : json['txHash'],
+        'broadcastedAt': !exists(json, 'broadcastedAt') ? undefined : (new Date(json['broadcastedAt'])),
+        'sourceConfirmedAt': !exists(json, 'sourceConfirmedAt') ? undefined : (new Date(json['sourceConfirmedAt'])),
+        'confirmations': !exists(json, 'confirmations') ? undefined : json['confirmations'],
+        'settlement': !exists(json, 'settlement') ? undefined : CheckoutSettlementDataFromJSON(json['settlement']),
+        'completedAt': !exists(json, 'completedAt') ? undefined : (new Date(json['completedAt'])),
+        'failure': !exists(json, 'failure') ? undefined : CheckoutFailureFromJSON(json['failure']),
+        'expiresAt': !exists(json, 'expiresAt') ? undefined : (new Date(json['expiresAt'])),
+        'createdAt': (new Date(json['createdAt'])),
+        'updatedAt': (new Date(json['updatedAt'])),
+        'exchangeSource': !exists(json, 'exchangeSource') ? undefined : CheckoutTransactionExchangeSourceFromJSON(json['exchangeSource']),
+    };
+}
+function CheckoutTransactionToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'id': value.id,
+        'checkoutId': value.checkoutId,
+        'memo': value.memo,
+        'userId': value.userId,
+        'amount': value.amount,
+        'currency': value.currency,
+        'destinationAddresses': value.destinationAddresses === undefined ? undefined : (value.destinationAddresses.map(CheckoutTransactionDestinationAddressToJSON)),
+        'executionState': CheckoutExecutionStateEnumToJSON(value.executionState),
+        'settlementState': CheckoutSettlementStateEnumToJSON(value.settlementState),
+        'riskState': CheckoutRiskStateEnumToJSON(value.riskState),
+        'sourceType': CheckoutSourceTypeEnumToJSON(value.sourceType),
+        'fromAddress': value.fromAddress,
+        'fromChainId': value.fromChainId,
+        'fromChainName': ChainEnumToJSON(value.fromChainName),
+        'fromToken': value.fromToken,
+        'toAddress': value.toAddress,
+        'toChainId': value.toChainId,
+        'toChainName': ChainEnumToJSON(value.toChainName),
+        'toToken': value.toToken,
+        'quoteVersion': value.quoteVersion,
+        'quote': CheckoutTransactionQuoteToJSON(value.quote),
+        'txHash': value.txHash,
+        'broadcastedAt': value.broadcastedAt === undefined ? undefined : (value.broadcastedAt.toISOString()),
+        'sourceConfirmedAt': value.sourceConfirmedAt === undefined ? undefined : (value.sourceConfirmedAt.toISOString()),
+        'confirmations': value.confirmations,
+        'settlement': CheckoutSettlementDataToJSON(value.settlement),
+        'completedAt': value.completedAt === undefined ? undefined : (value.completedAt.toISOString()),
+        'failure': CheckoutFailureToJSON(value.failure),
+        'expiresAt': value.expiresAt === undefined ? undefined : (value.expiresAt.toISOString()),
+        'createdAt': (value.createdAt.toISOString()),
+        'updatedAt': (value.updatedAt.toISOString()),
+        'exchangeSource': CheckoutTransactionExchangeSourceToJSON(value.exchangeSource),
+    };
+}
+
+export { CheckoutTransactionFromJSON, CheckoutTransactionFromJSONTyped, CheckoutTransactionToJSON };

@@ -1,0 +1,41 @@
+/**
+ * Soft watchdog for the embedded-wallet auto-creation ceremony. Long enough to
+ * clear a healthy MPC ceremony (observed ~7s, iframe load timeout is 10s) so a
+ * fire here means the flow genuinely stalled rather than just being slow.
+ */
+export declare const AUTO_WALLET_CREATION_TIMEOUT_MS = 30000;
+/**
+ * A page must stay hidden this long before we count the ceremony as abandoned.
+ * Android webviews and bfcache navigations fire `pagehide`/`visibilitychange`
+ * transiently — frequently ~1s into the flow — and webviews pause JS timers
+ * while backgrounded. Requiring a *sustained* hide (and ignoring reversible
+ * bfcache `pagehide`) stops a user who never actually left from being logged as
+ * abandoned (DYNT-870 follow-up).
+ */
+export declare const ABANDON_CONFIRM_MS = 5000;
+type InstrumentWalletCreationArgs<T> = {
+    /** The wallet-creation work to run and observe (the MPC ceremony). */
+    run: () => Promise<T>;
+    /** Shared fields attached to every emitted event (chains, env, user). */
+    logData: Record<string, unknown>;
+    timeoutMs?: number;
+};
+/**
+ * Wraps the auto-wallet-creation ceremony so that "silent" failures carry a
+ * reason. Without this, a ceremony that hangs (promise never settles) or a user
+ * who navigates away mid-flow produces an `initiated` log with no `success` or
+ * `failed` counterpart, leaving the failure undiagnosable.
+ *
+ * Emits:
+ * - `auto_wallet_creation_timeout` if `run` has not settled within `timeoutMs`.
+ * - `auto_wallet_creation_abandoned` if the user genuinely leaves while `run` is
+ *   still in flight — either a terminal unload (`pagehide`, non-bfcache) or a
+ *   hide that stays hidden for `ABANDON_CONFIRM_MS`. Transient hides (tab
+ *   switch, OS pause, the ~1s webview flicker) are ignored. Relies on the
+ *   logger's keepalive transport to survive unload.
+ *
+ * The watchdog is observational: it never aborts `run`, and its return value /
+ * rejection is passed through unchanged.
+ */
+export declare const instrumentWalletCreation: <T>({ run, logData, timeoutMs, }: InstrumentWalletCreationArgs<T>) => Promise<T>;
+export {};

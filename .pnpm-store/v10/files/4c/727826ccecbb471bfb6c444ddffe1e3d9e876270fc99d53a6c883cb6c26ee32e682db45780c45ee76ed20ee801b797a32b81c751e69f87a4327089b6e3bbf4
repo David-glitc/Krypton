@@ -1,0 +1,42 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+var CheckoutTransactionDestinationAddress = require('./CheckoutTransactionDestinationAddress.cjs');
+
+/* tslint:disable */
+function CheckoutTransactionCreateRequestFromJSON(json) {
+    return CheckoutTransactionCreateRequestFromJSONTyped(json);
+}
+function CheckoutTransactionCreateRequestFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'amount': json['amount'],
+        'currency': json['currency'],
+        'destinationAddresses': !runtime.exists(json, 'destinationAddresses') ? undefined : (json['destinationAddresses'].map(CheckoutTransactionDestinationAddress.CheckoutTransactionDestinationAddressFromJSON)),
+        'expiresIn': !runtime.exists(json, 'expiresIn') ? undefined : json['expiresIn'],
+        'memo': !runtime.exists(json, 'memo') ? undefined : json['memo'],
+    };
+}
+function CheckoutTransactionCreateRequestToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'amount': value.amount,
+        'currency': value.currency,
+        'destinationAddresses': value.destinationAddresses === undefined ? undefined : (value.destinationAddresses.map(CheckoutTransactionDestinationAddress.CheckoutTransactionDestinationAddressToJSON)),
+        'expiresIn': value.expiresIn,
+        'memo': value.memo,
+    };
+}
+
+exports.CheckoutTransactionCreateRequestFromJSON = CheckoutTransactionCreateRequestFromJSON;
+exports.CheckoutTransactionCreateRequestFromJSONTyped = CheckoutTransactionCreateRequestFromJSONTyped;
+exports.CheckoutTransactionCreateRequestToJSON = CheckoutTransactionCreateRequestToJSON;

@@ -1,0 +1,43 @@
+/**
+ * Manages credentials and synchronizes them between contexts
+ */
+import { EventEmitter } from 'eventemitter3';
+import { CredentialData } from './types/DialogTypes';
+export declare class CredentialManager extends EventEmitter {
+    private iframeRef;
+    private retryDelays;
+    constructor();
+    /**
+     * Set the iframe reference for communication
+     */
+    setIframeRef(iframe: HTMLIFrameElement | null): void;
+    /**
+     * Notify all listeners that credentials have been updated
+     * @param credentials The updated credentials
+     */
+    notifyCredentialsUpdated(credentials: {
+        credentialId: string;
+        publicKey: string;
+        timestamp: string | number;
+    }): void;
+    /**
+     * Force sync credentials to the iframe
+     * @param force Whether to force sync even if credentials appear empty
+     */
+    syncCredentials(force?: boolean): void;
+    /**
+     * Perform the actual credential synchronization
+     * @param force Whether to force sync even if credentials appear empty
+     */
+    private performCredentialSync;
+    /**
+     * Store credentials in local storage
+     * @param credential The credential data to store
+     */
+    storeCredential(credential: CredentialData): void;
+    /**
+     * Clean up resources and event listeners
+     */
+    destroy(): void;
+}
+//# sourceMappingURL=CredentialManager.d.ts.map

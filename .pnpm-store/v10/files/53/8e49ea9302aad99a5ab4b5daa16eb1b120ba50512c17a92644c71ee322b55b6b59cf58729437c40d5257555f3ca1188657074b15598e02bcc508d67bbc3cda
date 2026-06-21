@@ -1,0 +1,5 @@
+import { BaseError } from './base';
+export declare class RealtimeNotConnectedError extends BaseError {
+    constructor();
+}
+//# sourceMappingURL=RealtimeNotConnectedError.d.ts.map

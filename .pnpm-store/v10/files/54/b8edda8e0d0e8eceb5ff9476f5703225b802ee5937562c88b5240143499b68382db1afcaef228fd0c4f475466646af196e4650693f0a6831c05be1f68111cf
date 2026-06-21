@@ -1,0 +1,7 @@
+import { SdkLogoutReason } from '../../../context/DynamicContext/hooks/useHandleLogout';
+type Props = {
+    environmentId: string;
+    handleLogOutWithReason: (reason: SdkLogoutReason) => Promise<void>;
+};
+export declare const useValidateSession: ({ environmentId, handleLogOutWithReason, }: Props) => void;
+export {};

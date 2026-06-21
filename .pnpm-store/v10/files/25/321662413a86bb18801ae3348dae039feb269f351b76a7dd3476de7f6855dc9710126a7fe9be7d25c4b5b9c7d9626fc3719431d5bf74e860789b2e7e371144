@@ -1,0 +1,2 @@
+export { isMidnightWallet } from './isMidnightWallet';
+export type { IMidnightWallet, MidnightFormattedBalances, } from './isMidnightWallet';

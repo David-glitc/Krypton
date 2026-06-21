@@ -1,0 +1,38 @@
+import type * as z from 'zod/mini';
+import type { CrossTabBroadcastMessageSchema } from './crossTabBroadcast.schema';
+export type CrossTabBroadcastMessage = z.infer<typeof CrossTabBroadcastMessageSchema>;
+/**
+ * A type representing a cross-tab broadcast service.
+ *
+ * This service enables communication between multiple tabs/windows
+ * of the same application using the BroadcastChannel API.
+ */
+export type CrossTabBroadcast = {
+    /**
+     * Unregisters a callback for a specific event.
+     *
+     * @param event - The event name/type to stop listening for
+     * @param callback - The callback function to remove
+     */
+    off: (event: string, callback: (args?: unknown) => void) => void;
+    /**
+     * Registers a callback to be invoked when an event is received.
+     *
+     * @param event - The event name/type to listen for
+     * @param callback - The function to call when the event is received. Receives
+     *   the args payload that was passed to `send`, if any.
+     */
+    on: (event: string, callback: (args?: unknown) => void) => void;
+    /**
+     * Sends an event to all other tabs/windows.
+     *
+     * @param params - The event data to broadcast
+     * @param params.event - The event name/type to send
+     * @param params.args - Optional payload delivered to listeners in other tabs
+     */
+    send: (params: {
+        args?: unknown;
+        event: string;
+    }) => void;
+};
+//# sourceMappingURL=crossTabBroadcast.types.d.ts.map

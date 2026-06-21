@@ -1,0 +1,8 @@
+import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser';
+import type { DynamicClient } from '../../../../client/types';
+export type GetPasskeyAuthenticationSignInOptionsParams = {
+    relatedOriginRpId?: string;
+};
+/** @not-instrumented */
+export declare const getPasskeyAuthenticationSignInOptions: ({ relatedOriginRpId }: GetPasskeyAuthenticationSignInOptionsParams | undefined, client: DynamicClient) => Promise<PublicKeyCredentialRequestOptionsJSON>;
+//# sourceMappingURL=getPasskeyAuthenticationSignInOptions.d.ts.map

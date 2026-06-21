@@ -1,0 +1,20 @@
+import type { WalletBookSchema } from '../../../legacyWalletBook/legacyWalletBook.types';
+type ResolveWalletOptionKeyParams = {
+    fallback: string;
+    wallet: WalletBookSchema['wallets'][string];
+};
+/**
+ * Picks the wallet option (group) key for a wallet book wallet. The wallet
+ * book carries the group association under a few different field names
+ * (`group`, `chainGroup`, `walletGroup`) depending on the wallet's
+ * provenance — this helper centralises the lookup. When none of those
+ * fields are set, the wallet key itself acts as its own wallet option key.
+ *
+ * @param params.fallback - Wallet key to return if no group field is set.
+ * @param params.wallet - The wallet book wallet entry.
+ * @returns The resolved wallet option key.
+ * @not-instrumented
+ */
+export declare const resolveWalletOptionKey: ({ fallback, wallet, }: ResolveWalletOptionKeyParams) => string;
+export {};
+//# sourceMappingURL=resolveWalletOptionKey.d.ts.map

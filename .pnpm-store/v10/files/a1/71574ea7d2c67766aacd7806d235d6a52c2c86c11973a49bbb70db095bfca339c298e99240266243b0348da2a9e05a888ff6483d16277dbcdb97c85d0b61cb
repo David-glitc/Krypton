@@ -1,0 +1,10 @@
+/**
+ * Normalizes scopes by deduplicating and sorting them.
+ * This creates a canonical representation for comparison.
+ *
+ * @param scopes - Array of scope strings (may contain duplicates)
+ * @returns Normalized, sorted array of unique scopes
+  * @not-instrumented
+ */
+export declare const normalizeScopes: (scopes: string[]) => string[];
+//# sourceMappingURL=normalizeScopes.d.ts.map

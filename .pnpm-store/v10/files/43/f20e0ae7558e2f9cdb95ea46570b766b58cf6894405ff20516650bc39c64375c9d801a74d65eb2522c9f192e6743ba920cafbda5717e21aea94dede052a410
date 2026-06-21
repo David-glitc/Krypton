@@ -1,0 +1,14 @@
+import type { LogoutReason } from './logoutReason';
+type LogoutEventMetadata = {
+    reason: LogoutReason;
+};
+declare global {
+    interface DynamicEvents {
+        /**
+         * Raised when "logout" is called.
+         */
+        logout: (metadata?: LogoutEventMetadata) => void;
+    }
+}
+export type { LogoutEventMetadata };
+//# sourceMappingURL=events.d.ts.map

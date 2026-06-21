@@ -1,0 +1,76 @@
+{
+  "name": "@dynamic-labs-wallet/forward-mpc-client",
+  "version": "0.10.1",
+  "description": "WebSocket client for Forward MPC operations",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist/**/*",
+    "!dist/**/.tsbuildinfo",
+    "README.md",
+    "LICENSE.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dynamic-labs/forward-mpc-client.git",
+    "directory": "packages/client"
+  },
+  "author": "Dynamic Labs, Inc.",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./utils": {
+      "types": "./dist/utils.d.ts",
+      "import": "./dist/utils.js",
+      "require": "./dist/utils.cjs"
+    }
+  },
+  "dependencies": {
+    "@evervault/wasm-attestation-bindings": "^0.3.1",
+    "@noble/hashes": "^2.0.0",
+    "eventemitter3": "^5.0.1",
+    "fp-ts": "^2.16.11",
+    "isows": "^1.0.7",
+    "ws": "^8.18.3",
+    "@dynamic-labs-wallet/forward-mpc-shared": "0.7.0"
+  },
+  "peerDependencies": {
+    "@dynamic-labs-wallet/primitives": ">=0.0.336 || 0.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.1",
+    "@types/ws": "^8.18.1",
+    "rimraf": "^6.1.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.9.2",
+    "vitest": "^4.0.10"
+  },
+  "keywords": [
+    "websocket",
+    "mpc",
+    "crypto",
+    "client"
+  ],
+  "scripts": {
+    "build": "tsup && node ./scripts/verify-utils-rn-safe.mjs",
+    "verify:utils-rn-safe": "node ./scripts/verify-utils-rn-safe.mjs",
+    "dev": "tsup --watch",
+    "clean": "rimraf dist .tsbuildinfo",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix"
+  }
+}

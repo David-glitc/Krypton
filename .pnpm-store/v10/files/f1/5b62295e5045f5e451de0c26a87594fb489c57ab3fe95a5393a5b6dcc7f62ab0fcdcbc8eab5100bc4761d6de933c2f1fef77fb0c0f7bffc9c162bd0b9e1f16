@@ -1,0 +1,10 @@
+import type { VerifySocialParams } from './useStepUpAuthentication.types';
+import type { useStepUpState } from './useStepUpState';
+type StepUpStateActions = ReturnType<typeof useStepUpState>;
+type UseStepUpSocialParams = {
+    stateActions: StepUpStateActions;
+};
+export declare const useStepUpSocial: ({ stateActions }: UseStepUpSocialParams) => {
+    verifySocial: ({ provider, requestedScopes, }: VerifySocialParams) => Promise<void>;
+};
+export {};

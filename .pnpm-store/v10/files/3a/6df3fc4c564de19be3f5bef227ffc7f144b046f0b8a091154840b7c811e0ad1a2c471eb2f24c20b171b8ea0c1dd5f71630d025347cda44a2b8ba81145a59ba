@@ -1,0 +1,46 @@
+'use client'
+import { __awaiter } from '../../../../../../_virtual/_tslib.js';
+import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
+import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import { ErrorContainer } from '../../../../components/ErrorContainer/ErrorContainer.js';
+import { IconButton } from '../../../../components/IconButton/IconButton.js';
+import { ModalHeader } from '../../../../components/ModalHeader/ModalHeader.js';
+import { Typography } from '../../../../components/Typography/Typography.js';
+import { TypographyButton } from '../../../../components/TypographyButton/TypographyButton.js';
+import { useViewContext } from '../../../../context/ViewContext/ViewContext.js';
+import { ReactComponent as SvgChevronLeft } from '../../../../shared/assets/chevron-left.js';
+import { ReactComponent as SvgQuestionMark } from '../../../../shared/assets/question-mark.js';
+import '@dynamic-labs/iconic';
+import { useDynamicSettings } from '../../../../store/state/dynamicContextProps/dynamicContextProps.js';
+import { useGoogleDriveBackupReadiness } from '../../../../utils/hooks/useGoogleDriveBackupReadiness/useGoogleDriveBackupReadiness.js';
+import { CloudBackupProvider } from '../../../../utils/hooks/useWalletBackup/types.js';
+import { BackupStepper } from './BackupStepper.js';
+
+const WaasBackupGrantAccessView = () => {
+    const { pushView, goBack } = useViewContext();
+    const { t } = useTranslation();
+    const { appName } = useDynamicSettings();
+    const { requestAccess, isChecking } = useGoogleDriveBackupReadiness();
+    const [showError, setShowError] = useState(false);
+    const handleBackClick = useCallback(() => goBack(), [goBack]);
+    const handleInfoClick = useCallback(() => {
+        pushView('waas-backup-info-view');
+    }, [pushView]);
+    const handleGrantClick = useCallback(() => __awaiter(void 0, void 0, void 0, function* () {
+        setShowError(false);
+        const result = yield requestAccess();
+        if (result.status === 'ready') {
+            pushView('waas-backup-progress-view', {
+                provider: CloudBackupProvider.GoogleDrive,
+            });
+            return;
+        }
+        setShowError(true);
+    }), [pushView, requestAccess]);
+    const backButton = (jsx(IconButton, { type: 'button', onClick: handleBackClick, "data-testid": 'back-button', children: jsx(SvgChevronLeft, {}) }));
+    const infoButton = (jsx(IconButton, { type: 'button', onClick: handleInfoClick, "data-testid": 'info-button', children: jsx(SvgQuestionMark, {}) }));
+    return (jsxs(Fragment, { children: [jsx(ModalHeader, { leading: backButton, trailing: infoButton, children: jsx(Typography, { variant: 'title', color: 'primary', copykey: 'dyn_waas.backup.title', children: t('dyn_waas.backup.title') }) }), jsx("div", { className: 'waas-backup-view', children: jsxs("div", { className: 'waas-backup-view__body', children: [jsx(BackupStepper, { currentStep: 0, completedSteps: 0 }), showError && (jsx(ErrorContainer, { variant: 'error', withIcon: false, children: t('dyn_waas.backup.gdrive_grant_access_error') })), jsx(Typography, { variant: 'title', color: 'primary', copykey: 'dyn_waas.backup.gdrive_grant_access_title', className: 'waas-backup-view__cloud-title', children: t('dyn_waas.backup.gdrive_grant_access_title') }), jsx(Typography, { variant: 'body_normal', color: 'secondary', copykey: 'dyn_waas.backup.gdrive_grant_access_subtitle', className: 'waas-backup-view__cloud-subtitle', children: t('dyn_waas.backup.gdrive_grant_access_subtitle', { appName }) }), jsxs("div", { className: 'waas-backup-view__grant-access-actions', children: [jsx(TypographyButton, { dataTestId: 'grant-access-cancel-button', onClick: handleBackClick, disabled: isChecking, copykey: 'dyn_waas.backup.gdrive_grant_access_cancel', buttonVariant: 'primary', typographyProps: { color: 'inherit' }, children: t('dyn_waas.backup.gdrive_grant_access_cancel') }), jsx(TypographyButton, { dataTestId: 'grant-access-button', onClick: handleGrantClick, disabled: isChecking, copykey: 'dyn_waas.backup.gdrive_grant_access_cta', buttonVariant: 'brand-primary', typographyProps: { color: 'inherit' }, children: t('dyn_waas.backup.gdrive_grant_access_cta') })] })] }) })] }));
+};
+
+export { WaasBackupGrantAccessView };

@@ -1,0 +1,25 @@
+'use client'
+import { createIconic } from '../../Iconic.js';
+
+const BanxaIcon = createIconic({
+    alt: 'Banxa',
+    iconName: 'banxa',
+    sourcePath: 'icons/onramps/banxa.svg',
+});
+const CoinbasePayIcon = createIconic({
+    alt: 'Coinbase Pay',
+    iconName: 'coinbase-pay',
+    sourcePath: 'icons/onramps/coinbase-pay.svg',
+});
+const CryptoDotComIcon = createIconic({
+    alt: 'Crypto.com',
+    iconName: 'crypto-dot-com',
+    sourcePath: 'icons/onramps/crypto-dot-com.svg',
+});
+const MoonpayIcon = createIconic({
+    alt: 'MoonPay',
+    iconName: 'moonpay',
+    sourcePath: 'icons/onramps/moonpay.svg',
+});
+
+export { BanxaIcon, CoinbasePayIcon, CryptoDotComIcon, MoonpayIcon };

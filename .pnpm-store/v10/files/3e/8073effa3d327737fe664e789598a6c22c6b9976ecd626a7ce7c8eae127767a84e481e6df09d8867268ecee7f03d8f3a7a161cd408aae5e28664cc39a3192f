@@ -1,0 +1,26 @@
+import type { Chain } from '../../chain';
+export type MoonPayCurrency = {
+    code: string;
+    icon: string;
+    name: string;
+};
+export type GetMoonPayCurrenciesParams = {
+    chain: Chain;
+    networkId?: string;
+};
+export type GetMoonPayUrlParams = {
+    chain: Chain;
+    /** ISO 4217 fiat currency code (e.g. 'USD') used as the quote currency. */
+    currency?: string;
+    merchantName?: string;
+    networkId?: string;
+    /** Token symbol or MoonPay currency code to lock in the widget (e.g. 'USDC', 'usdc_polygon'). */
+    token?: string;
+    /**
+     * Pre-filled fiat amount in the quote currency — maps to MoonPay's `quoteCurrencyAmount`.
+     * This is the amount the user will spend in fiat, not the crypto amount they receive.
+     */
+    tokenAmount?: number;
+    walletAddress: string;
+};
+//# sourceMappingURL=moonpay.types.d.ts.map

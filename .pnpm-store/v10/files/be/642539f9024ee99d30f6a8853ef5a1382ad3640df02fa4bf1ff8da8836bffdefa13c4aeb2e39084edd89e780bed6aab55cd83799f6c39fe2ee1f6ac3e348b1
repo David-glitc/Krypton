@@ -1,0 +1,14 @@
+/**
+ * Checks whether the session has at least one connected wallet account.
+ *
+ * Both verified and unverified wallet accounts count as connected. This is a
+ * single building block for a custom signed-in check — combine it with whatever
+ * else your app considers "signed in" (e.g. `client.user`, completed onboarding,
+ * a required embedded wallet, …).
+ *
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns True if the session has at least one wallet account, false otherwise.
+ * @not-instrumented
+ */
+export declare const isAnyWalletAccountConnected: (client?: import("../../../exports").DynamicClient) => boolean;
+//# sourceMappingURL=isAnyWalletAccountConnected.d.ts.map

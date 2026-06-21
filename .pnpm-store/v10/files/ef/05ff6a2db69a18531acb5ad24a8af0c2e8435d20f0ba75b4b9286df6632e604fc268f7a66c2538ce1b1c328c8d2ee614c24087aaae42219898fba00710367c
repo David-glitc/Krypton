@@ -1,0 +1,4 @@
+import { ClientSessionKey } from './types';
+export declare const getClientSessionKeys: () => ClientSessionKey | undefined;
+export declare const getClientSessionPublicKey: () => string | undefined;
+export declare const clearClientSessionKeys: () => void;

@@ -1,0 +1,2 @@
+export { getHeadersForNonceSignedByDeviceSigners } from './getHeadersForNonceSignedByDeviceSigners';
+//# sourceMappingURL=index.d.ts.map

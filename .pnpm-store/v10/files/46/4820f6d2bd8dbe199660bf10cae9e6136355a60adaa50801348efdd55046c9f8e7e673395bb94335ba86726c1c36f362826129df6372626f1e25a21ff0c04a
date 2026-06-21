@@ -1,0 +1,31 @@
+import type { WalletAccount } from '../../wallets/walletAccount';
+type BackupWaasKeySharesToGoogleDriveParams = {
+    /**
+     * Optional consumer-supplied Google Drive access token. When provided (and
+     * already granted Drive scopes), the SDK uses it directly instead of falling
+     * back to the stored OAuth token — avoiding a second Google consent prompt.
+     *
+     * Especially useful for consumers using external auth: the user's Google
+     * account isn't linked in Dynamic, so there's no stored OAuth token to fall
+     * back on — they obtain a Drive-scoped token themselves and pass it here.
+     */
+    googleDriveAccessToken?: string;
+    password?: string;
+    walletAccount: WalletAccount;
+};
+/**
+ * Backs up WaaS wallet key shares to Google Drive for secure recovery.
+ *
+ * This function creates a backup of the wallet's cryptographic key shares
+ * to Google Drive, allowing users to recover their wallet later.
+ *
+ * @param params.walletAccount - The WaaS wallet account to backup.
+ * @param [params.password] - Optional password to encrypt the backup.
+ * @param [params.googleDriveAccessToken] - Optional consumer-supplied Drive-scoped access token; used directly instead of the stored OAuth token (avoids a second Google consent). Useful for external-auth setups.
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns A promise that resolves when the backup process is complete.
+  * @not-instrumented
+ */
+export declare const backupWaasKeySharesToGoogleDrive: ({ googleDriveAccessToken, password, walletAccount, }: BackupWaasKeySharesToGoogleDriveParams, client?: import("../../../exports").DynamicClient) => Promise<void>;
+export {};
+//# sourceMappingURL=backupWaasKeySharesToGoogleDrive.d.ts.map

@@ -1,0 +1,9 @@
+export type DeleteIndexedDBItemOptions = {
+    /** The IndexedDB database handle. */
+    db: IDBDatabase;
+    /** The key name to delete. */
+    keyName: string;
+};
+/** @not-instrumented */
+export declare const deleteIndexedDBItem: ({ db, keyName, }: DeleteIndexedDBItemOptions) => Promise<void>;
+//# sourceMappingURL=deleteIndexedDBItem.d.ts.map

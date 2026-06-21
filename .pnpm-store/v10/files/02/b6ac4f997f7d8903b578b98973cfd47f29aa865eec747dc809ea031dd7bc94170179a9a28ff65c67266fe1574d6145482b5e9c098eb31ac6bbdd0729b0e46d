@@ -1,0 +1,9 @@
+type ScrubParametersParams = {
+    piiFields: string[];
+    redactAll?: boolean;
+    value: Record<string, unknown>;
+};
+/** @not-instrumented */
+export declare const scrubParameters: ({ piiFields, redactAll, value, }: ScrubParametersParams) => Record<string, unknown>;
+export {};
+//# sourceMappingURL=scrubParameters.d.ts.map

@@ -1,0 +1,8 @@
+/**
+ * Decodes a base64url-encoded string (RFC 4648 S5, no padding) to a Uint8Array.
+ * Used to decode binary data received from native modules over the bridge.
+ *
+ * @not-instrumented
+ */
+export declare const bytesFromBase64url: (s: string) => Uint8Array;
+//# sourceMappingURL=bytesFromBase64url.d.ts.map

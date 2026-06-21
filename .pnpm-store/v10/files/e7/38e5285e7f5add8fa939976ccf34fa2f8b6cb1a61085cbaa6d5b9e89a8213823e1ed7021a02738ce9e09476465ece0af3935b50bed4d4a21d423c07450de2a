@@ -1,0 +1,58 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var jsxRuntime = require('react/jsx-runtime');
+var reactI18next = require('react-i18next');
+require('../../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var DynamicWidgetContext = require('../../../../widgets/DynamicWidget/context/DynamicWidgetContext.cjs');
+require('@dynamic-labs/sdk-api-core');
+require('../../../../utils/constants/values.cjs');
+require('@dynamic-labs/utils');
+require('../../../../../../_virtual/_tslib.cjs');
+require('@dynamic-labs/multi-wallet');
+require('../../../../shared/logger.cjs');
+require('react-international-phone');
+require('../../../../utils/constants/colors.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react');
+var pencil = require('../../../../shared/assets/pencil.cjs');
+require('../../../../context/ViewContext/ViewContext.cjs');
+require('@dynamic-labs/wallet-book');
+require('../../../../shared/consts/index.cjs');
+var getUserProfileFields = require('../../../../utils/functions/getUserProfileFields/getUserProfileFields.cjs');
+require('../../../../store/state/nonce/nonce.cjs');
+require('@dynamic-labs-sdk/client/core');
+require('eventemitter3');
+require('@dynamic-labs-sdk/client');
+require('../../../../config/ApiEndpoint.cjs');
+require('../../../../events/dynamicEvents.cjs');
+require('@dynamic-labs/locale');
+require('../../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../../store/state/primaryWalletId/primaryWalletId.cjs');
+require('../../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+require('../../../../utils/functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+var TypographyButton = require('../../../TypographyButton/TypographyButton.cjs');
+
+const EditProfileButton = () => {
+    var _a, _b;
+    const { t } = reactI18next.useTranslation();
+    const { projectSettings } = useInternalDynamicContext.useInternalDynamicContext();
+    const { setDynamicWidgetView } = DynamicWidgetContext.useWidgetContext();
+    // Allow to navigate to edit profile view when there are fields what can be edited
+    const editableUserFields = getUserProfileFields.getEditableUserProfileFields([
+        ...((_a = projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.kyc) !== null && _a !== void 0 ? _a : []),
+        ...((_b = projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.customFields) !== null && _b !== void 0 ? _b : []),
+    ]);
+    if (!(editableUserFields === null || editableUserFields === void 0 ? void 0 : editableUserFields.length))
+        return null;
+    return (jsxRuntime.jsx(TypographyButton.TypographyButton, { buttonClassName: 'dynamic-widget-footer__button', buttonVariant: 'tertiary', buttonPadding: 'none', typographyProps: {
+            color: 'secondary',
+            variant: 'button_tertiary',
+        }, copykey: 'dyn_user_profile.edit_profile_button', onClick: () => setDynamicWidgetView('edit-profile'), startSlot: jsxRuntime.jsx(pencil.ReactComponent, {}), children: t('dyn_user_profile.edit_profile_button') }));
+};
+
+exports.EditProfileButton = EditProfileButton;

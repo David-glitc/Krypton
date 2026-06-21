@@ -1,0 +1,29 @@
+import { ChainEnumFromJSON, ChainEnumToJSON } from './ChainEnum.js';
+
+/* tslint:disable */
+function CheckoutTransactionDestinationAddressFromJSON(json) {
+    return CheckoutTransactionDestinationAddressFromJSONTyped(json);
+}
+function CheckoutTransactionDestinationAddressFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'address': json['address'],
+        'chainName': ChainEnumFromJSON(json['chainName']),
+    };
+}
+function CheckoutTransactionDestinationAddressToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'address': value.address,
+        'chainName': ChainEnumToJSON(value.chainName),
+    };
+}
+
+export { CheckoutTransactionDestinationAddressFromJSON, CheckoutTransactionDestinationAddressFromJSONTyped, CheckoutTransactionDestinationAddressToJSON };

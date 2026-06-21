@@ -1,0 +1,9 @@
+export declare const DEFAULT_COMMITMENT: "confirmed";
+export declare const STORAGE_KEYS: {
+    readonly WALLET: "lazorkit-wallet";
+    readonly CREDENTIALS: "lazorkit-credentials";
+    readonly PUBLIC_KEY: "PUBLIC_KEY";
+    readonly CREDENTIAL_ID: "CREDENTIAL_ID";
+    readonly SMART_WALLET_ADDRESS: "SMART_WALLET_ADDRESS";
+};
+//# sourceMappingURL=constants.d.ts.map

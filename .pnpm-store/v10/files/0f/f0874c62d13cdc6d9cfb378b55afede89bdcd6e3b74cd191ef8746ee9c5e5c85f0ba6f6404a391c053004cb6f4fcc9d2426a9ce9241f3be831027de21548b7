@@ -1,0 +1,2 @@
+export { getMultichainTokenBalances, type GetMultichainTokenBalancesParams, } from './getMultichainTokenBalances';
+//# sourceMappingURL=index.d.ts.map

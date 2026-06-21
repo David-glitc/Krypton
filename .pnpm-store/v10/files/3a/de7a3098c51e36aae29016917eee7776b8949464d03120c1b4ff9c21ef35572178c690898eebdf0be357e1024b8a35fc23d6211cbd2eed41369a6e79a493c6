@@ -1,0 +1,1 @@
+{"version":3,"file":"NativeModuleNotLinkedError.d.ts","sourceRoot":"","sources":["../../src/errors/NativeModuleNotLinkedError.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,SAAS,EAAE,MAAM,QAAQ,CAAC;AAEnC,KAAK,gCAAgC,GAAG;IACtC,UAAU,EAAE,MAAM,CAAC;CACpB,CAAC;AAEF,qBAAa,0BAA2B,SAAQ,SAAS;gBAC3C,EAAE,UAAU,EAAE,EAAE,gCAAgC;CAwB7D"}

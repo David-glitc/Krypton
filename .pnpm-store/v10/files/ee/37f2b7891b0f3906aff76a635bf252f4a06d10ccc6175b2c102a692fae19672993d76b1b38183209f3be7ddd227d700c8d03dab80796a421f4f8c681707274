@@ -1,0 +1,8 @@
+import type { VerifyResponse } from '@dynamic-labs/sdk-api-core';
+type CompleteDeviceRegistrationParams = {
+    deviceToken: string;
+};
+/** @instrumented */
+export declare const completeDeviceRegistration: ({ deviceToken }: CompleteDeviceRegistrationParams, client?: import("../../../exports").DynamicClient) => Promise<VerifyResponse>;
+export {};
+//# sourceMappingURL=completeDeviceRegistration.d.ts.map

@@ -1,0 +1,47 @@
+/// <reference types="vitest/globals" />
+
+const turboModuleGetEnforcingMock = vi.fn();
+
+vi.mock('react-native', () => ({
+  TurboModuleRegistry: {
+    get getEnforcing() {
+      return turboModuleGetEnforcingMock;
+    },
+  },
+}));
+
+describe('NativeKeychain', () => {
+  const resolvedModule = {
+    deleteKey: vi.fn(),
+    generateKeyPair: vi.fn(),
+    getPublicKey: vi.fn(),
+    hasKey: vi.fn(),
+    isAvailable: vi.fn(),
+    sign: vi.fn(),
+  };
+
+  beforeEach(() => {
+    vi.resetModules();
+    turboModuleGetEnforcingMock.mockReturnValue(resolvedModule);
+  });
+
+  it('should expose the resolved module as the default export', async () => {
+    const imported = await import('./NativeKeychain');
+
+    expect(imported.default).toBe(resolvedModule);
+  });
+
+  it("should look up the native module under the 'DynamicClientKeychain' key that matches the iOS and Android registration", async () => {
+    await import('./NativeKeychain');
+
+    expect(turboModuleGetEnforcingMock).toHaveBeenCalledWith(
+      'DynamicClientKeychain'
+    );
+  });
+
+  it('should resolve the native module exactly once at import time', async () => {
+    await import('./NativeKeychain');
+
+    expect(turboModuleGetEnforcingMock).toHaveBeenCalledOnce();
+  });
+});

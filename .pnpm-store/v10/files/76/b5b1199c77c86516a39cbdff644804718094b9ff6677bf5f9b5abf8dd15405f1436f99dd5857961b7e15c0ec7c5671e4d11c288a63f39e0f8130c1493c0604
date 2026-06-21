@@ -1,0 +1,12 @@
+import type { RealtimeService } from '../realtime.types';
+/**
+ * Creates a realtime pub/sub service backed by Ably.
+ *
+ * The service starts idle. Call `connect({ client })` to establish
+ * a connection, passing the DynamicClient explicitly.
+ *
+ * SSR environments receive a no-op implementation.
+  * @not-instrumented
+ */
+export declare const createRealtimeService: () => RealtimeService;
+//# sourceMappingURL=createRealtimeService.d.ts.map

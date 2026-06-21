@@ -1,0 +1,12 @@
+import type { TokenScope } from '@dynamic-labs/sdk-api-core';
+import type { DynamicClient } from '../../../client/types';
+import type { WalletAccount } from '../walletAccount';
+type VerifyWalletAccountForSignInOrTransferParams = {
+    isTransfer: boolean;
+    requestedScopes?: TokenScope[];
+    walletAccount: WalletAccount;
+};
+/** @not-instrumented */
+export declare const verifyWalletAccountForSignInOrTransfer: ({ walletAccount, isTransfer, requestedScopes, }: VerifyWalletAccountForSignInOrTransferParams, client: DynamicClient) => Promise<WalletAccount>;
+export {};
+//# sourceMappingURL=verifyWalletAccountForSignInOrTransfer.d.ts.map

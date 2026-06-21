@@ -1,0 +1,40 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var ViewContext = require('../../../context/ViewContext/ViewContext.cjs');
+var useConnectAndSign = require('../authenticationHooks/useConnectAndSign/useConnectAndSign.cjs');
+var useConnectAndSignSplitSteps = require('../authenticationHooks/useConnectAndSignSplitSteps/useConnectAndSignSplitSteps.cjs');
+var authMode = require('../../../store/state/authMode/authMode.cjs');
+var useHandleWalletItem = require('./useHandleWalletItem/useHandleWalletItem.cjs');
+
+const useWalletItemActions = () => {
+    const { setMultiWalletWidgetState } = useInternalDynamicContext.useInternalDynamicContext();
+    const { onlyConnectUser } = useConnectAndSignSplitSteps.useConnectAndSignSplitSteps();
+    const connectAndSignWallet = useConnectAndSign.useConnectAndSign();
+    const { pushView } = ViewContext.useViewContext();
+    const handleExtensionAndCustodial = (_a) => _tslib.__awaiter(void 0, [_a], void 0, function* ({ requiresTwoStepAuthentication, walletConnector, }) {
+        const authMode$1 = authMode.getAuthMode();
+        if (requiresTwoStepAuthentication || authMode$1 === 'connect-only') {
+            pushView('pending-connect');
+            yield onlyConnectUser({ walletConnector });
+        }
+        else {
+            // See useVerifyOnAwaitingSignature's useEffect for more context.
+            setMultiWalletWidgetState('awaiting_signature', undefined, 'linking_new_wallet');
+        }
+    });
+    return useHandleWalletItem.useHandleWalletItem({
+        allowAlreadyConnectedWallet: false,
+        onConnectOnly: onlyConnectUser,
+        onCustodialWallet: handleExtensionAndCustodial,
+        onInstalledExtension: handleExtensionAndCustodial,
+        onQrCodeConnect: connectAndSignWallet,
+    });
+};
+
+exports.useWalletItemActions = useWalletItemActions;

@@ -1,0 +1,14 @@
+/// <reference types="react" />
+import { TokenBalance } from '@dynamic-labs/sdk-api-core';
+export type TokenBalanceItemSecondaryAction = {
+    /** Right-aligned action label (e.g. "Shield Manually"). */
+    label: string;
+    onClick: () => void;
+    isLoading?: boolean;
+    /** Test id for the action button. */
+    dataTestId?: string;
+};
+export declare const TokenBalanceItem: ({ tokenBalance, secondaryAction, }: {
+    tokenBalance: TokenBalance;
+    secondaryAction?: TokenBalanceItemSecondaryAction;
+}) => JSX.Element;

@@ -1,0 +1,27 @@
+import { AleoCuratedPricesResponseResultFromJSON, AleoCuratedPricesResponseResultToJSON } from './AleoCuratedPricesResponseResult.js';
+
+/* tslint:disable */
+function AleoCuratedPricesResponseFromJSON(json) {
+    return AleoCuratedPricesResponseFromJSONTyped(json);
+}
+function AleoCuratedPricesResponseFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'result': AleoCuratedPricesResponseResultFromJSON(json['result']),
+    };
+}
+function AleoCuratedPricesResponseToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'result': AleoCuratedPricesResponseResultToJSON(value.result),
+    };
+}
+
+export { AleoCuratedPricesResponseFromJSON, AleoCuratedPricesResponseFromJSONTyped, AleoCuratedPricesResponseToJSON };

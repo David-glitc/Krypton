@@ -1,0 +1,108 @@
+import { B as getCore, D as instrumentFunction, I as getDefaultClient, u as createApiClient, w as assertDefined, z as BaseError } from "./InvalidParamError-BqFQnYCi.native.esm.js";
+
+//#region src/errors/NativeModuleNotLinkedError.ts
+var NativeModuleNotLinkedError = class extends BaseError {
+	constructor({ moduleName }) {
+		super({
+			cause: null,
+			code: "native_module_not_linked_error",
+			details: [
+				`The "${moduleName}" TurboModule is not registered with React Native.`,
+				"This usually means the native module was not autolinked into the host app,",
+				"or the app binary was not rebuilt after installing the SDK.",
+				"",
+				"To resolve:",
+				"  1. Ensure \"@dynamic-labs-sdk/client\" is a direct dependency of the app",
+				"     and reinstall (e.g. `pnpm install`).",
+				"  2. Rebuild the native app:",
+				"       iOS:     `cd ios && pod install && cd .. && npx react-native run-ios`",
+				"       Android: `npx react-native run-android`",
+				"       Expo:    `npx expo prebuild --clean` then run the app.",
+				"  3. Confirm autolinking sees the package:",
+				"       `npx expo-modules-autolinking react-native-config --json`"
+			].join("\n"),
+			docsUrl: null,
+			name: "NativeModuleNotLinkedError",
+			shortMessage: `Native TurboModule "${moduleName}" is not linked.`
+		});
+	}
+};
+
+//#endregion
+//#region src/modules/mfa/consumeMfaToken/consumeMfaToken.ts
+/**
+* Consumes and clears the current MFA token from the client state.
+*
+* This function retrieves the MFA token obtained from a successful MFA authentication,
+* and removes it from the client, to prevent it from being used again.
+*
+* @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+* @returns The MFA token that was consumed.
+* @throws Error if no MFA token is found.
+* @instrumented
+* @redact-params
+*/
+const consumeMfaToken = (client = getDefaultClient()) => {
+	const core = getCore(client);
+	const mfaToken = core.state.get().mfaToken;
+	assertDefined(mfaToken, "No MFA token found");
+	core.state.set({ mfaToken: null });
+	return mfaToken;
+};
+const __consumeMfaToken_impl = consumeMfaToken;
+const __consumeMfaToken_wrapped = instrumentFunction({
+	fn: __consumeMfaToken_impl,
+	functionName: "consumeMfaToken",
+	getCore: () => {
+		try {
+			return getCore(getDefaultClient());
+		} catch {
+			return;
+		}
+	},
+	redactAll: true
+});
+
+//#endregion
+//#region src/modules/mfa/getMfaMethods/getMfaMethods.ts
+/**
+* Retrieves the available MFA methods for the current user.
+*
+* This function fetches information about which multi-factor authentication
+* methods are available and configured for the user's account.
+*
+* @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+* @returns A promise that resolves to the user's MFA methods configuration.
+* @not-instrumented
+*/
+const getMfaMethods = async (client = getDefaultClient()) => {
+	const core = getCore(client);
+	return await createApiClient({}, client).getUserMfaMethods({
+		environmentId: core.environmentId,
+		verifiedOnly: true
+	});
+};
+
+//#endregion
+//#region src/modules/mfa/isMfaRequiredForAction/isMfaRequiredForAction.ts
+/**
+* Checks if MFA is required for a specific action.
+*
+* This function determines whether multi-factor authentication is required
+* for the specified action based on project settings and user configuration.
+*
+* @param params.mfaAction - The action to check MFA requirements for.
+* @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+* @returns A promise that resolves to true if MFA is required for the action, false otherwise.
+* @not-instrumented
+*/
+const isMfaRequiredForAction = async ({ mfaAction }, client = getDefaultClient()) => {
+	const projectSettings = client.projectSettings;
+	if (!projectSettings?.security?.mfa?.actions?.some((action) => action.action === mfaAction && action.required)) return false;
+	if (projectSettings?.security?.mfa?.required) return true;
+	return (await getMfaMethods(client)).userHasVerifiedMfaMethods;
+};
+
+//#endregion
+export { NativeModuleNotLinkedError as i, getMfaMethods as n, __consumeMfaToken_wrapped as r, isMfaRequiredForAction as t };
+//# sourceMappingURL=isMfaRequiredForAction-Dx4BPJVg.native.esm.js.map

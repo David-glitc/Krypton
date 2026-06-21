@@ -1,0 +1,13 @@
+'use client'
+// Extracts the pairing topic from a WalletConnect v2 connection URI of the
+// form `wc:<topic>@2?...`. Returns undefined for any unrecognized shape so
+// callers can decide whether to act on it.
+const parsePairingTopicFromUri = (uri) => {
+    if (!uri) {
+        return undefined;
+    }
+    const match = /^wc:([^@?]+)@/.exec(uri);
+    return match === null || match === void 0 ? void 0 : match[1];
+};
+
+export { parsePairingTopicFromUri };

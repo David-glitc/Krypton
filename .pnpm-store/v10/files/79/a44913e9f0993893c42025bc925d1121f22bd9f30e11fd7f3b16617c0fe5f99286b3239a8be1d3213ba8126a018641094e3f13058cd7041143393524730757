@@ -1,0 +1,39 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var jsxRuntime = require('react/jsx-runtime');
+var walletConnectorCore = require('@dynamic-labs/wallet-connector-core');
+var utils = require('@dynamic-labs/utils');
+var ViewContext = require('../../context/ViewContext/ViewContext.cjs');
+var BridgeNextWalletToConnectLayout = require('../../layouts/BridgeNextWalletToConnectLayout/BridgeNextWalletToConnectLayout.cjs');
+require('../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var getChainIcon = require('../../shared/utils/functions/chain/getChainIcon.cjs');
+require('../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('../../utils/constants/colors.cjs');
+require('../../utils/constants/values.cjs');
+require('@dynamic-labs/sdk-api-core');
+require('react');
+require('@dynamic-labs/iconic');
+require('../../shared/consts/index.cjs');
+
+const BridgeNextWalletConnectionView = () => {
+    const { setShowAuthFlow, bridgeChainsToConnect } = useInternalDynamicContext.useInternalDynamicContext();
+    const { pushView } = ViewContext.useViewContext();
+    if (!(bridgeChainsToConnect === null || bridgeChainsToConnect === void 0 ? void 0 : bridgeChainsToConnect.length)) {
+        throw new utils.DynamicError('No wallets to connect');
+    }
+    const [nextWalletToConnect] = bridgeChainsToConnect;
+    const { chain } = nextWalletToConnect;
+    const chainInfo = walletConnectorCore.getChainInfoWithOverrides(chain);
+    const ChainIcon = getChainIcon.getChainIcon(chain);
+    if (!chainInfo) {
+        throw new utils.DynamicError('No chain info found for chain', chain);
+    }
+    return (jsxRuntime.jsx(BridgeNextWalletToConnectLayout.BridgeNextWalletToConnectLayout, { chainName: chainInfo.blockchainName, chainIcon: jsxRuntime.jsx(ChainIcon, {}), onClickAction: () => pushView('wallet-list'), onClickClose: () => setShowAuthFlow(false, { emitCancelAuth: true }) }));
+};
+
+exports.BridgeNextWalletConnectionView = BridgeNextWalletConnectionView;

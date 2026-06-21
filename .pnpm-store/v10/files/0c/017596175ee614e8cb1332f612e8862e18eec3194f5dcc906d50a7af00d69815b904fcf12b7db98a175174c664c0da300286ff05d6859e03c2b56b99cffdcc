@@ -1,0 +1,43 @@
+'use client'
+import { __awaiter } from '../../../_virtual/_tslib.js';
+import { TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, createTransferCheckedInstruction } from '@solana/spl-token';
+import { PublicKey, Transaction } from '@solana/web3.js';
+import { parseAmountToSmallestUnit } from '@dynamic-labs/utils';
+
+const createNonNativeTokenTransfer = (_a) => __awaiter(void 0, [_a], void 0, function* ({ connection, fromAddress, toAddress, tokenAddress, amount, decimals, blockhash, lastValidBlockHeight, }) {
+    var _b, _c;
+    const fromPublicKey = new PublicKey(fromAddress);
+    const toPublicKey = new PublicKey(toAddress);
+    const tokenPublicKey = new PublicKey(tokenAddress);
+    const mintAccountInfo = yield connection.getAccountInfo(tokenPublicKey);
+    const tokenProgramId = mintAccountInfo && mintAccountInfo.owner.equals(TOKEN_2022_PROGRAM_ID)
+        ? TOKEN_2022_PROGRAM_ID
+        : TOKEN_PROGRAM_ID;
+    const fromTokenAccount = (_c = (_b = (yield connection.getTokenAccountsByOwner(fromPublicKey, {
+        mint: tokenPublicKey,
+    }))) === null || _b === void 0 ? void 0 : _b.value[0]) === null || _c === void 0 ? void 0 : _c.pubkey;
+    if (!fromTokenAccount)
+        throw new Error('Source token account not found');
+    let toTokenAccountPubkey;
+    const instructions = [];
+    try {
+        toTokenAccountPubkey = yield getAssociatedTokenAddress(tokenPublicKey, toPublicKey, false, tokenProgramId);
+        yield connection.getTokenAccountBalance(toTokenAccountPubkey);
+    }
+    catch (e) {
+        toTokenAccountPubkey = yield getAssociatedTokenAddress(tokenPublicKey, toPublicKey, false, tokenProgramId);
+        instructions.push(createAssociatedTokenAccountInstruction(fromPublicKey, toTokenAccountPubkey, toPublicKey, tokenPublicKey, tokenProgramId));
+    }
+    const tokenDecimals = decimals || 0;
+    instructions.push(createTransferCheckedInstruction(fromTokenAccount, tokenPublicKey, toTokenAccountPubkey, fromPublicKey, parseAmountToSmallestUnit({
+        amount,
+        decimals: tokenDecimals,
+    }), tokenDecimals, [], tokenProgramId));
+    const transaction = new Transaction().add(...instructions);
+    transaction.recentBlockhash = blockhash;
+    transaction.lastValidBlockHeight = lastValidBlockHeight;
+    transaction.feePayer = fromPublicKey;
+    return transaction;
+});
+
+export { createNonNativeTokenTransfer };

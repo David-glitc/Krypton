@@ -1,0 +1,50 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var React = require('react');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var UserWalletsContext = require('../../../context/UserWalletsContext/UserWalletsContext.cjs');
+var walletOptions = require('../../../store/state/walletOptions/walletOptions.cjs');
+var buildWalletsList = require('./buildWalletsList.cjs');
+
+const useWalletList = ({ isWalletConnectList = false, viewWalletsFilter, searchFilter, lastUsedWalletKey, }) => {
+    const { walletsFilter, walletConnectorOptions, defaultNumberOfWalletsToShow, bridgeChainsToConnect, multiWallet, recommendedWallets, selectedTabSettings, } = useInternalDynamicContext.useInternalDynamicContext();
+    const { userWallets } = UserWalletsContext.useInternalUserWallets();
+    const walletGroups = walletOptions.useWalletGroups();
+    // Run the heavy list build once per real input change, not on every render —
+    // a modal close animation re-renders this hundreds of times.
+    return React.useMemo(() => buildWalletsList.buildWalletsList({
+        bridgeChainsToConnect,
+        defaultNumberOfWalletsToShow,
+        isWalletConnectList,
+        lastUsedWalletKey,
+        multiWallet,
+        recommendedWallets,
+        searchFilter,
+        selectedTabSettings,
+        userWallets,
+        viewWalletsFilter,
+        walletConnectorOptions,
+        walletGroups,
+        walletsFilter,
+    }), [
+        bridgeChainsToConnect,
+        defaultNumberOfWalletsToShow,
+        isWalletConnectList,
+        lastUsedWalletKey,
+        multiWallet,
+        recommendedWallets,
+        searchFilter,
+        selectedTabSettings,
+        userWallets,
+        viewWalletsFilter,
+        walletConnectorOptions,
+        walletGroups,
+        walletsFilter,
+    ]);
+};
+
+exports.useWalletList = useWalletList;

@@ -1,0 +1,22 @@
+'use client'
+import { __awaiter } from '../../../../_virtual/_tslib.js';
+import { jsx } from 'react/jsx-runtime';
+import { useState, useCallback } from 'react';
+import '../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { ConnectButton } from './components/ConnectButton.js';
+
+const DynamicConnectButton = ({ buttonContainerClassName = '', buttonClassName = '', children, copykey, }) => {
+    const { projectSettings, setShowAuthFlow, setSelectedWalletConnectorKey } = useInternalDynamicContext();
+    const [didUserClick, setUserClicked] = useState(false);
+    const handleOnClick = useCallback(() => __awaiter(void 0, void 0, void 0, function* () {
+        if (!didUserClick) {
+            setUserClicked(true);
+        }
+        setSelectedWalletConnectorKey(null);
+        setShowAuthFlow(true);
+    }), [didUserClick, setSelectedWalletConnectorKey, setShowAuthFlow]);
+    return (jsx(ConnectButton, { isLoading: !projectSettings, isActive: didUserClick, onClick: handleOnClick, buttonContainerClassName: buttonContainerClassName, buttonClassName: buttonClassName, copykey: copykey, children: children }));
+};
+
+export { DynamicConnectButton };

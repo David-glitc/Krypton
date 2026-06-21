@@ -1,0 +1,36 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+var AuthStorageEnum = require('./AuthStorageEnum.cjs');
+
+/* tslint:disable */
+function AuthSettingsFromJSON(json) {
+    return AuthSettingsFromJSONTyped(json);
+}
+function AuthSettingsFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'allowMultipleCredentialsForSignIn': !runtime.exists(json, 'allowMultipleCredentialsForSignIn') ? undefined : json['allowMultipleCredentialsForSignIn'],
+        'storage': (json['storage'].map(AuthStorageEnum.AuthStorageEnumFromJSON)),
+    };
+}
+function AuthSettingsToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'allowMultipleCredentialsForSignIn': value.allowMultipleCredentialsForSignIn,
+        'storage': (value.storage.map(AuthStorageEnum.AuthStorageEnumToJSON)),
+    };
+}
+
+exports.AuthSettingsFromJSON = AuthSettingsFromJSON;
+exports.AuthSettingsFromJSONTyped = AuthSettingsFromJSONTyped;
+exports.AuthSettingsToJSON = AuthSettingsToJSON;

@@ -1,0 +1,47 @@
+'use client'
+import EventEmitter from 'eventemitter3';
+
+/** Which events are accessible by our clients */
+const externalEvents = [
+    'authFailure',
+    'authFlowCancelled',
+    'authFlowClose',
+    'authFlowOpen',
+    'authInit',
+    'emailVerificationResult',
+    'embeddedWalletCreated',
+    'logout',
+    'mfaCompletionFailure',
+    'mfaCompletionSuccess',
+    'primaryWalletChanged',
+    'primaryWalletNetworkChanged',
+    'walletConnectionQrCodeReady',
+    'smsVerificationResult',
+    'walletAdded',
+    'walletRemoved',
+    'userWalletsChanged',
+    'walletConnectedForFunding',
+    'walletTabSelected',
+    'walletConnectionFailed',
+    'embeddedWalletRevealCompleted',
+    'embeddedWalletRevealFailed',
+    'walletReturnFromDeepLink',
+    'deviceRegistrationCompleted',
+    'deviceRegistrationCompletedInAnotherTab',
+];
+// Store event emitters on globalThis so they survive dual-package loading.
+// See client.ts for full explanation of the dual-package hazard.
+const GLOBAL_KEY = Symbol.for('@dynamic-labs/sdk-react-core/events');
+const getEventsStore = () => {
+    const g = globalThis;
+    if (!g[GLOBAL_KEY]) {
+        g[GLOBAL_KEY] = new EventEmitter();
+    }
+    return g[GLOBAL_KEY];
+};
+// Full internal event emitter
+const dynamicEvents = getEventsStore();
+// Limited public event emitter with subset of events
+const publicDynamicEvents = dynamicEvents;
+
+export { dynamicEvents, externalEvents, publicDynamicEvents };

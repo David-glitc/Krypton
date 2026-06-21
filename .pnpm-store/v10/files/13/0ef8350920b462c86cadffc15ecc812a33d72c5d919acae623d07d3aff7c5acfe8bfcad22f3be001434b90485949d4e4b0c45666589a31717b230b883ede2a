@@ -1,0 +1,9 @@
+import { BaseError } from './base';
+type NativeModuleNotLinkedErrorParams = {
+    moduleName: string;
+};
+export declare class NativeModuleNotLinkedError extends BaseError {
+    constructor({ moduleName }: NativeModuleNotLinkedErrorParams);
+}
+export {};
+//# sourceMappingURL=NativeModuleNotLinkedError.d.ts.map

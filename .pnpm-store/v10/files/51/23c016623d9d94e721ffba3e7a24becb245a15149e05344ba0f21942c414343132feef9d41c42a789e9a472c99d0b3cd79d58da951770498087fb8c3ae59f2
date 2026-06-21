@@ -1,0 +1,20 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var createProviderHook = require('../../shared/utils/functions/createProviderHook/createProviderHook.cjs');
+var ConnectWithOtpContext = require('./ConnectWithOtpContext.cjs');
+
+const useConnectWithOtpContextValue = createProviderHook.createProviderHook(ConnectWithOtpContext.ConnectWithOtpContext, 'DynamicContextProvider');
+const useConnectWithOtp = ({ emailProvider: defaultProvider, } = {}) => {
+    const context = useConnectWithOtpContextValue();
+    return {
+        connectWithEmail: (email, options = {}) => context.connectWithEmail(email, Object.assign({ provider: defaultProvider }, options)),
+        connectWithSms: context.connectWithSms,
+        retryOneTimePassword: context.retryOneTimePassword,
+        verifyOneTimePassword: context.verifyOneTimePassword,
+    };
+};
+
+exports.useConnectWithOtp = useConnectWithOtp;

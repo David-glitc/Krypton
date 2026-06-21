@@ -1,0 +1,17 @@
+import type { OpenDeeplink } from '../openDeeplink.types';
+/**
+ * Creates a deeplink opener that navigates the current tab to the deeplink URL.
+ *
+ * Uses `window.location.assign` instead of `window.open` deliberately.
+ * This matters for Phantom redirect specifically, which is the only deep link
+ * provider that redirects back to the app in a new tab. With `window.open`,
+ * the browser first opens an `about:blank` tab before the native wallet app
+ * handles the deep link. When Phantom redirects back, it opens yet another
+ * tab. The user ends up with three tabs (original, about:blank, redirect) and
+ * the browser focuses the lingering about:blank after the redirect tab closes.
+ * `window.location.assign` reuses the current tab, avoiding the extra tab
+ * entirely.
+  * @not-instrumented
+ */
+export declare const createWebDeeplinkOpener: () => OpenDeeplink;
+//# sourceMappingURL=createWebDeeplinkOpener.d.ts.map

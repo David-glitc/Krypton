@@ -1,0 +1,2 @@
+export { generateNonceSignature } from './generateNonceSignature';
+//# sourceMappingURL=index.d.ts.map

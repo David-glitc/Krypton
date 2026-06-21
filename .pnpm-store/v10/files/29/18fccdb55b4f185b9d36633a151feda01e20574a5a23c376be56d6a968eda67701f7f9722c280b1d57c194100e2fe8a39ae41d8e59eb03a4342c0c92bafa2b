@@ -1,0 +1,13 @@
+/**
+ * @deprecated Use {@link GetTokenBalancesParams} instead. Renamed for clarity.
+ */
+export type { GetTokenBalancesParams as GetBalancesParams } from '../getTokenBalances/getTokenBalances';
+/**
+ * @deprecated Use {@link getTokenBalances} instead. Renamed so its name
+ * states what it returns (a wallet account's token balances) and is no
+ * longer confusable with the native-only `getBalance` or the
+ * multi-chain `getMultichainTokenBalances`.
+ * @not-instrumented
+ */
+export { getTokenBalances as getBalances } from '../getTokenBalances/getTokenBalances';
+//# sourceMappingURL=getBalances.d.ts.map

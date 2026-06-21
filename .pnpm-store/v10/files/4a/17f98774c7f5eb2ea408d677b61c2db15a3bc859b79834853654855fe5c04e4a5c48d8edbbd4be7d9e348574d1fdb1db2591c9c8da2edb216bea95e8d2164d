@@ -1,0 +1,202 @@
+import { BitcoinConfig, DynamicWalletClient } from '@dynamic-labs-wallet/browser-wallet-client';
+import type { LogoutReason } from '@dynamic-labs-sdk/client';
+import { InstrumentOptions, Logger } from '@dynamic-labs/logger';
+import { MFAAction, TokenScope } from '@dynamic-labs/sdk-api-core';
+import { GetWalletPasswordFn } from '@dynamic-labs/wallet-connector-core';
+import { InstrumentContext, InstrumentationTimer, TraceContext } from '../utils/instrumentation';
+export declare class WaasExportHandler {
+    private iframeStamper;
+    setIframeStamper(iframe: HTMLIFrameElement): void;
+    clear(): void;
+}
+export declare const withDynamicWaas: <T extends abstract new (...args: any[]) => any>(BaseClass: T) => (abstract new (...args: any[]) => {
+    [x: string]: any;
+    name: string;
+    overrideKey: string;
+    isEmbeddedWallet: boolean;
+    getSignedSessionId?: (() => Promise<string>) | undefined;
+    getMfaToken?: ((props?: {
+        mfaAction?: MFAAction;
+    }) => Promise<string | undefined>) | undefined;
+    getWalletPassword?: GetWalletPasswordFn | undefined;
+    getAuthToken?: (() => string) | undefined;
+    getElevatedAccessToken?: ((props: {
+        scope: TokenScope;
+    }) => Promise<string | undefined>) | undefined;
+    onUnauthorized?: (() => void | Promise<void>) | undefined;
+    environmentId?: string | undefined;
+    baseApiUrl?: string | undefined;
+    relayUrl?: string | undefined;
+    baseClientKeysharesRelayApiUrl?: string | undefined;
+    dynamicWaasClient: DynamicWalletClient | undefined;
+    chainName: string;
+    authMode: 'cookie' | 'header';
+    logger: Logger;
+    __exportHandler: WaasExportHandler;
+    validateActiveWallet(expectedAddress: string): Promise<void>;
+    setGetAuthTokenFunction(getAuthToken: () => string): void;
+    setOnUnauthorizedFunction(onUnauthorized: () => void | Promise<void>): void;
+    setWaasAuthMode(authMode: 'cookie' | 'header'): void;
+    setGetMfaTokenFunction(getMfaToken: (props?: {
+        mfaAction?: MFAAction;
+    }) => Promise<string | undefined>): void;
+    setGetElevatedAccessTokenFunction(getElevatedAccessToken: (params: {
+        scope: TokenScope;
+    }) => Promise<string | undefined>): void;
+    setGetWalletPasswordFunction(getWalletPassword: GetWalletPasswordFn): void;
+    /**
+     * Checks if the wallet needs a password for signing operations.
+     * Returns the password if needed, or undefined if the wallet is already unlocked.
+     */
+    getPasswordIfNeeded({ accountAddress, }: {
+        accountAddress: string;
+    }): Promise<string | undefined>;
+    /**
+     * Prompts for the wallet password if the wallet is password-encrypted.
+     *
+     * Unlike `getPasswordIfNeeded` (which skips the prompt when the wallet is
+     * already unlocked in memory), this method always asks for the password
+     * when the wallet is password-encrypted. Use it for operations that
+     * encrypt/decrypt data stored externally (e.g. cloud backup/restore),
+     * where the password is required to encrypt/decrypt the shares on disk.
+     *
+     * Returns undefined if the wallet is not password-encrypted or if no
+     * password provider is configured.
+     */
+    getPassword({ accountAddress, }: {
+        accountAddress: string;
+    }): Promise<string | undefined>;
+    setEnvironmentId(environmentId: string): void;
+    setBaseApiUrl(baseApiUrl: string): void;
+    setBaseClientKeysharesRelayApiUrl(baseClientKeysharesRelayApiUrl?: string): void;
+    setRelayUrl(relayUrl: string): void;
+    setGetSignedSessionIdFunction(getSignedSessionId: () => Promise<string>): void;
+    delegateKeyShares({ accountAddress, password, }: {
+        accountAddress: string;
+        password?: string;
+    }): Promise<void>;
+    createDynamicWaasClient(traceContext?: TraceContext): Promise<DynamicWalletClient>;
+    getWaasWalletClient(traceContext?: TraceContext): Promise<DynamicWalletClient>;
+    createWalletAccount({ thresholdSignatureScheme, password, bitcoinConfig, }?: {
+        thresholdSignatureScheme?: string;
+        password?: string;
+        bitcoinConfig?: BitcoinConfig;
+    }): Promise<{
+        chainName: string;
+        accountAddress: string;
+        publicKeyHex: string;
+        rawPublicKey: string | Uint8Array | undefined;
+    }>;
+    importPrivateKey({ privateKey, thresholdSignatureScheme, publicAddressCheck, addressType, legacyWalletId, password, }: {
+        privateKey: string;
+        thresholdSignatureScheme?: string;
+        publicAddressCheck?: string;
+        addressType?: string;
+        legacyWalletId?: string;
+        password?: string;
+    }): Promise<void>;
+    exportPrivateKey({ accountAddress, displayContainer, password, }?: {
+        accountAddress?: string;
+        displayContainer?: HTMLIFrameElement;
+        password?: string;
+    }): Promise<void>;
+    getExportHandler(): {
+        clear: () => void;
+    };
+    exportClientKeyshares({ accountAddress, password, }: {
+        accountAddress: string;
+        password?: string;
+    }): Promise<void>;
+    backupKeySharesToGoogleDrive({ accountAddress, password, googleDriveAccessToken, }: {
+        accountAddress: string;
+        password?: string;
+        googleDriveAccessToken?: string;
+    }): Promise<void>;
+    exportClientKeysharesFromGoogleDrive({ accountAddress, password, }: {
+        accountAddress: string;
+        password?: string;
+    }): Promise<void>;
+    backupKeySharesToICloud({ accountAddress, password, }: {
+        accountAddress: string;
+        password?: string;
+    }): Promise<void>;
+    displayICloudSignIn({ displayContainer, }: {
+        displayContainer: HTMLElement;
+    }): Promise<void>;
+    hideICloudSignIn(): Promise<void>;
+    isICloudAuthenticated(): Promise<boolean>;
+    refreshWalletAccountShares({ accountAddress, password, }: {
+        accountAddress: string;
+        password?: string;
+    }): Promise<void>;
+    reshareWalletAccountShares({ accountAddress, thresholdSignatureScheme, password, }: {
+        accountAddress: string;
+        thresholdSignatureScheme: string;
+        password?: string;
+    }): Promise<void>;
+    revokeDelegation({ accountAddress, password, }: {
+        accountAddress: string;
+        password?: string;
+    }): Promise<void>;
+    updatePassword({ accountAddress, existingPassword, newPassword, }: {
+        accountAddress: string;
+        existingPassword?: string;
+        newPassword: string;
+    }): Promise<void>;
+    setPassword({ accountAddress, newPassword, }: {
+        accountAddress: string;
+        newPassword: string;
+    }): Promise<void>;
+    signRawMessage({ accountAddress, message, password, }: {
+        accountAddress: string;
+        message: string;
+        password?: string;
+    }): Promise<string>;
+    unlockWallet({ accountAddress, password, }: {
+        accountAddress: string;
+        password?: string;
+    }): Promise<import("@dynamic-labs-wallet/browser-wallet-client").GetWalletResponse>;
+    getWalletRecoveryState({ accountAddress, }: {
+        accountAddress: string;
+    }): Promise<import("@dynamic-labs-wallet/browser-wallet-client").WalletRecoveryState>;
+    endSession(reason?: LogoutReason): Promise<void>;
+    getActiveAccountAddress(): Promise<string | undefined>;
+    /**
+     * Get connected accounts by fetching wallets from Waas client.
+     */
+    getConnectedAccounts(): Promise<string[]>;
+    generateTraceId(): string;
+    /**
+     * Normalizes an unknown thrown value into the error fields used across
+     * instrumentation so callers don't re-derive them at each catch site.
+     *
+     * Wrapped in try/catch: this is best-effort logging, and a value that
+     * resists formatting (e.g. an object whose toString throws) must never
+     * turn a log line into an exception that blocks the calling flow such as
+     * logout.
+     *
+     * `public` (not `private`) because the TS `private` keyword can't be used
+     * on this mixin's exported class expression (TS4094), and ECMAScript
+     * `#private` isn't supported by the package's Jest/Babel transform. It is
+     * internal-only despite the modifier — same constraint as `instrument`.
+     */
+    buildErrorInstrumentContext(error: unknown): {
+        errorCode: string | import("@dynamic-labs/utils").ErrorCode;
+        errorMessage: string;
+        errorType: string | undefined;
+    } | {
+        errorCode: string;
+        errorMessage?: undefined;
+        errorType?: undefined;
+    };
+    /**
+     * Helper method to instrument with automatic properties inclusion
+     */
+    instrument(message: string, context: InstrumentOptions & InstrumentContext & Record<string, any>): void;
+    instrumentAsync<T_1>({ operation, resource, fn, context, }: {
+        operation: string;
+        resource: string;
+        fn: (timing: InstrumentationTimer) => Promise<T_1>;
+        context?: Record<string, any> | undefined;
+    }): Promise<T_1>;
+}) & T;

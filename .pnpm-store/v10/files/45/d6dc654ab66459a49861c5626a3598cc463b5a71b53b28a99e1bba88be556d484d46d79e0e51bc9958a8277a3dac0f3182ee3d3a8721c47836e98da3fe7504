@@ -1,0 +1,6 @@
+import type { GenericNetwork } from '@dynamic-labs/types';
+import type { WalletConnector } from '../..';
+export type IMidnightWalletConnector = WalletConnector & {
+    midnightNetworks: GenericNetwork[];
+};
+export declare const isMidnightConnector: (connector: WalletConnector | IMidnightWalletConnector) => connector is IMidnightWalletConnector;

@@ -1,0 +1,10 @@
+'use client'
+import { getElevatedAccessToken } from '@dynamic-labs-sdk/client';
+
+/**
+ * Checks whether a valid elevated access token exists for the given scope.
+ * Delegates to the JS SDK's getElevatedAccessToken without consuming the token.
+ */
+const hasElevatedAccessToken = (scope) => getElevatedAccessToken({ consume: false, scope }) !== undefined;
+
+export { hasElevatedAccessToken };

@@ -1,0 +1,16 @@
+'use client'
+/**
+ * OAuth scopes that must be granted on the user's Google account in order
+ * for the keyshare backup upload to Google Drive to succeed.
+ *
+ * Exported so host apps can pre-flight check / display these in their own
+ * UX if they want to. Kept as a `readonly` tuple to discourage mutation.
+ */
+const GOOGLE_DRIVE_BACKUP_REQUIRED_SCOPES = [
+    'https://www.googleapis.com/auth/drive.appdata',
+    'https://www.googleapis.com/auth/drive.file',
+];
+const findMissingGoogleDriveBackupScopes = (grantedScopes) => GOOGLE_DRIVE_BACKUP_REQUIRED_SCOPES.filter((required) => !grantedScopes.includes(required));
+const hasAllGoogleDriveBackupScopes = (grantedScopes) => findMissingGoogleDriveBackupScopes(grantedScopes).length === 0;
+
+export { GOOGLE_DRIVE_BACKUP_REQUIRED_SCOPES, findMissingGoogleDriveBackupScopes, hasAllGoogleDriveBackupScopes };

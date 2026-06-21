@@ -1,0 +1,29 @@
+import { exists } from '../runtime.js';
+
+/* tslint:disable */
+function PrepareSigningRequestFromJSON(json) {
+    return PrepareSigningRequestFromJSONTyped(json);
+}
+function PrepareSigningRequestFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'assertBalanceForGasCost': !exists(json, 'assertBalanceForGasCost') ? undefined : json['assertBalanceForGasCost'],
+        'assertBalanceForTransferAmount': !exists(json, 'assertBalanceForTransferAmount') ? undefined : json['assertBalanceForTransferAmount'],
+    };
+}
+function PrepareSigningRequestToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'assertBalanceForGasCost': value.assertBalanceForGasCost,
+        'assertBalanceForTransferAmount': value.assertBalanceForTransferAmount,
+    };
+}
+
+export { PrepareSigningRequestFromJSON, PrepareSigningRequestFromJSONTyped, PrepareSigningRequestToJSON };

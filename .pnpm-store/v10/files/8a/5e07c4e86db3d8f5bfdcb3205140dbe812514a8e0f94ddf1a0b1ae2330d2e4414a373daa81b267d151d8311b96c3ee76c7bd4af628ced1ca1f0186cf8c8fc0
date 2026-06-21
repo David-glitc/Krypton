@@ -1,0 +1,23 @@
+'use client'
+import { useAleoShieldedBalances } from '../useAleoShieldedBalances/useAleoShieldedBalances.js';
+
+const usePrivateTokenBalances = (args = {}) => {
+    const { accountAddress, tokenAddresses, includeNativeBalance = false, includeFiat = false, chainName, networkId, } = args;
+    const { tokenBalances, isLoading, error, refetch, supportsShielded } = useAleoShieldedBalances({
+        accountAddress,
+        chainName,
+        includeFiat,
+        includeNativeBalance,
+        networkId,
+        tokenAddresses,
+    });
+    return {
+        error,
+        isLoading,
+        refetch,
+        supportsPrivateBalances: supportsShielded,
+        tokenBalances,
+    };
+};
+
+export { usePrivateTokenBalances };

@@ -1,0 +1,2 @@
+export { getMoonPayCurrencies } from './getMoonPayCurrencies';
+//# sourceMappingURL=index.d.ts.map

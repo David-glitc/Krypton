@@ -1,0 +1,2 @@
+export { createKeychainService } from './createKeychainService';
+//# sourceMappingURL=index.d.ts.map

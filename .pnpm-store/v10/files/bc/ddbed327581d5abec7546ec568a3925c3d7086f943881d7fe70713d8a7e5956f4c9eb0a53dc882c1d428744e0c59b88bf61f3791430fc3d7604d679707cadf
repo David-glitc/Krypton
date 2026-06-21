@@ -1,0 +1,24 @@
+import type { DynamicClient } from '../../../client/types';
+export type TrackCheckoutTransactionParams = {
+    transactionId: string;
+};
+/**
+ * Subscribes to realtime `checkoutTransactionExecutionStateChanged` and
+ * `checkoutTransactionSettlementStateChanged` events for an existing
+ * checkout transaction.
+ *
+ * This is only needed after a page refresh to re-establish the subscription.
+ * Transactions created with {@link createCheckoutTransaction} are automatically
+ * subscribed — calling this again for those is unnecessary unless the page
+ * has been reloaded.
+ *
+ * NOTE: Temporarily a no-op while the Ably API key is being provisioned for
+ * the realtime checkout transaction channel. Will be re-enabled once the
+ * dashboard-api environment has the Ably wiring in place.
+ *
+ * @param params.transactionId - The ID of the checkout transaction to track.
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @not-instrumented
+ */
+export declare const trackCheckoutTransaction: (_params: TrackCheckoutTransactionParams, client?: DynamicClient) => Promise<void>;
+//# sourceMappingURL=trackCheckoutTransaction.d.ts.map

@@ -1,0 +1,64 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../_virtual/_tslib.cjs');
+var jsxRuntime = require('react/jsx-runtime');
+var React = require('react');
+var reactI18next = require('react-i18next');
+require('../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var dynamicEvents = require('../../events/dynamicEvents.cjs');
+var useDynamicWaas = require('../../utils/hooks/useDynamicWaas/useDynamicWaas.cjs');
+var EnterPasswordView = require('../../widgets/DynamicWidget/views/EnterPasswordView/EnterPasswordView.cjs');
+
+const UnlockWalletView = ({ accountAddress, chainName, }) => {
+    const { t } = reactI18next.useTranslation();
+    const { setShowAuthFlow } = useInternalDynamicContext.useInternalDynamicContext();
+    const { getWaasWalletConnector } = useDynamicWaas.useDynamicWaas();
+    const handleContinue = React.useCallback((password) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        const connector = getWaasWalletConnector(chainName);
+        if (!connector) {
+            const error = new Error(t('dyn_enter_password.error.failed'));
+            dynamicEvents.dynamicEvents.emit('walletUnlockAttempt', {
+                accountAddress,
+                chainName,
+            });
+            dynamicEvents.dynamicEvents.emit('walletUnlockFailed', {
+                accountAddress,
+                chainName,
+                error,
+            });
+            throw error;
+        }
+        dynamicEvents.dynamicEvents.emit('walletUnlockAttempt', {
+            accountAddress,
+            chainName,
+        });
+        try {
+            yield connector.unlockWallet({ accountAddress, password });
+        }
+        catch (error) {
+            dynamicEvents.dynamicEvents.emit('walletUnlockFailed', {
+                accountAddress,
+                chainName,
+                error,
+            });
+            throw error;
+        }
+        dynamicEvents.dynamicEvents.emit('walletUnlockCompleted', {
+            accountAddress,
+            chainName,
+        });
+        dynamicEvents.dynamicEvents.emit('walletUnlockPasswordProvided', {
+            accountAddress,
+            chainName,
+            password,
+        });
+        setShowAuthFlow(false);
+    }), [accountAddress, chainName, getWaasWalletConnector, setShowAuthFlow, t]);
+    return (jsxRuntime.jsx(EnterPasswordView.EnterPasswordView, { onContinue: handleContinue, title: t('dyn_unlock_wallet.title'), description: t('dyn_unlock_wallet.description'), buttonLabel: t('dyn_unlock_wallet.button.continue') }));
+};
+
+exports.UnlockWalletView = UnlockWalletView;

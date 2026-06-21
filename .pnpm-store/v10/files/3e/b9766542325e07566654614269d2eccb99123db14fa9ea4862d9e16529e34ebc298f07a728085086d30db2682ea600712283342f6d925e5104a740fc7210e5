@@ -1,0 +1,11 @@
+import type { ReactNativeManifest } from '../nativeManifest.types';
+/**
+ * Returns the React Native manifest containing native SDK metadata.
+ *
+ * This function is only available in React Native environments.
+ * On web, it throws a `ReactNativeOnlyError`.
+ *
+ * @not-instrumented
+ */
+export declare const getReactNativeManifest: () => ReactNativeManifest;
+//# sourceMappingURL=getReactNativeManifest.d.ts.map

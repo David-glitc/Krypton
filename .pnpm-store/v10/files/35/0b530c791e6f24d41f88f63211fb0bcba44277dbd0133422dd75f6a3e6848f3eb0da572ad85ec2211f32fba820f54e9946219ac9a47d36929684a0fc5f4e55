@@ -1,0 +1,25 @@
+import type { DynamicClient } from '../../../client/types';
+import type { WalletAccount } from '../walletAccount';
+type ReconcileWalletAccountsAgainstClientParams = {
+    /** Whether to write new or updated unverified accounts to client state. Defaults to `true`. */
+    addToDynamicWalletAccounts?: boolean;
+    /** Freshly-connected wallet account candidates to reconcile. */
+    walletAccounts: WalletAccount[];
+    /** Wallet provider key these candidates were connected through. */
+    walletProviderKey: string;
+};
+/**
+ * Reconciles freshly-connected wallet accounts against the client state. For
+ * each candidate it classifies as new, a re-connect of an existing unverified
+ * account, or a re-connect of an already-verified account, then runs the
+ * appropriate state mutation (`setUnverifiedWalletAccounts`,
+ * `updateWalletProviderKeysForVerifiedCredentials`, `createVisit` for truly-new
+ * entries) and emits a single `walletAccountsChanged` event if anything
+ * actually changed. Returns the candidates with `verifiedCredentialId`
+ * populated when the address already corresponded to a verified credential.
+ *
+ * @not-instrumented
+ */
+export declare const reconcileWalletAccountsAgainstClient: ({ addToDynamicWalletAccounts, walletAccounts, walletProviderKey, }: ReconcileWalletAccountsAgainstClientParams, client: DynamicClient) => WalletAccount[];
+export {};
+//# sourceMappingURL=reconcileWalletAccountsAgainstClient.d.ts.map

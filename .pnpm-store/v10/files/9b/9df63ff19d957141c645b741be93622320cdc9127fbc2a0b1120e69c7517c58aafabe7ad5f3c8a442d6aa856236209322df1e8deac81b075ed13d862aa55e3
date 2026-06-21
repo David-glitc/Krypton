@@ -1,0 +1,27 @@
+import type { CheckoutExecutionState, CheckoutSettlementState } from './checkout.types';
+type CheckoutTransactionSettlementStateChangedEvent = {
+    newState: CheckoutSettlementState;
+    previousState: CheckoutSettlementState;
+    timestamp: string;
+    transactionId: string;
+};
+type CheckoutTransactionExecutionStateChangedEvent = {
+    newState: CheckoutExecutionState;
+    previousState: CheckoutExecutionState;
+    timestamp: string;
+    transactionId: string;
+};
+declare global {
+    interface DynamicEvents {
+        /**
+         * Raised when a checkout transaction's execution state changes.
+         */
+        checkoutTransactionExecutionStateChanged: (args: CheckoutTransactionExecutionStateChangedEvent) => void;
+        /**
+         * Raised when a checkout transaction's settlement state changes.
+         */
+        checkoutTransactionSettlementStateChanged: (args: CheckoutTransactionSettlementStateChangedEvent) => void;
+    }
+}
+export type { CheckoutTransactionExecutionStateChangedEvent, CheckoutTransactionSettlementStateChangedEvent, };
+//# sourceMappingURL=events.d.ts.map

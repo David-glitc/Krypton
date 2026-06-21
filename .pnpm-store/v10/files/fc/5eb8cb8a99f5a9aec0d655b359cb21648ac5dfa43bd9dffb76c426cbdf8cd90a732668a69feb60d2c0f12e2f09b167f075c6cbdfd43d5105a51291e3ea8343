@@ -1,0 +1,85 @@
+package xyz.dynamic.client.keychain
+
+import com.facebook.react.bridge.Arguments
+import com.facebook.react.bridge.Promise
+import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.bridge.WritableMap
+import com.facebook.react.module.annotations.ReactModule
+import xyz.dynamic.client.NativeKeychainSpec
+
+@ReactModule(name = KeychainModule.NAME)
+class KeychainModule(reactContext: ReactApplicationContext) :
+    NativeKeychainSpec(reactContext) {
+
+    private val keyManager = KeyStoreKeyManager()
+
+    companion object {
+        const val NAME = "DynamicClientKeychain"
+    }
+
+    override fun getName(): String = NAME
+
+    override fun isAvailable(promise: Promise) {
+        try {
+            val context = reactApplicationContext
+            promise.resolve(keyManager.isAvailable(context))
+        } catch (e: Exception) {
+            promise.resolve(false)
+        }
+    }
+
+    override fun hasKey(key: String, promise: Promise) {
+        try {
+            promise.resolve(keyManager.hasKey(key))
+        } catch (e: Exception) {
+            promise.reject("ERR_KEYCHAIN", "Failed to check key: ${e.message}", e)
+        }
+    }
+
+    override fun generateKeyPair(key: String, promise: Promise) {
+        try {
+            val publicKey = keyManager.generateKeyPair(key)
+            val result: WritableMap = Arguments.createMap()
+            result.putString("publicKey", publicKey)
+            promise.resolve(result)
+        } catch (e: Exception) {
+            promise.reject("ERR_KEYCHAIN", "Failed to generate key pair: ${e.message}", e)
+        }
+    }
+
+    override fun getPublicKey(key: String, promise: Promise) {
+        try {
+            val publicKey = keyManager.getPublicKey(key)
+            if (publicKey == null) {
+                promise.resolve(null)
+            } else {
+                val result: WritableMap = Arguments.createMap()
+                result.putString("publicKey", publicKey)
+                promise.resolve(result)
+            }
+        } catch (e: Exception) {
+            promise.reject("ERR_KEYCHAIN", "Failed to get public key: ${e.message}", e)
+        }
+    }
+
+    override fun sign(key: String, payload: String, promise: Promise) {
+        try {
+            val payloadData = KeyStoreKeyManager.base64urlDecode(payload)
+            val signature = keyManager.sign(key, payloadData)
+            val result: WritableMap = Arguments.createMap()
+            result.putString("signature", signature)
+            promise.resolve(result)
+        } catch (e: Exception) {
+            promise.reject("ERR_KEYCHAIN", "Failed to sign: ${e.message}", e)
+        }
+    }
+
+    override fun deleteKey(key: String, promise: Promise) {
+        try {
+            keyManager.deleteKey(key)
+            promise.resolve(null)
+        } catch (e: Exception) {
+            promise.reject("ERR_KEYCHAIN", "Failed to delete key: ${e.message}", e)
+        }
+    }
+}

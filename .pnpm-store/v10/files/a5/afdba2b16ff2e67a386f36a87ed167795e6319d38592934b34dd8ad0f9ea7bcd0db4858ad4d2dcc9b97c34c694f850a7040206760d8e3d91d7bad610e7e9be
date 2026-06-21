@@ -1,0 +1,12 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+var client = require('@dynamic-labs-sdk/client');
+
+const useGetElevatedAccessToken = () => React.useCallback((_a) => _tslib.__awaiter(void 0, [_a], void 0, function* ({ scope }) { return client.getElevatedAccessToken({ scope }); }), []);
+
+exports.useGetElevatedAccessToken = useGetElevatedAccessToken;

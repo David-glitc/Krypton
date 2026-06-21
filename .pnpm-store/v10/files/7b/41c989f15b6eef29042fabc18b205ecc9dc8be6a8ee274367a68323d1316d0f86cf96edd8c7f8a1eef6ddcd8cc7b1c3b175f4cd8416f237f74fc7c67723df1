@@ -1,0 +1,15 @@
+import type { WaasSDKContainer } from '@dynamic-labs-wallet/core';
+/**
+ * Creates a `WaasSDKContainer` that hosts the WaaS sandbox.
+ *
+ * This factory only exists for React Native, where the SDK injects a
+ * WebView-backed container into the WaaS client (see
+ * `createWaasSDKContainer.native.ts`). On web the browser WaaS client
+ * manages its own iframe host, so no container is supplied and this
+ * function is never called — it throws a `ReactNativeOnlyError` to make
+ * an accidental web invocation explicit rather than silently no-op.
+ *
+ * @not-instrumented
+ */
+export declare const createWaasSDKContainer: () => WaasSDKContainer;
+//# sourceMappingURL=createWaasSDKContainer.d.ts.map

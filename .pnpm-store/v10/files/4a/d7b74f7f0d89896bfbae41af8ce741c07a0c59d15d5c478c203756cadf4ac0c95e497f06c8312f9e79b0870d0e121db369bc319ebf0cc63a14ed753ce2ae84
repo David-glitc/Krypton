@@ -1,0 +1,17 @@
+import { PhoneData } from '@dynamic-labs/types';
+import { useEmbeddedWalletSessionKeys } from '../../../../utils/hooks';
+import { ProviderVerificationHandler } from '../../types';
+type BuildSmsOtpHandlerParams = {
+    captchaToken: string | undefined;
+    embeddedWalletSessionKeys: ReturnType<typeof useEmbeddedWalletSessionKeys>;
+    environmentId: string;
+    phone: PhoneData;
+    verificationUUID: string;
+};
+/**
+ * Builds a ProviderVerificationHandler for SMS OTP from the given parameters.
+ * Used both after creating a new SMS verification and when restoring a
+ * persisted verification state after a webview remount.
+ */
+export declare const buildSmsOtpHandler: ({ captchaToken, embeddedWalletSessionKeys: { shouldRegisterSessionKeysOnSignin, generateSessionKey, }, environmentId, phone, verificationUUID, }: BuildSmsOtpHandlerParams) => ProviderVerificationHandler<PhoneData>;
+export {};

@@ -1,0 +1,5 @@
+import { MetaMaskSolanaWalletConnector } from './MetaMaskSolanaWalletConnector.js';
+export { MetaMaskSolanaWalletConnector } from './MetaMaskSolanaWalletConnector.js';
+export const MetaMaskSolanaWalletConnectors = (_props)=>[
+        MetaMaskSolanaWalletConnector
+    ];

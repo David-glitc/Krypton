@@ -1,0 +1,14 @@
+/**
+ * Manifest returned by the React Native native layer,
+ * containing SDK metadata baked in at build time.
+ *
+ * This file is the source of truth for the type. It lives in a neutral
+ * types module with no react-native runtime import so it can be consumed
+ * from web code. `NativeReactNativeManifest.ts` redeclares an identical
+ * shape inline because codegen parses that file statically and cannot
+ * follow imported type aliases — the two must stay in sync.
+ */
+export type ReactNativeManifest = {
+    sdkVersion: string;
+};
+//# sourceMappingURL=nativeManifest.types.d.ts.map

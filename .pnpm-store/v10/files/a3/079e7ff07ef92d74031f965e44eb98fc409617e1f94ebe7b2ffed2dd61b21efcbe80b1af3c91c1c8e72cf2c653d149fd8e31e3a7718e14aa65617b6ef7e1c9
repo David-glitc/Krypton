@@ -1,0 +1,40 @@
+import { ChainEnum, TokenBalance } from '@dynamic-labs/sdk-api-core';
+/**
+ * Optional inputs that mirror the corresponding `useTokenBalances`
+ *  params so the public `usePrivateTokenBalances` hook can pass through
+ *  the same shape. Defaults here are tuned for the **widget's existing
+ *  consumer** (`ActiveWalletBalance`), which expects the native ALEO
+ *  row + fiat lookup to be on by default. The public hook overrides
+ *  these defaults to match `useTokenBalances`' false / false.
+ */
+export type UseAleoShieldedBalancesArgs = {
+    accountAddress?: string;
+    tokenAddresses?: string[];
+    includeNativeBalance?: boolean;
+    includeFiat?: boolean;
+    chainName?: ChainEnum;
+    networkId?: number;
+};
+/**
+ * Hook that returns the active wallet's shielded (private) Aleo token
+ * balances as a `TokenBalance[]` so the widget can render them through the
+ * same TokenBalanceList path it uses for unshielded balances.
+ *
+ * - Records come from the iframe via `connector.listOwnedRecords()` (the
+ *   Provable RecordScanner; view key never leaves the iframe).
+ * - Aggregates `credits.aleo/credits` (sum `microcredits` → ALEO) plus any
+ *   tier-3 stablecoin Token records (sum `amount` per program → USAD/USDCx).
+ *   ARC-21 multi-token grouped-by-`token_id` is Phase 2B.
+ *
+ * Returns an empty list when:
+ *   - The wallet isn't Aleo
+ *   - The connector doesn't expose `listOwnedRecords` (e.g. external Aleo wallet)
+ *   - The user owns no records that match a known program/record pair
+ */
+export declare const useAleoShieldedBalances: (args?: UseAleoShieldedBalancesArgs) => {
+    tokenBalances: TokenBalance[];
+    isLoading: boolean;
+    error: string | undefined;
+    refetch: () => Promise<void>;
+    supportsShielded: boolean;
+};

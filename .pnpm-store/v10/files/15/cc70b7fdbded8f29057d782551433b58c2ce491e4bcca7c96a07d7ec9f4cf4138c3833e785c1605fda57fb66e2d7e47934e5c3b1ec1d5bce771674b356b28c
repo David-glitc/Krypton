@@ -1,0 +1,57 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+require('@dynamic-labs-sdk/client');
+require('@dynamic-labs/utils');
+require('@dynamic-labs/sdk-api-core');
+require('@dynamic-labs-sdk/client/core');
+require('react');
+require('eventemitter3');
+require('../../../config/ApiEndpoint.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+require('../../../context/ViewContext/ViewContext.cjs');
+require('../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('../../constants/colors.cjs');
+require('../../constants/values.cjs');
+require('../../../shared/consts/index.cjs');
+require('@dynamic-labs/multi-wallet');
+require('react-international-phone');
+require('../../../store/state/nonce/nonce.cjs');
+require('../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../store/state/primaryWalletId/primaryWalletId.cjs');
+require('../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+require('../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+var dynamicEvents = require('../../../events/dynamicEvents.cjs');
+require('@dynamic-labs/locale');
+var user = require('../../../data/api/user/user.cjs');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var UserWalletsContext = require('../../../context/UserWalletsContext/UserWalletsContext.cjs');
+
+const useMergeUserAccounts = () => {
+    const { environmentId, setShowAuthFlow, selectedWalletConnector } = useInternalDynamicContext.useInternalDynamicContext();
+    const { addedWalletsIds } = UserWalletsContext.useInternalUserWallets();
+    const mergeUserAccounts = (mergeConflictResolutions) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        const user$1 = yield user.verifyMergeUsers(environmentId, mergeConflictResolutions);
+        const walletId = user$1.lastVerifiedCredentialId;
+        if (walletId) {
+            addedWalletsIds.current.push(walletId);
+        }
+        const accounts = yield (selectedWalletConnector === null || selectedWalletConnector === void 0 ? void 0 : selectedWalletConnector.getConnectedAccounts());
+        if (accounts === null || accounts === void 0 ? void 0 : accounts.length) {
+            dynamicEvents.dynamicEvents.emit('triggerComputePrimaryWalletMultiWalletStateFromAccounts', { accounts });
+        }
+        setShowAuthFlow(false);
+    });
+    return {
+        mergeUserAccounts,
+    };
+};
+
+exports.useMergeUserAccounts = useMergeUserAccounts;

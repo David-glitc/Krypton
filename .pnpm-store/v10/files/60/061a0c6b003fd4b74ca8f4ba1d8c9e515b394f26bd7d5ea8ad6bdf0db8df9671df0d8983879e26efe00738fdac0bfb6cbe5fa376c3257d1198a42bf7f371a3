@@ -1,0 +1,184 @@
+import type { SwapSigningPayload, WalletProviderEnum } from '@dynamic-labs/sdk-api-core';
+import type EventEmitter from 'eventemitter3';
+import type { LogoutReason } from '../../auth/logoutReason';
+import type { Chain } from '../../chain';
+import type { HardwareWalletVendor } from '../hardwareWallet/hardwareWallet.types';
+import type { NetworkData } from '../networks/networkProvider/networkProvider.types';
+import type { WalletAccount, WalletAddressType } from '../walletAccount';
+import type { WalletProviderEvents } from './events/walletProviderEvents.types';
+export type WalletProviderMetadata = {
+    /**
+     * A name that can be displayed to the user
+     */
+    displayName: string;
+    /**
+     * A URL to an icon that can be displayed to the user
+     */
+    icon: string;
+    /**
+     * The hardware wallet vendors supported by this wallet provider
+     */
+    supportedHardwareWalletVendors?: HardwareWalletVendor[];
+};
+/**
+ *
+ * Represents data for a wallet provider that can be used by customers
+ * to identify and interact with different wallet providers across chains.
+ */
+export type WalletProviderData = {
+    /**
+     * The chain the wallet provider works with
+     */
+    chain: Chain;
+    /**
+     * The key to group wallet providers from different chains together
+     */
+    groupKey: string;
+    /**
+     * The key of the wallet provider
+     */
+    key: string;
+    /**
+     * The metadata of the wallet provider like icon and display name
+     */
+    metadata: WalletProviderMetadata;
+    /**
+     * The type of the wallet provider.
+     * This is used to identify the wallet provider type in the backend (browser extension, wallet connect, etc.)
+     */
+    walletProviderType: WalletProviderEnum;
+};
+export type WalletProviderConnectAddress = {
+    address: string;
+    publicKey?: string;
+    type?: WalletAddressType;
+};
+export type WalletProviderConnectResult = {
+    addresses: WalletProviderConnectAddress[];
+};
+export type ConfirmTransactionParams = {
+    transactionHash: string;
+    walletAccount: WalletAccount;
+};
+export type TransferAmountParams = {
+    amount: string;
+    recipient: string;
+    token?: {
+        address: string;
+        decimals: number;
+    };
+    walletAccount: WalletAccount;
+};
+export type ExecuteSwapTransactionParams = {
+    onStepChange?: (step: 'approval' | 'transaction') => void;
+    signingPayload: SwapSigningPayload;
+    /**
+     * Controls whether the swap is routed through Dynamic's gas sponsorship.
+     *
+     * - `'auto'` (default): sponsored when gas sponsorship is enabled for the
+     *   chain AND the wallet is a Dynamic embedded wallet.
+     * - `'off'`: never sponsored; the user pays gas.
+     *
+     * @default 'auto'
+     */
+    sponsorshipMode?: 'auto' | 'off';
+    walletAccount: WalletAccount;
+};
+export type ExecuteSwapTransactionResult = {
+    approvalTransactionHash?: string;
+    transactionHash: string;
+};
+export type WalletProvider = WalletProviderData & {
+    /**
+     * Adds a network to the wallet provider that can later be used to switch to.
+     */
+    addNetwork?: (args: {
+        networkData: NetworkData;
+    }) => Promise<void>;
+    /**
+     * Waits for a transaction to be confirmed on-chain.
+     */
+    confirmTransaction?: (args: ConfirmTransactionParams) => Promise<void>;
+    /**
+     * Connects the dapp to the wallet provider
+     * This is optional for some wallet providers like Dynamic Waas
+     */
+    connect?: () => Promise<WalletProviderConnectResult>;
+    /**
+     * Tears the wallet provider down completely: drops local event listeners,
+     * signals the underlying wallet to revoke its session, and unregisters the
+     * provider from the registry. Errors signaling the remote wallet are
+     * best-effort and should not block teardown.
+     *
+     * After `destroy` returns the provider must not be used again.
+     */
+    destroy?: (args?: {
+        reason?: LogoutReason;
+    }) => Promise<void>;
+    /**
+     * Performs clean up for when a wallet account is removed.
+     *
+     * For example: WalletConnect needs to actually close the entire WC session and clean up
+     * the related wallet providers.
+     */
+    disconnectWalletAccount?: (args: {
+        walletAccount: WalletAccount;
+    }) => Promise<void>;
+    /**
+     * Emitter of events that can be listened to for the wallet provider
+     */
+    events?: EventEmitter<WalletProviderEvents> & {
+        /**
+         * List of events that the wallet provider supports listening to
+         */
+        supportedEvents: (keyof WalletProviderEvents)[];
+    };
+    /**
+     * Executes a checkout transaction by signing and sending it on-chain.
+     * Chain-specific implementations handle approval (EVM), deserialization (Solana/Sui),
+     * or PSBT signing (Bitcoin) based on the signing payload's chain type.
+     */
+    executeSwapTransaction?: (args: ExecuteSwapTransactionParams) => Promise<ExecuteSwapTransactionResult>;
+    /**
+     * Gets the network id of the currently active network for the wallet provider
+     */
+    getActiveNetworkId: () => Promise<{
+        networkId: string;
+    }>;
+    /**
+     * Returns the nonce used for proof-of-ownership during the initial connection.
+     * Used by wallet providers (e.g. TON) that bundle a cryptographic proof
+     * into the connection handshake. When present, the verification flow
+     * reuses this nonce in the sign-in message so it matches the cached proof.
+     */
+    getConnectProofNonce?: () => string | undefined;
+    /**
+     * Gets the connected addresses from the wallet provider
+     */
+    getConnectedAddresses: () => Promise<{
+        addresses: string[];
+    }>;
+    /**
+     * Signs a message with the wallet account
+     * This is optional, as weirdly some providers don't support this
+     */
+    signMessage?: (args: {
+        message: string;
+        walletAccount?: WalletAccount;
+    }) => Promise<{
+        signature: string;
+    }>;
+    /**
+     * Switches the currently active network provider for the wallet provider
+     */
+    switchActiveNetwork?: (props: {
+        networkId: string;
+    }) => Promise<void>;
+    /**
+     * Transfers an amount of currency from the wallet account to a recipient.
+     */
+    transferAmount?: (args: TransferAmountParams) => Promise<{
+        transactionHash: string;
+    }>;
+};
+//# sourceMappingURL=walletProvider.types.d.ts.map

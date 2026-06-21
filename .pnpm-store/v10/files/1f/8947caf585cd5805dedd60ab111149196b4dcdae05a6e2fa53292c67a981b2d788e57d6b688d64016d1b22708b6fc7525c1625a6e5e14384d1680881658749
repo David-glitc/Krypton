@@ -1,0 +1,113 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var ViewContext = require('../../../context/ViewContext/ViewContext.cjs');
+require('@dynamic-labs/sdk-api-core');
+require('../../constants/values.cjs');
+require('@dynamic-labs/utils');
+require('@dynamic-labs/multi-wallet');
+require('../../../shared/logger.cjs');
+require('react-international-phone');
+require('../../constants/colors.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+require('@dynamic-labs/wallet-book');
+require('../../../shared/consts/index.cjs');
+require('../../../store/state/nonce/nonce.cjs');
+var isProgrammableNetworkSwitchSupported = require('../../functions/isProgrammableNetworkSwitchSupported/isProgrammableNetworkSwitchSupported.cjs');
+var isSupportedNetwork = require('../../functions/isSupportedNetwork/isSupportedNetwork.cjs');
+require('@dynamic-labs-sdk/client/core');
+require('eventemitter3');
+require('@dynamic-labs-sdk/client');
+require('../../../config/ApiEndpoint.cjs');
+require('../../../events/dynamicEvents.cjs');
+require('@dynamic-labs/locale');
+require('../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../store/state/primaryWalletId/primaryWalletId.cjs');
+require('../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+require('../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+var useIsLoggedIn = require('../useIsLoggedIn/useIsLoggedIn.cjs');
+var useWalletConnectorEvent = require('../events/useWalletConnectorEvent/useWalletConnectorEvent.cjs');
+
+const useConnectedWalletsNetworkValidation = () => {
+    const { connectedWallets, selectedWalletConnector, setSelectedWalletConnectorKey, setShowAuthFlow, bridgeChainsToConnect, sdkHasLoaded, } = useInternalDynamicContext.useInternalDynamicContext();
+    const { pushView } = ViewContext.useViewContext();
+    const isLoggedIn = useIsLoggedIn.useIsLoggedIn();
+    const getConnectedWalletsWithInvalidNetwork = React.useCallback(() => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        const connectedWalletsWithInvalidNetwork = [];
+        for (const connectedWallet of connectedWallets) {
+            const isChainInWalletsToConnect = bridgeChainsToConnect === null || bridgeChainsToConnect === void 0 ? void 0 : bridgeChainsToConnect.some((walletToConnectByChain) => walletToConnectByChain.chain === connectedWallet.chain);
+            const network = yield connectedWallet.connector.getNetwork(true);
+            const isSupported = isSupportedNetwork.isSupportedNetwork({
+                network,
+                walletConnector: connectedWallet.connector,
+            });
+            if (!isChainInWalletsToConnect && !isSupported) {
+                connectedWalletsWithInvalidNetwork.push(connectedWallet);
+            }
+        }
+        return connectedWalletsWithInvalidNetwork;
+    }), [bridgeChainsToConnect, connectedWallets]);
+    const validateNetwork = React.useCallback(() => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        const connectedWalletsWithInvalidNetwork = yield getConnectedWalletsWithInvalidNetwork();
+        if (!connectedWalletsWithInvalidNetwork.length) {
+            return;
+        }
+        // If we found wallets that require a change of network
+        // then, one by one, in the first one we require a change of network.
+        const [connectedWalletWithInvalidNetwork] = connectedWalletsWithInvalidNetwork;
+        // Keeps the first wallet connectedWallet in setSelectedWalletConnectorKey
+        // This is required because NetworkNotSupported uses walletConnector to display wallet icon, address etc.
+        if (connectedWalletWithInvalidNetwork.connector.key !==
+            (selectedWalletConnector === null || selectedWalletConnector === void 0 ? void 0 : selectedWalletConnector.key)) {
+            setSelectedWalletConnectorKey({
+                chain: connectedWalletWithInvalidNetwork.connector.connectedChain,
+                key: connectedWalletWithInvalidNetwork.connector.key,
+            });
+        }
+        const networkNotSupportedView = isProgrammableNetworkSwitchSupported.isProgrammableNetworkSwitchSupported(connectedWalletWithInvalidNetwork.connector)
+            ? 'network-not-supported'
+            : 'network-not-supported-manual';
+        // Doesn't rerender if it's already true
+        setShowAuthFlow(true);
+        pushView(networkNotSupportedView);
+    }), [
+        getConnectedWalletsWithInvalidNetwork,
+        selectedWalletConnector === null || selectedWalletConnector === void 0 ? void 0 : selectedWalletConnector.key,
+        setSelectedWalletConnectorKey,
+        setShowAuthFlow,
+        pushView,
+    ]);
+    const uniqueConnectors = React.useMemo(() => {
+        const connectors = connectedWallets.map(({ connector }) => connector);
+        const allWalletConnectors = new Set([...connectors].filter((connector) => Boolean(connector)));
+        return Array.from(allWalletConnectors);
+    }, [connectedWallets]);
+    useWalletConnectorEvent.useWalletConnectorEvent(uniqueConnectors, 'chainChange', ({ chain }) => {
+        validateNetwork();
+    });
+    React.useEffect(() => {
+        /**
+         * This check was added to prevent the "wrong network" modal from appearing
+         * after logging out. It seems like on log out, there is a render where the
+         * connectedWallets hasn't been cleared out yet, so the logic in this hook
+         * runs and ends up showing the "wrong network" modal if the connected wallet
+         * is on an unsupported network. by checking sdkHasLoaded, we prevent this
+         * extra popup because handleLogOut flips sdkHasLoaded to false, so on the
+         * next render it will already be false.
+         */
+        if (!sdkHasLoaded || !isLoggedIn) {
+            return;
+        }
+        validateNetwork();
+    }, [sdkHasLoaded, isLoggedIn, validateNetwork]);
+};
+
+exports.useConnectedWalletsNetworkValidation = useConnectedWalletsNetworkValidation;

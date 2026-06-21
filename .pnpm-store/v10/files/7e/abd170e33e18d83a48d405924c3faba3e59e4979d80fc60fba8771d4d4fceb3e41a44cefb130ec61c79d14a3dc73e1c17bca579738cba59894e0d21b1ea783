@@ -1,0 +1,22 @@
+import { ChainEnum, RampConfiguration } from '@dynamic-labs/sdk-api-core';
+export type MoonPayCurrency = {
+    code: string;
+    icon: string;
+    name: string;
+};
+export declare const getMoonPayCurrencies: ({ chain, environmentId, networkId, }: {
+    chain: ChainEnum;
+    environmentId: string;
+    networkId?: string;
+}) => Promise<MoonPayCurrency[]>;
+export declare const getOnrampProviders: ({ chain, environmentId, networkId, token, tokenAmount, walletAddress, currency, includeDisabled, merchantName, }: {
+    chain: string;
+    environmentId: string;
+    networkId?: string | number;
+    token?: string;
+    tokenAmount?: number;
+    walletAddress: string;
+    currency?: string;
+    includeDisabled?: boolean;
+    merchantName?: string;
+}) => Promise<RampConfiguration[]>;

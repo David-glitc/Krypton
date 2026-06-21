@@ -1,0 +1,20 @@
+declare global {
+    interface DynamicCoreState {
+        /**
+         * Coalesces concurrent `fetchAndStoreNonces` calls into a single network
+         * request and promise. Null when no refill is in flight.
+         */
+        nonceFetchInFlight: Promise<void> | null;
+        /**
+         * A pool of nonces prefetched in the background for immediate use.
+         * getNonce pops the first entry; a background refetch is triggered when the pool runs low.
+         */
+        prefetchedNonces: string[];
+        /**
+         * Milliseconds since epoch when the nonce pool expires, null when empty.
+         */
+        prefetchedNoncesExpiration: number | null;
+    }
+}
+export {};
+//# sourceMappingURL=state.d.ts.map

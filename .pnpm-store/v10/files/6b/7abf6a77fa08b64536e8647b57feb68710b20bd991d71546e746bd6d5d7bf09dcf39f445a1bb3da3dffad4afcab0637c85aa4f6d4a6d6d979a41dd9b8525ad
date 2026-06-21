@@ -1,0 +1,51 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+var SwapQuoteRequestSide = require('./SwapQuoteRequestSide.cjs');
+
+/* tslint:disable */
+/**
+* @export
+* @enum {string}
+*/
+exports.SwapQuoteRequestOrderEnum = void 0;
+(function (SwapQuoteRequestOrderEnum) {
+    SwapQuoteRequestOrderEnum["Cheapest"] = "CHEAPEST";
+    SwapQuoteRequestOrderEnum["Fastest"] = "FASTEST";
+})(exports.SwapQuoteRequestOrderEnum || (exports.SwapQuoteRequestOrderEnum = {}));
+function SwapQuoteRequestFromJSON(json) {
+    return SwapQuoteRequestFromJSONTyped(json);
+}
+function SwapQuoteRequestFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'from': SwapQuoteRequestSide.SwapQuoteRequestSideFromJSON(json['from']),
+        'maxPriceImpact': !runtime.exists(json, 'maxPriceImpact') ? undefined : json['maxPriceImpact'],
+        'order': !runtime.exists(json, 'order') ? undefined : json['order'],
+        'slippage': !runtime.exists(json, 'slippage') ? undefined : json['slippage'],
+        'to': SwapQuoteRequestSide.SwapQuoteRequestSideFromJSON(json['to']),
+    };
+}
+function SwapQuoteRequestToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'from': SwapQuoteRequestSide.SwapQuoteRequestSideToJSON(value.from),
+        'maxPriceImpact': value.maxPriceImpact,
+        'order': value.order,
+        'slippage': value.slippage,
+        'to': SwapQuoteRequestSide.SwapQuoteRequestSideToJSON(value.to),
+    };
+}
+
+exports.SwapQuoteRequestFromJSON = SwapQuoteRequestFromJSON;
+exports.SwapQuoteRequestFromJSONTyped = SwapQuoteRequestFromJSONTyped;
+exports.SwapQuoteRequestToJSON = SwapQuoteRequestToJSON;

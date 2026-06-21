@@ -1,0 +1,9 @@
+import { BaseError } from './base';
+type DeeplinkConnectAndVerifyUnsupportedErrorParams = {
+    walletProviderKey: string;
+};
+export declare class DeeplinkConnectAndVerifyUnsupportedError extends BaseError {
+    constructor({ walletProviderKey, }: DeeplinkConnectAndVerifyUnsupportedErrorParams);
+}
+export {};
+//# sourceMappingURL=DeeplinkConnectAndVerifyUnsupportedError.d.ts.map

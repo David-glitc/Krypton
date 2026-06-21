@@ -1,0 +1,438 @@
+'use client'
+import { __awaiter } from '../../../../../_virtual/_tslib.js';
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import { ChainEnum } from '@dynamic-labs/sdk-api-core';
+import '../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { useInternalUserWallets } from '../../../context/UserWalletsContext/UserWalletsContext.js';
+import { getAleoCuratedPrices } from '../../../data/api/aleo/getAleoCuratedPrices.js';
+import { getEnvironmentId } from '../../../store/state/dynamicContextProps/dynamicContextProps.js';
+
+const MICROCREDITS_PER_CREDIT = 1000000;
+const ALEO_CREDITS_LOGO = 'https://app.dynamic.xyz/assets/networks/aleo.svg';
+// Generic dark "?" token icon — matches redcoast's `DEFAULT_TOKEN_LOGO_URI`
+//  used by the multichain endpoint when an unshielded token has no curated
+//  logo. Reusing it here keeps the Shielded tab visually consistent with
+//  the Unshielded tab for the same token.
+const UNKNOWN_TOKEN_LOGO = 'https://app.dynamic.xyz/assets/tokens/unknown.svg';
+const TOKEN_REGISTRY_PROGRAM = 'token_registry.aleo';
+const TOKEN_REGISTRY_RECORD = 'Token';
+// Non-credits tokens deliberately omit `logoURI` — Aleo doesn't have a
+//  curated icon list yet, so leaving it undefined surfaces the widget's
+//  generic placeholder (`?` skeleton) consistent with the unshielded feed.
+const KNOWN_SHIELDED_TOKENS = [
+    {
+        contractAddress: 'usad_stablecoin.aleo',
+        decimals: 6,
+        name: 'USAD',
+        programName: 'usad_stablecoin.aleo',
+        recordName: 'Token',
+        symbol: 'USAD',
+    },
+    {
+        contractAddress: 'test_usad_stablecoin.aleo',
+        decimals: 6,
+        name: 'USAD',
+        programName: 'test_usad_stablecoin.aleo',
+        recordName: 'Token',
+        symbol: 'USAD',
+    },
+    {
+        contractAddress: 'usdcx_stablecoin.aleo',
+        decimals: 6,
+        name: 'USDCx',
+        programName: 'usdcx_stablecoin.aleo',
+        recordName: 'Token',
+        symbol: 'USDCx',
+    },
+    {
+        contractAddress: 'test_usdcx_stablecoin.aleo',
+        decimals: 6,
+        name: 'USDCx',
+        programName: 'test_usdcx_stablecoin.aleo',
+        recordName: 'Token',
+        symbol: 'USDCx',
+    },
+    // ARC-21 (Hyperlane warp routes) — mainnet only. Token IDs match the
+    //  values pinned in `packages/aleo/src/utils/aleoSendableTokens` and the
+    //  redcoast `aleoArc21Tokens` registry. Decimals match each token's
+    //  `token_info` metadata on-chain.
+    {
+        contractAddress: 'hyp_warp_token_sol.aleo',
+        decimals: 9,
+        name: 'Wrapped SOL',
+        programName: TOKEN_REGISTRY_PROGRAM,
+        recordName: TOKEN_REGISTRY_RECORD,
+        symbol: 'wSOL',
+        tokenId: '2045969100091121326225168054634646230244820821909676777152465722877810201564field',
+    },
+    {
+        contractAddress: 'hyp_warp_token_eth.aleo',
+        decimals: 18,
+        name: 'Wrapped ETH',
+        programName: TOKEN_REGISTRY_PROGRAM,
+        recordName: TOKEN_REGISTRY_RECORD,
+        symbol: 'wETH',
+        tokenId: '8189585964265444162798552221009403350643900573290534096996249214099143169251field',
+    },
+    {
+        contractAddress: 'hyp_warp_token_wbtc.aleo',
+        decimals: 8,
+        name: 'Wrapped BTC',
+        programName: TOKEN_REGISTRY_PROGRAM,
+        recordName: TOKEN_REGISTRY_RECORD,
+        symbol: 'wBTC',
+        tokenId: '3491859903473482085250871387962132231204352466326026409883548131580582527809field',
+    },
+    {
+        contractAddress: 'hyp_warp_token_usdt.aleo',
+        decimals: 6,
+        name: 'Tether USD',
+        programName: TOKEN_REGISTRY_PROGRAM,
+        recordName: TOKEN_REGISTRY_RECORD,
+        symbol: 'USDT',
+        tokenId: '7881654794448182580124231856035865816599796419758925654292946277940935117913field',
+    },
+    {
+        contractAddress: 'hyp_warp_token_usdc.aleo',
+        decimals: 6,
+        name: 'USD Coin',
+        programName: TOKEN_REGISTRY_PROGRAM,
+        recordName: TOKEN_REGISTRY_RECORD,
+        symbol: 'USDC',
+        tokenId: '4697275201844475848710842677807162058146139844643350200269139278887318953049field',
+    },
+];
+/**
+ * Match a record to a shielded-token spec. Stablecoins match on
+ * (program, record); ARC-21 entries additionally require the spec's
+ * `tokenId` to appear inside `record_plaintext` (since every ARC-21 token
+ * shares `token_registry.aleo / Token`).
+ */
+const findTokenSpec = (record) => {
+    for (const spec of KNOWN_SHIELDED_TOKENS) {
+        if (record.program_name !== spec.programName)
+            continue;
+        if (record.record_name !== spec.recordName)
+            continue;
+        if (spec.tokenId) {
+            if (typeof record.record_plaintext !== 'string' ||
+                !record.record_plaintext.includes(`token_id: ${spec.tokenId}`)) {
+                continue;
+            }
+        }
+        return spec;
+    }
+    return undefined;
+};
+/**
+ * Coerces the widget-context `network` value into an Aleo network id
+ * (`0 = mainnet`, `1 = testnet`) and the matching param string for the
+ * `/waas/aleo/prices` endpoint. Pulled out of the callback to flatten
+ * cognitive complexity AND to avoid a SonarCloud-flagged nested
+ * ternary.
+ */
+const resolveAleoNetwork = (networkKey) => {
+    const numeric = Number(networkKey);
+    const safeNetworkId = Number.isFinite(numeric) ? numeric : undefined;
+    if (safeNetworkId === 0)
+        return { aleoNetworkParam: 'mainnet', safeNetworkId };
+    if (safeNetworkId === 1)
+        return { aleoNetworkParam: 'testnet', safeNetworkId };
+    return { aleoNetworkParam: undefined, safeNetworkId };
+};
+const buildCuratedTokenLookup = (priceList) => {
+    const byKey = new Map();
+    for (const entry of priceList) {
+        byKey.set(`${entry.address}|${entry.isNative ? 1 : 0}`, {
+            logoURI: entry.logoURI,
+            price: entry.price,
+        });
+    }
+    return (address, isNative) => {
+        var _a;
+        return (_a = byKey.get(`${address}|${isNative ? 1 : 0}`)) !== null && _a !== void 0 ? _a : {
+            logoURI: undefined,
+            price: null,
+        };
+    };
+};
+/**
+ * Aggregate `credits.aleo / credits` records into the native ALEO
+ * `TokenBalance`. Returns `undefined` when the wallet owns no credits
+ * records so the caller can omit the row entirely.
+ */
+const buildCreditsBalance = (records, networkId, lookupCurated) => {
+    var _a;
+    const creditsRecords = records.filter((r) => (r === null || r === void 0 ? void 0 : r.program_name) === 'credits.aleo' &&
+        (r === null || r === void 0 ? void 0 : r.record_name) === 'credits' &&
+        typeof (r === null || r === void 0 ? void 0 : r.microcredits) === 'string');
+    if (creditsRecords.length === 0)
+        return undefined;
+    const totalMicrocredits = creditsRecords.reduce((sum, r) => sum + BigInt(r.microcredits), BigInt(0));
+    // Skip the row entirely when every credits record summed to zero
+    //  (typically partially-spent change records the indexer hasn't
+    //  pruned yet). A "0 ALEO" entry in the Shielded tab is just noise
+    //  the user can't act on.
+    if (totalMicrocredits === BigInt(0))
+        return undefined;
+    // BigInt → number for the TokenBalance shape. Aleo balances stay well
+    // below Number.MAX_SAFE_INTEGER for a single wallet (max u64 supply is
+    // 1.5B credits = 1.5e15 microcredits; Number can hold up to ~9e15).
+    const rawBalance = Number(totalMicrocredits);
+    const rawBalanceString = totalMicrocredits.toString();
+    const balance = rawBalance / MICROCREDITS_PER_CREDIT;
+    const curated = lookupCurated('0x0', true);
+    return {
+        address: '0x0',
+        balance,
+        decimals: 6,
+        isNative: true,
+        // Prefer the server-curated logo (single source of truth for both
+        //  the unshielded multichain feed and the shielded tab); fall back
+        //  to the bundled ALEO glyph for older redcoast deployments that
+        //  don't yet send `logoURI` on the prices response.
+        logoURI: (_a = curated.logoURI) !== null && _a !== void 0 ? _a : ALEO_CREDITS_LOGO,
+        marketValue: curated.price !== null ? balance * curated.price : undefined,
+        name: 'Aleo Credits',
+        networkId,
+        price: curated.price !== null ? curated.price : undefined,
+        rawBalance,
+        rawBalanceString,
+        symbol: 'ALEO',
+    };
+};
+/**
+ * Aggregate stablecoin + ARC-21 `Token` records by `(program, tokenId)`
+ * and emit one `TokenBalance` per matched spec. Records that don't
+ * match a curated spec, lack an `amount`, or have a malformed amount
+ * string are silently skipped.
+ */
+const buildTokenBalances = (records, networkId, lookupCurated) => {
+    var _a, _b, _c;
+    const sumsByContract = new Map();
+    const specsByContract = new Map();
+    for (const r of records) {
+        const spec = findTokenSpec(r);
+        if (!spec || typeof r.amount !== 'string')
+            continue;
+        try {
+            const prev = (_a = sumsByContract.get(spec.contractAddress)) !== null && _a !== void 0 ? _a : BigInt(0);
+            sumsByContract.set(spec.contractAddress, prev + BigInt(r.amount));
+            specsByContract.set(spec.contractAddress, spec);
+        }
+        catch (_d) {
+            /* ignore — malformed amount string */
+        }
+    }
+    const out = [];
+    for (const [contractAddress, total] of sumsByContract.entries()) {
+        const spec = specsByContract.get(contractAddress);
+        if (!spec)
+            continue;
+        // Skip tokens whose every matched record summed to zero. Provable
+        //  occasionally surfaces serialized records with `amount: 0u128`
+        //  (e.g. partially-spent change records that haven't been pruned by
+        //  the indexer yet); without this filter the Shielded tab shows a
+        //  row with "0 USAD" / "0 USDCx" that the user can't act on, which
+        //  is just noise.
+        if (total === BigInt(0))
+            continue;
+        const rawBalance = Number(total);
+        const rawBalanceString = total.toString();
+        const balance = rawBalance / Math.pow(10, spec.decimals);
+        const curated = lookupCurated(spec.contractAddress, false);
+        out.push({
+            address: spec.contractAddress,
+            balance,
+            decimals: spec.decimals,
+            // Prefer the server-curated logo so the Shielded tab renders the
+            //  same brand glyph the Unshielded tab gets from the multichain
+            //  feed. Fall back to the local spec override (kept for tests +
+            //  any future curated-but-not-yet-on-server tokens), then to the
+            //  generic dark `?` placeholder for older redcoast deployments
+            //  that haven't rolled out the logo response field yet.
+            logoURI: (_c = (_b = curated.logoURI) !== null && _b !== void 0 ? _b : spec.logoURI) !== null && _c !== void 0 ? _c : UNKNOWN_TOKEN_LOGO,
+            marketValue: curated.price !== null ? balance * curated.price : undefined,
+            name: spec.name,
+            networkId,
+            price: curated.price !== null ? curated.price : undefined,
+            rawBalance,
+            rawBalanceString,
+            symbol: spec.symbol,
+        });
+    }
+    return out;
+};
+/**
+ * Hook that returns the active wallet's shielded (private) Aleo token
+ * balances as a `TokenBalance[]` so the widget can render them through the
+ * same TokenBalanceList path it uses for unshielded balances.
+ *
+ * - Records come from the iframe via `connector.listOwnedRecords()` (the
+ *   Provable RecordScanner; view key never leaves the iframe).
+ * - Aggregates `credits.aleo/credits` (sum `microcredits` → ALEO) plus any
+ *   tier-3 stablecoin Token records (sum `amount` per program → USAD/USDCx).
+ *   ARC-21 multi-token grouped-by-`token_id` is Phase 2B.
+ *
+ * Returns an empty list when:
+ *   - The wallet isn't Aleo
+ *   - The connector doesn't expose `listOwnedRecords` (e.g. external Aleo wallet)
+ *   - The user owns no records that match a known program/record pair
+ */
+const useAleoShieldedBalances = (args = {}) => {
+    const { accountAddress, tokenAddresses, includeNativeBalance = true, includeFiat = true, chainName, networkId, } = args;
+    const { primaryWallet, network } = useInternalDynamicContext();
+    const { userWallets } = useInternalUserWallets();
+    const [tokenBalances, setTokenBalances] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState();
+    // `accountAddress` is treated as an override of the primary wallet:
+    //  walk the user-wallets list looking for a matching address (case-
+    //  insensitive to be tolerant of how the address is formatted at the
+    //  call site — Aleo addresses are bech32 and casing-insensitive in
+    //  practice). When no `accountAddress` is provided, fall back to the
+    //  primary wallet to preserve the existing single-wallet semantics.
+    const targetWallet = useMemo(() => {
+        var _a;
+        if (!accountAddress)
+            return primaryWallet;
+        const normalized = accountAddress.toLowerCase();
+        return ((_a = userWallets.find((w) => { var _a; return ((_a = w.address) === null || _a === void 0 ? void 0 : _a.toLowerCase()) === normalized; })) !== null && _a !== void 0 ? _a : undefined);
+    }, [accountAddress, primaryWallet, userWallets]);
+    const connector = targetWallet === null || targetWallet === void 0 ? void 0 : targetWallet.connector;
+    const isAleo = (connector === null || connector === void 0 ? void 0 : connector.connectedChain) === ChainEnum.Aleo;
+    // When a `chainName` override is passed, treat anything other than
+    //  `ChainEnum.Aleo` as "the caller explicitly asked for a non-Aleo
+    //  chain we don't support yet" and short-circuit. Today Aleo is the
+    //  only chain with a private-balance path, but customers should be
+    //  able to call the public hook with whatever `chainName` matches
+    //  their app's active chain and have it transparently no-op.
+    const chainNameSupported = chainName === undefined || chainName === ChainEnum.Aleo;
+    const supportsShielded = chainNameSupported &&
+        isAleo &&
+        typeof (connector === null || connector === void 0 ? void 0 : connector.listOwnedRecords) === 'function';
+    // Mirror the live connector into a ref so `fetchShielded` can read it
+    //  without depending on the (often unstable) object reference. Some test
+    //  setups mock context with a factory that returns a fresh `primaryWallet`
+    //  every render — depending on that ref directly turned this into an
+    //  infinite render loop.
+    const connectorRef = useRef(connector);
+    connectorRef.current = connector;
+    const connectorKey = connector === null || connector === void 0 ? void 0 : connector.key;
+    // When a `networkId` override is provided, use it instead of the
+    //  context's `network` value when resolving the Aleo network param.
+    //  Empty string falls back to undefined so `resolveAleoNetwork`
+    //  returns `aleoNetworkParam: undefined` and the prices fetch is
+    //  skipped (matching the behaviour when no network is known).
+    const effectiveNetwork = networkId !== null && networkId !== void 0 ? networkId : network;
+    const networkKey = effectiveNetwork !== undefined && effectiveNetwork !== null
+        ? String(effectiveNetwork)
+        : undefined;
+    // Normalise the address filter once per render into a stable
+    //  primitive key (sorted, comma-joined, lowercased) so the
+    //  `useCallback` dep below doesn't invalidate on every render when the
+    //  caller passes a fresh array literal each time (which is the typical
+    //  pattern in React function components). The matching Set is derived
+    //  from the same key to keep both memos in lockstep.
+    const tokenAddressFilterKey = useMemo(() => {
+        if (!tokenAddresses)
+            return undefined;
+        return [...tokenAddresses]
+            .map((a) => a.toLowerCase())
+            .sort((a, b) => a.localeCompare(b))
+            .join('|');
+    }, [tokenAddresses]);
+    const tokenAddressFilter = useMemo(() => {
+        if (tokenAddressFilterKey === undefined)
+            return undefined;
+        if (tokenAddressFilterKey === '')
+            return new Set();
+        return new Set(tokenAddressFilterKey.split('|'));
+    }, [tokenAddressFilterKey]);
+    const fetchShielded = useCallback(() => __awaiter(void 0, void 0, void 0, function* () {
+        var _a;
+        const liveConnector = connectorRef.current;
+        if (!supportsShielded || !liveConnector) {
+            setTokenBalances((prev) => (prev.length === 0 ? prev : []));
+            return;
+        }
+        setIsLoading(true);
+        setError(undefined);
+        try {
+            // Fetch records and the curated-token price list in parallel. The
+            //  price list comes from the Aleo-only `/waas/aleo/prices` endpoint
+            //  (independent of balance) so the join works even when the user
+            //  holds a shielded token with zero unshielded balance — the
+            //  multichain `/accountBalances` endpoint would have stripped that
+            //  token row, leaving the widget with no price source. Prices are
+            //  best-effort: a failure leaves balances unpriced rather than
+            //  dropping the shielded list entirely.
+            //
+            //  When the caller opts out of fiat (`includeFiat: false`) we skip
+            //  the curated-prices fetch entirely — same semantic as
+            //  `useTokenBalances` honouring its own `includeFiat` flag. Logos
+            //  for matched tokens then fall through to the bundled defaults
+            //  (`ALEO_CREDITS_LOGO`, `UNKNOWN_TOKEN_LOGO`, spec overrides).
+            const { safeNetworkId, aleoNetworkParam } = resolveAleoNetwork(networkKey);
+            const environmentId = getEnvironmentId();
+            const shouldFetchPrices = Boolean(includeFiat && aleoNetworkParam && environmentId);
+            const [result, priceList] = yield Promise.all([
+                liveConnector.listOwnedRecords(),
+                shouldFetchPrices && aleoNetworkParam
+                    ? getAleoCuratedPrices({
+                        environmentId,
+                        network: aleoNetworkParam,
+                    }).catch(() => [])
+                    : Promise.resolve([]),
+            ]);
+            const records = (_a = result === null || result === void 0 ? void 0 : result.records) !== null && _a !== void 0 ? _a : [];
+            const lookupCurated = buildCuratedTokenLookup(priceList);
+            const balances = [];
+            if (includeNativeBalance) {
+                const credits = buildCreditsBalance(records, safeNetworkId, lookupCurated);
+                if (credits)
+                    balances.push(credits);
+            }
+            balances.push(...buildTokenBalances(records, safeNetworkId, lookupCurated));
+            const filtered = tokenAddressFilter
+                ? balances.filter((b) => { var _a; return tokenAddressFilter.has(((_a = b.address) !== null && _a !== void 0 ? _a : '').toLowerCase()); })
+                : balances;
+            setTokenBalances(filtered);
+        }
+        catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            setError(msg);
+            setTokenBalances((prev) => (prev.length === 0 ? prev : []));
+        }
+        finally {
+            setIsLoading(false);
+        }
+    }), [
+        connectorKey,
+        includeFiat,
+        includeNativeBalance,
+        networkKey,
+        supportsShielded,
+        tokenAddressFilter,
+    ]);
+    useEffect(() => {
+        if (!supportsShielded) {
+            setTokenBalances((prev) => (prev.length === 0 ? prev : []));
+            return;
+        }
+        fetchShielded().catch(() => {
+            // fetchShielded already records the error in component state;
+            //  the .catch keeps the fire-and-forget shape lint-clean.
+        });
+    }, [supportsShielded, fetchShielded]);
+    return {
+        error,
+        isLoading,
+        refetch: fetchShielded,
+        supportsShielded,
+        tokenBalances,
+    };
+};
+
+export { useAleoShieldedBalances };

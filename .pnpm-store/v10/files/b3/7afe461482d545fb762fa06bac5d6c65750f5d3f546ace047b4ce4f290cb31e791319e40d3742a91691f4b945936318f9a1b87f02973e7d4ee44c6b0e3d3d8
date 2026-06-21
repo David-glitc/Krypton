@@ -1,0 +1,27 @@
+import { exists } from '../runtime.js';
+
+/* tslint:disable */
+function InlineResponse200FromJSON(json) {
+    return InlineResponse200FromJSONTyped(json);
+}
+function InlineResponse200FromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'success': !exists(json, 'success') ? undefined : json['success'],
+    };
+}
+function InlineResponse200ToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'success': value.success,
+    };
+}
+
+export { InlineResponse200FromJSON, InlineResponse200FromJSONTyped, InlineResponse200ToJSON };

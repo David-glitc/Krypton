@@ -1,0 +1,99 @@
+'use client'
+import { __awaiter } from '../../../../../../_virtual/_tslib.js';
+import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { isMidnightConnector, isMidnightWallet } from '@dynamic-labs/wallet-connector-core';
+import { Skeleton } from '../../../../components/Skeleton/Skeleton.js';
+import '../../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import '@dynamic-labs/iconic';
+import { ReactComponent as SvgMidnightShielded } from '../../../../shared/assets/midnight-shielded.js';
+import { ReactComponent as SvgMidnightUnshielded } from '../../../../shared/assets/midnight-unshielded.js';
+import '../../../../context/ViewContext/ViewContext.js';
+import '../../../../shared/logger.js';
+import '@dynamic-labs/wallet-book';
+import '@dynamic-labs/utils';
+import '../../../../utils/constants/colors.js';
+import '../../../../utils/constants/values.js';
+import '@dynamic-labs/sdk-api-core';
+import '../../../../shared/consts/index.js';
+import { classNames } from '../../../../utils/functions/classNames/classNames.js';
+import { usePromise } from '../../../../utils/hooks/usePromise/usePromise.js';
+
+const DUST_SEGMENTS = 20;
+const truncateToDecimals = (value, decimals) => {
+    const [whole, fractional] = value.split('.');
+    if (!fractional || decimals <= 0)
+        return whole;
+    const sliced = fractional.slice(0, decimals);
+    let end = sliced.length;
+    while (end > 0 && sliced[end - 1] === '0') {
+        end -= 1;
+    }
+    const trimmed = sliced.slice(0, end);
+    return trimmed.length > 0 ? `${whole}.${trimmed}` : whole;
+};
+const getDustFillCount = (balance, cap) => {
+    const b = parseFloat(balance);
+    const c = parseFloat(cap);
+    if (!c || isNaN(b) || isNaN(c))
+        return 0;
+    return Math.round(Math.min(b / c, 1) * DUST_SEGMENTS);
+};
+const TABS = [
+    {
+        copykey: 'dyn_active_wallet_info.midnight_shielded_balance',
+        id: 'shielded',
+    },
+    {
+        copykey: 'dyn_active_wallet_info.midnight_unshielded_balance',
+        id: 'unshielded',
+    },
+];
+const ActiveMidnightWalletBalance = ({ isLoading = false, }) => {
+    const { t } = useTranslation();
+    const { primaryWallet } = useInternalDynamicContext();
+    const [activeTab, setActiveTab] = useState('shielded');
+    const walletAddress = primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.address;
+    const enabled = Boolean(!isLoading && primaryWallet && isMidnightConnector(primaryWallet.connector));
+    const { data: balances, isLoading: balancesLoading } = usePromise(() => __awaiter(void 0, void 0, void 0, function* () {
+        if (!primaryWallet ||
+            !isMidnightConnector(primaryWallet.connector) ||
+            !isMidnightWallet(primaryWallet)) {
+            return undefined;
+        }
+        return primaryWallet.getFormattedBalances();
+    }), {
+        deps: [walletAddress, primaryWallet],
+        enabled,
+    });
+    const { dustBalance, shieldedBalance, unshieldedBalance } = balances !== null && balances !== void 0 ? balances : {};
+    if (isLoading || balancesLoading) {
+        return (jsx("div", { className: 'active-midnight-balance', children: jsx(Skeleton, { className: 'active-midnight-balance__skeleton' }) }));
+    }
+    const dustFill = dustBalance
+        ? getDustFillCount(dustBalance.balance, dustBalance.cap)
+        : 0;
+    const dustBalanceDisplay = dustBalance
+        ? {
+            balance: truncateToDecimals(dustBalance.balance, 2),
+            cap: truncateToDecimals(dustBalance.cap, 2),
+        }
+        : undefined;
+    const activeBalance = activeTab === 'shielded' ? shieldedBalance : unshieldedBalance;
+    return (jsx("div", { className: 'active-midnight-balance', children: jsxs("div", { className: 'active-midnight-balance__card', children: [dustBalance && (jsxs(Fragment, { children: [jsxs("div", { className: 'active-midnight-balance__dust', children: [jsxs("div", { className: 'active-midnight-balance__dust-header', children: [jsxs("div", { className: 'active-midnight-balance__dust-title', children: [jsx("svg", { className: 'active-midnight-balance__dust-icon', width: '12', height: '12', viewBox: '0 0 24 24', children: jsx("path", { d: 'M13 2L3 14h9l-1 8 10-12h-9l1-8z' }) }), jsx("span", { className: 'active-midnight-balance__dust-label', "data-copykey": 'dyn_active_wallet_info.midnight_dust_generating', children: t('dyn_active_wallet_info.midnight_dust_generating') })] }), jsxs("span", { className: 'active-midnight-balance__dust-count', children: [dustBalanceDisplay === null || dustBalanceDisplay === void 0 ? void 0 : dustBalanceDisplay.balance, "/", dustBalanceDisplay === null || dustBalanceDisplay === void 0 ? void 0 : dustBalanceDisplay.cap] })] }), jsx("div", { className: 'active-midnight-balance__dust-bar', children: Array.from({ length: DUST_SEGMENTS }, (_, i) => (jsx("div", { className: [
+                                            'active-midnight-balance__dust-segment',
+                                            i === 0 && 'active-midnight-balance__dust-segment--first',
+                                            i === DUST_SEGMENTS - 1 &&
+                                                'active-midnight-balance__dust-segment--last',
+                                            i < dustFill &&
+                                                'active-midnight-balance__dust-segment--filled',
+                                        ]
+                                            .filter(Boolean)
+                                            .join(' ') }, i))) })] }), jsx("div", { className: 'active-midnight-balance__divider' })] })), jsx("div", { className: 'active-midnight-balance__tab-bar', children: TABS.map(({ id, copykey }) => (jsx("button", { className: classNames('active-midnight-balance__tab', {
+                            'active-midnight-balance__tab--active': activeTab === id,
+                        }), "data-copykey": copykey, onClick: () => setActiveTab(id), children: t(copykey) }, id))) }), jsxs("div", { className: 'active-midnight-balance__pocket', children: [activeTab === 'shielded' ? (jsx(SvgMidnightShielded, { className: 'active-midnight-balance__pocket-icon' })) : (jsx(SvgMidnightUnshielded, { className: 'active-midnight-balance__pocket-icon' })), jsxs("span", { className: 'active-midnight-balance__amount', children: [activeBalance !== null && activeBalance !== void 0 ? activeBalance : '—', " NIGHT"] })] })] }) }));
+};
+
+export { ActiveMidnightWalletBalance };

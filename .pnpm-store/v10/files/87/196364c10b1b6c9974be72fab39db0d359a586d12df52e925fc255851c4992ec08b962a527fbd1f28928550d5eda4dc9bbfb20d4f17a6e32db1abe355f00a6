@@ -1,0 +1,38 @@
+'use client'
+import { jsx, jsxs } from 'react/jsx-runtime';
+import { useTranslation } from 'react-i18next';
+import { CopyButton } from '../../../../components/CopyButton/CopyButton.js';
+import { IconButton } from '../../../../components/IconButton/IconButton.js';
+import { ModalHeader } from '../../../../components/ModalHeader/ModalHeader.js';
+import { QRCode } from '../../../../components/QRCode/QRCode.js';
+import { Typography } from '../../../../components/Typography/Typography.js';
+import '../../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import 'react';
+import { ReactComponent as SvgArrowLeft } from '../../../../shared/assets/arrow-left.js';
+import { ReactComponent as SvgCopy } from '../../../../shared/assets/copy.js';
+import { ReactComponent as SvgEmbeddedWalletIcon } from '../../../../shared/assets/embedded-wallet-icon.js';
+import '@dynamic-labs/iconic';
+import '../../../../context/ViewContext/ViewContext.js';
+import { shortenWalletAddress } from '../../../../shared/utils/functions/shortenWalletAddress/shortenWalletAddress.js';
+import { usePromise } from '../../../../utils/hooks/usePromise/usePromise.js';
+import { useWidgetContext } from '../../context/DynamicWidgetContext.js';
+import { useFetchChain } from '../../hooks/useFetchChain/useFetchChain.js';
+
+const DepositView = () => {
+    var _a;
+    const { t } = useTranslation();
+    const { primaryWallet, getNameService } = useInternalDynamicContext();
+    const walletConnector = primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.connector;
+    const { chain } = useFetchChain(walletConnector);
+    const { setDynamicWidgetView } = useWidgetContext();
+    const { data: ens } = usePromise(() => getNameService(primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.address), { deps: [primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.address], initialData: undefined });
+    const ensName = (_a = ens === null || ens === void 0 ? void 0 : ens.name) !== null && _a !== void 0 ? _a : null;
+    if (!primaryWallet) {
+        return null;
+    }
+    const backButton = (jsx(IconButton, { type: 'button', id: 'back-button', "data-testid": 'back-button', onClick: () => setDynamicWidgetView('choose-wallet-funding-method'), children: jsx(SvgArrowLeft, {}) }));
+    return (jsxs("div", { className: 'deposit-view', children: [jsx(ModalHeader, { leading: backButton, children: jsx(Typography, { variant: 'title', copykey: 'dyn_deposit.title', children: t('dyn_deposit.title') }) }), jsxs("div", { className: 'deposit-view__content', children: [jsx(QRCode, { className: 'deposit-view__content__qr-code', value: primaryWallet.address, Icon: jsx(SvgEmbeddedWalletIcon, {}), logoSize: 40, logoMargin: 64, size: 215 }), jsxs("div", { className: 'deposit-view__content__address', children: [ensName && (jsx(Typography, { className: 'deposit-view__content__address__ens', variant: 'title', children: ensName })), jsxs("div", { className: 'deposit-view__content__address__wrapper', children: [jsx(Typography, { "data-testid": 'deposit-view-address', variant: 'title', weight: 'medium', className: 'deposit-view__content__address__wrapper__text', children: shortenWalletAddress(primaryWallet.address) }), jsx(CopyButton, { variant: 'text', textToCopy: primaryWallet.address, className: 'deposit-view__content__address__wrapper__copy', children: jsx(SvgCopy, { "data-testid": 'copy-address' }) })] })] }), jsxs(Typography, { className: 'deposit-view__content__network', variant: 'body_small', color: 'secondary', copykey: 'dyn_deposit.receive_funds_on', children: [t('dyn_deposit.receive_funds_on'), chain === null || chain === void 0 ? void 0 : chain.name] })] })] }));
+};
+
+export { DepositView };

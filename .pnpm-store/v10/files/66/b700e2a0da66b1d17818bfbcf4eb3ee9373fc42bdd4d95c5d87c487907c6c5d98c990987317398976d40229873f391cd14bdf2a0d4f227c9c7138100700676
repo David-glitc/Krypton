@@ -1,0 +1,27 @@
+import { TokenScopeFromJSON, TokenScopeToJSON } from './TokenScope.js';
+
+/* tslint:disable */
+function StepUpCheckRequestFromJSON(json) {
+    return StepUpCheckRequestFromJSONTyped(json);
+}
+function StepUpCheckRequestFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'scope': TokenScopeFromJSON(json['scope']),
+    };
+}
+function StepUpCheckRequestToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'scope': TokenScopeToJSON(value.scope),
+    };
+}
+
+export { StepUpCheckRequestFromJSON, StepUpCheckRequestFromJSONTyped, StepUpCheckRequestToJSON };

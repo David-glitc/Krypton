@@ -1,0 +1,36 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var jsxRuntime = require('react/jsx-runtime');
+var React = require('react');
+var classNames = require('../../../../utils/functions/classNames/classNames.cjs');
+var useResizeObserver = require('../../../../utils/hooks/useResizeObserver/useResizeObserver.cjs');
+
+const AccordionItem = React.forwardRef(({ children, className = '', isOpen, dataTestId, dimOnHide = false, handleScroll = () => { }, }, ref) => {
+    const childRef = React.useRef(null);
+    const lastValidChildHeight = React.useRef();
+    const [childEntry] = useResizeObserver.useResizeObserver(childRef);
+    const maxHeight = React.useMemo(() => {
+        if (!isOpen)
+            return 0;
+        if (!childEntry)
+            return lastValidChildHeight.current;
+        return childEntry.height;
+    }, [isOpen, childEntry]);
+    React.useEffect(() => {
+        const childHeight = childEntry === null || childEntry === void 0 ? void 0 : childEntry.height;
+        if (childHeight) {
+            lastValidChildHeight.current = childHeight;
+        }
+    }, [childEntry]);
+    return (jsxRuntime.jsxs("div", { "data-testid": dataTestId, style: { maxHeight }, className: classNames.classNames(className, 'accordion-item', {
+            'accordion-item--full-height': Boolean(maxHeight),
+        }), onScroll: handleScroll, ref: ref, children: [dimOnHide && (jsxRuntime.jsx("div", { "data-testid": 'accordion-item-curtain', className: classNames.classNames('accordion-item__curtain', {
+                    'accordion-item__curtain--dimmed': !isOpen,
+                }) })), jsxRuntime.jsx("div", { ref: childRef, children: children })] }));
+});
+AccordionItem.displayName = 'AccordionItem';
+
+exports.AccordionItem = AccordionItem;

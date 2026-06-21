@@ -1,0 +1,53 @@
+'use client'
+import { getDefaultClient } from '@dynamic-labs-sdk/client';
+import { getSessionKeys } from '@dynamic-labs-sdk/client/core';
+import { VERSION, API_VERSION } from '../../../../../../version.js';
+import { isGlobalWalletPopup } from '../../../../../shared/utils/functions/isGlobalWalletPopup/isGlobalWalletPopup.js';
+import '@dynamic-labs/sdk-api-core';
+import '../../../../../utils/constants/values.js';
+import '@dynamic-labs/utils';
+import '../../../../../../../_virtual/_tslib.js';
+import '@dynamic-labs/multi-wallet';
+import '../../../../../shared/logger.js';
+import 'react-international-phone';
+import { getDeviceFingerprint } from '../../../../../utils/functions/getDeviceFingerprint/getDeviceFingerprint.js';
+import '@dynamic-labs/iconic';
+import '@dynamic-labs/wallet-connector-core';
+import 'react';
+import 'react/jsx-runtime';
+import '../../../../../context/ViewContext/ViewContext.js';
+import '@dynamic-labs/wallet-book';
+import '../../../../../utils/constants/colors.js';
+import '../../../../../shared/consts/index.js';
+import '../../../../../store/state/nonce/nonce.js';
+import { randomString } from '../../../../../utils/functions/randomString/randomString.js';
+import 'eventemitter3';
+import '../../../../../config/ApiEndpoint.js';
+import '../../../../../events/dynamicEvents.js';
+import '@dynamic-labs/locale';
+import '../../../../../store/state/dynamicContextProps/dynamicContextProps.js';
+import '../../../../../store/state/primaryWalletId/primaryWalletId.js';
+import '../../../../../store/state/connectedWalletsInfo/connectedWalletsInfo.js';
+import '../../../../../utils/functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.js';
+
+const getApiHeaders = () => {
+    const apiHeaders = {
+        'x-dyn-request-id': randomString(50),
+    };
+    const deviceFingerprint = getDeviceFingerprint();
+    if (deviceFingerprint) {
+        apiHeaders['x-dyn-device-fingerprint'] = deviceFingerprint;
+    }
+    const sessionKeys = getSessionKeys(getDefaultClient());
+    if (sessionKeys === null || sessionKeys === void 0 ? void 0 : sessionKeys.publicKey) {
+        apiHeaders['x-dyn-session-public-key'] = sessionKeys.publicKey;
+    }
+    apiHeaders['x-dyn-version'] = `WalletKit/${VERSION}`;
+    apiHeaders['x-dyn-api-version'] = `API/${API_VERSION}`;
+    apiHeaders['x-dyn-is-global-wallet-popup'] = isGlobalWalletPopup()
+        ? 'true'
+        : 'false';
+    return apiHeaders;
+};
+
+export { getApiHeaders };

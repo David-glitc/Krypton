@@ -1,0 +1,11 @@
+/**
+ * Returns the Google OAuth scopes from `GOOGLE_DRIVE_BACKUP_REQUIRED_SCOPES`
+ * that are NOT present in `grantedScopes`. An empty array means all required
+ * scopes have been granted.
+ *
+ * @param grantedScopes - Scopes the user has granted to their Google account.
+ * @returns The subset of required scopes that are still missing.
+ * @not-instrumented
+ */
+export declare const findMissingGoogleDriveBackupScopes: (grantedScopes: readonly string[]) => string[];
+//# sourceMappingURL=findMissingGoogleDriveBackupScopes.d.ts.map

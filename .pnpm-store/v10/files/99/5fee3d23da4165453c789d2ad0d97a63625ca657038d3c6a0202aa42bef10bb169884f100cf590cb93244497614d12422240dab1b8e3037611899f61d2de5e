@@ -1,0 +1,6 @@
+import type { TokenScope } from '@dynamic-labs/sdk-api-core';
+export type CompleteSocialRedirectParams = {
+    requestedScopes?: TokenScope[];
+    url: URL;
+};
+//# sourceMappingURL=completeSocialRedirect.types.d.ts.map

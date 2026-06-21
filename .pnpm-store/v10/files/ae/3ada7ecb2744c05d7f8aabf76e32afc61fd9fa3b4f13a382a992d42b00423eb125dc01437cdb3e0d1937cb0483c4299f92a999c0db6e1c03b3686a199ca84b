@@ -1,0 +1,33 @@
+import { exists } from '../runtime.js';
+
+/* tslint:disable */
+function DeviceRegistrationResponseFromJSON(json) {
+    return DeviceRegistrationResponseFromJSONTyped(json);
+}
+function DeviceRegistrationResponseFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'id': json['id'],
+        'isCurrentDevice': json['isCurrentDevice'],
+        'userAgent': !exists(json, 'userAgent') ? undefined : json['userAgent'],
+        'createdAt': (new Date(json['createdAt'])),
+    };
+}
+function DeviceRegistrationResponseToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'id': value.id,
+        'isCurrentDevice': value.isCurrentDevice,
+        'userAgent': value.userAgent,
+        'createdAt': (value.createdAt.toISOString()),
+    };
+}
+
+export { DeviceRegistrationResponseFromJSON, DeviceRegistrationResponseFromJSONTyped, DeviceRegistrationResponseToJSON };

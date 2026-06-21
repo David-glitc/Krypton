@@ -1,0 +1,36 @@
+'use client'
+import { jsxs, Fragment, jsx } from 'react/jsx-runtime';
+import React__default, { useMemo } from 'react';
+import { getChainInfoWithOverrides } from '@dynamic-labs/wallet-connector-core';
+import { getChainIcon } from '../../../../../../shared/utils/functions/chain/getChainIcon.js';
+import '../../../../../../shared/logger.js';
+import '@dynamic-labs/wallet-book';
+import '@dynamic-labs/utils';
+import '../../../../../../utils/constants/colors.js';
+import '../../../../../../utils/constants/values.js';
+import '@dynamic-labs/sdk-api-core';
+import '@dynamic-labs/iconic';
+import '../../../../../../context/ViewContext/ViewContext.js';
+import '../../../../../../shared/consts/index.js';
+import { DynamicBridgeWalletCard } from '../../../../components/DynamicBridgeWalletCard/DynamicBridgeWalletCard.js';
+import { DynamicBridgeWalletCardBody } from '../../../../components/DynamicBridgeWalletCardBody/DynamicBridgeWalletCardBody.js';
+import { Balance } from '../../../../../DynamicWidget/components/Balance/Balance.js';
+import '../../../../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { DynamicBridgeWidgetEmptyCard } from '../../../../components/DynamicBridgeWidgetEmptyCard/DynamicBridgeWidgetEmptyCard.js';
+
+const SecondaryWallets = ({ hideUnlinkAction = false }) => {
+    const { disconnectWallet, bridgeChains, connectedWallets, primaryWalletId } = useInternalDynamicContext();
+    const secondaryChain = useMemo(() => { var _a; return (_a = bridgeChains === null || bridgeChains === void 0 ? void 0 : bridgeChains[1]) === null || _a === void 0 ? void 0 : _a.chain; }, [bridgeChains]);
+    const secondaryWallet = useMemo(() => connectedWallets.find((wallet) => wallet.id !== primaryWalletId && wallet.chain === secondaryChain), [connectedWallets, primaryWalletId, secondaryChain]);
+    const NetworkIcon = secondaryWallet && getChainIcon(secondaryWallet === null || secondaryWallet === void 0 ? void 0 : secondaryWallet.chain);
+    const networkInfo = secondaryWallet && getChainInfoWithOverrides(secondaryWallet === null || secondaryWallet === void 0 ? void 0 : secondaryWallet.chain);
+    return (jsxs(Fragment, { children: [!secondaryWallet && (jsx(DynamicBridgeWidgetEmptyCard, { chain: secondaryChain })), secondaryWallet && NetworkIcon && (jsx(DynamicBridgeWalletCard, { networkIcon: jsx(NetworkIcon, {}), networkName: networkInfo === null || networkInfo === void 0 ? void 0 : networkInfo.displayName, children: jsx(DynamicBridgeWalletCardBody, { walletIcon: secondaryWallet.connector.metadata.icon, walletKey: secondaryWallet.connector.key, walletAddress: secondaryWallet.address, walletBalance: 
+                    // eslint-disable-next-line react/jsx-wrap-multilines
+                    jsx(Balance, { wallet: secondaryWallet, network: secondaryWallet.chain }), onDisconnectClick: !hideUnlinkAction
+                        ? () => disconnectWallet(secondaryWallet.id)
+                        : undefined }, secondaryWallet.id) }))] }));
+};
+const MemoSecondaryWallets = React__default.memo(SecondaryWallets);
+
+export { MemoSecondaryWallets, SecondaryWallets };

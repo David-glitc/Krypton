@@ -1,0 +1,46 @@
+'use client'
+import { jsxs, jsx } from 'react/jsx-runtime';
+import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import { getChainInfoWithOverrides } from '@dynamic-labs/wallet-connector-core';
+import '../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { ConnectedWalletsListLayout } from '../../layouts/ConnectedWalletsListLayout/ConnectedWalletsListLayout.js';
+import { getChainIcon } from '../../shared/utils/functions/chain/getChainIcon.js';
+import '../../shared/logger.js';
+import '@dynamic-labs/wallet-book';
+import '@dynamic-labs/utils';
+import '../../utils/constants/colors.js';
+import '../../utils/constants/values.js';
+import '@dynamic-labs/sdk-api-core';
+import '@dynamic-labs/iconic';
+import '../../context/ViewContext/ViewContext.js';
+import '../../shared/consts/index.js';
+import { DynamicBridgeWalletCard } from '../../widgets/DynamicBridgeWidget/components/DynamicBridgeWalletCard/DynamicBridgeWalletCard.js';
+import { DynamicBridgeWalletCardBody } from '../../widgets/DynamicBridgeWidget/components/DynamicBridgeWalletCardBody/DynamicBridgeWalletCardBody.js';
+import { MemoSecondaryWallets } from '../../widgets/DynamicBridgeWidget/views/WalletsView/components/SecondaryWallets/SecondaryWallets.js';
+import { Balance } from '../../widgets/DynamicWidget/components/Balance/Balance.js';
+
+const BridgeSummaryView = () => {
+    const { primaryWallet, setShowAuthFlow, appName, bridgeChains = [], } = useInternalDynamicContext();
+    const { t } = useTranslation();
+    const onClickClose = () => setShowAuthFlow(false, { emitCancelAuth: true });
+    const body = useMemo(() => {
+        const blockchainNames = bridgeChains.map(({ chain }) => { var _a; return (_a = getChainInfoWithOverrides(chain)) === null || _a === void 0 ? void 0 : _a.blockchainName; });
+        const [firstBlockchainName, secondBlockchainName] = blockchainNames;
+        return t('dyn_bridge.summary_view.connection_succeed', {
+            firstBlockchainName,
+            secondBlockchainName,
+        });
+    }, [bridgeChains, t]);
+    const createPrimaryWalletCard = (wallet) => {
+        const PrimaryWalletChainIcon = getChainIcon(wallet.chain);
+        const primaryWalletChainInfo = getChainInfoWithOverrides(wallet.chain);
+        return (jsx(DynamicBridgeWalletCard, { networkIcon: jsx(PrimaryWalletChainIcon, {}), networkName: primaryWalletChainInfo === null || primaryWalletChainInfo === void 0 ? void 0 : primaryWalletChainInfo.displayName, children: jsx(DynamicBridgeWalletCardBody, { walletIcon: wallet.connector.metadata.icon, walletKey: wallet.connector.key, walletAddress: wallet.address, walletBalance: 
+                // eslint-disable-next-line react/jsx-wrap-multilines
+                jsx(Balance, { wallet: wallet, network: wallet.chain }) }) }));
+    };
+    return (jsxs(ConnectedWalletsListLayout, { onClickClose: onClickClose, onClickAction: onClickClose, copykey: 'dyn_bridge.summary_view.title', title: t('dyn_bridge.summary_view.title', { appName }), body: body, children: [primaryWallet && createPrimaryWalletCard(primaryWallet), jsx(MemoSecondaryWallets, { hideUnlinkAction: true })] }));
+};
+
+export { BridgeSummaryView };

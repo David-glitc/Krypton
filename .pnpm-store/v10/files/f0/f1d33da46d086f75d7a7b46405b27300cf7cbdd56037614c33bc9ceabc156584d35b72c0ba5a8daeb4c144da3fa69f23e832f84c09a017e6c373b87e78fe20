@@ -1,0 +1,42 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+var SwapToken = require('./SwapToken.cjs');
+
+/* tslint:disable */
+function SwapQuoteResponseSideFromJSON(json) {
+    return SwapQuoteResponseSideFromJSONTyped(json);
+}
+function SwapQuoteResponseSideFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'address': json['address'],
+        'amount': json['amount'],
+        'amountMin': !runtime.exists(json, 'amountMin') ? undefined : json['amountMin'],
+        'amountUSD': !runtime.exists(json, 'amountUSD') ? undefined : json['amountUSD'],
+        'token': SwapToken.SwapTokenFromJSON(json['token']),
+    };
+}
+function SwapQuoteResponseSideToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'address': value.address,
+        'amount': value.amount,
+        'amountMin': value.amountMin,
+        'amountUSD': value.amountUSD,
+        'token': SwapToken.SwapTokenToJSON(value.token),
+    };
+}
+
+exports.SwapQuoteResponseSideFromJSON = SwapQuoteResponseSideFromJSON;
+exports.SwapQuoteResponseSideFromJSONTyped = SwapQuoteResponseSideFromJSONTyped;
+exports.SwapQuoteResponseSideToJSON = SwapQuoteResponseSideToJSON;

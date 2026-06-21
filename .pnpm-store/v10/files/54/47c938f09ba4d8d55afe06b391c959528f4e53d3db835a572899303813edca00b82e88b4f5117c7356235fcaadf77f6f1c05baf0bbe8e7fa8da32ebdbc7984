@@ -1,0 +1,27 @@
+import type { WalletBookSchema } from '../../legacyWalletBook/legacyWalletBook.types';
+import type { ConnectionOptionForWalletOption } from '../groupOptionsByWalletOption/groupOptionsByWalletOption';
+type BuildMetaMaskSdkUriOptionsParams = {
+    walletBook: WalletBookSchema;
+};
+/**
+ * Builds the `metamaskSdkUri`-discriminator catalogue options from a
+ * fetched wallet book. The MetaMask SDK URI extension only targets the
+ * MetaMask wallet, so the builder iterates the book looking for the
+ * entry whose resolved wallet option key is `'metamask'`.
+ *
+ * Applies the generic `shouldFilterWallet` rules (drops embedded keys +
+ * injected-only-without-links entries). Crucially does NOT require WC
+ * `sign_v2` support — MetaMask SDK URI is a different protocol from
+ * WalletConnect, so the WC-specific filter does not apply here.
+ *
+ * Emits one `metamaskSdkUri` option per chain the MetaMask SDK URI pairing
+ * supports (see {@link METAMASK_SDK_URI_SUPPORTED_CHAINS}) so the picker can
+ * offer both the EVM and Solana pairings for the single MetaMask entry.
+ *
+ * @param params.walletBook - The fetched wallet book.
+ * @returns Tagged `metamaskSdkUri` options for MetaMask if eligible, otherwise an empty array.
+ * @not-instrumented
+ */
+export declare const buildMetaMaskSdkUriOptions: ({ walletBook, }: BuildMetaMaskSdkUriOptionsParams) => ConnectionOptionForWalletOption[];
+export {};
+//# sourceMappingURL=buildMetaMaskSdkUriOptions.d.ts.map

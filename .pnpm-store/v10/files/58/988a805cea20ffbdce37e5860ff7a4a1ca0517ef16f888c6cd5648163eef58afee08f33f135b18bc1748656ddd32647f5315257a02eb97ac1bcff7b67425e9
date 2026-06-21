@@ -1,0 +1,29 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var jsxRuntime = require('react/jsx-runtime');
+var React = require('react');
+var createProviderHook = require('../../shared/utils/functions/createProviderHook/createProviderHook.cjs');
+
+const AccessDeniedContext = React.createContext(undefined);
+const AccessDeniedContextProvider = ({ children, }) => {
+    const [deniedOauthUsername, setDeniedOauthUsername] = React.useState('');
+    const [deniedAddress, setDeniedAddress] = React.useState('');
+    const [deniedOauthProvider, setDeniedOauthProvider] = React.useState(undefined);
+    const value = React.useMemo(() => ({
+        deniedAddress,
+        deniedOauthProvider,
+        deniedOauthUsername,
+        setDeniedAddress,
+        setDeniedOauthProvider,
+        setDeniedOauthUsername,
+    }), [deniedAddress, deniedOauthProvider, deniedOauthUsername]);
+    return (jsxRuntime.jsx(AccessDeniedContext.Provider, { value: value, children: children }));
+};
+const useAccessDeniedContext = createProviderHook.createProviderHook(AccessDeniedContext, 'AccessDeniedContextProvider');
+
+exports.AccessDeniedContext = AccessDeniedContext;
+exports.AccessDeniedContextProvider = AccessDeniedContextProvider;
+exports.useAccessDeniedContext = useAccessDeniedContext;

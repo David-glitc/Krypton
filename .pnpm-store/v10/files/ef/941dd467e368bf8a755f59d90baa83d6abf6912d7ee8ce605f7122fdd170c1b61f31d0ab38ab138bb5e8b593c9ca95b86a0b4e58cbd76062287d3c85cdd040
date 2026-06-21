@@ -1,0 +1,40 @@
+import { exists } from '../runtime.js';
+import { ChainEnumFromJSON, ChainEnumToJSON } from './ChainEnum.js';
+import { SwapEvmApprovalDataFromJSON, SwapEvmApprovalDataToJSON } from './SwapEvmApprovalData.js';
+import { SwapEvmTransactionDataFromJSON, SwapEvmTransactionDataToJSON } from './SwapEvmTransactionData.js';
+
+/* tslint:disable */
+function SwapSigningPayloadFromJSON(json) {
+    return SwapSigningPayloadFromJSONTyped(json);
+}
+function SwapSigningPayloadFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'chainName': ChainEnumFromJSON(json['chainName']),
+        'chainId': json['chainId'],
+        'evmTransaction': !exists(json, 'evmTransaction') ? undefined : SwapEvmTransactionDataFromJSON(json['evmTransaction']),
+        'evmApproval': !exists(json, 'evmApproval') ? undefined : SwapEvmApprovalDataFromJSON(json['evmApproval']),
+        'serializedTransaction': !exists(json, 'serializedTransaction') ? undefined : json['serializedTransaction'],
+        'psbt': !exists(json, 'psbt') ? undefined : json['psbt'],
+    };
+}
+function SwapSigningPayloadToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'chainName': ChainEnumToJSON(value.chainName),
+        'chainId': value.chainId,
+        'evmTransaction': SwapEvmTransactionDataToJSON(value.evmTransaction),
+        'evmApproval': SwapEvmApprovalDataToJSON(value.evmApproval),
+        'serializedTransaction': value.serializedTransaction,
+        'psbt': value.psbt,
+    };
+}
+
+export { SwapSigningPayloadFromJSON, SwapSigningPayloadFromJSONTyped, SwapSigningPayloadToJSON };

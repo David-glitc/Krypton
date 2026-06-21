@@ -1,0 +1,30 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+const synonyms = {
+    aleo: 'ALEO',
+    algorand: 'ALGO',
+    aptos: 'APTOS',
+    bip122: 'BTC',
+    bitcoin: 'BTC',
+    cosmos: 'COSMOS',
+    eip155: 'EVM',
+    flow: 'FLOW',
+    midnight: 'MIDNIGHT',
+    solana: 'SOL',
+    starknet: 'STARK',
+    stellar: 'STELLAR',
+    sui: 'SUI',
+    tempo: 'TEMPO',
+    ton: 'TON',
+    tron: 'TRON',
+};
+for (const chain in synonyms)
+    synonyms[synonyms[chain]] = chain;
+const compareChains = (chain1, chain2) => chain1 === chain2 ||
+    synonyms[chain1] === chain2 ||
+    synonyms[chain2] === chain1;
+
+exports.compareChains = compareChains;

@@ -1,0 +1,2 @@
+export { bytesFromBase64url } from './bytesFromBase64url';
+//# sourceMappingURL=index.d.ts.map

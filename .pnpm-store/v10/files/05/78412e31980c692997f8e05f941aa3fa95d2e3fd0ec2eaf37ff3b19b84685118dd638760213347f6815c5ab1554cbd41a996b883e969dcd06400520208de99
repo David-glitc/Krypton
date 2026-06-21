@@ -1,0 +1,46 @@
+import type { WalletBookSchema } from '../../legacyWalletBook/legacyWalletBook.types';
+import type { WithWalletProviderDisplayOverride } from '../buildWithWalletProviderOptions/buildWithWalletProviderOptions';
+import type { InstallationUrls, WalletConnectionOption, WalletOption } from '../walletOptionsCatalogue.types';
+type BuildWalletOptionParams = {
+    connectionOptions: WalletConnectionOption[];
+    displayOverride?: WithWalletProviderDisplayOverride;
+    installationUrls?: InstallationUrls;
+    walletBook: WalletBookSchema;
+    walletOptionKey: string;
+};
+/**
+ * Assembles a `WalletOption` for a resolved wallet option key, populated
+ * with the connection options the transformers produced for it plus an
+ * optional install / download URL bag.
+ *
+ * Display merge rules (provider self-announced metadata wins where set):
+ *
+ * - `name`: `displayOverride.name` ?? wallet book group name ?? wallet
+ *   book wallet name ?? bare key.
+ * - `iconUrl`: `displayOverride.iconUrl` ?? wallet book group sprite URL
+ *   ?? wallet book wallet sprite URL ?? `''`.
+ * - `primaryColor`: wallet book group brand color ?? wallet book wallet
+ *   brand color (providers do not ship a primary color in their
+ *   announcement metadata).
+ * - `installationUrls`: copied through if present.
+ *
+ * The per-wallet fallback handles wallets that exist as individual entries
+ * in the book (e.g. Rainbow) rather than as members of a multi-wallet group
+ * — those don't get a `walletBook.groups[…]` shell.
+ *
+ * Why provider precedence: a registered wallet provider knows its own
+ * brand best (EIP-6963 / Wallet Standard / vendor SDK announcement is the
+ * wallet authoring its own identity). The wallet book fills in fields the
+ * announcement does not carry — currently only `primaryColor`.
+ *
+ * @param params.connectionOptions - The connections to attach to this wallet option.
+ * @param [params.displayOverride] - Provider-announced display info that overrides the wallet book's name and iconUrl.
+ * @param [params.installationUrls] - Install/download URL bag for this wallet.
+ * @param params.walletBook - The fetched wallet book.
+ * @param params.walletOptionKey - The wallet option key.
+ * @returns The constructed wallet option.
+ * @not-instrumented
+ */
+export declare const buildWalletOption: ({ connectionOptions, displayOverride, installationUrls, walletBook, walletOptionKey, }: BuildWalletOptionParams) => WalletOption;
+export {};
+//# sourceMappingURL=buildWalletOption.d.ts.map

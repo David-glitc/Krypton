@@ -1,0 +1,74 @@
+import { TokenBalance } from '@dynamic-labs/sdk-api-core';
+/**
+ * Connector duck-type — matches the `aleoShieldHandle` shape that
+ * `ActiveWalletBalance` already uses for the Shield Manually CTA. Kept
+ * here as a minimal local type so we don't pull a hard dependency on
+ * `@dynamic-labs/aleo` into sdk-react-core.
+ */
+type AleoShieldHandle = {
+    canShieldToken: (token: {
+        address?: string;
+        isNative?: boolean;
+    }) => boolean;
+    shieldToken: (args: {
+        tokenAddress: string;
+        isNative?: boolean;
+        amount: bigint;
+    }) => Promise<string>;
+    isShieldSponsored?: (token: {
+        address?: string;
+        isNative?: boolean;
+    }) => Promise<boolean>;
+};
+type UseAleoAutoShieldSponsoredTokensArgs = {
+    accountAddress: string | undefined;
+    unshieldedTokenBalances: TokenBalance[];
+    shieldHandle: AleoShieldHandle | undefined;
+    onShielded?: () => Promise<void> | void;
+    onShieldDispatched?: (info: {
+        token: TokenBalance;
+        amount: bigint;
+    }) => void;
+};
+/**
+ * On Aleo wallet load (and on each subsequent unshielded-balance refresh),
+ * auto-shields tokens whose `transfer_public_to_private` transition the
+ * Aleo Feemaster currently sponsors. Tokens that aren't sponsored stay
+ * untouched — the user can still trigger them manually via the existing
+ * Shield Manually CTA, which dispatches with user-paid fees.
+ *
+ * Idempotency is per-session, keyed by `(accountAddress, tokenAddress)`.
+ * On error the key is removed so the next refresh can retry. Auto-shield
+ * runs sequentially so a single sponsored quota can't be drained by N
+ * concurrent dispatches; the caller's "single shield in flight" UX is
+ * preserved.
+ *
+ * Failures are swallowed by design — auto-shield is a background
+ * optimisation, never a user-facing flow.
+ */
+/**
+ * Return value of `useAleoAutoShieldSponsoredTokens`. Consumers can read
+ *  `isShielding` to render a small "Shielding…" indicator while a
+ *  background ceremony is in flight.
+ */
+export type UseAleoAutoShieldSponsoredTokensResult = {
+    /**
+     * `true` while at least one auto-shield ceremony is broadcasting
+     *  (between candidate selection and the post-success refresh callback).
+     *  Goes back to `false` on cleanup or once the run resolves.
+     */
+    isShielding: boolean;
+    /**
+     * Token keys (`token.address` or `nativeTokenKey`) for which a shield
+     *  ceremony is currently in flight from this hook. Stable identity
+     *  across renders — only changes when a ceremony starts or ends, not
+     *  when other parts of the hook state churn. Consumers (e.g. the
+     *  widget's Shield Manually CTA) read this set to suppress duplicate
+     *  CTAs for tokens auto-shield is already broadcasting; the connector
+     *  has its own dedup, but hiding the CTA also prevents the user from
+     *  seeing a stale spinner snap to a second one.
+     */
+    currentlyShieldingTokenKeys: ReadonlySet<string>;
+};
+export declare const useAleoAutoShieldSponsoredTokens: ({ accountAddress, unshieldedTokenBalances, shieldHandle, onShielded, onShieldDispatched, }: UseAleoAutoShieldSponsoredTokensArgs) => UseAleoAutoShieldSponsoredTokensResult;
+export {};

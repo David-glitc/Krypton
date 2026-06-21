@@ -1,0 +1,2 @@
+export { instrumentFunction } from './instrumentFunction';
+//# sourceMappingURL=index.d.ts.map

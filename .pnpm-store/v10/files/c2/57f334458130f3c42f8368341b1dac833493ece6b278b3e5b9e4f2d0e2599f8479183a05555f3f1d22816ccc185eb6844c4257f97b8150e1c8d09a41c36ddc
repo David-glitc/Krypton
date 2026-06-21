@@ -1,0 +1,42 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+var SwapToken = require('./SwapToken.cjs');
+
+/* tslint:disable */
+function SwapFeeFromJSON(json) {
+    return SwapFeeFromJSONTyped(json);
+}
+function SwapFeeFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'amount': json['amount'],
+        'amountUSD': !runtime.exists(json, 'amountUSD') ? undefined : json['amountUSD'],
+        'included': json['included'],
+        'name': json['name'],
+        'token': SwapToken.SwapTokenFromJSON(json['token']),
+    };
+}
+function SwapFeeToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'amount': value.amount,
+        'amountUSD': value.amountUSD,
+        'included': value.included,
+        'name': value.name,
+        'token': SwapToken.SwapTokenToJSON(value.token),
+    };
+}
+
+exports.SwapFeeFromJSON = SwapFeeFromJSON;
+exports.SwapFeeFromJSONTyped = SwapFeeFromJSONTyped;
+exports.SwapFeeToJSON = SwapFeeToJSON;

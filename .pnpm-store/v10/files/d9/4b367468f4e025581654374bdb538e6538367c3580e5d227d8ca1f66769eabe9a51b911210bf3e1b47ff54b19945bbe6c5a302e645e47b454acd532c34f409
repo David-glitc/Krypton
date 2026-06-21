@@ -1,0 +1,23 @@
+import type { WalletAccount } from './walletAccount';
+/**
+ * Return shape for wallet-provider connection flows that establish a
+ * pairing through an external URI (rendered as a QR code or used as a
+ * deep link). Shared by the WalletConnect and MetaMask SDK URI-based
+ * connect helpers so consumers can render a single QR / deep-link UI
+ * regardless of which protocol is in use.
+ */
+export type WalletProviderUriConnectionResult = {
+    /**
+     * Resolves to the wallet accounts created once the connection is
+     * approved on the wallet side.
+     */
+    approval: () => Promise<{
+        walletAccounts: WalletAccount[];
+    }>;
+    /**
+     * The pairing URI to hand to the wallet application — typically
+     * rendered as a QR code or used as a deep link.
+     */
+    uri: string;
+};
+//# sourceMappingURL=walletProviderUriConnection.types.d.ts.map

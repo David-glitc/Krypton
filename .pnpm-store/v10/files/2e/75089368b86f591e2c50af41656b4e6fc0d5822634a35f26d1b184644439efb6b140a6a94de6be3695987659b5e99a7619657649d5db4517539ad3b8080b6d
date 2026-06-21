@@ -1,0 +1,466 @@
+import { B as getCore, C as isCookieEnabled, E as __getElevatedAccessToken_wrapped, H as version, N as CLIENT_SDK_NAME, V as name, c as CHAINS_INFO_MAP, i as DYNAMIC_WAAS_METADATA, n as DEFAULT_WAAS_BASE_API_URL, r as DEFAULT_WAAS_BASE_MPC_RELAY_API_URL, s as getChainFromVerifiedCredentialChain, t as InvalidParamError, z as BaseError } from "./InvalidParamError-BqFQnYCi.native.esm.js";
+import { i as NativeModuleNotLinkedError } from "./isMfaRequiredForAction-Dx4BPJVg.native.esm.js";
+import { n as consumeMfaTokenIfRequiredForAction, t as getSignedSessionId } from "./getSignedSessionId-C7YR-jNH.native.esm.js";
+import { assertPackageVersion } from "@dynamic-labs-sdk/assert-package-version";
+import { MFAAction, TokenScope, WalletProviderEnum } from "@dynamic-labs/sdk-api-core";
+import { ACCESSIBLE, getGenericPassword, resetGenericPassword, setGenericPassword } from "react-native-keychain";
+import { NativeEventEmitter, TurboModuleRegistry } from "react-native";
+import { DynamicWalletClient, ThresholdSignatureScheme, WalletOperation } from "@dynamic-labs-wallet/browser-wallet-client";
+
+//#region src/errors/CorruptedKeyShareError.ts
+/**
+* Thrown when a persisted client key share cannot be parsed back into its
+* structured form (e.g. a partially-written or corrupted keychain entry).
+*
+* Surfaced as a typed error rather than swallowed so callers can distinguish
+* "no key share stored" (empty result) from "key share exists but is
+* unreadable" — the latter must never be silently treated as the former,
+* which could trigger an unintended re-keygen that overwrites recoverable
+* material.
+*/
+var CorruptedKeyShareError = class extends BaseError {
+	constructor({ cause = null } = {}) {
+		super({
+			cause,
+			code: "corrupted_key_share_error",
+			details: "The stored client key share could not be parsed. The secure storage entry may be partially written or corrupted.",
+			docsUrl: null,
+			name: "CorruptedKeyShareError",
+			shortMessage: "Stored client key share is corrupted and cannot be read."
+		});
+	}
+};
+
+//#endregion
+//#region src/turboModules/NativeDynamicWebView.ts
+var NativeDynamicWebView_default = TurboModuleRegistry.get("DynamicClientWebView");
+
+//#endregion
+//#region src/errors/WebViewLoadFailedError.ts
+/**
+* Thrown when `DynamicWebView.open()` (via the WaaS transport provider)
+* fails to establish a usable load. Inspect `reason` to distinguish the
+* failure mode; `statusCode` and `underlyingError` provide structured
+* metadata for the cases that have it.
+*/
+var WebViewLoadFailedError = class extends BaseError {
+	reason;
+	statusCode;
+	underlyingError;
+	constructor({ reason, shortMessage, cause = null, statusCode, underlyingError }) {
+		super({
+			cause,
+			code: "webview_load_failed_error",
+			details: underlyingError,
+			docsUrl: null,
+			name: "WebViewLoadFailedError",
+			shortMessage
+		});
+		this.reason = reason;
+		this.statusCode = statusCode;
+		this.underlyingError = underlyingError;
+	}
+};
+
+//#endregion
+//#region src/modules/waas/createWaasClient/translateNativeOpenError.ts
+const REASON_BY_NATIVE_CODE = {
+	webview_cancelled: "cancelled",
+	webview_content_process_terminated: "content_process_terminated",
+	webview_http_error: "http_error",
+	webview_instance_busy: "instance_busy",
+	webview_invalid_url: "invalid_url",
+	webview_navigation_failed: "navigation_failed",
+	webview_no_host_view: "no_host_view",
+	webview_unsupported: "unsupported"
+};
+/**
+* Translates a native `DynamicWebView.open()` rejection into a typed
+* `WebViewLoadFailedError`. Maps the native RCT reject code to the JS-level
+* `WebViewLoadFailureReason` discriminator (falling back to
+* `navigation_failed` for unrecognized codes) and carries through the
+* structured `statusCode` / `underlyingError` metadata.
+*
+* The `reason` it produces is the contract `createWaasSDKContainer` branches
+* on — notably `emitError` swallows `cancelled` because that code is only ever
+* produced by our own `close()` teardown (verified on both the iOS and Android
+* native sides). Keep `REASON_BY_NATIVE_CODE` in sync with the native reject
+* codes so that branching stays correct.
+*
+* @not-instrumented
+*/
+const translateNativeOpenError = (err) => {
+	const rejection = err ?? {};
+	const isNativeRejectionCode = (code) => code != void 0 && code in REASON_BY_NATIVE_CODE;
+	const reason = isNativeRejectionCode(rejection.code) ? REASON_BY_NATIVE_CODE[rejection.code] : "navigation_failed";
+	return new WebViewLoadFailedError({
+		cause: err instanceof Error ? err : null,
+		reason,
+		shortMessage: rejection.message ?? `DynamicWebView open failed (${reason}).`,
+		statusCode: rejection.userInfo?.DynamicWebViewStatusCode,
+		underlyingError: rejection.userInfo?.DynamicWebViewUnderlying
+	});
+};
+
+//#endregion
+//#region src/modules/waas/createWaasClient/createWaasSDKContainer.native.ts
+const NATIVE_MODULE_NAME = "DynamicClientWebView";
+const MESSAGE_EVENT_NAME = "dynamicBridgeMessage";
+const generateInstanceId = () => `${Date.now().toString(36)}-${crypto.randomUUID()}`;
+/**
+* Creates a React Native `WaasSDKContainer` backed by a native WebView
+* (WKWebView on iOS, `android.webkit.WebView` on Android) hosted by the
+* `DynamicClientWebView` TurboModule. Each invocation returns an isolated
+* container with its own instance ID, native WebView, and message routing.
+*
+* @not-instrumented
+*/
+const createWaasSDKContainer = () => {
+	if (!NativeDynamicWebView_default) throw new NativeModuleNotLinkedError({ moduleName: NATIVE_MODULE_NAME });
+	const nativeModule = NativeDynamicWebView_default;
+	const instanceId = generateInstanceId();
+	const emitter = new NativeEventEmitter(nativeModule);
+	const messageHandlers = [];
+	const errorHandlers = [];
+	let subscription = null;
+	let destroyed = false;
+	const emitError = (err) => {
+		if (destroyed) return;
+		const translated = translateNativeOpenError(err);
+		if (translated.reason === "cancelled") return;
+		for (const handler of errorHandlers) handler(translated);
+	};
+	return {
+		destroy() {
+			if (destroyed) return;
+			destroyed = true;
+			subscription?.remove();
+			subscription = null;
+			messageHandlers.length = 0;
+			errorHandlers.length = 0;
+			nativeModule.close(instanceId);
+		},
+		isAlive: () => !destroyed,
+		onError(handler) {
+			errorHandlers.push(handler);
+			return () => {
+				const index = errorHandlers.indexOf(handler);
+				if (index !== -1) errorHandlers.splice(index, 1);
+			};
+		},
+		onMessage(handler) {
+			messageHandlers.push(handler);
+			subscription ??= emitter.addListener(MESSAGE_EVENT_NAME, (payload) => {
+				if (payload.instanceId !== instanceId) return;
+				for (const fn of messageHandlers) fn(payload.data);
+			});
+			return () => {
+				const index = messageHandlers.indexOf(handler);
+				if (index !== -1) messageHandlers.splice(index, 1);
+				if (messageHandlers.length === 0) {
+					subscription?.remove();
+					subscription = null;
+				}
+			};
+		},
+		sendMessage(data) {
+			nativeModule.sendMessage(instanceId, data);
+		},
+		async setUrl(url) {
+			nativeModule.open(instanceId, url).catch(emitError);
+		}
+	};
+};
+
+//#endregion
+//#region src/modules/waas/createWaasClient/createWaasClient.native.ts
+/**
+* Keychain security options for the client key share. The share is wallet
+* key material that cannot be re-derived locally, so the options are pinned
+* explicitly rather than inherited from `react-native-keychain` defaults
+* (which vary across versions and platforms).
+*
+* `WHEN_UNLOCKED_THIS_DEVICE_ONLY` keeps the share readable only while the
+* device is unlocked, excludes it from iCloud Keychain sync, and prevents it
+* migrating to a new device on encrypted-backup restore. It deliberately does
+* NOT set `accessControl` (e.g. biometry) — reads must not surface a Face ID /
+* passcode prompt, since the share is read on routine wallet operations.
+*/
+const KEY_SHARE_KEYCHAIN_OPTIONS = { accessible: ACCESSIBLE.WHEN_UNLOCKED_THIS_DEVICE_ONLY };
+/** @not-instrumented */
+const createWaasClient = ({ chainName }, client) => {
+	const core = getCore(client);
+	const additionalTrustedOrigins = core.waas?.additionalTrustedOrigins;
+	const getKeyShareService = (accountAddress) => `${core.environmentId}:${accountAddress}`;
+	return new DynamicWalletClient({
+		authMode: isCookieEnabled(client) ? "cookie" : "header",
+		authToken: client.token || "",
+		baseApiUrl: (core.apiBaseUrl || DEFAULT_WAAS_BASE_API_URL).replace("/api/v0", ""),
+		baseMPCRelayApiUrl: client.projectSettings?.sdk.waas?.relayUrl || DEFAULT_WAAS_BASE_MPC_RELAY_API_URL,
+		chainName,
+		environmentId: core.environmentId,
+		sdkVersion: `${CLIENT_SDK_NAME}/${core.version}`,
+		...additionalTrustedOrigins == void 0 ? {} : { additionalTrustedOrigins }
+	}, {
+		createWaasSDKContainer,
+		secureStorage: {
+			getClientKeyShare: async (accountAddress) => {
+				const result = await getGenericPassword({ service: getKeyShareService(accountAddress) });
+				if (!result) return [];
+				try {
+					return JSON.parse(result.password);
+				} catch (cause) {
+					throw new CorruptedKeyShareError({ cause: cause instanceof Error ? cause : null });
+				}
+			},
+			removeClientKeyShare: async (accountAddress) => {
+				await resetGenericPassword({ service: getKeyShareService(accountAddress) });
+			},
+			setClientKeyShare: async (accountAddress, shares) => {
+				await setGenericPassword(accountAddress, JSON.stringify(shares), {
+					...KEY_SHARE_KEYCHAIN_OPTIONS,
+					service: getKeyShareService(accountAddress)
+				});
+			}
+		}
+	});
+};
+
+//#endregion
+//#region src/modules/waas/getWaasChainNameFromChain/getWaasChainNameFromChain.ts
+/** @not-instrumented */
+const getWaasChainNameFromChain = (chain) => {
+	return CHAINS_INFO_MAP[chain].waasChainNameOverride || chain;
+};
+
+//#endregion
+//#region src/modules/waas/createWaasProvider/createWaasProvider.ts
+const RAW_MESSAGE_MESSAGE_REQUIRED_LENGTH = 64;
+/** @not-instrumented */
+const createWaasProvider = ({ sdkClient, chain }) => {
+	const logger = getCore(sdkClient).logger;
+	let _waasClient;
+	const getWaasClient = async () => {
+		if (!_waasClient) {
+			_waasClient = createWaasClient({ chainName: getWaasChainNameFromChain(chain) }, sdkClient);
+			await _waasClient.initialize();
+		}
+		return _waasClient;
+	};
+	const backupKeySharesToGoogleDrive = async ({ googleDriveAccessToken, password, walletAccount }) => {
+		const { signature: signedSessionId } = await getSignedSessionId(sdkClient);
+		return (await getWaasClient()).backupKeySharesToGoogleDrive({
+			accountAddress: walletAccount.address,
+			authToken: sdkClient.token ?? void 0,
+			googleDriveAccessToken,
+			password,
+			signedSessionId
+		});
+	};
+	const createWalletAccount = async (args = {}) => {
+		logger.debug("[createWaasProvider] createWalletAccount", {
+			bitcoinConfig: args.bitcoinConfig,
+			thresholdSignatureScheme: args.thresholdSignatureScheme
+		});
+		const { signature: signedSessionId } = await getSignedSessionId(sdkClient);
+		return await (await getWaasClient()).createWalletAccount({
+			authToken: sdkClient.token ?? void 0,
+			bitcoinConfig: args.bitcoinConfig,
+			password: args.password,
+			signedSessionId,
+			thresholdSignatureScheme: args.thresholdSignatureScheme ?? ThresholdSignatureScheme.TWO_OF_TWO
+		});
+	};
+	const delegateKeyShares = async ({ password, walletAccount }) => {
+		const { signature: signedSessionId } = await getSignedSessionId(sdkClient);
+		return (await getWaasClient()).delegateKeyShares({
+			accountAddress: walletAccount.address,
+			authToken: sdkClient.token ?? void 0,
+			password,
+			signedSessionId
+		});
+	};
+	const exportClientKeyshares = async ({ password, walletAccount }) => {
+		const { signature: signedSessionId } = await getSignedSessionId(sdkClient);
+		await (await getWaasClient()).exportClientKeyshares({
+			accountAddress: walletAccount.address,
+			authToken: sdkClient.token ?? void 0,
+			password,
+			signedSessionId
+		});
+	};
+	const exportPrivateKey = async ({ displayContainer, walletAccount, password }) => {
+		const { signature: signedSessionId } = await getSignedSessionId(sdkClient);
+		const waasClient = await getWaasClient();
+		const mfaToken = await consumeMfaTokenIfRequiredForAction({ mfaAction: MFAAction.WalletWaasExport }, sdkClient);
+		const elevatedAccessToken = __getElevatedAccessToken_wrapped({ scope: TokenScope.Walletexport }, sdkClient);
+		await waasClient.exportPrivateKey({
+			accountAddress: walletAccount.address,
+			authToken: sdkClient.token ?? void 0,
+			displayContainer,
+			elevatedAccessToken,
+			mfaToken,
+			password,
+			signedSessionId
+		});
+	};
+	const restoreUserShareForWalletAccount = async ({ walletAccount }) => {
+		const { signature: signedSessionId } = await getSignedSessionId(sdkClient);
+		await (await getWaasClient()).getWallet({
+			accountAddress: walletAccount.address,
+			authToken: sdkClient.token ?? void 0,
+			signedSessionId,
+			walletOperation: WalletOperation.SIGN_MESSAGE
+		});
+	};
+	const importPrivateKey = async ({ privateKey, thresholdSignatureScheme = ThresholdSignatureScheme.TWO_OF_TWO }) => {
+		const { signature: signedSessionId } = await getSignedSessionId(sdkClient);
+		await (await getWaasClient()).importPrivateKey({
+			authToken: sdkClient.token ?? void 0,
+			privateKey,
+			signedSessionId,
+			thresholdSignatureScheme
+		});
+	};
+	const refreshWalletAccountShares = async ({ password, walletAccount }) => {
+		const { signature: signedSessionId } = await getSignedSessionId(sdkClient);
+		const walletClient = await getWaasClient();
+		const mfaToken = await consumeMfaTokenIfRequiredForAction({ mfaAction: MFAAction.WalletWaasRefresh }, sdkClient);
+		return walletClient.refreshWalletAccountShares({
+			accountAddress: walletAccount.address,
+			authToken: sdkClient.token ?? void 0,
+			mfaToken,
+			password,
+			signedSessionId
+		});
+	};
+	const revokeDelegation = async ({ password, walletAccount }) => {
+		const { signature: signedSessionId } = await getSignedSessionId(sdkClient);
+		return (await getWaasClient()).revokeDelegation({
+			accountAddress: walletAccount.address,
+			authToken: sdkClient.token ?? void 0,
+			password,
+			signedSessionId
+		});
+	};
+	const setWaasWalletAccountPassword = async ({ password, walletAccount }) => {
+		const { signature: signedSessionId } = await getSignedSessionId(sdkClient);
+		return (await getWaasClient()).setPassword({
+			accountAddress: walletAccount.address,
+			authToken: sdkClient.token ?? void 0,
+			newPassword: password,
+			signedSessionId
+		});
+	};
+	const signRawMessage = async ({ message, password, walletAccount }) => {
+		if (message.length !== RAW_MESSAGE_MESSAGE_REQUIRED_LENGTH) throw new InvalidParamError(`Message must be ${RAW_MESSAGE_MESSAGE_REQUIRED_LENGTH} characters long`);
+		const { signature: signedSessionId } = await getSignedSessionId(sdkClient);
+		const mfaToken = await consumeMfaTokenIfRequiredForAction({ mfaAction: MFAAction.WalletWaasSign }, sdkClient);
+		const elevatedAccessToken = __getElevatedAccessToken_wrapped({ scope: TokenScope.Walletsign }, sdkClient);
+		return { signature: await (await getWaasClient()).signRawMessage({
+			accountAddress: walletAccount.address,
+			authToken: sdkClient.token ?? void 0,
+			elevatedAccessToken,
+			message,
+			mfaToken,
+			password,
+			signedSessionId
+		}) };
+	};
+	const destroy = async (args) => {
+		if (!_waasClient) return;
+		const waasClient = await getWaasClient();
+		if (args?.reason !== "token-expired") await waasClient.cleanup();
+		_waasClient = void 0;
+	};
+	const updatePassword = async ({ walletAccount, currentPassword, newPassword }) => {
+		const { signature: signedSessionId } = await getSignedSessionId(sdkClient);
+		return (await getWaasClient()).updatePassword({
+			accountAddress: walletAccount.address,
+			authToken: sdkClient.token ?? void 0,
+			existingPassword: currentPassword,
+			newPassword,
+			signedSessionId
+		});
+	};
+	const signMessage = async ({ message, walletAccount }) => {
+		const { signature: signedSessionId } = await getSignedSessionId(sdkClient);
+		const mfaToken = await consumeMfaTokenIfRequiredForAction({ mfaAction: MFAAction.WalletWaasSign }, sdkClient);
+		const elevatedAccessToken = __getElevatedAccessToken_wrapped({ scope: TokenScope.Walletsign }, sdkClient);
+		return { signature: await (await getWaasClient()).signMessage({
+			accountAddress: walletAccount.address,
+			authToken: sdkClient.token ?? void 0,
+			elevatedAccessToken,
+			message,
+			mfaToken,
+			signedSessionId
+		}) };
+	};
+	const signSerializedTransaction = async ({ chainId, serializedTransaction, walletAccount }) => {
+		const { signature: signedSessionId } = await getSignedSessionId(sdkClient);
+		const mfaToken = await consumeMfaTokenIfRequiredForAction({ mfaAction: MFAAction.WalletWaasSign }, sdkClient);
+		const elevatedAccessToken = __getElevatedAccessToken_wrapped({ scope: TokenScope.Walletsign }, sdkClient);
+		return { signature: await (await getWaasClient()).signTransaction({
+			authToken: sdkClient.token ?? void 0,
+			chainId,
+			elevatedAccessToken,
+			mfaToken,
+			senderAddress: walletAccount.address,
+			signedSessionId,
+			transaction: serializedTransaction
+		}) };
+	};
+	const getWalletRecoveryState = async ({ walletAccount }) => {
+		const { signature: signedSessionId } = await getSignedSessionId(sdkClient);
+		return (await getWaasClient()).getWalletRecoveryState({
+			accountAddress: walletAccount.address,
+			authToken: sdkClient.token ?? void 0,
+			signedSessionId
+		});
+	};
+	const unlockWallet = async ({ password, walletAccount }) => {
+		const { signature: signedSessionId } = await getSignedSessionId(sdkClient);
+		return (await getWaasClient()).unlockWallet({
+			accountAddress: walletAccount.address,
+			authToken: sdkClient.token ?? void 0,
+			password,
+			signedSessionId
+		});
+	};
+	return {
+		backupKeySharesToGoogleDrive,
+		createWalletAccount,
+		delegateKeyShares,
+		destroy,
+		exportClientKeyshares,
+		exportPrivateKey,
+		getWaasClient,
+		getWalletRecoveryState,
+		importPrivateKey,
+		refreshWalletAccountShares,
+		restoreUserShareForWalletAccount,
+		revokeDelegation,
+		setWaasWalletAccountPassword,
+		signMessage,
+		signRawMessage,
+		signSerializedTransaction,
+		unlockWallet,
+		updatePassword
+	};
+};
+
+//#endregion
+//#region src/modules/waas/getAllUserWaasAddressesForChain/getAllUserWaasAddressesForChain.ts
+/** @not-instrumented */
+const getAllUserWaasAddressesForChain = ({ chain }, client) => {
+	if (!client.user) return [];
+	return (client.user.verifiedCredentials.filter((credential) => credential.walletProvider === WalletProviderEnum.EmbeddedWallet && credential.walletName?.toLowerCase().startsWith(DYNAMIC_WAAS_METADATA.normalizedWalletName) && credential.address && credential.chain && getChainFromVerifiedCredentialChain(credential.chain) === chain) ?? []).map((credential) => credential.address);
+};
+
+//#endregion
+//#region src/exports/waasCore.ts
+assertPackageVersion(name, version);
+
+//#endregion
+export { DYNAMIC_WAAS_METADATA, createWaasClient, createWaasProvider, getAllUserWaasAddressesForChain, getWaasChainNameFromChain };
+//# sourceMappingURL=waasCore.native.esm.js.map

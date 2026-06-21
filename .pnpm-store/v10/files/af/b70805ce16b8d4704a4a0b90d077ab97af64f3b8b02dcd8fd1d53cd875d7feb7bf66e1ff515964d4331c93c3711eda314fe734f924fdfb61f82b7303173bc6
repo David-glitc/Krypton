@@ -1,0 +1,59 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var getUserProfileFields = require('../../functions/getUserProfileFields/getUserProfileFields.cjs');
+require('@dynamic-labs/sdk-api-core');
+require('../../constants/values.cjs');
+require('@dynamic-labs/utils');
+require('../../../../../_virtual/_tslib.cjs');
+require('@dynamic-labs/multi-wallet');
+require('../../../shared/logger.cjs');
+require('react-international-phone');
+require('../../constants/colors.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react');
+require('react/jsx-runtime');
+require('../../../context/ViewContext/ViewContext.cjs');
+require('@dynamic-labs/wallet-book');
+require('../../../shared/consts/index.cjs');
+require('../../../store/state/nonce/nonce.cjs');
+var isSocialKycEnabled = require('../../functions/isSocialKycEnabled/isSocialKycEnabled.cjs');
+require('@dynamic-labs-sdk/client/core');
+require('eventemitter3');
+require('@dynamic-labs-sdk/client');
+require('../../../config/ApiEndpoint.cjs');
+require('../../../events/dynamicEvents.cjs');
+require('@dynamic-labs/locale');
+require('../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../store/state/primaryWalletId/primaryWalletId.cjs');
+require('../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+require('../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+var authMode = require('../../../store/state/authMode/authMode.cjs');
+
+/* eslint-disable max-len */
+/**
+ * A custom React hook that checks if KYC fields are enabled in the project settings or defined in the user profile.
+ *
+ * @returns {boolean} - A boolean value indicating whether the KYC fields are enabled in the project settings or defined in the user profile.
+ */
+const useKYCFlag = () => {
+    const { projectSettings, user } = useInternalDynamicContext.useInternalDynamicContext();
+    const authMode$1 = authMode.useAuthMode();
+    const isOnlyConnectedMode = authMode$1 === 'connect-only' && !user;
+    if (isOnlyConnectedMode) {
+        return false;
+    }
+    const hasAnyKYCFields = getUserProfileFields.getUserProfileFields({
+        customFields: projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.customFields,
+        projectSettingsKyc: projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.kyc,
+        user,
+    });
+    return hasAnyKYCFields.length > 0 || isSocialKycEnabled.isSocialKycEnabled(projectSettings);
+};
+
+exports.useKYCFlag = useKYCFlag;

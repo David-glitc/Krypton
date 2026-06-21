@@ -1,0 +1,33 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var Checkout = require('./Checkout.cjs');
+
+/* tslint:disable */
+function CheckoutsResponseFromJSON(json) {
+    return CheckoutsResponseFromJSONTyped(json);
+}
+function CheckoutsResponseFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'checkouts': (json['checkouts'].map(Checkout.CheckoutFromJSON)),
+    };
+}
+function CheckoutsResponseToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'checkouts': (value.checkouts.map(Checkout.CheckoutToJSON)),
+    };
+}
+
+exports.CheckoutsResponseFromJSON = CheckoutsResponseFromJSON;
+exports.CheckoutsResponseFromJSONTyped = CheckoutsResponseFromJSONTyped;
+exports.CheckoutsResponseToJSON = CheckoutsResponseToJSON;

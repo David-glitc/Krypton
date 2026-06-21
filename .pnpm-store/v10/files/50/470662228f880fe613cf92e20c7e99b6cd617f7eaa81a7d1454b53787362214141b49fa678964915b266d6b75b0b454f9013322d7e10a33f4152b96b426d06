@@ -1,0 +1,4 @@
+import type { DeviceRegistrationResponse } from '@dynamic-labs/sdk-api-core';
+/** @not-instrumented */
+export declare const getRegisteredDevices: (client?: import("../../../exports").DynamicClient) => Promise<DeviceRegistrationResponse[]>;
+//# sourceMappingURL=getRegisteredDevices.d.ts.map

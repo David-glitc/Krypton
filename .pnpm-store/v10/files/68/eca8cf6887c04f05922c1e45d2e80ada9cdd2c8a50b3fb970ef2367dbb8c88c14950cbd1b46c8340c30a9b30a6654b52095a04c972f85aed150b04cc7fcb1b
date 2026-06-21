@@ -1,0 +1,8 @@
+import { FC } from 'react';
+import type { TokenScope } from '@dynamic-labs/sdk-api-core';
+export type MfaChooseDeviceViewProps = {
+    isInitialSetup?: boolean;
+    createMfaToken?: boolean;
+    requestedScopes?: TokenScope[];
+};
+export declare const MfaChooseDeviceView: FC<MfaChooseDeviceViewProps>;

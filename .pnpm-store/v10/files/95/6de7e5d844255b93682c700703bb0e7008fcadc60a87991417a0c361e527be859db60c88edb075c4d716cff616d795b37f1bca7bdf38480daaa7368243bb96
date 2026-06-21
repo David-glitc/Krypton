@@ -1,0 +1,24 @@
+import type { CheckoutTransaction } from '@dynamic-labs/sdk-api-core';
+import type { DynamicClient } from '../../../client/types';
+export type BroadcastCheckoutTransactionParams = {
+    transactionId: string;
+    /**
+     * The on-chain transaction hash. Required for wallet sources, optional
+     * for exchange sources (the user may not have it).
+     */
+    txHash?: string;
+};
+/**
+ * Records that a checkout transaction has been broadcasted.
+ *
+ * For wallet sources, pass the `txHash` from the on-chain transaction.
+ * For exchange sources, `txHash` can be omitted — the user confirms
+ * they completed the payment and the transaction moves to `broadcasted`.
+ *
+ * @param params BroadcastCheckoutTransactionParams - The transaction ID and optional tx hash.
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns The updated checkout transaction
+ * @instrumented
+ */
+export declare const broadcastCheckoutTransaction: ({ transactionId, txHash }: BroadcastCheckoutTransactionParams, client?: DynamicClient) => Promise<CheckoutTransaction>;
+//# sourceMappingURL=broadcastCheckoutTransaction.d.ts.map

@@ -1,0 +1,38 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../../_virtual/_tslib.cjs');
+var jsxRuntime = require('react/jsx-runtime');
+var React = require('react');
+var DynamicBridgeWidgetContext = require('../../context/DynamicBridgeWidgetContext/DynamicBridgeWidgetContext.cjs');
+require('../../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var ViewContext = require('../../../../context/ViewContext/ViewContext.cjs');
+var useUserUpdateRequest = require('../../../../utils/hooks/useUserUpdateRequest/useUserUpdateRequest.cjs');
+var UserProfileForm = require('../../../../components/UserProfileForm/UserProfileForm.cjs');
+
+const EditProfileView = () => {
+    const { pushView } = ViewContext.useViewContext();
+    const { goToProfileView } = DynamicBridgeWidgetContext.useDynamicBridgeWidgetContext();
+    const { setShowAuthFlow } = useInternalDynamicContext.useInternalDynamicContext();
+    const { updateUser } = useUserUpdateRequest.useUserUpdateRequestInternal({
+        validationSchemaStripUnknown: true,
+    });
+    const onEditProfileFormSubmit = React.useCallback((formValues) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        const { isEmailVerificationRequired, isSmsVerificationRequired } = yield updateUser(formValues);
+        goToProfileView();
+        if (isEmailVerificationRequired || isSmsVerificationRequired) {
+            setShowAuthFlow(true, {
+                ignoreIfIsEmbeddedWidget: false,
+                performMultiWalletChecks: false,
+            });
+            pushView(isEmailVerificationRequired ? 'verify-email' : 'verify-sms');
+        }
+    }), [goToProfileView, setShowAuthFlow, pushView, updateUser]);
+    return (jsxRuntime.jsx(UserProfileForm.UserProfileForm, { onEditProfileSubmit: onEditProfileFormSubmit, onEditProfileCancel: goToProfileView }));
+};
+
+exports.EditProfileView = EditProfileView;
+exports["default"] = EditProfileView;

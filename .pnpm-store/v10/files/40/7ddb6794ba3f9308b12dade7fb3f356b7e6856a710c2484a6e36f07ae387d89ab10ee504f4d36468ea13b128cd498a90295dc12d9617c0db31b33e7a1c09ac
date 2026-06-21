@@ -1,0 +1,36 @@
+import { WalletRecoveryState } from '@dynamic-labs-wallet/browser-wallet-client';
+import { ChainEnum } from '@dynamic-labs/sdk-api-core';
+export type SetPasswordParams = {
+    accountAddress: string;
+    chainName: ChainEnum | string;
+    newPassword: string;
+};
+export type UpdatePasswordParams = {
+    accountAddress: string;
+    chainName: ChainEnum | string;
+    newPassword: string;
+    existingPassword?: string;
+};
+export type UnlockWalletParams = {
+    accountAddress: string;
+    chainName: ChainEnum | string;
+    password: string;
+};
+export type CheckWalletLockStateParams = {
+    accountAddress: string;
+    chainName: ChainEnum | string;
+};
+export type WalletPasswordState = {
+    isLoading: boolean;
+    error: string | null;
+    recoveryState: WalletRecoveryState | null;
+};
+export type UseWalletPasswordReturn = {
+    setPassword: (params: SetPasswordParams) => Promise<boolean>;
+    updatePassword: (params: UpdatePasswordParams) => Promise<boolean>;
+    unlockWallet: (params: UnlockWalletParams) => Promise<boolean>;
+    checkWalletLockState: (params: CheckWalletLockStateParams) => Promise<WalletRecoveryState | null>;
+    state: WalletPasswordState;
+    resetState: () => void;
+};
+export declare const useWalletPassword: () => UseWalletPasswordReturn;

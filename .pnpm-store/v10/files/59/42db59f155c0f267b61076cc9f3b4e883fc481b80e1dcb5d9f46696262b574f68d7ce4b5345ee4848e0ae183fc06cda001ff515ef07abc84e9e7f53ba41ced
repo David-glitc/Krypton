@@ -1,0 +1,49 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+require('../../../config/ApiEndpoint.cjs');
+require('@dynamic-labs-sdk/client/core');
+require('@dynamic-labs/sdk-api-core');
+require('react');
+require('eventemitter3');
+require('@dynamic-labs/utils');
+require('@dynamic-labs-sdk/client');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+require('../../../context/ViewContext/ViewContext.cjs');
+require('../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('../../../utils/constants/colors.cjs');
+require('../../../utils/constants/values.cjs');
+require('../../../shared/consts/index.cjs');
+require('@dynamic-labs/multi-wallet');
+require('react-international-phone');
+require('../../../store/state/nonce/nonce.cjs');
+var api = require('../api.cjs');
+require('@dynamic-labs/locale');
+require('../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../store/state/primaryWalletId/primaryWalletId.cjs');
+require('../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+require('../../../utils/functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+require('../../../events/dynamicEvents.cjs');
+
+const getOnrampProviders = (_c) => _tslib.__awaiter(void 0, [_c], void 0, function* ({ chain, environmentId, networkId, token, tokenAmount, walletAddress, currency, includeDisabled, merchantName, }) {
+    const { onramps } = yield api.sdkApi().getSupportedOnramps({
+        chain,
+        currency,
+        environmentId,
+        includeDisabled,
+        merchantName,
+        networkId: networkId ? String(networkId) : undefined,
+        token,
+        tokenAmount,
+        walletAddress,
+    });
+    return onramps !== null && onramps !== void 0 ? onramps : [];
+});
+
+exports.getOnrampProviders = getOnrampProviders;

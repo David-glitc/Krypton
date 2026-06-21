@@ -1,0 +1,4 @@
+import type { NetworkProviderBuilderRegistry } from '../networkProviderBuilderRegistry.types';
+/** @not-instrumented */
+export declare const createNetworkProviderBuilderRegistry: () => NetworkProviderBuilderRegistry;
+//# sourceMappingURL=createNetworkProviderBuilderRegistry.d.ts.map

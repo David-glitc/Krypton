@@ -1,0 +1,88 @@
+import { ChainEnum, JwtVerifiedCredential } from '@dynamic-labs/sdk-api-core';
+import { CloudBackupProvider, CloudProviderBackupOptions } from './types';
+export type WalletBackupStatus = 'backed-up' | 'pending';
+export interface WalletToBackup {
+    address: string;
+    chain: ChainEnum;
+}
+export interface WalletWithBackupStatus extends WalletToBackup {
+    status: WalletBackupStatus;
+}
+export interface WalletOperationState {
+    currentIndex: number;
+    failedIndex: number | null;
+    hasError: boolean;
+    isComplete: boolean;
+    isProcessing: boolean;
+    totalWallets: number;
+}
+export interface WalletBackupState extends WalletOperationState {
+    lastError: unknown;
+}
+export interface UseWalletBackupOptions {
+    /**
+     * If true, `backupWallet`, `backupToCloudProvider`, and `backupAllWallets`
+     * throw on failure instead of catching internally, populating
+     * `lastBackupError`, and returning `false`.
+     *
+     * Defaults to `false` for backward compatibility with the pre-#11183
+     * surface. New consumers should set `throwOnError: true` and use try/catch
+     * (or read `mutation.error` if wrapping in a mutation). `lastBackupError`
+     * and `clearBackupError` are deprecated and will be removed in the next
+     * major version.
+     */
+    throwOnError?: boolean;
+}
+export declare const isWalletBackedUp: (cred: JwtVerifiedCredential) => boolean;
+export declare const useWalletBackup: (options?: UseWalletBackupOptions) => {
+    readonly areAllWalletsBackedUp: boolean;
+    readonly backupAllWallets: (wallets?: WalletToBackup[], provider?: CloudBackupProvider, displayContainer?: HTMLElement) => Promise<void>;
+    readonly backupState: WalletBackupState;
+    readonly backupToCloudProvider: (options: CloudProviderBackupOptions, walletToBackup: WalletToBackup) => Promise<boolean>;
+    readonly backupWallet: (walletToBackup: WalletToBackup, provider?: CloudBackupProvider, displayContainer?: HTMLElement) => Promise<boolean>;
+    readonly checkICloudAuth: (walletChain: ChainEnum) => Promise<boolean>;
+    /**
+     * @deprecated Pass `{ throwOnError: true }` to `useWalletBackup` and
+     * use try/catch around `backupWallet` / `backupToCloudProvider` instead.
+     * Will be removed in the next major version.
+     */
+    readonly clearBackupError: () => void;
+    readonly ensureGoogleLinked: () => Promise<boolean>;
+    readonly ensureProviderLinked: (provider: CloudBackupProvider) => Promise<boolean>;
+    readonly getSupportedProviders: () => import("./cloudProviders").CloudProviderConfigWithIcon[];
+    readonly getWalletsBackupStatus: () => WalletWithBackupStatus[];
+    readonly getWalletsToBackup: () => WalletToBackup[];
+    readonly hideICloudAuth: (walletChain: ChainEnum) => Promise<void>;
+    readonly initBackupProcess: () => void;
+    readonly isGoogleLinked: boolean;
+    readonly isProviderLinked: (provider: CloudBackupProvider) => boolean;
+    /**
+     * @deprecated Pass `{ throwOnError: true }` to `useWalletBackup` and
+     * use try/catch around `backupWallet` / `backupToCloudProvider` instead.
+     * Will be removed in the next major version.
+     */
+    readonly lastBackupError: unknown;
+    readonly showICloudAuth: (displayContainer: HTMLElement, walletChain: ChainEnum) => Promise<boolean>;
+    readonly startBackup: (onComplete?: () => void, fromIndex?: number, provider?: CloudBackupProvider, displayContainer?: HTMLElement) => Promise<void>;
+};
+export declare const useBackupWallets: (onComplete: () => void, provider?: CloudBackupProvider, displayContainer?: HTMLElement) => {
+    retry: () => void;
+    start: () => void;
+    lastError: unknown;
+    currentIndex: number;
+    failedIndex: number | null;
+    hasError: boolean;
+    isComplete: boolean;
+    isProcessing: boolean;
+    totalWallets: number;
+};
+export declare const useDownloadKeyShares: (onComplete?: (walletCount: number) => void) => {
+    retry: () => void;
+    startDownload: () => Promise<void>;
+    currentIndex: number;
+    failedIndex: number | null;
+    hasError: boolean;
+    isComplete: boolean;
+    isProcessing: boolean;
+    totalWallets: number;
+};

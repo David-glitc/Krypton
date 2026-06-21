@@ -1,0 +1,189 @@
+import { WebSocketError } from '@dynamic-labs-wallet/forward-mpc-shared';
+
+declare const ErrorCode: {
+    readonly CONNECTION_FAILED: "CONNECTION_FAILED";
+    readonly CONNECTION_TIMEOUT: "CONNECTION_TIMEOUT";
+    readonly NOT_CONNECTED: "NOT_CONNECTED";
+    readonly HANDSHAKE_FAILED: "HANDSHAKE_FAILED";
+    readonly HANDSHAKE_INVALID_RESPONSE: "HANDSHAKE_INVALID_RESPONSE";
+    readonly ATTESTATION_FAILED: "ATTESTATION_FAILED";
+    readonly ATTESTATION_PCR_MISMATCH: "ATTESTATION_PCR_MISMATCH";
+    readonly ATTESTATION_CHALLENGE_MISMATCH: "ATTESTATION_CHALLENGE_MISMATCH";
+    readonly ATTESTATION_NONCE_MISMATCH: "ATTESTATION_NONCE_MISMATCH";
+    readonly ATTESTATION_NONCE_MISSING: "ATTESTATION_NONCE_MISSING";
+    readonly ATTESTATION_DOCUMENT_MISSING: "ATTESTATION_DOCUMENT_MISSING";
+    readonly REQUEST_TIMEOUT: "REQUEST_TIMEOUT";
+    readonly SESSION_DISPOSED: "SESSION_DISPOSED";
+    readonly SERVER_ERROR: "SERVER_ERROR";
+    readonly MESSAGE_PARSE_FAILED: "MESSAGE_PARSE_FAILED";
+    readonly SESSION_ESTABLISH_FAILED: "SESSION_ESTABLISH_FAILED";
+    readonly UNSUPPORTED_ALGORITHM: "UNSUPPORTED_ALGORITHM";
+};
+type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
+/**
+ * Focused subset of ErrorCode for attestation verification failures.
+ * Use with `error.code` to distinguish failure modes on SessionAttestationError.
+ */
+declare const AttestationErrorCode: {
+    /** Generic / unrecognised attestation failure */
+    readonly FAILED: "ATTESTATION_FAILED";
+    /** PCR8 hash mismatch — enclave measurement changed */
+    readonly PCR_MISMATCH: "ATTESTATION_PCR_MISMATCH";
+    /** Challenge / ciphertext binding mismatch */
+    readonly CHALLENGE_MISMATCH: "ATTESTATION_CHALLENGE_MISMATCH";
+    /** Nonce value mismatch — possible tampering */
+    readonly NONCE_MISMATCH: "ATTESTATION_NONCE_MISMATCH";
+    /** Nonce field missing from attestation document */
+    readonly NONCE_MISSING: "ATTESTATION_NONCE_MISSING";
+    /** Server did not return an attestation document */
+    readonly DOCUMENT_MISSING: "ATTESTATION_DOCUMENT_MISSING";
+};
+type AttestationErrorCode = (typeof AttestationErrorCode)[keyof typeof AttestationErrorCode];
+declare const ForwardMPCErrorType: {
+    readonly TRANSPORT: "transport";
+    readonly SESSION: "session";
+    readonly CLIENT: "client";
+};
+type ForwardMPCErrorType = (typeof ForwardMPCErrorType)[keyof typeof ForwardMPCErrorType];
+/**
+ * Abstract root for all Forward MPC errors.
+ * `instanceof ForwardMPCError` is true for every error thrown by this library.
+ */
+declare abstract class ForwardMPCError extends Error {
+    readonly code: ErrorCode;
+    readonly type: ForwardMPCErrorType;
+    readonly context?: Record<string, unknown>;
+    constructor(message: string, code: ErrorCode, type: ForwardMPCErrorType, context?: Record<string, unknown>);
+    toJSON(): Record<string, unknown>;
+}
+/** Abstract base for errors originating from the WebSocket / transport layer. */
+declare abstract class TransportError extends ForwardMPCError {
+    constructor(message: string, code: ErrorCode, context?: Record<string, unknown>);
+}
+/** Abstract base for errors originating from the session / crypto / protocol layer. */
+declare abstract class SessionError extends ForwardMPCError {
+    constructor(message: string, code: ErrorCode, context?: Record<string, unknown>);
+}
+/** Abstract base for errors originating from the client / application layer. */
+declare abstract class ClientError extends ForwardMPCError {
+    constructor(message: string, code: ErrorCode, context?: Record<string, unknown>);
+}
+declare class TransportConnectionError extends TransportError {
+    constructor(context?: Record<string, unknown>);
+}
+declare class TransportConnectionTimeoutError extends TransportError {
+    constructor(context?: Record<string, unknown>);
+}
+declare class TransportNotConnectedError extends TransportError {
+    constructor(context?: Record<string, unknown>);
+}
+declare class SessionHandshakeError extends SessionError {
+    constructor(reason: string, context?: Record<string, unknown>);
+}
+declare class SessionHandshakeInvalidResponseError extends SessionError {
+    constructor(context?: Record<string, unknown>);
+}
+/**
+ * Attestation verification failure.
+ * Use `error.code` to distinguish failure reasons (e.g. ATTESTATION_PCR_MISMATCH)
+ * and `error.cause` to inspect the original verifier error.
+ */
+declare class SessionAttestationError extends SessionError {
+    readonly cause?: unknown;
+    constructor(message?: string, code?: ErrorCode, context?: Record<string, unknown>, cause?: unknown);
+}
+declare class SessionRequestTimeoutError extends SessionError {
+    constructor(context?: Record<string, unknown>);
+}
+declare class SessionDisposedError extends SessionError {
+    constructor(context?: Record<string, unknown>);
+}
+declare class SessionServerError extends SessionError {
+    constructor(reason: string, context?: Record<string, unknown>);
+}
+declare class SessionMessageParseError extends SessionError {
+    constructor(context?: Record<string, unknown>);
+}
+/**
+ * The remote server returned an explicit error response.
+ * Carries the full WebSocketError payload so callers can inspect
+ * `serverError.type` and `serverError.details`.
+ */
+declare class SessionRemoteError extends SessionError {
+    readonly serverError: WebSocketError;
+    constructor(serverError: WebSocketError, context?: Record<string, unknown>);
+}
+declare class ClientUnsupportedAlgorithmError extends ClientError {
+    constructor(context?: Record<string, unknown>);
+}
+declare class ClientSessionEstablishFailedError extends ClientError {
+    constructor(context?: Record<string, unknown>);
+}
+
+/**
+ * Error classification result from Forward MPC operations.
+ */
+type ForwardMpcErrorType = 'ATTESTATION_FAILURE' | 'FORWARD_MPC_TIMEOUT' | 'FORWARD_MPC_ERROR';
+/**
+ * Result of classifying a Forward MPC error.
+ */
+interface ForwardMpcErrorClassification {
+    /** The type of error encountered */
+    errorType: ForwardMpcErrorType;
+    /** Error code from ForwardMPCError, if available */
+    errorCode: string | undefined;
+    /** Error message */
+    errorMessage: string;
+    /** Attestation verification errors, if this is an attestation failure */
+    attestationErrors?: unknown[];
+    /** Whether the session was established before the error occurred */
+    sessionEstablished: boolean;
+    /** Whether this error should trigger a fallback to relay-based MPC */
+    shouldFallback: boolean;
+}
+/**
+ * Classifies a Forward MPC error and returns structured data for logging.
+ * Use this to standardize error handling across keygen, signing, and connect operations.
+ *
+ * @param error - The error to classify
+ * @returns Classification result with error details and recommended action
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   await forwardMpcClient.sign(...);
+ * } catch (error) {
+ *   const classification = classifyForwardMpcError(error);
+ *   logger.warn(`Forward MPC ${operation} failed`, {
+ *     ...classification,
+ *     chainName,
+ *     environmentId,
+ *   });
+ *   if (classification.shouldFallback) {
+ *     // Fall through to relay-based MPC
+ *   } else {
+ *     throw error;
+ *   }
+ * }
+ * ```
+ *
+ * `shouldFallback` is `true` for every Forward MPC failure mode. The
+ * relay-based MPC path is a fully functional safety net; treating any
+ * Forward MPC failure as terminal (refusing to fall back) blocks user
+ * wallet operations end-to-end on transient Forward MPC degradation.
+ */
+declare function classifyForwardMpcError(error: unknown): ForwardMpcErrorClassification;
+/**
+ * Type guard to check if an error is a Forward MPC error that should be handled.
+ * Matches by both `instanceof` and `.name` to survive multiple bundled
+ * copies of this package in the same JS realm.
+ */
+declare function isForwardMpcError(error: unknown): error is ForwardMPCError;
+/**
+ * Type guard to check if an error is an attestation failure.
+ * Matches by both `instanceof` and `.name` to survive multiple bundled
+ * copies of this package in the same JS realm.
+ */
+declare function isAttestationError(error: unknown): error is SessionAttestationError;
+
+export { AttestationErrorCode as A, ClientError as C, ErrorCode as E, ForwardMPCError as F, SessionAttestationError as S, TransportConnectionError as T, ClientSessionEstablishFailedError as a, ClientUnsupportedAlgorithmError as b, ForwardMPCErrorType as c, type ForwardMpcErrorClassification as d, type ForwardMpcErrorType as e, SessionDisposedError as f, SessionError as g, SessionHandshakeError as h, SessionHandshakeInvalidResponseError as i, SessionMessageParseError as j, SessionRemoteError as k, SessionRequestTimeoutError as l, SessionServerError as m, TransportConnectionTimeoutError as n, TransportError as o, TransportNotConnectedError as p, classifyForwardMpcError as q, isAttestationError as r, isForwardMpcError as s };

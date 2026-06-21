@@ -1,0 +1,2 @@
+export { parseUserAgent } from './parseUserAgent';
+//# sourceMappingURL=index.d.ts.map

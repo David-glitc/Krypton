@@ -1,0 +1,19 @@
+import React from 'react';
+export type ShadowDOMContextType = {
+    shadowRoot?: ShadowRoot;
+};
+export declare const ShadowDOMContext: React.Context<ShadowDOMContextType>;
+export declare const useShadowDOMContext: () => ShadowDOMContextType;
+export type ShadowDOMProps = {
+    children?: React.ReactElement | React.ReactElement[];
+    className?: string;
+    dataTestId?: string;
+    id?: string;
+    mode?: ShadowRootMode;
+    zIndex?: number;
+};
+export type ShadowDOMStyleProps = {
+    nonce?: string;
+};
+export declare const ShadowDOMStyle: React.FC<ShadowDOMStyleProps>;
+export declare const ShadowDOM: React.FC<ShadowDOMProps>;

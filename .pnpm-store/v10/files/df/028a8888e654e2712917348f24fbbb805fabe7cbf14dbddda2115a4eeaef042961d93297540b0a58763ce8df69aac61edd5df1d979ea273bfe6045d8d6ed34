@@ -1,0 +1,57 @@
+'use client'
+import { __awaiter } from '../../../../../_virtual/_tslib.js';
+import { useCallback } from 'react';
+import '../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { useInternalUserWallets } from '../../../context/UserWalletsContext/UserWalletsContext.js';
+import { useConnectAndSign } from '../authenticationHooks/useConnectAndSign/useConnectAndSign.js';
+
+const useStepUpWallet = ({ credentialId, stateActions, }) => {
+    const { setSelectedWalletConnectorKey } = useInternalDynamicContext();
+    const connectAndSign = useConnectAndSign();
+    const { userWallets } = useInternalUserWallets();
+    const { setError, setLoading, setSuccess } = stateActions;
+    const verifyWallet = useCallback((_a) => __awaiter(void 0, [_a], void 0, function* ({ requestedScopes, walletId, }) {
+        setLoading();
+        const effectiveId = walletId !== null && walletId !== void 0 ? walletId : credentialId;
+        const wallet = effectiveId
+            ? userWallets.find((w) => w.id === effectiveId)
+            : userWallets[0];
+        if (!wallet) {
+            const message = effectiveId
+                ? `Wallet with id "${effectiveId}" not found`
+                : 'No connected wallets found for step-up authentication';
+            setError(message);
+            return;
+        }
+        const connector = wallet.connector;
+        setSelectedWalletConnectorKey({
+            chain: connector.connectedChain,
+            key: connector.key,
+        });
+        try {
+            yield connectAndSign({
+                requestedScopes,
+                walletConnector: connector,
+            });
+            setSuccess();
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error
+                ? error.message
+                : 'Failed to verify wallet for step-up authentication';
+            setError(errorMessage);
+        }
+    }), [
+        connectAndSign,
+        credentialId,
+        setError,
+        setLoading,
+        setSelectedWalletConnectorKey,
+        setSuccess,
+        userWallets,
+    ]);
+    return { verifyWallet };
+};
+
+export { useStepUpWallet };

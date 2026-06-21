@@ -1,0 +1,8 @@
+import { FC } from 'react';
+export type SetupPasswordViewProps = {
+    onComplete: (password: string) => Promise<void> | void;
+    onCancel?: () => void;
+    onDone?: () => void;
+    skipKnowledgeCheck?: boolean;
+};
+export declare const SetupPasswordView: FC<SetupPasswordViewProps>;

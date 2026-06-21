@@ -1,0 +1,26 @@
+import type { Chain } from '../../../chain';
+import type { WalletSchema } from '../../legacyWalletBook.types';
+type GetChainsFromWalletSchemaParams = {
+    wallet: WalletSchema;
+    walletKey?: string;
+};
+/**
+ * Returns every chain a wallet book entry advertises support for —
+ * deduped, in `injectedConfig` order, then `chains` order. Used by the
+ * catalogue's WalletConnect builder so a multi-chain wallet (e.g. Trust
+ * supports EVM + SOL) gets one option per chain rather than one option
+ * for whichever chain `getChainFromWalletSchema` happened to pick first.
+ *
+ * Falls back to {@link getChainFromWalletSchema}'s single-result behavior
+ * (`['EVM']` default) when neither field is populated, so the helper
+ * never returns an empty array — every eligible wallet emits at least
+ * one option.
+ *
+ * @param params.wallet - The wallet schema from the wallet book.
+ * @param [params.walletKey] - The wallet key identifier (used as last-resort fallback).
+ * @returns Ordered, deduped array of Chains.
+ * @not-instrumented
+ */
+export declare const getChainsFromWalletSchema: ({ wallet, walletKey, }: GetChainsFromWalletSchemaParams) => Chain[];
+export {};
+//# sourceMappingURL=getChainsFromWalletSchema.d.ts.map

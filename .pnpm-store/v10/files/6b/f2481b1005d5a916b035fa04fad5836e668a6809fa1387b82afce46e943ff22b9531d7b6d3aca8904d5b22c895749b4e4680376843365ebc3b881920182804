@@ -1,0 +1,11 @@
+import type { WalletProviderData } from '../walletProvider.types';
+type IsDeeplinkWalletProviderParams = {
+    walletProvider: WalletProviderData;
+};
+/**
+ * Returns true if the wallet provider uses the deep link protocol (e.g. Phantom redirect on mobile).
+  * @not-instrumented
+ */
+export declare const isDeeplinkWalletProvider: ({ walletProvider, }: IsDeeplinkWalletProviderParams) => boolean;
+export {};
+//# sourceMappingURL=isDeeplinkWalletProvider.d.ts.map

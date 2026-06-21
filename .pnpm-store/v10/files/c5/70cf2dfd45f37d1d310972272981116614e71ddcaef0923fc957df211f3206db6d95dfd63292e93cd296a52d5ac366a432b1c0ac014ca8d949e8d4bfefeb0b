@@ -1,0 +1,107 @@
+'use client'
+import { jsx } from 'react/jsx-runtime';
+import { createContext, useState, useRef, useCallback, useMemo } from 'react';
+import { useInternalDynamicEvents } from '../../utils/hooks/events/useDynamicEvents/useDynamicEvents.js';
+import { useErrorContext } from '../ErrorContext/ErrorContext.js';
+import { dynamicEvents } from '../../events/dynamicEvents.js';
+import { createProviderHook } from '../../shared/utils/functions/createProviderHook/createProviderHook.js';
+
+const ViewContext = createContext(undefined);
+const ViewContextProvider = ({ children, initialViewType, loginViewType }) => {
+    var _a;
+    // effectiveLoginViewType drives back-navigation, empty-stack fallback, and clearStackAndPushInitialView.
+    // It is reactive: when loginViewType changes (e.g. after logout) the fallback view updates automatically.
+    const effectiveLoginViewType = loginViewType !== null && loginViewType !== void 0 ? loginViewType : initialViewType;
+    const [stack, setStack] = useState([]);
+    const authFlowCloseTimeoutRef = useRef(null);
+    const cancelAuthFlowCloseTimeout = useCallback(() => {
+        if (authFlowCloseTimeoutRef.current !== null) {
+            clearTimeout(authFlowCloseTimeoutRef.current);
+            authFlowCloseTimeoutRef.current = null;
+        }
+    }, []);
+    const view = (_a = stack[stack.length - 1]) !== null && _a !== void 0 ? _a : {
+        type: effectiveLoginViewType,
+    };
+    const { clearError } = useErrorContext();
+    const pushView = useCallback((type, props, events) => {
+        if (view.type === type) {
+            // Update the current view props and events
+            if (props !== view.props || events !== view.events) {
+                cancelAuthFlowCloseTimeout();
+                setStack((stack) => [...stack.slice(0, -1), { events, props, type }]);
+            }
+            return;
+        }
+        cancelAuthFlowCloseTimeout();
+        clearError();
+        // If the stack was "empty" (i.e. showing a default view), let's make sure the stack
+        // reflects this by having this default view as the first item in the stack
+        setStack((stack) => {
+            if (stack.length === 0)
+                return [{ type: effectiveLoginViewType }, { events, props, type }];
+            else
+                return [...stack, { events, props, type }];
+        });
+    }, [cancelAuthFlowCloseTimeout, clearError, view.type, effectiveLoginViewType]);
+    const replaceView = useCallback((type, props, events) => {
+        if (view.type === type)
+            return;
+        cancelAuthFlowCloseTimeout();
+        clearError();
+        setStack((prev) => {
+            if (prev.length <= 1) {
+                return [{ type: effectiveLoginViewType }, { events, props, type }];
+            }
+            return [...prev.slice(0, -1), { events, props, type }];
+        });
+    }, [cancelAuthFlowCloseTimeout, clearError, effectiveLoginViewType, view.type]);
+    const canGoBack = stack.length > 1;
+    const goBack = useCallback(() => {
+        if (!canGoBack)
+            return;
+        clearError();
+        setStack((prev) => prev.slice(0, -1));
+        dynamicEvents.emit('goBack');
+    }, [canGoBack, clearError]);
+    const clearStackAndPush = useCallback((type, props, events) => {
+        cancelAuthFlowCloseTimeout();
+        clearError();
+        setStack([{ events, props, type }]);
+    }, [cancelAuthFlowCloseTimeout, clearError]);
+    const clearStackAndPushInitialView = useCallback(() => {
+        clearError();
+        setStack((prev) => (prev.length > 0 ? [] : prev));
+    }, [clearError]);
+    useInternalDynamicEvents('logout', clearStackAndPushInitialView);
+    // Wait for the auth flow animation transition to finish before clearing the stack
+    useInternalDynamicEvents('authFlowClose', () => {
+        cancelAuthFlowCloseTimeout();
+        authFlowCloseTimeoutRef.current = setTimeout(() => {
+            authFlowCloseTimeoutRef.current = null;
+            clearStackAndPushInitialView();
+        }, 100);
+    });
+    const value = useMemo(() => ({
+        canGoBack: stack.length > 1,
+        clearStackAndPush,
+        clearStackAndPushInitialView,
+        goBack,
+        pushView,
+        replaceView,
+        stack,
+        view,
+    }), [
+        clearStackAndPushInitialView,
+        goBack,
+        clearStackAndPush,
+        pushView,
+        view,
+        stack,
+        replaceView,
+    ]);
+    return jsx(ViewContext.Provider, { value: value, children: children });
+};
+const useViewContext = createProviderHook(ViewContext, 'ViewContextProvider');
+
+export { ViewContext, ViewContextProvider, useViewContext };

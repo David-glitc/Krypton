@@ -1,0 +1,2 @@
+export { signInWithSocialRedirect } from './signInWithSocialRedirect';
+//# sourceMappingURL=index.d.ts.map

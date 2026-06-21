@@ -1,0 +1,52 @@
+'use client'
+import { __awaiter } from '../../../../../../_virtual/_tslib.js';
+import { jsx, jsxs } from 'react/jsx-runtime';
+import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import { getRegisteredDevices, revokeRegisteredDevice, revokeAllRegisteredDevices } from '@dynamic-labs-sdk/client';
+import { useDynamicClient } from '../../../../client/client.js';
+import { IconButton } from '../../../../components/IconButton/IconButton.js';
+import { ModalHeader } from '../../../../components/ModalHeader/ModalHeader.js';
+import { Skeleton } from '../../../../components/Skeleton/Skeleton.js';
+import { TextButton } from '../../../../components/TextButton/TextButton.js';
+import { Typography } from '../../../../components/Typography/Typography.js';
+import { ReactComponent as SvgChevronLeft } from '../../../../shared/assets/chevron-left.js';
+import '@dynamic-labs/iconic';
+import '../../../../context/ViewContext/ViewContext.js';
+import { usePromise } from '../../../../utils/hooks/usePromise/usePromise.js';
+import { useWidgetContext } from '../../context/DynamicWidgetContext.js';
+import { RemoveAllDevicesPrompt } from './components/RemoveAllDevicesPrompt/RemoveAllDevicesPrompt.js';
+import { RemoveDevicePrompt } from './components/RemoveDevicePrompt/RemoveDevicePrompt.js';
+import { TrustedDeviceTile } from './components/TrustedDeviceTile/TrustedDeviceTile.js';
+
+const ManageTrustedDevicesView = () => {
+    var _a, _b;
+    const { t } = useTranslation();
+    const { setDynamicWidgetView } = useWidgetContext();
+    const dynamicClient = useDynamicClient();
+    const [deviceIdToRemove, setDeviceIdToRemove] = useState(null);
+    const [showRemoveAll, setShowRemoveAll] = useState(false);
+    const { data: devices, isLoading, retrigger, } = usePromise(() => getRegisteredDevices(), {
+        initialData: [],
+    });
+    const handleBackClick = useCallback(() => setDynamicWidgetView('account-and-security-settings'), [setDynamicWidgetView]);
+    const handleConfirmRemoveDevice = useCallback(() => __awaiter(void 0, void 0, void 0, function* () {
+        if (!deviceIdToRemove)
+            return;
+        yield revokeRegisteredDevice({ deviceRegistrationId: deviceIdToRemove });
+        setDeviceIdToRemove(null);
+        // Revoking the current device logs the user out; skip the refetch to avoid a 401.
+        if (dynamicClient.user)
+            retrigger();
+    }), [deviceIdToRemove, dynamicClient, retrigger]);
+    const handleConfirmRemoveAll = useCallback(() => __awaiter(void 0, void 0, void 0, function* () {
+        yield revokeAllRegisteredDevices();
+        setShowRemoveAll(false);
+        // revokeAllRegisteredDevices always logs the user out; no refetch needed.
+    }), []);
+    const backButton = (jsx(IconButton, { type: 'button', onClick: handleBackClick, "data-testid": 'back-button', children: jsx(SvgChevronLeft, {}) }));
+    return (jsxs("div", { className: 'manage-trusted-devices-view', children: [jsx(ModalHeader, { leading: backButton, children: jsx("div", { className: 'send-balance-page-layout__header-content', children: jsx(Typography, { variant: 'title', color: 'primary', copykey: 'dyn_device_management.manage_title', children: t('dyn_device_management.manage_title') }) }) }), jsxs("div", { className: 'manage-trusted-devices-view__scroll-container', children: [isLoading && (jsx(Skeleton, { count: 3, className: 'manage-trusted-devices-view__skeleton', dataTestId: 'trusted-devices-skeleton' })), !isLoading && devices.length === 0 && (jsx(Typography, { className: 'manage-trusted-devices-view__no-devices', variant: 'body_normal', color: 'secondary', copykey: 'dyn_device_management.no_devices', children: t('dyn_device_management.no_devices') })), !isLoading &&
+                        devices.map((device) => device.userAgent ? (jsx(TrustedDeviceTile, { userAgent: device.userAgent, createdAt: device.createdAt, isCurrentDevice: device.isCurrentDevice, onClickDelete: () => setDeviceIdToRemove(device.id) }, device.id)) : null)] }), !isLoading && devices.length > 0 && (jsx("div", { className: 'manage-trusted-devices-view__footer', children: jsx(TextButton, { className: 'manage-trusted-devices-view__remove-all-button', onClick: () => setShowRemoveAll(true), "data-testid": 'remove-all-devices-button', children: t('dyn_device_management.remove_all_devices') }) })), deviceIdToRemove !== null && (jsx(RemoveDevicePrompt, { deviceUserAgent: (_b = (_a = devices.find((d) => d.id === deviceIdToRemove)) === null || _a === void 0 ? void 0 : _a.userAgent) !== null && _b !== void 0 ? _b : '', onConfirm: handleConfirmRemoveDevice, onCancel: () => setDeviceIdToRemove(null) })), showRemoveAll && (jsx(RemoveAllDevicesPrompt, { onConfirm: handleConfirmRemoveAll, onCancel: () => setShowRemoveAll(false) }))] }));
+};
+
+export { ManageTrustedDevicesView };

@@ -1,0 +1,2 @@
+export { getRegisteredDevices } from './getRegisteredDevices';
+//# sourceMappingURL=index.d.ts.map

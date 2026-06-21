@@ -1,0 +1,203 @@
+'use client'
+import { __awaiter } from '../../../../../../_virtual/_tslib.js';
+import { useRef, useCallback, useEffect } from 'react';
+import { onEvent } from '@dynamic-labs-sdk/client';
+import { logoutWithReason } from '@dynamic-labs-sdk/client/core';
+import { tracing, StorageService } from '@dynamic-labs/utils';
+import '@dynamic-labs/iconic';
+import '@dynamic-labs/wallet-connector-core';
+import 'react/jsx-runtime';
+import '../../../ViewContext/ViewContext.js';
+import { logger } from '../../../../shared/logger.js';
+import '@dynamic-labs/wallet-book';
+import { WALLET_PICKER_SEARCH_KEY, EXCHANGE_PICKER_SEARCH_KEY, PHANTOM_SIGNATURE_STATE, DELEGATION_STATE } from '../../../../utils/constants/localStorage.js';
+import '../../../../utils/constants/colors.js';
+import '../../../../utils/constants/values.js';
+import '@dynamic-labs/sdk-api-core';
+import '../../../../shared/consts/index.js';
+import { setAuthMode } from '../../../../store/state/authMode/authMode.js';
+import { resetConnectedWalletsInfo } from '../../../../store/state/connectedWalletsInfo/connectedWalletsInfo.js';
+import { resetPrimaryWalletId } from '../../../../store/state/primaryWalletId/primaryWalletId.js';
+import { useInternalDynamicEvents } from '../../../../utils/hooks/events/useDynamicEvents/useDynamicEvents.js';
+import '../../useDynamicContext/useDynamicContext.js';
+import '../../useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import '../../../CaptchaContext/CaptchaContext.js';
+import '../../../ErrorContext/ErrorContext.js';
+import '@dynamic-labs/multi-wallet';
+import 'react-international-phone';
+import '../../../../store/state/nonce/nonce.js';
+import { getDynamicClient } from '../../../../client/client.js';
+import '../../../../config/ApiEndpoint.js';
+import '../../../../events/dynamicEvents.js';
+import '@dynamic-labs/locale';
+import '../../../../store/state/dynamicContextProps/dynamicContextProps.js';
+import '../../../../utils/functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.js';
+import '../../../AccessDeniedContext/AccessDeniedContext.js';
+import '../../../AccountExistsContext/AccountExistsContext.js';
+import '../../../UserWalletsContext/UserWalletsContext.js';
+import '../../../../store/state/loadingAndLifecycle/loadingAndLifecycle.js';
+import '../../../VerificationContext/VerificationContext.js';
+import 'react-dom';
+import '../../../../utils/functions/compareChains/compareChains.js';
+import '../../../../views/Passkey/utils/findPrimaryEmbeddedChain/findPrimaryEmbeddedChain.js';
+import '../../../ThemeContext/ThemeContext.js';
+import '../../../../utils/hooks/useUserUpdateRequest/useUpdateUser/userFieldsSchema.js';
+import 'bs58';
+import '@dynamic-labs/types';
+import '../../../SocialRedirectContext/SocialRedirectContext.js';
+import '../../../LoadingContext/LoadingContext.js';
+import '../../../WalletContext/WalletContext.js';
+import '../../../../utils/hooks/useEmbeddedWallet/useSecureEnclaveEmbeddedWallet/constants.js';
+import 'yup';
+import '../../../MockContext/MockContext.js';
+import '../../../../views/CollectUserDataView/useFields.js';
+import '../../../FieldsStateContext/FieldsStateContext.js';
+import '../../../UserFieldEditorContext/UserFieldEditorContext.js';
+import '@dynamic-labs/rpc-providers';
+import '../../../../store/state/walletOptions/walletOptions.js';
+import 'react-i18next';
+import '../../../../components/Accordion/components/AccordionItem/AccordionItem.js';
+import '../../../../components/Alert/Alert.js';
+import '../../../../components/ShadowDOM/ShadowDOM.js';
+import '../../../../components/IconButton/IconButton.js';
+import '../../../../components/InlineWidget/InlineWidget.js';
+import '../../../../components/Input/Input.js';
+import '../../../../components/IsBrowser/IsBrowser.js';
+import '../../../../components/MenuList/Dropdown/Dropdown.js';
+import '../../../../components/OverlayCard/OverlayCard.js';
+import '../../../../components/Transition/ZoomTransition/ZoomTransition.js';
+import '../../../../components/Transition/SlideInUpTransition/SlideInUpTransition.js';
+import '../../../../components/Transition/OpacityTransition/OpacityTransition.js';
+import '../../../../components/PasskeyCreatedSuccessBanner/PasskeyCreatedSuccessBanner.js';
+import '../../../../components/Popper/Popper/Popper.js';
+import '../../../../components/Popper/PopperContext/PopperContext.js';
+import 'react-focus-lock';
+import 'qrcode';
+import 'formik';
+import '../../../../utils/hooks/useSubdomainCheck/useSubdomainCheck.js';
+import '../../../WalletGroupContext/WalletGroupContext.js';
+import '../../../../widgets/DynamicWidget/context/DynamicWidgetContext.js';
+import '../../../../utils/hooks/useGetMfaToken/useGetMfaToken.js';
+import '../../../../utils/hooks/useWalletBackup/useWalletBackup.js';
+import '../../../../utils/hooks/useWalletBackup/BackupError.js';
+import '../../../../utils/hooks/useWalletBackup/types.js';
+import '../../../../utils/hooks/useWalletBackup/cloudProviders.js';
+import '../../../IpConfigurationContext/IpConfigurationContext.js';
+import '../../../ConnectWithOtpContext/ConnectWithOtpContext.js';
+import '../../../../widgets/DynamicBridgeWidget/views/WalletsView/components/SecondaryWallets/SecondaryWallets.js';
+import '@hcaptcha/react-hcaptcha';
+import '../../../../widgets/DynamicWidget/helpers/convertExchangeKeyAndProviderEnum.js';
+import '../../../../views/ExchangeWhitelistWarning/ExchangeWhitelistWarning.js';
+import '../../../ErrorContext/hooks/useErrorText/useErrorText.js';
+import '../../../FooterAnimationContext/index.js';
+import '../../../../views/MfaChooseDeviceView/useGetMfaOptions/useGetMfaOptions.js';
+import '../../../PasskeyContext/PasskeyContext.js';
+import '../../../OnrampContext/OnrampContext.js';
+import '../../../../utils/hooks/useWalletDelegation/DelegationError.js';
+import '../../../../store/state/sendBalances.js';
+import '../../../../store/state/connectorsInitializing/connectorsInitializing.js';
+import '../../../../components/OverlayCardBase/OverlayCardTarget/OverlayCardTarget.js';
+import '../../../../widgets/DynamicWidget/components/DynamicWidgetHeader/DynamicWidgetHeader.js';
+import '../../../../views/TransactionConfirmationView/TransactionConfirmationView.js';
+import '../../../../widgets/DynamicWidget/components/PasskeyCard/PasskeyCard.js';
+import '../../../../widgets/DynamicWidget/views/CryptoComOnramp/CryptoComOnramp.js';
+import '../../../../../index.js';
+import '../../../../widgets/DynamicWidget/views/ManagePasskeysMfaWidgetView/ManagePasskeysMfaWidgetView.js';
+import '../../../../widgets/DynamicWidget/views/ManageTotpMfaWidgetView/ManageTotpMfaWidgetView.js';
+import '../../../../widgets/DynamicWidget/views/ReceiveWalletFunds/ReceiveWalletFunds.js';
+import '../../../../store/state/tokenBalances.js';
+import '../../../../store/state/multichainBalances.js';
+import '@dynamic-labs/store';
+import '../../../../shared/utils/functions/getInitialUrl/getInitialUrl.js';
+
+const PUBLIC_LOGOUT_REASON = 'user-intent';
+const STORAGE_PARSE_FAILURE_REASON = 'storage-parse-failure';
+const useHandleLogout = (params) => {
+    const paramsRef = useRef(params);
+    paramsRef.current = params;
+    const logoutReactSdk = useCallback((reason) => __awaiter(void 0, void 0, void 0, function* () {
+        const p = paramsRef.current;
+        // We store which wallet connectors were active before logout
+        // to not have to worry about having the array change midway through
+        const activeConnectors = [
+            ...p.walletConnectors,
+            ...p.connectedWallets.map((connectedWallet) => connectedWallet.connector),
+        ];
+        logger.logVerboseTroubleshootingMessage('useHandleLogout called', {
+            params: paramsRef.current,
+            reason,
+        });
+        tracing.logEvent('logout', `useHandleLogout called (reason=${reason})`);
+        // Surface the logout reason to Datadog. Every internal logout path funnels
+        // through here, but the reason was only sent to tracing/verbose — never the
+        // HTTP log transport — so logout causes were invisible in DD (e.g. an
+        // auto-logout firing mid-ceremony that revokes the session and abandons
+        // wallet creation). @environmentId is attached by the transport from its
+        // post URL; pair with @key:sdk_logout to see the reason breakdown per env.
+        logger.instrument('SDK logout', {
+            key: 'sdk_logout',
+            reason: reason !== null && reason !== void 0 ? reason : 'unspecified',
+            time: 0,
+        });
+        // The trace buffer is otherwise never sent — flush the logout + session-key
+        // context so a logout that aborts wallet creation is diagnosable in DD.
+        tracing.flush((packed) => logger.instrument(packed), ['logout', 'session-key']);
+        p.setSelectedWalletConnectorKey(null);
+        p.clearAllWalletConnectSessions();
+        p.setShowDynamicUserProfile(false);
+        p.setShowBridgeWidget(false);
+        p.resetLoginWithEmail();
+        p.setLegacyIsVerifying(false);
+        StorageService.removeItem(WALLET_PICKER_SEARCH_KEY);
+        StorageService.removeItem(EXCHANGE_PICKER_SEARCH_KEY);
+        StorageService.removeItem(PHANTOM_SIGNATURE_STATE);
+        StorageService.removeItem(DELEGATION_STATE);
+        setAuthMode(p.initialAuthenticationMode);
+        p.setShowAuthFlow(false, {
+            emitCancelAuth: false,
+            ignoreIfIsEmbeddedWidget: false,
+            initializeWalletConnect: false,
+            performMultiWalletChecks: false,
+        });
+        p.setMultiWalletWidgetState('idle');
+        resetConnectedWalletsInfo();
+        p.removeBridgeOnboardingCompleted();
+        resetPrimaryWalletId();
+        p.removeConnectedNameService();
+        p.removeSessionStorageSessionKeys();
+        yield Promise.all(
+        // Narrow to the client-SDK LogoutReason at the connector boundary. SDK-invented
+        // reasons flow through untyped; connectors ignore values they don't recognize.
+        activeConnectors.map((connector) => connector.endSession(reason)));
+    }), []);
+    const handleLogOutWithReason = useCallback((reason) => __awaiter(void 0, void 0, void 0, function* () {
+        if (typeof reason !== 'string') {
+            throw new Error('Invalid reason');
+        }
+        // Cast to LogoutReason here — this is the one place unsound widening meets
+        // the client SDK's narrow union. The client SDK forwards the string to
+        // Datadog as-is; unknown values are logged, not parsed.
+        yield logoutWithReason({ reason: reason }, getDynamicClient());
+        yield logoutReactSdk(reason);
+    }), [logoutReactSdk]);
+    const handleLogOut = useCallback(() => handleLogOutWithReason(PUBLIC_LOGOUT_REASON), [handleLogOutWithReason]);
+    useEffect(() => onEvent({
+        event: 'logout',
+        listener: (metadata) => {
+            logoutReactSdk(metadata === null || metadata === void 0 ? void 0 : metadata.reason);
+        },
+    }), [logoutReactSdk]);
+    /** Trigger a logout when the SDK failed to load data from storage */
+    useEffect(() => {
+        const handler = () => handleLogOutWithReason(STORAGE_PARSE_FAILURE_REASON);
+        StorageService.events.on('parseFailure', handler);
+        return () => {
+            StorageService.events.off('parseFailure', handler);
+        };
+    }, [handleLogOutWithReason]);
+    /** Allows triggering a logout from anywhere in the code */
+    useInternalDynamicEvents('triggerLogout', (reason) => handleLogOutWithReason(reason));
+    return { handleLogOut, handleLogOutWithReason };
+};
+
+export { useHandleLogout };

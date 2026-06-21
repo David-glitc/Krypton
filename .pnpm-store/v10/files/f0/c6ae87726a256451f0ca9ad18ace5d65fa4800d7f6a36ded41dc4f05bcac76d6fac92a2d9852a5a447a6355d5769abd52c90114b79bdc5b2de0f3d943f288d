@@ -1,0 +1,119 @@
+import type { InstrumentationConfig } from '../../services/instrumentation/instrumentation.types';
+import type { LogLevel } from '../../services/logger';
+import type { NetworkData } from '../../modules/wallets/networks/networkProvider/networkProvider.types';
+import type { DynamicCoreConfig } from '../core/types';
+/**
+ * All available options to configure the Dynamic client.
+ */
+export type DynamicClientConfig = {
+    /**
+     * Whether to automatically initialize the client.
+     *
+     * If disabled, the client will be uninitialized and you will need to call
+     * `initializeClient` with it manually.
+     *
+     * @defaultValue `true`
+     */
+    autoInitialize?: boolean;
+    /**
+     * Available options for internal configuration of the Dynamic SDK client.
+     * Ignore unless you know what you are doing.
+     */
+    coreConfig?: DynamicCoreConfig;
+    /**
+     * The environment ID of the Dynamic app.
+     */
+    environmentId: string;
+    /**
+     * Configuration for SDK instrumentation (telemetry and observability).
+     */
+    instrumentation?: Partial<InstrumentationConfig>;
+    /**
+     * The log level to use for the logger.
+     */
+    logLevel?: LogLevel;
+    /**
+     * Metadata relating to your app.
+     */
+    metadata?: {
+        /**
+         * The URL of the icon of your app.
+         */
+        iconUrl?: string;
+        /**
+         * The name of your app.
+         */
+        name?: string;
+        /**
+         * Native deep link for your app (e.g., "myapp://").
+         * Used for app-to-app communication on mobile devices.
+         */
+        nativeLink?: string;
+        /**
+         * The official domain/URL of your app (e.g., "https://myapp.com").
+         *
+         * This serves as both:
+         * - The universal link for deep link redirects (web URLs that can intelligently route to either the app or web version)
+         * - The official domain used in message signatures (appears as the `domain` and `uri` fields in sign-in messages)
+         *
+         * @defaultValue `window.location.origin` (in browser environments)
+         */
+        universalLink?: string;
+    };
+    /**
+     * Callbacks that transform SDK data before use, applied centrally for consistency.
+     *
+     * @example
+     * Override RPC URLs for specific networks:
+     * ```typescript
+     * createDynamicClient({
+     *   environmentId: 'YOUR_ID',
+     *   transformers: {
+     *     networkData: (network) => {
+     *       if (network.networkId === 'evm-1') {
+     *         return {
+     *           ...network,
+     *           rpcUrls: { http: ['https://eth-mainnet.g.alchemy.com/v2/KEY'] },
+     *         };
+     *       }
+     *       return network;
+     *     },
+     *   },
+     * });
+     * ```
+     *
+     * @example
+     * Add fallback RPC URLs:
+     * ```typescript
+     * transformers: {
+     *   networkData: (network) => ({
+     *     ...network,
+     *     rpcUrls: {
+     *       http: ['https://my-rpc.com', ...network.rpcUrls.http],
+     *     },
+     *   }),
+     * }
+     * ```
+     */
+    transformers?: {
+        /**
+         * Transform network data before it's used. Called for each network in your project.
+         * Affects all operations: balance fetching, transactions, RPC client creation, etc.
+         *
+         * @param networkData - Original network configuration from project settings
+         * @returns Transformed network data (must maintain valid NetworkData structure)
+         */
+        networkData?: (networkData: NetworkData) => NetworkData;
+    };
+    /**
+     * Options for Wallet-as-a-Service (embedded wallet / MPC) behavior.
+     */
+    waas?: {
+        /**
+         * Extra origins allowed when the WaaS iframe validates `postMessage` sources
+         * (for example, when your app is embedded in another trusted origin).
+         */
+        additionalTrustedOrigins?: string[];
+    };
+};
+//# sourceMappingURL=DynamicClientConfig.d.ts.map

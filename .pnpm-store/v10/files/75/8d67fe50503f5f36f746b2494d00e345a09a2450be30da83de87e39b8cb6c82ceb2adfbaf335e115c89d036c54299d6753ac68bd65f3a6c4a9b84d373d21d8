@@ -1,0 +1,115 @@
+import { logger } from '@dynamic-labs/wallet-connector-core';
+export class MetaMaskSolanaSdkClient {
+    constructor(){
+        throw new Error('MetaMaskSolanaSdkClient is not instantiable');
+    }
+}
+MetaMaskSolanaSdkClient.client = null;
+MetaMaskSolanaSdkClient.wallet = null;
+MetaMaskSolanaSdkClient.multichainCore = null;
+MetaMaskSolanaSdkClient.initPromise = null;
+MetaMaskSolanaSdkClient.isInitialized = false;
+MetaMaskSolanaSdkClient.init = async (config)=>{
+    if (MetaMaskSolanaSdkClient.isInitialized) {
+        return;
+    }
+    if (MetaMaskSolanaSdkClient.initPromise) {
+        return MetaMaskSolanaSdkClient.initPromise;
+    }
+    MetaMaskSolanaSdkClient.initPromise = MetaMaskSolanaSdkClient.doInit(config);
+    try {
+        await MetaMaskSolanaSdkClient.initPromise;
+    } finally{
+        MetaMaskSolanaSdkClient.initPromise = null;
+    }
+};
+MetaMaskSolanaSdkClient.doInit = async (config)=>{
+    if (typeof window === 'undefined') {
+        return;
+    }
+    try {
+        const { createSolanaClient } = await import('@metamask/connect-solana');
+        var _config_dappName, _config_dappUrl;
+        const client = await createSolanaClient({
+            dapp: {
+                name: (_config_dappName = config.dappName) != null ? _config_dappName : 'Dynamic',
+                url: (_config_dappUrl = config.dappUrl) != null ? _config_dappUrl : window.location.origin
+            },
+            analytics: {
+                integrationType: 'dynamic'
+            },
+            skipAutoRegister: false
+        });
+        const wallet = client.getWallet();
+        MetaMaskSolanaSdkClient.client = client;
+        MetaMaskSolanaSdkClient.wallet = wallet;
+        MetaMaskSolanaSdkClient.multichainCore = client.core;
+        MetaMaskSolanaSdkClient.isInitialized = true;
+        client.core.mergeOptions({
+            ui: {
+                headless: true
+            }
+        });
+        logger.debug('[MetaMaskSolanaSdkClient] init complete');
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.error('[MetaMaskSolanaSdkClient] Failed to initialize:', errorMessage);
+        throw error;
+    }
+};
+MetaMaskSolanaSdkClient.getWallet = ()=>{
+    return MetaMaskSolanaSdkClient.wallet;
+};
+MetaMaskSolanaSdkClient.getCore = ()=>{
+    return MetaMaskSolanaSdkClient.multichainCore;
+};
+MetaMaskSolanaSdkClient.onDisplayUri = (listener)=>{
+    const core = MetaMaskSolanaSdkClient.multichainCore;
+    if (!core) return ()=>{};
+    const handler = listener;
+    core.on('display_uri', handler);
+    return ()=>core.off('display_uri', handler);
+};
+MetaMaskSolanaSdkClient.getAccounts = ()=>{
+    var _MetaMaskSolanaSdkClient_wallet;
+    var _MetaMaskSolanaSdkClient_wallet_accounts_map;
+    return (_MetaMaskSolanaSdkClient_wallet_accounts_map = (_MetaMaskSolanaSdkClient_wallet = MetaMaskSolanaSdkClient.wallet) == null ? void 0 : _MetaMaskSolanaSdkClient_wallet.accounts.map((a)=>a.address)) != null ? _MetaMaskSolanaSdkClient_wallet_accounts_map : [];
+};
+MetaMaskSolanaSdkClient.getSelectedAccount = ()=>{
+    var _MetaMaskSolanaSdkClient_wallet_accounts_, _MetaMaskSolanaSdkClient_wallet;
+    return (_MetaMaskSolanaSdkClient_wallet = MetaMaskSolanaSdkClient.wallet) == null ? void 0 : (_MetaMaskSolanaSdkClient_wallet_accounts_ = _MetaMaskSolanaSdkClient_wallet.accounts[0]) == null ? void 0 : _MetaMaskSolanaSdkClient_wallet_accounts_.address;
+};
+MetaMaskSolanaSdkClient.connect = async ()=>{
+    var _wallet_features_standardconnect;
+    const wallet = MetaMaskSolanaSdkClient.wallet;
+    if (!wallet) {
+        throw new Error('[MetaMaskSolanaSdkClient] Not initialized. Call init() first.');
+    }
+    const existingAccount = wallet.accounts[0];
+    if (existingAccount) {
+        return existingAccount.address;
+    }
+    const connectFn = (_wallet_features_standardconnect = wallet.features['standard:connect']) == null ? void 0 : _wallet_features_standardconnect['connect'];
+    if (!connectFn) {
+        throw new Error('[MetaMaskSolanaSdkClient] Wallet does not support standard:connect');
+    }
+    const result = await connectFn({
+        silent: false
+    });
+    const firstAccount = result.accounts[0];
+    return firstAccount == null ? void 0 : firstAccount.address;
+};
+MetaMaskSolanaSdkClient.disconnect = async ()=>{
+    const client = MetaMaskSolanaSdkClient.client;
+    if (!client) return;
+    try {
+        await client.disconnect();
+    } catch (e) {}
+};
+MetaMaskSolanaSdkClient.reset = ()=>{
+    MetaMaskSolanaSdkClient.client = null;
+    MetaMaskSolanaSdkClient.wallet = null;
+    MetaMaskSolanaSdkClient.multichainCore = null;
+    MetaMaskSolanaSdkClient.isInitialized = false;
+    MetaMaskSolanaSdkClient.initPromise = null;
+};

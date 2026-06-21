@@ -1,0 +1,16 @@
+type ClientSessionNonceHeaders = {
+    nonce: string;
+    nonceSignature: string;
+    publicKey: string;
+};
+/**
+ * Returns the nonce, nonce signature, and session public key needed for
+ * Turnkey session key registration headers.
+ *
+ * Parses the combined session chaining signature format:
+ * `${signedSessionId}/${nonceSignature}/${nonce}`
+ *
+ * Note: signatures are hex-encoded (no slashes), so splitting on '/' is safe.
+ */
+export declare const getClientSessionNonceHeaders: () => Promise<ClientSessionNonceHeaders>;
+export {};

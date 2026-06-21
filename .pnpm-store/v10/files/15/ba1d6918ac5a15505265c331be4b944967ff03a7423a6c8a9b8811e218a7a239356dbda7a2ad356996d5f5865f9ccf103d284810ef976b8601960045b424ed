@@ -1,0 +1,54 @@
+'use client'
+import { jsxs, jsx } from 'react/jsx-runtime';
+import { useTranslation } from 'react-i18next';
+import { ProviderEnum, EmbeddedWalletVersionEnum } from '@dynamic-labs/sdk-api-core';
+import { classNames } from '../../utils/functions/classNames/classNames.js';
+import { TextButton } from '../TextButton/TextButton.js';
+import { Typography } from '../Typography/Typography.js';
+import { usePasskeyRecovery } from '../../utils/hooks/usePasskeyRecovery/usePasskeyRecovery.js';
+import { SupportLinks } from '../SupportLinks/SupportLinks.js';
+import { useViewContext } from '../../context/ViewContext/ViewContext.js';
+import '../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+
+const NeedHelpSection = ({ isRecoveryFlow = false, isExport = false, walletCredential, }) => {
+    var _a, _b, _c, _d, _e, _f;
+    const { projectSettings } = useInternalDynamicContext();
+    const { t } = useTranslation();
+    const { pushView } = useViewContext();
+    const { initPasskeyRecoveryProcess } = usePasskeyRecovery();
+    const supportEmail = (_a = projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.general) === null || _a === void 0 ? void 0 : _a.supportEmail;
+    const supportUrls = (_b = projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.general) === null || _b === void 0 ? void 0 : _b.supportUrls;
+    // don't show passkey recovery helper on passkey creation flow views
+    const isRecoveryEnabled = !isRecoveryFlow &&
+        ((_c = projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.providers) === null || _c === void 0 ? void 0 : _c.find((p) => p.provider === ProviderEnum.Turnkey && p.enabledAt)) &&
+        Boolean((_e = (_d = projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.sdk) === null || _d === void 0 ? void 0 : _d.embeddedWallets) === null || _e === void 0 ? void 0 : _e.emailRecoveryEnabled);
+    const v1WalletWithRecovery = ((_f = walletCredential === null || walletCredential === void 0 ? void 0 : walletCredential.walletProperties) === null || _f === void 0 ? void 0 : _f.version) ===
+        EmbeddedWalletVersionEnum.V1 && isRecoveryEnabled;
+    const hasContactInfo = Boolean(supportEmail || Object.keys(supportUrls || {}).length > 0);
+    const getSupportHelpSession = () => {
+        // For v1 wallets, only show the "Go here for support" link that triggers recovery
+        if (v1WalletWithRecovery) {
+            return (jsx(TextButton, { copykey: 'dyn_need_help_section.help_button', className: classNames('need-help-section__helper-link'), onClick: () => initPasskeyRecoveryProcess(undefined, {
+                    settings: isExport
+                        ? {
+                            goBack: () => {
+                                pushView('embedded-reveal-view');
+                            },
+                        }
+                        : undefined,
+                    type: 'helpSession',
+                }), children: t('dyn_need_help_section.help_button') }));
+        }
+        if (hasContactInfo) {
+            return (jsx(SupportLinks, { supportEmail: supportEmail, supportUrls: supportUrls }));
+        }
+        return null;
+    };
+    // if there is no support info, don't render the component
+    return getSupportHelpSession() ? (jsxs("div", { className: 'need-help-section', children: [jsx(Typography, { color: 'secondary', variant: 'body_small', copykey: 'dyn_need_help_section.info', children: v1WalletWithRecovery
+                    ? t('dyn_need_help_section.info.v1')
+                    : t('dyn_need_help_section.info.not_v1') }), getSupportHelpSession()] })) : null;
+};
+
+export { NeedHelpSection };

@@ -1,0 +1,28 @@
+/**
+ * Chain names whose forward-MPC payload is treated as EVM-compatible:
+ * they use secp256k1 ECDSA signing and serialize a pre-hashed
+ * (`isFormatted=true`) payload over the wire as a hex string.
+ *
+ * Add new EVM-compatible chains here.
+ */
+export declare const EVM_COMPATIBLE_CHAINS: readonly ["EVM", "TEMPO", "TRON"];
+export type EvmCompatibleChain = (typeof EVM_COMPATIBLE_CHAINS)[number];
+/**
+ * Returns `true` if `chainName` is an EVM-compatible chain — i.e. signs with
+ * secp256k1 ECDSA and serializes pre-hashed messages over the forward-MPC
+ * wire as a hex string.
+ *
+ * The check is case-sensitive: pass the canonical uppercase chain identifier
+ * (e.g. `'EVM'`, `'TEMPO'`, `'TRON'`).
+ *
+ * @param chainName - Canonical chain name to test.
+ * @returns `true` if the chain is EVM-compatible, `false` otherwise.
+ *
+ * @example
+ * isEvmCompatibleChain('EVM');   // => true
+ * isEvmCompatibleChain('TRON');  // => true
+ * isEvmCompatibleChain('SUI');   // => false
+ * isEvmCompatibleChain('tron');  // => false (case-sensitive)
+ */
+export declare const isEvmCompatibleChain: (chainName: string) => boolean;
+//# sourceMappingURL=isEvmCompatibleChain.d.ts.map

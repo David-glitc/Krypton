@@ -1,0 +1,10 @@
+import type { PromptStepUpAuthParams } from './useStepUpAuthentication.types';
+/**
+ * Single entry point for step-up auth that chooses between MFA prompt and
+ * reauthenticate based on whether the user has registered MFA.
+ * Use promptMfa when the user has verified MFA methods; otherwise use
+ * promptReauthenticate (OTP or wallet).
+ */
+export declare const usePromptStepUpAuth: () => {
+    promptStepUpAuth: (props?: PromptStepUpAuthParams) => Promise<string | undefined>;
+};

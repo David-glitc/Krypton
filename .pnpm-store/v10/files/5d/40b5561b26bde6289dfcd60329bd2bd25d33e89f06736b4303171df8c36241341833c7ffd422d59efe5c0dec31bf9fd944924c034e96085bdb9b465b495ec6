@@ -1,0 +1,35 @@
+import { type StepUpCheckResponse, type TokenScope } from '@dynamic-labs/sdk-api-core';
+import type { DynamicClient } from '../../../client/types';
+/**
+ * Checks whether step-up authentication is required for a given scope
+ * and returns the available credentials to satisfy it.
+ *
+ * First performs a fast local check — if a valid elevated access token already
+ * exists for the scope, returns `{ isRequired: false }` immediately without
+ * an API call.
+ *
+ * Otherwise, calls the backend `stepUp/check` endpoint which evaluates
+ * feature flags, SDK version, MFA settings, and action-based requirements
+ * to determine if step-up is needed. The response includes the available
+ * credentials and a recommended default credential.
+ *
+ * If the request fails for any reason, defaults to `{ isRequired: true }`
+ * as a safety measure.
+ *
+ * @param params.scope - The scope to check (e.g., 'wallet:export').
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns The step-up check result with `isRequired`, `credentials`, and `defaultCredentialId`.
+ *
+ * @example
+ * ```typescript
+ * const result = await checkStepUpAuth({ scope: TokenScope.Walletexport });
+ * if (result.isRequired) {
+ *   // Show step-up auth UI using result.credentials
+ * }
+ * ```
+ * @instrumented
+ */
+export declare const checkStepUpAuth: ({ scope }: {
+    scope: TokenScope;
+}, client?: DynamicClient) => Promise<StepUpCheckResponse>;
+//# sourceMappingURL=checkStepUpAuth.d.ts.map

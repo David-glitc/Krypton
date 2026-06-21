@@ -1,0 +1,6 @@
+import type { StorageFormat } from '../../storage.types';
+/** @not-instrumented */
+export declare const formatForStorage: (value: unknown) => string;
+/** @not-instrumented */
+export declare const parseFromStorage: <T>(value: string) => StorageFormat<T> | null;
+//# sourceMappingURL=storageFormat.d.ts.map

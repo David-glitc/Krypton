@@ -1,0 +1,17 @@
+'use client'
+// Implemented with setTimeout rather than requestAnimationFrame: rAF is paused
+// or throttled to ~1Hz when the tab is backgrounded, and is also starved by
+// long-running JS, which caused modal transitions to get stuck at opacity 0.
+const animationFrameTimeout = (callback, duration) => {
+    const canceller = { id: -1 };
+    canceller.id = window.setTimeout(callback, duration);
+    return canceller;
+};
+const clearAnimationFrameTimeout = (canceller) => {
+    if (canceller.id >= 0) {
+        clearTimeout(canceller.id);
+        canceller.id = -1;
+    }
+};
+
+export { animationFrameTimeout, clearAnimationFrameTimeout };

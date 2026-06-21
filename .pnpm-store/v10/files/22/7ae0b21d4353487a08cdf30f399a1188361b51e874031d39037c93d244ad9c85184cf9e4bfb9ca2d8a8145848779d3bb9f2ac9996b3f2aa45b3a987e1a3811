@@ -1,0 +1,603 @@
+import Foundation
+import UIKit
+import WebKit
+
+/// Delegate used by the Swift implementation to hand messages
+/// received from the WebView back to the ObjC++ module, which
+/// forwards them to JavaScript via `RCTEventEmitter`.
+@objc public protocol DynamicWebViewImplDelegate: AnyObject {
+  func didReceiveMessage(forInstanceId instanceId: String, data: Any)
+}
+
+/// JS glue injected into every DynamicWebView instance at document start.
+///
+/// Purpose: hosted pages written for the browser iframe transport call
+/// `window.parent.postMessage` to reach the SDK host. In a WKWebView
+/// there is no real parent window, so we:
+///   1. Intercept the page's outbound `window.parent.postMessage` calls
+///      and forward their payload to the native side via
+///      `webkit.messageHandlers.dynamicBridge.postMessage(data)`.
+///   2. Expose `window.__dynamicReceive(json)` which re-dispatches a
+///      synthetic `MessageEvent` on `window` so the page's existing
+///      `window.addEventListener('message', ...)` code receives host
+///      messages exactly as it would inside a browser iframe.
+private let bridgeUserScript = """
+(function() {
+  if (window.__dynamicBridgeInstalled) { return; }
+  window.__dynamicBridgeInstalled = true;
+
+  var post = function(data) {
+    try {
+      window.webkit.messageHandlers.dynamicBridge.postMessage(data);
+    } catch (e) {}
+  };
+
+  // The hosted iframe page calls `window.parent.postMessage(data, hostOrigin)`.
+  // In a top-level WKWebView `window.parent === window`, so `window.parent.postMessage`
+  // resolves to `window.postMessage`. The browser's `postMessage` performs a
+  // targetOrigin check and silently drops the message when the declared hostOrigin
+  // (e.g. the RN app's bundler origin) does not match the WebView's own origin,
+  // which is always the case here. We override `window.postMessage` to intercept
+  // the call *before* the origin check runs and forward the payload to native.
+  try {
+    Object.defineProperty(window, 'postMessage', {
+      configurable: true,
+      writable: true,
+      value: function(data, targetOrigin, transfer) {
+        post(data);
+      }
+    });
+  } catch (e) {
+    try { window.postMessage = function(data) { post(data); }; } catch (_) {}
+  }
+
+  // Called by native (via evaluateJavaScript) to deliver a host -> webview message.
+  // Re-dispatches a synthetic `MessageEvent` on `window` so the page's existing
+  // `window.addEventListener('message', ...)` handler fires exactly as it would
+  // in a real iframe.
+  window.__dynamicReceive = function(json) {
+    try {
+      var payload = typeof json === 'string' ? JSON.parse(json) : json;
+      var evt = new MessageEvent('message', {
+        data: payload,
+        origin: window.location.origin,
+        source: window
+      });
+      window.dispatchEvent(evt);
+    } catch (e) {}
+  };
+})();
+"""
+
+// `internal` (not `private`) so `shouldDeliverScriptMessage` and the bridge
+// origin-check unit tests can reference the handler name without hardcoding it.
+let bridgeHandlerName = "dynamicBridge"
+private let errorDomain = "DynamicWebView"
+
+// Keys read out of NSError.userInfo by the ObjC++ bridge when translating a
+// native error into an RCT reject-block code + JS-accessible metadata.
+// The JS wrapper reads `reason` to build a typed `WebViewLoadFailedError`.
+private let errorReasonKey = "DynamicWebViewReason"
+private let errorStatusCodeKey = "DynamicWebViewStatusCode"
+private let errorUnderlyingDescriptionKey = "DynamicWebViewUnderlying"
+
+/// Reasons mirror `WebViewLoadFailureReason` in the JS errors module.
+/// Kept as plain strings rather than an enum so the value can cross
+/// the ObjC/JS bridge unchanged via NSError.userInfo.
+private enum Reason {
+  static let invalidUrl = "invalid_url"
+  static let noHostView = "no_host_view"
+  static let httpError = "http_error"
+  static let navigationFailed = "navigation_failed"
+  static let cancelled = "cancelled"
+  static let instanceBusy = "instance_busy"
+  static let contentProcessTerminated = "content_process_terminated"
+}
+
+private func makeError(
+  reason: String,
+  message: String,
+  statusCode: Int? = nil,
+  underlyingDescription: String? = nil
+) -> NSError {
+  var userInfo: [String: Any] = [
+    NSLocalizedDescriptionKey: message,
+    errorReasonKey: reason,
+  ]
+  if let statusCode = statusCode {
+    userInfo[errorStatusCodeKey] = statusCode
+  }
+  if let underlyingDescription = underlyingDescription {
+    userInfo[errorUnderlyingDescriptionKey] = underlyingDescription
+  }
+  return NSError(domain: errorDomain, code: 0, userInfo: userInfo)
+}
+
+// MARK: - Origin / trust helpers (pure, unit-testable)
+
+/// `scheme://host[:port]` with the scheme-default https port (443) omitted, or
+/// `nil` when scheme/host are missing. Normalizing makes the pinned origin
+/// comparable to both a `WKSecurityOrigin` and a navigation `URL`, and mirrors
+/// the Android `originOf` helper so the two platforms pin identically.
+func normalizedOrigin(scheme: String?, host: String?, port: Int?) -> String? {
+  guard let scheme = scheme?.lowercased(), let host = host, !host.isEmpty else {
+    return nil
+  }
+  if let port = port, !(scheme == "https" && port == 443) {
+    return "\(scheme)://\(host):\(port)"
+  }
+  return "\(scheme)://\(host)"
+}
+
+/// The normalized origin of a URL.
+func originString(of url: URL) -> String? {
+  normalizedOrigin(scheme: url.scheme, host: url.host, port: url.port)
+}
+
+/// Navigation is allowed only to https on the pinned origin — blocking any
+/// main-frame navigation that would re-expose the bridge to another origin.
+func isNavigationAllowed(to url: URL?, expectedOrigin: String) -> Bool {
+  guard let url = url, url.scheme?.lowercased() == "https" else { return false }
+  return originString(of: url) == expectedOrigin
+}
+
+/// A bridge message is trusted only from the pinned origin's main frame.
+func isMessageTrusted(
+  isMainFrame: Bool,
+  messageOrigin: String?,
+  expectedOrigin: String
+) -> Bool {
+  isMainFrame && messageOrigin == expectedOrigin
+}
+
+// MARK: - Delegate-decision seams (pure, unit-testable)
+
+// The WebKit callback argument types (WKNavigationAction / WKNavigationResponse
+// / WKScriptMessage) have no public initializers, so they cannot be constructed
+// in a unit test. These protocols expose only the fields the trust decisions
+// read, letting the decision logic be tested with plain fakes while the real WK
+// types conform via the extensions below. The protocols are deliberately NOT
+// @objc so they never leak into the generated -Swift.h that sibling .mm files
+// import.
+
+/// The fields the navigation gate reads off a `WKNavigationAction`.
+protocol NavigationActionLike {
+  var requestURL: URL? { get }
+  /// `nil` when the action has no target frame (e.g. a new-window request);
+  /// `true`/`false` for a main-frame vs sub-frame target.
+  var isTargetMainFrame: Bool? { get }
+}
+
+/// The fields the HTTP-error gate reads off a `WKNavigationResponse`.
+protocol NavigationResponseLike {
+  var isForMainFrame: Bool { get }
+  var httpStatusCode: Int? { get }
+}
+
+/// The fields the bridge origin check reads off a `WKScriptMessage`.
+protocol ScriptMessageLike {
+  var messageName: String { get }
+  var isMainFrame: Bool { get }
+  var sourceOrigin: String? { get }
+}
+
+extension WKNavigationAction: NavigationActionLike {
+  var requestURL: URL? { request.url }
+  var isTargetMainFrame: Bool? { targetFrame?.isMainFrame }
+}
+
+extension WKNavigationResponse: NavigationResponseLike {
+  // `isForMainFrame` is already a stored property on WKNavigationResponse and
+  // satisfies the protocol requirement directly.
+  var httpStatusCode: Int? { (response as? HTTPURLResponse)?.statusCode }
+}
+
+extension WKScriptMessage: ScriptMessageLike {
+  var messageName: String { name }
+  var isMainFrame: Bool { frameInfo.isMainFrame }
+  var sourceOrigin: String? {
+    let origin = frameInfo.securityOrigin
+    return normalizedOrigin(
+      scheme: origin.`protocol`,
+      host: origin.host,
+      // WKSecurityOrigin reports 0 for the scheme-default port.
+      port: origin.port == 0 ? nil : origin.port
+    )
+  }
+}
+
+/// Navigation-action policy: sub-frame navigations are always allowed (the WaaS
+/// page has none); a main-frame navigation is allowed only to https on the
+/// pinned origin so the bridge can never be re-injected into another origin.
+func navigationActionPolicy(
+  for action: NavigationActionLike,
+  expectedOrigin: String
+) -> WKNavigationActionPolicy {
+  if action.isTargetMainFrame == false { return .allow }
+  return isNavigationAllowed(to: action.requestURL, expectedOrigin: expectedOrigin)
+    ? .allow
+    : .cancel
+}
+
+/// HTTP-error gate: returns the status code to fail the load with when a
+/// main-frame response is >= 400, or `nil` when the response should be allowed.
+/// Sub-frame responses never fail the load.
+func navigationResponseHttpError(for response: NavigationResponseLike) -> Int? {
+  guard response.isForMainFrame,
+        let statusCode = response.httpStatusCode,
+        statusCode >= 400 else {
+    return nil
+  }
+  return statusCode
+}
+
+/// Whether a script message should be delivered to JS: it must target our
+/// bridge handler and pass the main-frame + pinned-origin trust check.
+func shouldDeliverScriptMessage(
+  _ message: ScriptMessageLike,
+  expectedOrigin: String
+) -> Bool {
+  guard message.messageName == bridgeHandlerName else { return false }
+  return isMessageTrusted(
+    isMainFrame: message.isMainFrame,
+    messageOrigin: message.sourceOrigin,
+    expectedOrigin: expectedOrigin
+  )
+}
+
+// MARK: - Pending-load registry
+
+/// Tracks the in-flight `open` completion per instance and guarantees each load
+/// settles exactly once. Extracted from `DynamicWebViewImpl` so the
+/// settle-once state machine (didCommit success; didFail / http_error / cancel /
+/// content-process crash failures; and double-settle no-ops) is unit-testable
+/// without a live WKWebView.
+final class PendingLoadRegistry {
+  private var completions: [String: (Error?) -> Void] = [:]
+
+  /// Registers the completion to invoke when `instanceId`'s load settles.
+  func register(instanceId: String, completion: @escaping (Error?) -> Void) {
+    completions[instanceId] = completion
+  }
+
+  /// Whether a completion is still pending for `instanceId`.
+  func isPending(instanceId: String) -> Bool {
+    completions[instanceId] != nil
+  }
+
+  /// Settles the pending completion (removing it first) with `error` — `nil`
+  /// means success. Returns `true` if a completion was pending; `false` when it
+  /// was already settled, in which case this is a no-op.
+  @discardableResult
+  func settle(instanceId: String, error: Error?) -> Bool {
+    guard let completion = completions.removeValue(forKey: instanceId) else {
+      return false
+    }
+    completion(error)
+    return true
+  }
+}
+
+// MARK: - Per-instance handler shims
+
+/// Per-instance message-handler shim. Captures its own `instanceId` and pinned
+/// `expectedOrigin` so message routing and origin trust are enforced
+/// structurally, not by reverse-looking-up the sending WKWebView. Kept as a
+/// separate `NSObject` subclass so `DynamicWebViewImpl` does NOT declare
+/// `WKScriptMessageHandler` conformance (which would leak into the generated
+/// `-Swift.h` and break sibling `.mm` files that don't import WebKit).
+private class MessageBridge: NSObject, WKScriptMessageHandler {
+  private let instanceId: String
+  private let expectedOrigin: String
+  weak var owner: DynamicWebViewImpl?
+
+  init(instanceId: String, expectedOrigin: String, owner: DynamicWebViewImpl) {
+    self.instanceId = instanceId
+    self.expectedOrigin = expectedOrigin
+    self.owner = owner
+  }
+
+  func userContentController(
+    _ userContentController: WKUserContentController,
+    didReceive message: WKScriptMessage
+  ) {
+    // Pin the bridge to the opened origin's main frame: a redirect or a
+    // compromised/embedded frame cannot forward attacker messages as trusted.
+    // The decision lives in `shouldDeliverScriptMessage` so it is unit-testable
+    // without a live WKWebView (WKScriptMessage has no public initializer).
+    guard shouldDeliverScriptMessage(message, expectedOrigin: expectedOrigin) else {
+      return
+    }
+    owner?.deliverMessage(instanceId: instanceId, body: message.body)
+  }
+}
+
+/// Per-instance navigation-delegate shim. Same NSObject-containment pattern as
+/// `MessageBridge`. Captures `instanceId` + pinned `expectedOrigin` to gate
+/// navigation and route lifecycle events without a WebView reverse-lookup.
+private class NavigationBridge: NSObject, WKNavigationDelegate {
+  private let instanceId: String
+  private let expectedOrigin: String
+  weak var owner: DynamicWebViewImpl?
+
+  init(instanceId: String, expectedOrigin: String, owner: DynamicWebViewImpl) {
+    self.instanceId = instanceId
+    self.expectedOrigin = expectedOrigin
+    self.owner = owner
+  }
+
+  // Fail closed against off-origin / non-https navigation. The initial load is
+  // to the pinned origin so it is allowed; any later main-frame navigation to a
+  // different origin (open redirect, injected link, scripted location change) is
+  // cancelled so the bridge can never be re-injected into an attacker origin.
+  // Subframe navigations are left to WebKit (the WaaS page has no subframes).
+  func webView(
+    _ webView: WKWebView,
+    decidePolicyFor navigationAction: WKNavigationAction,
+    decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+  ) {
+    decisionHandler(navigationActionPolicy(
+      for: navigationAction,
+      expectedOrigin: expectedOrigin
+    ))
+  }
+
+  // Intercept the HTTP response before commit: for a main-frame non-2xx/3xx,
+  // cancel and record the status so the owner rejects the pending `open` with a
+  // typed `http_error` instead of rendering the error body as a success.
+  // Gated on `isForMainFrame` so a sub-resource 4xx/5xx cannot fail the load.
+  func webView(
+    _ webView: WKWebView,
+    decidePolicyFor navigationResponse: WKNavigationResponse,
+    decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void
+  ) {
+    if let statusCode = navigationResponseHttpError(for: navigationResponse) {
+      owner?.handleHttpError(instanceId: instanceId, statusCode: statusCode)
+      decisionHandler(.cancel)
+      return
+    }
+    decisionHandler(.allow)
+  }
+
+  func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
+    owner?.handleDidCommit(instanceId: instanceId)
+  }
+
+  func webView(
+    _ webView: WKWebView,
+    didFailProvisionalNavigation navigation: WKNavigation!,
+    withError error: Error
+  ) {
+    owner?.handleDidFail(instanceId: instanceId, error: error)
+  }
+
+  func webView(
+    _ webView: WKWebView,
+    didFail navigation: WKNavigation!,
+    withError error: Error
+  ) {
+    owner?.handleDidFail(instanceId: instanceId, error: error)
+  }
+
+  func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+    owner?.handleContentProcessTerminated(instanceId: instanceId)
+  }
+}
+
+/// Swift implementation of the `DynamicWebView` TurboModule.
+///
+/// Owns one `WKWebView` per JS `SandboxHost` instance. Each WebView
+/// is attached (hidden, zero-frame, non-interactive) to the foreground-
+/// active window so WKWebView's WebContent process is not suspended by
+/// iOS during long-running MPC ceremonies.
+@objc public class DynamicWebViewImpl: NSObject {
+
+  @objc public weak var delegate: DynamicWebViewImplDelegate?
+
+  private var webViews: [String: WKWebView] = [:]
+  // Pending completion for `open` — resolved on first terminal navigation
+  // event (didCommit / didFail* / HTTP >= 400 / content process crash) or
+  // explicit cancel (close called before settle). `internal` (not `private`)
+  // so the settle-once state machine can be driven directly in unit tests.
+  let pending = PendingLoadRegistry()
+  // The origin each instance is pinned to (navigation + message trust).
+  private var expectedOrigins: [String: String] = [:]
+  // Per-instance handlers. The navigation delegate is held weakly by WKWebView,
+  // so it must be retained here; the message handler is retained by the
+  // userContentController but is stored for symmetric teardown.
+  private var messageBridges: [String: MessageBridge] = [:]
+  private var navigationBridges: [String: NavigationBridge] = [:]
+
+  @objc public override init() {
+    super.init()
+  }
+
+  fileprivate func deliverMessage(instanceId: String, body: Any) {
+    delegate?.didReceiveMessage(forInstanceId: instanceId, data: body)
+  }
+
+  // `internal` (not `fileprivate`) so the reason-mapping wiring can be driven
+  // directly in unit tests after registering a pending completion.
+  func handleDidCommit(instanceId: String) {
+    pending.settle(instanceId: instanceId, error: nil)
+  }
+
+  func handleDidFail(instanceId: String, error: Error) {
+    // `settle` is a no-op when an HTTP-error policy cancel already consumed the
+    // completion, so this follow-up failure event cannot double-resolve.
+    let nsError = error as NSError
+    pending.settle(instanceId: instanceId, error: makeError(
+      reason: Reason.navigationFailed,
+      message: nsError.localizedDescription,
+      underlyingDescription: nsError.localizedDescription
+    ))
+  }
+
+  func handleHttpError(instanceId: String, statusCode: Int) {
+    pending.settle(instanceId: instanceId, error: makeError(
+      reason: Reason.httpError,
+      message: "HTTP \(statusCode)",
+      statusCode: statusCode
+    ))
+  }
+
+  func handleContentProcessTerminated(instanceId: String) {
+    pending.settle(instanceId: instanceId, error: makeError(
+      reason: Reason.contentProcessTerminated,
+      message: "WKWebView WebContent process terminated."
+    ))
+  }
+
+  @objc public func open(
+    instanceId: String,
+    url: String,
+    completion: @escaping (Error?) -> Void
+  ) {
+    DispatchQueue.main.async { [weak self] in
+      guard let self = self else { return }
+
+      if self.webViews[instanceId] != nil {
+        completion(makeError(
+          reason: Reason.instanceBusy,
+          message: "open called on an instanceId that already has an active WebView."
+        ))
+        return
+      }
+
+      // Reject non-https schemes (file://, about:, javascript:, http://, etc.).
+      // The WebView hosts WaaS/MPC content and must never load attacker-controlled
+      // local files or pseudo-URL handlers. A missing host is also rejected so a
+      // bare scheme like "https://" cannot slip through.
+      guard let parsedUrl = URL(string: url),
+            parsedUrl.scheme?.lowercased() == "https",
+            let host = parsedUrl.host, !host.isEmpty,
+            let expectedOrigin = originString(of: parsedUrl) else {
+        completion(makeError(
+          reason: Reason.invalidUrl,
+          message: "Invalid URL: \(url)"
+        ))
+        return
+      }
+
+      guard let hostView = self.findHostView() else {
+        completion(makeError(
+          reason: Reason.noHostView,
+          message: "No foreground window available to attach WebView."
+        ))
+        return
+      }
+
+      let config = WKWebViewConfiguration()
+      // Ephemeral, in-memory store: cookies/localStorage/IndexedDB written by
+      // the hosted page are scoped to this WKWebView and discarded on close.
+      // Prevents cross-WebView leakage of WaaS/MPC session state and survives
+      // neither app relaunch nor reinstall.
+      config.websiteDataStore = .nonPersistent()
+      // Dedicated process pool per instance isolates the WebContent process
+      // from any other WKWebView in the host app, blocking shared-process
+      // side channels (e.g. shared JIT heap, IPC ordering).
+      config.processPool = WKProcessPool()
+      let userScript = WKUserScript(
+        source: bridgeUserScript,
+        injectionTime: .atDocumentStart,
+        forMainFrameOnly: true
+      )
+      config.userContentController.addUserScript(userScript)
+
+      let messageBridge = MessageBridge(
+        instanceId: instanceId,
+        expectedOrigin: expectedOrigin,
+        owner: self
+      )
+      let navigationBridge = NavigationBridge(
+        instanceId: instanceId,
+        expectedOrigin: expectedOrigin,
+        owner: self
+      )
+      config.userContentController.add(messageBridge, name: bridgeHandlerName)
+
+      let webView = WKWebView(frame: .zero, configuration: config)
+      webView.navigationDelegate = navigationBridge
+      webView.isHidden = true
+      webView.isUserInteractionEnabled = false
+      // Enables Safari Web Inspector for debug builds (iOS 16.4+).
+      // Connect via Safari > Develop > [Device] > [WebView].
+      #if DEBUG
+      if #available(iOS 16.4, *) {
+        webView.isInspectable = true
+      }
+      #endif
+
+      hostView.addSubview(webView)
+      self.webViews[instanceId] = webView
+      self.expectedOrigins[instanceId] = expectedOrigin
+      self.messageBridges[instanceId] = messageBridge
+      self.navigationBridges[instanceId] = navigationBridge
+      self.pending.register(instanceId: instanceId, completion: completion)
+
+      webView.load(URLRequest(url: parsedUrl))
+    }
+  }
+
+  @objc public func sendMessage(instanceId: String, data: NSDictionary) {
+    DispatchQueue.main.async { [weak self] in
+      guard let self = self else { return }
+      guard let webView = self.webViews[instanceId] else { return }
+
+      // callAsyncJavaScript binds `payload` via WebKit's structured-clone
+      // argument map instead of interpolating the value into JS source.
+      // Eliminates the entire class of injection bugs that hand-rolled
+      // escaping (U+2028 / U+2029 line terminators, quote breakouts, etc.)
+      // is exposed to. The iframe contract is fire-and-forget, so the
+      // completion is intentionally dropped.
+      webView.callAsyncJavaScript(
+        "if (window.__dynamicReceive) { window.__dynamicReceive(payload); }",
+        arguments: ["payload": data],
+        in: nil,
+        in: .page,
+        completionHandler: nil
+      )
+    }
+  }
+
+  @objc public func close(instanceId: String) {
+    DispatchQueue.main.async { [weak self] in
+      guard let self = self else { return }
+
+      // A close while `open` is pending means the caller intentionally aborted
+      // the load. Reject the pending completion so the awaiter doesn't hang.
+      // `settle` is a no-op if the load already settled.
+      self.pending.settle(instanceId: instanceId, error: makeError(
+        reason: Reason.cancelled,
+        message: "WebView was closed before the load settled."
+      ))
+
+      self.expectedOrigins.removeValue(forKey: instanceId)
+      self.messageBridges.removeValue(forKey: instanceId)
+      self.navigationBridges.removeValue(forKey: instanceId)
+
+      guard let webView = self.webViews.removeValue(forKey: instanceId) else { return }
+
+      webView.stopLoading()
+      webView.navigationDelegate = nil
+      webView.configuration.userContentController.removeScriptMessageHandler(forName: bridgeHandlerName)
+      webView.configuration.userContentController.removeAllUserScripts()
+      webView.removeFromSuperview()
+    }
+  }
+
+  // MARK: - Helpers
+
+  private func findHostView() -> UIView? {
+    let scenes = UIApplication.shared.connectedScenes
+      .compactMap { $0 as? UIWindowScene }
+
+    let activeScene = scenes.first(where: { $0.activationState == .foregroundActive })
+      ?? scenes.first
+
+    let window = activeScene?.windows.first(where: { $0.isKeyWindow })
+      ?? activeScene?.windows.first
+
+    return window?.rootViewController?.view ?? window
+  }
+}

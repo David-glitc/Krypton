@@ -1,0 +1,42 @@
+'use client'
+import { __awaiter } from '../../../../../_virtual/_tslib.js';
+import { useRef, useCallback } from 'react';
+import { useSocialAuth } from '../useSocialAuth/useSocialAuth.js';
+
+const useStepUpSocial = ({ stateActions }) => {
+    const { setError, setLoading, setSuccess } = stateActions;
+    const socialErrorRef = useRef(null);
+    const { connectSocialAccount } = useSocialAuth({
+        onError: (error) => {
+            socialErrorRef.current = error;
+        },
+    });
+    const verifySocial = useCallback((_a) => __awaiter(void 0, [_a], void 0, function* ({ provider, requestedScopes, }) {
+        socialErrorRef.current = null;
+        setLoading();
+        try {
+            yield connectSocialAccount({
+                authMode: 'stepup',
+                provider,
+                requestedScopes,
+            });
+            if (socialErrorRef.current) {
+                const errorMessage = socialErrorRef.current instanceof Error
+                    ? socialErrorRef.current.message
+                    : 'Social authentication failed';
+                setError(errorMessage);
+                return;
+            }
+            setSuccess();
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error
+                ? error.message
+                : 'Social authentication failed';
+            setError(errorMessage);
+        }
+    }), [connectSocialAccount, setError, setLoading, setSuccess]);
+    return { verifySocial };
+};
+
+export { useStepUpSocial };

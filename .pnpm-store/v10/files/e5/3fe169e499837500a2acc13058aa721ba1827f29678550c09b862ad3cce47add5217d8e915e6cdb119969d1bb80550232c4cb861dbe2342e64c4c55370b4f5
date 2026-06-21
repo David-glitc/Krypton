@@ -1,0 +1,2 @@
+export { checkStepUpAuth } from './checkStepUpAuth';
+//# sourceMappingURL=index.d.ts.map

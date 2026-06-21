@@ -1,0 +1,2 @@
+export declare const SWAP_SUPPORTED_CHAINS: string[];
+//# sourceMappingURL=constants.d.ts.map

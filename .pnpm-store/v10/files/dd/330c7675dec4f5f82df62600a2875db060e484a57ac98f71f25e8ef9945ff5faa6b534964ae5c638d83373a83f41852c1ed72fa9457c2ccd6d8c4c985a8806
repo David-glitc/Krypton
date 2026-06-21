@@ -1,0 +1,36 @@
+/**
+ * Storage utility for managing credential data in local storage
+ */
+export interface StoredCredentials {
+    credentialId?: string;
+    publickey: string;
+    smartWalletAddress: string;
+    timestamp: number;
+}
+/**
+ * Storage utility for managing credential data
+ */
+export declare class StorageUtil {
+    /**
+     * Save credentials to local storage
+     * @param credentials The credentials to save
+     */
+    static saveCredentials(credentials: StoredCredentials): void;
+    /**
+     * Get credentials from local storage
+     * @returns The stored credentials or null if not found
+     */
+    static getCredentials(): StoredCredentials | null;
+    /**
+     * Update smart wallet address in local storage
+     * @param smartWalletAddress The smart wallet address to save
+     */
+    static updateSmartWalletAddress(smartWalletAddress: string): void;
+    /**
+     * Clear credentials from local storage
+     */
+    static clearCredentials(): void;
+    static getItem(key: string): string | null;
+    static setItem(key: string, value: string): void;
+}
+//# sourceMappingURL=storage.d.ts.map

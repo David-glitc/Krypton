@@ -1,0 +1,71 @@
+'use client'
+import { jsx } from 'react/jsx-runtime';
+import { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import { useViewContext } from '../ViewContext/ViewContext.js';
+import '@dynamic-labs/iconic';
+import '@dynamic-labs/wallet-connector-core';
+import '../../shared/logger.js';
+import '@dynamic-labs/wallet-book';
+import { isSSR } from '../../shared/utils/functions/isSSR/isSSR.js';
+import '@dynamic-labs/utils';
+import { CAPTCHA_TOKEN } from '../../utils/constants/localStorage.js';
+import '../../utils/constants/colors.js';
+import '../../utils/constants/values.js';
+import '@dynamic-labs/sdk-api-core';
+import { useLocalStorage } from '../../shared/utils/hooks/useLocalStorage/useLocalStorage.js';
+import '../../shared/consts/index.js';
+import '../DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+
+const SSR_SAFE_DEFAULT = {
+    captchaAuthState: undefined,
+    engageCaptcha: () => { },
+    getCaptchaToken: () => undefined,
+    setCaptchaAuthState: () => { },
+    setCaptchaToken: () => { },
+};
+const CaptchaContext = createContext(undefined);
+const CaptchaContextProvider = ({ children, }) => {
+    const { pushView } = useViewContext();
+    const { setShowAuthFlow } = useInternalDynamicContext();
+    const [captchaToken, setCaptchaToken, removeCaptchaToken] = useLocalStorage(CAPTCHA_TOKEN, undefined);
+    const [captchaAuthState, setCaptchaAuthState] = useState();
+    const engageCaptcha = useCallback(({ authMethod, onCaptchaSuccess, }) => {
+        setCaptchaAuthState({ authMethod, onCaptchaSuccess });
+        pushView('captcha');
+        setShowAuthFlow(true);
+    }, [pushView, setCaptchaAuthState, setShowAuthFlow]);
+    const getCaptchaToken = useCallback(() => {
+        const token = captchaToken;
+        removeCaptchaToken();
+        return token;
+    }, [captchaToken, removeCaptchaToken]);
+    const value = useMemo(() => ({
+        captchaAuthState,
+        engageCaptcha,
+        getCaptchaToken,
+        removeCaptchaToken,
+        setCaptchaAuthState,
+        setCaptchaToken,
+    }), [
+        captchaAuthState,
+        getCaptchaToken,
+        engageCaptcha,
+        setCaptchaAuthState,
+        setCaptchaToken,
+        removeCaptchaToken,
+    ]);
+    return (jsx(CaptchaContext.Provider, { value: value, children: children }));
+};
+const useCaptchaContext = () => {
+    const context = useContext(CaptchaContext);
+    if (context === undefined) {
+        if (isSSR()) {
+            return SSR_SAFE_DEFAULT;
+        }
+        throw new Error('Hook must be used within <CaptchaContextProvider>.');
+    }
+    return context;
+};
+
+export { CaptchaContext, CaptchaContextProvider, useCaptchaContext };

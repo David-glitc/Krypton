@@ -1,0 +1,11 @@
+'use client'
+import { __awaiter } from '../../../../../../_virtual/_tslib.js';
+import { getDefaultClient } from '@dynamic-labs-sdk/client';
+import { getSignedSessionId } from '@dynamic-labs-sdk/client/core';
+
+const generateChainingSignature = () => __awaiter(void 0, void 0, void 0, function* () {
+    const { signature } = yield getSignedSessionId(getDefaultClient());
+    return signature;
+});
+
+export { generateChainingSignature };

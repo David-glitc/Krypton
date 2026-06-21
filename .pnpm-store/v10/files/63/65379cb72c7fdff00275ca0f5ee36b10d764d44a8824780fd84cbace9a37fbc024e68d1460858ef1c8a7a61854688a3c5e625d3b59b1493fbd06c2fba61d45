@@ -1,0 +1,15 @@
+import type { DynamicClient } from '../../../../client/types';
+import type { GetMoonPayUrlParams } from '../moonpay.types';
+/**
+ * Returns the signed MoonPay URL for the given wallet and token.
+ *
+ * Uses the Dynamic onramp API to retrieve the pre-signed URL that can be
+ * opened in a browser tab to allow the user to purchase crypto via MoonPay.
+ *
+ * @param params - Parameters including chain, wallet address, and optional token/currency filters.
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns The signed MoonPay URL.
+ * @instrumented
+ */
+export declare const getMoonPayUrl: (params: GetMoonPayUrlParams, client?: DynamicClient) => Promise<string>;
+//# sourceMappingURL=getMoonPayUrl.d.ts.map

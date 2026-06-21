@@ -1,0 +1,2 @@
+export { getInAppBrowserUrl } from './getInAppBrowserUrl';
+//# sourceMappingURL=index.d.ts.map

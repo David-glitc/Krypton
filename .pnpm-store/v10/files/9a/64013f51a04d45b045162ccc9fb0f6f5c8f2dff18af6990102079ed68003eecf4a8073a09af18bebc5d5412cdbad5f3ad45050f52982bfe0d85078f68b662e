@@ -1,0 +1,9 @@
+import * as anchor from '@coral-xyz/anchor';
+import { Buffer } from 'buffer';
+export declare const computeMultipleCpiHashes: (cpiInstructions: readonly anchor.web3.TransactionInstruction[], smartWallet: anchor.web3.PublicKey, cpiSigners?: readonly anchor.web3.PublicKey[]) => {
+    cpiDataHash: Uint8Array;
+    cpiAccountsHash: Uint8Array;
+};
+export declare function buildExecuteMessage(smartWallet: anchor.web3.PublicKey, nonce: anchor.BN, timestamp: anchor.BN, policyIns: anchor.web3.TransactionInstruction, cpiIns: anchor.web3.TransactionInstruction, cpiSigners?: readonly anchor.web3.PublicKey[]): Buffer;
+export declare function buildCreateChunkMessage(smartWallet: anchor.web3.PublicKey, nonce: anchor.BN, timestamp: anchor.BN, policyIns: anchor.web3.TransactionInstruction, cpiInstructions: readonly anchor.web3.TransactionInstruction[], cpiSigners?: readonly anchor.web3.PublicKey[]): Buffer;
+//# sourceMappingURL=messages.d.ts.map

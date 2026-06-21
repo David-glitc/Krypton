@@ -1,0 +1,82 @@
+'use client'
+import { __awaiter } from '../../../../../_virtual/_tslib.js';
+import { useState } from 'react';
+import '../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { dynamicEvents } from '../../../events/dynamicEvents.js';
+import '@dynamic-labs/iconic';
+import '@dynamic-labs/wallet-connector-core';
+import 'react/jsx-runtime';
+import { useViewContext } from '../../../context/ViewContext/ViewContext.js';
+import { logger } from '../../../shared/logger.js';
+import '@dynamic-labs/wallet-book';
+import '@dynamic-labs/utils';
+import '../../constants/colors.js';
+import '../../constants/values.js';
+import '@dynamic-labs/sdk-api-core';
+import '../../../shared/consts/index.js';
+import { initEmbeddedWalletSession } from '../../../views/Passkey/utils/passkeyRecovery/passkeyRecovery.js';
+import { iframeElementId } from '../../../views/Passkey/PasskeyRecovery/constants.js';
+import { useSmartWallets } from '../useSmartWallets/useSmartWallets.js';
+
+// This hook needs to be async that's why it's not using useMutation
+const useInitEmbeddedWalletAuthMethod = () => {
+    const { primaryWallet, environmentId, user, projectSettings, setShowAuthFlow, } = useInternalDynamicContext();
+    const { pushView } = useViewContext();
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState();
+    const { getEOAWallet } = useSmartWallets();
+    const initAuthMethod = (_a) => __awaiter(void 0, [_a], void 0, function* ({ authenticatorType, iframeContainer, currentAction, }) {
+        var _b, _c, _d, _e, _f;
+        setIsLoading(true);
+        const wallet = (_b = (primaryWallet && getEOAWallet(primaryWallet))) !== null && _b !== void 0 ? _b : primaryWallet;
+        const sessionExpiration = ((_d = (_c = projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.sdk.embeddedWallets) === null || _c === void 0 ? void 0 : _c.sessionKeyDuration) === null || _d === void 0 ? void 0 : _d.amount) || 0;
+        const sessionExpirationUnit = ((_f = (_e = projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.sdk.embeddedWallets) === null || _e === void 0 ? void 0 : _e.sessionKeyDuration) === null || _f === void 0 ? void 0 : _f.unit) ===
+            'minutes'
+            ? 60
+            : 3600;
+        const showEmailBundle = authenticatorType === 'email' ||
+            !(wallet === null || wallet === void 0 ? void 0 : wallet.connector)
+                .getAuthenticatorHandler()
+                .isSessionActive();
+        try {
+            yield initEmbeddedWalletSession({
+                authenticatorType,
+                environmentId,
+                iframeContainer,
+                iframeElementId,
+                sessionExpiration: sessionExpiration * sessionExpirationUnit || undefined,
+                user,
+                wallet: wallet,
+            });
+            if (showEmailBundle) {
+                pushView('passkey-recovery-bundle', {
+                    authenticatorType,
+                    currentAction,
+                });
+                setShowAuthFlow(true, {
+                    ignoreIfIsEmbeddedWidget: false,
+                    performMultiWalletChecks: false,
+                });
+            }
+            else {
+                setShowAuthFlow(false);
+            }
+        }
+        catch (err) {
+            setError(err);
+            logger.error('Failed to create embedded wallet session', err);
+            dynamicEvents.emit('passkeyRecoveryFailed', err);
+        }
+        finally {
+            setIsLoading(false);
+        }
+    });
+    return {
+        error,
+        initAuthMethod,
+        isLoading,
+    };
+};
+
+export { useInitEmbeddedWalletAuthMethod };

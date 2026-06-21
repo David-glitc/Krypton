@@ -1,0 +1,30 @@
+import { ChainSettlementConfigFromJSON, ChainSettlementConfigToJSON } from './ChainSettlementConfig.js';
+import { SettlementStrategyEnumFromJSON, SettlementStrategyEnumToJSON } from './SettlementStrategyEnum.js';
+
+/* tslint:disable */
+function SettlementConfigInputFromJSON(json) {
+    return SettlementConfigInputFromJSONTyped(json);
+}
+function SettlementConfigInputFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'strategy': SettlementStrategyEnumFromJSON(json['strategy']),
+        'settlements': (json['settlements'].map(ChainSettlementConfigFromJSON)),
+    };
+}
+function SettlementConfigInputToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'strategy': SettlementStrategyEnumToJSON(value.strategy),
+        'settlements': (value.settlements.map(ChainSettlementConfigToJSON)),
+    };
+}
+
+export { SettlementConfigInputFromJSON, SettlementConfigInputFromJSONTyped, SettlementConfigInputToJSON };

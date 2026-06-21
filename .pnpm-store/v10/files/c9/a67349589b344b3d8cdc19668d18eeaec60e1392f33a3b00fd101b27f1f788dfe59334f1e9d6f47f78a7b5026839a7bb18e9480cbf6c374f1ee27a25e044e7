@@ -1,0 +1,47 @@
+'use client'
+import { __awaiter } from '../../../../../../_virtual/_tslib.js';
+import { getDefaultClient, waitForClientInitialized } from '@dynamic-labs-sdk/client';
+import { getCore } from '@dynamic-labs-sdk/client/core';
+import '@dynamic-labs/iconic';
+import '@dynamic-labs/wallet-connector-core';
+import 'react';
+import 'react/jsx-runtime';
+import '../../../../context/ViewContext/ViewContext.js';
+import { logger } from '../../../../shared/logger.js';
+import '@dynamic-labs/wallet-book';
+import '@dynamic-labs/utils';
+import '../../../../utils/constants/colors.js';
+import '../../../../utils/constants/values.js';
+import '@dynamic-labs/sdk-api-core';
+import '../../../../shared/consts/index.js';
+import { getClientSessionKeys, clearClientSessionKeys } from '../../../../utils/functions/clientSessionKeys/getClientSessionKeys.js';
+
+const migrateClientSessionKey = () => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        // Wait for the SDK to finish initializing (including its own migration phase)
+        // before overwriting the keychain — react-SDK keys always take precedence.
+        const client = getDefaultClient();
+        yield waitForClientInitialized(client);
+        logger.debug('[migrateClientSessionKey] Checking for legacy session key in storage');
+        const legacy = getClientSessionKeys();
+        if (!legacy) {
+            logger.debug('[migrateClientSessionKey] No legacy session key found in storage, skipping migration');
+            return;
+        }
+        const { keychain } = getCore(client);
+        logger.debug('[migrateClientSessionKey] Found legacy session key, importing into keychain', { expectedPublicKey: legacy.publicKey });
+        const importedPublicKey = yield keychain.importKey('session', legacy.privateKeyJwk);
+        logger.debug('[migrateClientSessionKey] Key imported into IndexedDB', {
+            expectedPublicKey: legacy.publicKey,
+            importedPublicKey,
+        });
+        getCore(client).state.set({ sessionKeys: importedPublicKey });
+        clearClientSessionKeys();
+        logger.debug('[migrateClientSessionKey] Migration complete, legacy entry removed from storage');
+    }
+    catch (error) {
+        logger.debug('[migrateClientSessionKey] Migration failed, ignoring:', error);
+    }
+});
+
+export { migrateClientSessionKey };

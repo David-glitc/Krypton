@@ -1,0 +1,26 @@
+import { Commitment, KeyPairSigner, Address } from '@solana/kit';
+import { KoraClient } from '../src/index.js';
+interface TestSuite {
+    koraClient: KoraClient;
+    koraRpcUrl: string;
+    testWallet: KeyPairSigner<string>;
+    usdcMint: Address<string>;
+    destinationAddress: Address<string>;
+    koraAddress: Address<string>;
+}
+export declare function loadEnvironmentVariables(): {
+    koraRpcUrl: string;
+    koraAddress: Address<string>;
+    koraSignerType: string;
+    commitment: Commitment;
+    tokenDecimals: number;
+    tokenDropAmount: number;
+    solDropAmount: bigint;
+    solanaRpcUrl: string;
+    solanaWsUrl: string;
+    testWalletSecret: string;
+    testUsdcMintSecret: string;
+    destinationAddress: Address<string>;
+};
+declare function setupTestSuite(): Promise<TestSuite>;
+export default setupTestSuite;

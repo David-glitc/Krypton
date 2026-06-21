@@ -1,0 +1,25 @@
+/**
+ * Delete passkey
+ *
+ * The client SDK's deletePasskey now natively sends the elevated access
+ * token (credential:unlink) when one exists in state.
+ *
+ * @returns Function to delete passkey for the current user
+ *
+ * @example
+ * ```tsx
+ * const App = () => {
+ *   const deletePasskey = useDeletePasskey();
+ *
+ *   return (
+ *     <button
+ *       onClick={async () => {
+ *         await deletePasskey(passkeyId);
+ *       }}
+ *     >
+ *       Delete passkey
+ *     </button>
+ *  );
+ * }
+ */
+export declare const useDeletePasskey: () => ((passkeyId: string) => Promise<void>);

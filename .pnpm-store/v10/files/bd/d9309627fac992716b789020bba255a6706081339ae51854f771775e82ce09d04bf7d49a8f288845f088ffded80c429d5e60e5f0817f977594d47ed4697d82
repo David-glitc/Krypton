@@ -1,0 +1,30 @@
+import { useInternalDynamicContext } from '../../../../context/DynamicContext/useDynamicContext';
+import type { CryptoToken } from './CryptoTokenSelectScreen';
+export type UseMoonPayOnrampParams = {
+    /** Pre-select a token; falls back to the first available currency when invalid. */
+    initialToken?: string;
+    merchantName?: string;
+    /** Override the wallet address; defaults to the primary wallet address. */
+    walletAddressOverride?: string;
+    /** Called with the signed MoonPay URL instead of opening a popup. */
+    onPaymentCreated?: (paymentUrl: string) => void;
+};
+export type UseMoonPayOnrampReturn = {
+    primaryWallet: ReturnType<typeof useInternalDynamicContext>['primaryWallet'];
+    availableTokens: CryptoToken[];
+    tokensLoading: boolean;
+    tokensError: boolean;
+    selectedToken: string;
+    setSelectedToken: (tokenCode: string) => void;
+    isOpening: boolean;
+    error: string | null;
+    effectiveWalletAddress: string;
+    openMoonPay: () => void;
+};
+/**
+ * Owns the MoonPay onramp data + actions: fetching supported currencies for the
+ * connected wallet's chain, tracking the selected token, and opening the signed
+ * MoonPay URL (validated against *.moonpay.com over HTTPS). The presentational
+ * MoonPayOnramp view consumes this hook.
+ */
+export declare const useMoonPayOnramp: ({ initialToken, merchantName, walletAddressOverride, onPaymentCreated, }: UseMoonPayOnrampParams) => UseMoonPayOnrampReturn;

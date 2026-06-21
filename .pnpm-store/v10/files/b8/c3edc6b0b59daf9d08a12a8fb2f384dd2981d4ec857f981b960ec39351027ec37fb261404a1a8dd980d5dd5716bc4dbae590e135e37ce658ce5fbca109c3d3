@@ -1,0 +1,28 @@
+'use client'
+const extensionIdFromChromeWebStorePath = (pathname) => pathname.split('/').filter(Boolean).at(-1);
+const transformChromeExtensionId = (url) => {
+    if (url === null || url === void 0 ? void 0 : url.match(/^[a-z]{32}$/))
+        return url;
+    if (url === null || url === void 0 ? void 0 : url.includes('chrome.google.com/webstore/detail/')) {
+        try {
+            const urlObject = new URL(url);
+            return extensionIdFromChromeWebStorePath(urlObject.pathname);
+        }
+        catch (_a) {
+            // ignore
+        }
+    }
+    // New Chrome Web Store host (WalletConnect / Explorer often use this shape)
+    if (url === null || url === void 0 ? void 0 : url.includes('chromewebstore.google.com/detail/')) {
+        try {
+            const urlObject = new URL(url);
+            return extensionIdFromChromeWebStorePath(urlObject.pathname);
+        }
+        catch (_b) {
+            // ignore
+        }
+    }
+    return;
+};
+
+export { transformChromeExtensionId };

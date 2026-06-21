@@ -1,0 +1,16 @@
+'use client'
+import { jsx } from 'react/jsx-runtime';
+import { useCallback } from 'react';
+import '../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { ResetPasswordView } from '../../widgets/DynamicWidget/views/ResetPasswordView/ResetPasswordView.js';
+
+const ResetPasswordForSettingsView = () => {
+    const { setShowAuthFlow } = useInternalDynamicContext();
+    const handleComplete = useCallback(() => {
+        setShowAuthFlow(false);
+    }, [setShowAuthFlow]);
+    return jsx(ResetPasswordView, { onComplete: handleComplete });
+};
+
+export { ResetPasswordForSettingsView };

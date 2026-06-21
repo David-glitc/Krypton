@@ -1,0 +1,141 @@
+'use client'
+import { __awaiter } from '../../../../../_virtual/_tslib.js';
+import { useRef, useEffect } from 'react';
+import { ChainEnum } from '@dynamic-labs/sdk-api-core';
+import '../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+
+/**
+ * Programs whose `join` transition the Aleo Feemaster has historically
+ * sponsored — `credits.aleo` and the two stablecoins. ARC-21 lives on
+ * `token_registry.aleo` which is per-`token_id` and out of scope for v1.
+ *
+ * The list is intentionally explicit (not pulled from the connector's
+ * private allowlist) so adding a program here is a deliberate decision
+ * coupled to Feemaster coverage rather than an automatic side-effect of a
+ * shape-registry change.
+ */
+const AUTO_MERGE_PROGRAMS = [
+    'credits.aleo',
+    'usad_stablecoin.aleo',
+    'usdcx_stablecoin.aleo',
+    'test_usad_stablecoin.aleo',
+    'test_usdcx_stablecoin.aleo',
+];
+/**
+ * On Aleo wallet load, scan the user's owned records and silently fire a
+ * merge ceremony for every program with ≥2 records that the Feemaster
+ * currently sponsors. Programs the Feemaster doesn't cover are skipped —
+ * the user can still trigger a manual merge via the explicit "Merge all
+ * records" CTA, which dispatches with user-paid fees.
+ *
+ * Idempotency is per-session, keyed by `(accountAddress, programId)`. A
+ * page reload re-runs auto-merge once; mid-session balance refreshes do
+ * not re-trigger merges for the same program. On error the program key
+ * is removed from the seen-set so the next refresh can retry.
+ *
+ * Failures are swallowed by design — auto-merge is a background
+ * optimisation, not a user-facing flow. Errors surface only via the
+ * connector's own logger.
+ */
+const useAleoAutoMergeRecords = () => {
+    const { primaryWallet } = useInternalDynamicContext();
+    // Tracks `(accountAddress:programId)` pairs we've already attempted in
+    //  this React session. Cleared implicitly on a full page reload (the ref
+    //  lives in module-private React state). We do NOT persist to
+    //  localStorage on purpose — the Feemaster check on every attempt is
+    //  cheap server-side and survives mid-session policy changes.
+    const seenKeysRef = useRef(new Set());
+    useEffect(() => {
+        var _a;
+        const connector = primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.connector;
+        if (!connector)
+            return;
+        const isAleo = ((_a = primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.connector) === null || _a === void 0 ? void 0 : _a.connectedChain) === ChainEnum.Aleo;
+        if (!isAleo)
+            return;
+        if (typeof connector.listOwnedRecords !== 'function' ||
+            typeof connector.isFeemasterSponsored !== 'function' ||
+            typeof connector.joinRecords !== 'function') {
+            return;
+        }
+        let cancelled = false;
+        const accountAddress = primaryWallet
+            .address;
+        if (!accountAddress)
+            return;
+        const run = () => __awaiter(void 0, void 0, void 0, function* () {
+            var _b, _c, _d, _e, _f, _g;
+            const result = yield ((_b = connector.listOwnedRecords) === null || _b === void 0 ? void 0 : _b.call(connector));
+            if (cancelled)
+                return;
+            const records = ((_c = result === null || result === void 0 ? void 0 : result.records) !== null && _c !== void 0 ? _c : []).filter((r) => Boolean(r === null || r === void 0 ? void 0 : r.program_name) && typeof (r === null || r === void 0 ? void 0 : r.record_plaintext) === 'string');
+            // Group record counts per program.
+            const countsByProgram = new Map();
+            for (const record of records) {
+                const programId = record.program_name;
+                countsByProgram.set(programId, ((_d = countsByProgram.get(programId)) !== null && _d !== void 0 ? _d : 0) + 1);
+            }
+            const candidates = AUTO_MERGE_PROGRAMS.filter((programId) => {
+                var _a;
+                const count = (_a = countsByProgram.get(programId)) !== null && _a !== void 0 ? _a : 0;
+                if (count < 2)
+                    return false;
+                const key = `${accountAddress}:${programId}`;
+                return !seenKeysRef.current.has(key);
+            });
+            for (const programId of candidates) {
+                if (cancelled)
+                    return;
+                const key = `${accountAddress}:${programId}`;
+                seenKeysRef.current.add(key);
+                let sponsored = false;
+                try {
+                    sponsored =
+                        (_f = (yield ((_e = connector.isFeemasterSponsored) === null || _e === void 0 ? void 0 : _e.call(connector, {
+                            functionName: 'join',
+                            programId,
+                        })))) !== null && _f !== void 0 ? _f : false;
+                }
+                catch (_h) {
+                    sponsored = false;
+                }
+                if (cancelled)
+                    return;
+                if (!sponsored) {
+                    // Allow a future attempt if Feemaster coverage flips on later in
+                    //  the session (e.g. after a policy refresh).
+                    seenKeysRef.current.delete(key);
+                    continue;
+                }
+                try {
+                    yield ((_g = connector.joinRecords) === null || _g === void 0 ? void 0 : _g.call(connector, { programIds: [programId] }));
+                }
+                catch (_j) {
+                    // Background optimisation — swallow and let the next session
+                    //  retry. Removing the key allows a retry on the next records
+                    //  refresh.
+                    seenKeysRef.current.delete(key);
+                }
+            }
+        });
+        run().catch(() => {
+            /* swallow — see method jsdoc */
+        });
+        return () => {
+            cancelled = true;
+        };
+        // Depend on the stable address + connector reference rather than the
+        //  whole `primaryWallet` object. The wallet object can be re-created
+        //  on every context update (balance refreshes, metadata churn, etc.),
+        //  which would re-fire this effect even when no merge-relevant state
+        //  has changed and re-spam `listOwnedRecords` / `isFeemasterSponsored`.
+        //  Address + connector are the only fields the effect actually reads.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+        primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.address,
+        primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.connector,
+    ]);
+};
+
+export { useAleoAutoMergeRecords };

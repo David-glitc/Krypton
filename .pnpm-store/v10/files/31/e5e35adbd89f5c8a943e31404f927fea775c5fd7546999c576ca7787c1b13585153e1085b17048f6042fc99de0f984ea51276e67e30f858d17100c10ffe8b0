@@ -1,0 +1,5 @@
+import { DynamicError } from './DynamicError';
+export declare class TransactionConfirmationTimeoutError extends DynamicError {
+    readonly transactionSignature: string;
+    constructor(transactionSignature: string);
+}

@@ -1,0 +1,10 @@
+/**
+ * Hand-curated list of wallet book group keys that should surface at the top
+ * of catalogue listings. Lower index = higher priority. Anything not in this
+ * list falls through to the secondary sort (alphabetical by name).
+ *
+ * Used by `sortWalletOptions` (relevance mode) and by the react-demo's
+ * WalletConnect picker. Keep both in sync when adding entries.
+ */
+export declare const PRIORITY_WALLET_KEYS: readonly string[];
+//# sourceMappingURL=priorityWalletKeys.d.ts.map

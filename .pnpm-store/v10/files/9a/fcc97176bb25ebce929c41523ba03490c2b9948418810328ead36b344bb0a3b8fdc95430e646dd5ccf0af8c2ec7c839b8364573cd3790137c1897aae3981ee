@@ -1,0 +1,32 @@
+import { exists } from '../runtime.js';
+import { StepUpCredentialFromJSON, StepUpCredentialToJSON } from './StepUpCredential.js';
+
+/* tslint:disable */
+function StepUpCheckResponseFromJSON(json) {
+    return StepUpCheckResponseFromJSONTyped(json);
+}
+function StepUpCheckResponseFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'isRequired': json['isRequired'],
+        'credentials': (json['credentials'].map(StepUpCredentialFromJSON)),
+        'defaultCredentialId': !exists(json, 'defaultCredentialId') ? undefined : json['defaultCredentialId'],
+    };
+}
+function StepUpCheckResponseToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'isRequired': value.isRequired,
+        'credentials': (value.credentials.map(StepUpCredentialToJSON)),
+        'defaultCredentialId': value.defaultCredentialId,
+    };
+}
+
+export { StepUpCheckResponseFromJSON, StepUpCheckResponseFromJSONTyped, StepUpCheckResponseToJSON };

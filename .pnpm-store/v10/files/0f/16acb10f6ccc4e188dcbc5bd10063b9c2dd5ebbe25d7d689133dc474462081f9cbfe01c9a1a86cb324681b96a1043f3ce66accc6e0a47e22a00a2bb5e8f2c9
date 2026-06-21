@@ -1,0 +1,10 @@
+import { BaseError } from './base';
+type TokenSwapErrorParams = {
+    message: string;
+    originalError?: unknown;
+};
+export declare class TokenSwapError extends BaseError {
+    constructor({ message, originalError }: TokenSwapErrorParams);
+}
+export {};
+//# sourceMappingURL=TokenSwapError.d.ts.map

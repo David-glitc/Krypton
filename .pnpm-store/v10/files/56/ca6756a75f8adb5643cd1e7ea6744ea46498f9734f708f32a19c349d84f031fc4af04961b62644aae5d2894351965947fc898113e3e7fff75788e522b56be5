@@ -1,0 +1,21 @@
+import type { UserOauthAccessTokenResponse } from '@dynamic-labs/sdk-api-core';
+import type { DynamicClient } from '../../../../../client/types';
+export type FetchGoogleDriveOauthAccessParams = {
+    oauthAccountId: string;
+};
+/**
+ * Fetches the user's stored Google OAuth access token together with the
+ * scopes that were granted when the token was issued.
+ *
+ * Internal to the Google Drive backup readiness check — not exported as a
+ * public API. The returned `scopes` array can be empty for legacy tokens
+ * captured before the API began tracking granted scopes.
+ *
+ * @param params.oauthAccountId - The verified-credential id of the linked
+ *   Google account (see `findGoogleOauthAccountId`).
+ * @param client - The Dynamic client instance.
+ * @returns The OAuth access token and granted scopes.
+ * @not-instrumented
+ */
+export declare const fetchGoogleDriveOauthAccess: ({ oauthAccountId }: FetchGoogleDriveOauthAccessParams, client: DynamicClient) => Promise<UserOauthAccessTokenResponse>;
+//# sourceMappingURL=fetchGoogleDriveOauthAccess.d.ts.map

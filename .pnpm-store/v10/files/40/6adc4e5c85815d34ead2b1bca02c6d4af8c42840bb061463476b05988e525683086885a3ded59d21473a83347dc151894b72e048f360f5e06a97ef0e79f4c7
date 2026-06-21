@@ -1,0 +1,18 @@
+import type { WalletOption } from '../walletOptionsCatalogue.types';
+type HasAnyConnectionOptionParams = {
+    walletOption: WalletOption;
+};
+/**
+ * True when the wallet option has at least one connection — i.e. the user
+ * can sign in right now. Install-only wallet options surface in the
+ * catalogue too (they carry `installationUrls`) but have an empty
+ * `connectionOptions` array; this predicate distinguishes them from
+ * actually connectable wallets in the relevance sort.
+ *
+ * @param params.walletOption - The wallet option to inspect.
+ * @returns True when `connectionOptions` is non-empty.
+ * @not-instrumented
+ */
+export declare const hasAnyConnectionOption: ({ walletOption, }: HasAnyConnectionOptionParams) => boolean;
+export {};
+//# sourceMappingURL=hasAnyConnectionOption.d.ts.map

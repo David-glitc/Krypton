@@ -1,0 +1,2 @@
+export { confirmTransaction } from './confirmTransaction';
+//# sourceMappingURL=index.d.ts.map

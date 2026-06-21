@@ -1,0 +1,7 @@
+import type { StorageAdapter } from '../storage.types';
+/**
+ * Creates a localStorage adapter.
+ * @not-instrumented
+ */
+export declare const createLocalStorageAdapter: () => StorageAdapter;
+//# sourceMappingURL=createLocalStorageAdapter.d.ts.map

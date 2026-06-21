@@ -1,0 +1,7 @@
+/**
+ * Polls the existing wallet connector options for a bounded window and upgrades
+ * any whose connector has become installed since the initial snapshot. This is
+ * upgrade-only (never downgrades), so a provider that momentarily fails to
+ * resolve cannot remove an already-installed wallet from the list.
+ */
+export declare const useReconcileInstalledWallets: (enabled: boolean) => void;

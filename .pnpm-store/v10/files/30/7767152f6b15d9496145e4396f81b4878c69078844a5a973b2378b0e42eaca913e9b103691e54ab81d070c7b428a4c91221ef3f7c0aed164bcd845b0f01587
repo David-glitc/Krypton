@@ -1,0 +1,54 @@
+{
+  "name": "@dynamic-labs-wallet/forward-mpc-shared",
+  "version": "0.7.0",
+  "description": "Shared types and schemas for Forward MPC Client",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist/**/*",
+    "!dist/**/.tsbuildinfo",
+    "README.md",
+    "LICENSE.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "dependencies": {
+    "@noble/ciphers": "^0.4.1",
+    "@noble/hashes": "^2.0.0",
+    "@noble/post-quantum": "^0.5.1",
+    "fp-ts": "^2.16.11",
+    "io-ts": "^2.2.22"
+  },
+  "peerDependencies": {
+    "@dynamic-labs-wallet/primitives": ">=0.0.336 || 0.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.1",
+    "rimraf": "^6.1.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.9.2",
+    "vitest": "^4.0.10"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rimraf dist .tsbuildinfo",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix"
+  }
+}

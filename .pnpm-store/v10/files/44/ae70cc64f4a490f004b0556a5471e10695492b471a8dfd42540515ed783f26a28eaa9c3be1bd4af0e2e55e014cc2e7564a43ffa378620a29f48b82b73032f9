@@ -1,0 +1,29 @@
+'use client'
+/**
+ * Stable phrase the waas-sdk includes in Google Drive 401 / scope-insufficient
+ * upload failure messages (see dynamic-waas-sdk
+ * packages/browser/src/backup/providers/googleDrive.ts mapGoogleDriveUploadError).
+ *
+ * We match by `.includes(...)` rather than `.startsWith(...)` because the
+ * iframe message-handler fallback path
+ * (browser-wallet-client/src/services/iframeMessageHandler.ts:
+ * handleIframeMessageResponseError) rewraps the original error as
+ * `new Error(String(response.error))`, which prefixes the message with
+ * "Error: " and drops the original `isRetryable` field. The phrase remains
+ * unique to the auth/scope case across all reasons mapGoogleDriveUploadError
+ * produces (rate-limit, storage-full, 5xx, and network all use distinct
+ * prefixes), so message-only matching is sufficient to discriminate.
+ *
+ * TODO: switch to a stable `error.code` once dynamic-waas-sdk attaches one
+ * (see DYNT-754 follow-up).
+ */
+const ACCESS_DENIED_PHRASE = 'Google Drive access denied';
+/**
+ * Type-guard for Google Drive backup failures caused by missing/insufficient
+ * OAuth scopes (or otherwise denied access). Recover by re-prompting consent
+ * via `linkSocialAccount(ProviderEnum.Google, { forcePopup: true })` and
+ * retrying the backup.
+ */
+const isInsufficientGoogleDriveScopesError = (err) => err instanceof Error && err.message.includes(ACCESS_DENIED_PHRASE);
+
+export { isInsufficientGoogleDriveScopesError };

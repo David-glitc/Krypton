@@ -1,0 +1,41 @@
+import { exists } from '../runtime.js';
+
+/* tslint:disable */
+function SwapTokenFromJSON(json) {
+    return SwapTokenFromJSONTyped(json);
+}
+function SwapTokenFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'address': json['address'],
+        'chainId': json['chainId'],
+        'coinKey': !exists(json, 'coinKey') ? undefined : json['coinKey'],
+        'decimals': json['decimals'],
+        'logoURI': !exists(json, 'logoURI') ? undefined : json['logoURI'],
+        'name': json['name'],
+        'priceUSD': !exists(json, 'priceUSD') ? undefined : json['priceUSD'],
+        'symbol': json['symbol'],
+    };
+}
+function SwapTokenToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'address': value.address,
+        'chainId': value.chainId,
+        'coinKey': value.coinKey,
+        'decimals': value.decimals,
+        'logoURI': value.logoURI,
+        'name': value.name,
+        'priceUSD': value.priceUSD,
+        'symbol': value.symbol,
+    };
+}
+
+export { SwapTokenFromJSON, SwapTokenFromJSONTyped, SwapTokenToJSON };

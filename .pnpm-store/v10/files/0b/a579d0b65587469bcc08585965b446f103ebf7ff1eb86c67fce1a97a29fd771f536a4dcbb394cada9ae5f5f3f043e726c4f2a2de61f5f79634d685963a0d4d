@@ -1,0 +1,20 @@
+export declare const REFRESH_DELAYS_MS: ReadonlyArray<number>;
+/**
+ * After a successful shield broadcast, poll `onShielded` on a backoff
+ * schedule so the consumer sees both the shielded and unshielded balances
+ * update without a manual refresh click. Stops early on cancel or when
+ * the optional `hasConverged` predicate returns true; swallows
+ * per-iteration errors (refresh is best-effort).
+ *
+ * `isCancelled` is a thunk so callers can hook it up to whatever liveness
+ * signal they have (effect cleanup `cancelled` flag, abort signal, mount
+ * ref, etc.) without this module having to know about React lifecycle.
+ *
+ * `hasConverged` is optional and lets callers exit early once the
+ * post-shield state has actually materialized (e.g. the just-shielded
+ * token's unshielded balance has dropped). When omitted, the schedule
+ * runs to completion. Checked both before each delay and after each
+ * refresh so a refresh that produces the converged state ends the loop
+ * immediately.
+ */
+export declare const pollOnShielded: (onShielded: () => Promise<void> | void, isCancelled: () => boolean, hasConverged?: () => boolean) => Promise<void>;

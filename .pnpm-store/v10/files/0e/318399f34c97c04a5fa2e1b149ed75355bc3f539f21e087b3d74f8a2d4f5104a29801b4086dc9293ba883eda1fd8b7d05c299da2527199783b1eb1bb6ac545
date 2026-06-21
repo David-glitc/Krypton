@@ -1,0 +1,53 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+var EmbeddedWalletVersionEnum = require('./EmbeddedWalletVersionEnum.cjs');
+var ThresholdSignatureScheme = require('./ThresholdSignatureScheme.cjs');
+var WaasShareSet = require('./WaasShareSet.cjs');
+var WaasWalletSettings = require('./WaasWalletSettings.cjs');
+var WaasWalletShareSetType = require('./WaasWalletShareSetType.cjs');
+var WalletKeyShareInfo = require('./WalletKeyShareInfo.cjs');
+
+/* tslint:disable */
+function WaasWalletPropertiesFromJSON(json) {
+    return WaasWalletPropertiesFromJSONTyped(json);
+}
+function WaasWalletPropertiesFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'keyShares': !runtime.exists(json, 'keyShares') ? undefined : (json['keyShares'].map(WalletKeyShareInfo.WalletKeyShareInfoFromJSON)),
+        'thresholdSignatureScheme': !runtime.exists(json, 'thresholdSignatureScheme') ? undefined : ThresholdSignatureScheme.ThresholdSignatureSchemeFromJSON(json['thresholdSignatureScheme']),
+        'derivationPath': !runtime.exists(json, 'derivationPath') ? undefined : json['derivationPath'],
+        'settings': !runtime.exists(json, 'settings') ? undefined : WaasWalletSettings.WaasWalletSettingsFromJSON(json['settings']),
+        'shareSetId': !runtime.exists(json, 'shareSetId') ? undefined : json['shareSetId'],
+        'shareSetType': !runtime.exists(json, 'shareSetType') ? undefined : WaasWalletShareSetType.WaasWalletShareSetTypeFromJSON(json['shareSetType']),
+        'otherShareSets': !runtime.exists(json, 'otherShareSets') ? undefined : (json['otherShareSets'].map(WaasShareSet.WaasShareSetFromJSON)),
+        'version': !runtime.exists(json, 'version') ? undefined : EmbeddedWalletVersionEnum.EmbeddedWalletVersionEnumFromJSON(json['version']),
+    };
+}
+function WaasWalletPropertiesToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'keyShares': value.keyShares === undefined ? undefined : (value.keyShares.map(WalletKeyShareInfo.WalletKeyShareInfoToJSON)),
+        'thresholdSignatureScheme': ThresholdSignatureScheme.ThresholdSignatureSchemeToJSON(value.thresholdSignatureScheme),
+        'derivationPath': value.derivationPath,
+        'settings': WaasWalletSettings.WaasWalletSettingsToJSON(value.settings),
+        'shareSetId': value.shareSetId,
+        'shareSetType': WaasWalletShareSetType.WaasWalletShareSetTypeToJSON(value.shareSetType),
+        'otherShareSets': value.otherShareSets === undefined ? undefined : (value.otherShareSets.map(WaasShareSet.WaasShareSetToJSON)),
+        'version': EmbeddedWalletVersionEnum.EmbeddedWalletVersionEnumToJSON(value.version),
+    };
+}
+
+exports.WaasWalletPropertiesFromJSON = WaasWalletPropertiesFromJSON;
+exports.WaasWalletPropertiesFromJSONTyped = WaasWalletPropertiesFromJSONTyped;
+exports.WaasWalletPropertiesToJSON = WaasWalletPropertiesToJSON;

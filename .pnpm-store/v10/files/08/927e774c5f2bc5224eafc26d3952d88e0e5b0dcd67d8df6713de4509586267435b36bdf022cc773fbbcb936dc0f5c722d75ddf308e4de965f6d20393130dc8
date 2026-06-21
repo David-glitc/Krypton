@@ -1,0 +1,16 @@
+import type { HardwareWalletVendor } from '../hardwareWallet.types';
+type FormatSignatureForHardwareWalletParams = {
+    hardwareWalletVendor: HardwareWalletVendor;
+    signature: string;
+};
+/**
+ * Wraps a raw signature in the JSON format expected by the backend for hardware wallet verification.
+ *
+ * @param params.hardwareWalletVendor - The hardware wallet vendor that produced the signature.
+ * @param params.signature - The raw signature string to wrap.
+ * @returns The signature wrapped in `{ signedTransaction: { data } }` JSON format.
+  * @not-instrumented
+ */
+export declare const formatSignatureForHardwareWallet: ({ signature, hardwareWalletVendor: _, }: FormatSignatureForHardwareWalletParams) => string;
+export {};
+//# sourceMappingURL=formatSignatureForHardwareWallet.d.ts.map

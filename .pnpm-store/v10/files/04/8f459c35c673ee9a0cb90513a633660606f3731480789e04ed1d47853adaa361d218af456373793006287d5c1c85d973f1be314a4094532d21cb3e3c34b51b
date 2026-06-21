@@ -1,0 +1,119 @@
+import * as anchor from '@coral-xyz/anchor';
+export declare class ValidationError extends Error {
+    readonly field?: string | undefined;
+    constructor(message: string, field?: string | undefined);
+}
+/**
+ * Validates that a value is not null or undefined
+ * Works correctly in browser, Node.js, and React Native environments
+ */
+export declare function assertDefined<T>(value: T | null | undefined, fieldName: string): asserts value is T;
+/**
+ * Validates that a PublicKey is valid
+ * Works correctly in browser, Node.js, and React Native environments
+ */
+export declare function assertValidPublicKey(value: anchor.web3.PublicKey | string | null | undefined, fieldName: string): asserts value is anchor.web3.PublicKey;
+/**
+ * Validates that a byte array has the exact required length
+ * Works correctly in browser, Node.js, and React Native environments
+ */
+export declare function assertByteArrayLength(value: number[] | Uint8Array | null | undefined, expectedLength: number, fieldName: string): asserts value is number[];
+/**
+ * Validates that a byte array is not empty
+ */
+export declare function assertNonEmptyByteArray(value: number[] | Uint8Array | null | undefined, fieldName: string): asserts value is number[];
+/**
+ * Validates a passkey public key (33 bytes)
+ * Returns the validated value as a number array
+ */
+export declare function assertValidPasskeyPublicKey(value: number[] | Uint8Array | null | undefined, fieldName?: string): asserts value is number[];
+/**
+ * Validates and converts a passkey public key to a number array
+ * Throws ValidationError if invalid
+ */
+export declare function validatePasskeyPublicKey(value: number[] | Uint8Array | null | undefined, fieldName?: string): number[];
+/**
+ * Validates a credential hash (32 bytes)
+ * Returns the validated value as a number array
+ */
+export declare function assertValidCredentialHash(value: number[] | Uint8Array | null | undefined, fieldName?: string): asserts value is number[];
+/**
+ * Validates and converts a credential hash to a number array
+ * Throws ValidationError if invalid
+ */
+export declare function validateCredentialHash(value: number[] | Uint8Array | null | undefined, fieldName?: string): number[];
+/**
+ * Validates a signature (64 bytes)
+ * Returns the validated value as a number array
+ */
+export declare function assertValidSignature(value: number[] | Uint8Array | null | undefined, fieldName?: string): asserts value is number[];
+/**
+ * Validates and converts a signature to a number array
+ * Throws ValidationError if invalid
+ */
+export declare function validateSignature(value: number[] | Uint8Array | null | undefined, fieldName?: string): number[];
+/**
+ * Validates that a BN is non-negative (>= 0)
+ * Note: Despite the name "Positive", this actually checks for non-negative values (>= 0)
+ * Works correctly in browser, Node.js, and React Native environments
+ */
+export declare function assertPositiveBN(value: anchor.BN | null | undefined, fieldName: string): asserts value is anchor.BN;
+/**
+ * Validates that a number is positive
+ * Works correctly in browser, Node.js, and React Native environments
+ */
+export declare function assertPositiveNumber(value: number | null | undefined, fieldName: string): asserts value is number;
+/**
+ * Validates that a string is not empty
+ * Works correctly in browser, Node.js, and React Native environments
+ */
+export declare function assertNonEmptyString(value: string | null | undefined, fieldName: string): asserts value is string;
+/**
+ * Validates that an array is not empty
+ * Accepts both mutable and readonly arrays
+ * Works correctly in browser, Node.js, and React Native environments
+ */
+export declare function assertNonEmptyArray<T>(value: T[] | readonly T[] | null | undefined, fieldName: string): asserts value is T[] | readonly T[];
+/**
+ * Validates a TransactionInstruction
+ * Works correctly in browser, Node.js, and React Native environments
+ */
+export declare function assertValidTransactionInstruction(value: anchor.web3.TransactionInstruction | null | undefined, fieldName: string): asserts value is anchor.web3.TransactionInstruction;
+/**
+ * Converts a value to a number array, validating it's a valid byte array
+ */
+export declare function toNumberArray(value: number[] | Uint8Array | Buffer): number[];
+/**
+ * Normalizes a PublicKey to a PublicKey instance
+ * Validates the input and throws ValidationError if invalid
+ */
+export declare function normalizePublicKey(value: anchor.web3.PublicKey | string | null | undefined, fieldName?: string): anchor.web3.PublicKey;
+/**
+ * Validates that a value is a valid base64 string
+ * Works correctly in browser, Node.js, and React Native environments
+ */
+export declare function assertValidBase64(value: string | null | undefined, fieldName: string): asserts value is string;
+/**
+ * Validates that a number is a positive integer
+ * Works correctly in browser, Node.js, and React Native environments
+ */
+export declare function assertPositiveInteger(value: number | null | undefined, fieldName: string): asserts value is number;
+/**
+ * Validates an array of PublicKeys
+ * Allows empty arrays since cpiSigners is optional and may be empty
+ */
+export declare function assertValidPublicKeyArray(value: readonly anchor.web3.PublicKey[] | anchor.web3.PublicKey[] | null | undefined, fieldName: string): asserts value is readonly anchor.web3.PublicKey[] | anchor.web3.PublicKey[];
+/**
+ * Validates an array of TransactionInstructions
+ */
+export declare function assertValidTransactionInstructionArray(value: readonly anchor.web3.TransactionInstruction[] | anchor.web3.TransactionInstruction[] | null | undefined, fieldName: string): asserts value is readonly anchor.web3.TransactionInstruction[] | anchor.web3.TransactionInstruction[];
+/**
+ * Converts a byte array-like value to a number array
+ */
+export declare function toNumberArraySafe(value: number[] | Uint8Array | readonly number[]): number[];
+/**
+ * Validates a PasskeySignature object
+ * Works correctly in browser, Node.js, and React Native environments
+ */
+export declare function assertValidPasskeySignature(value: any, fieldName?: string): asserts value is import('./types').PasskeySignature;
+//# sourceMappingURL=validation.d.ts.map

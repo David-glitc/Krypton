@@ -1,0 +1,77 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+var client = require('@dynamic-labs-sdk/client');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var logger = require('../../../shared/logger.cjs');
+var getInitialUrl = require('../../../shared/utils/functions/getInitialUrl/getInitialUrl.cjs');
+var dynamicContextProps = require('../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+var ViewContext = require('../../../context/ViewContext/ViewContext.cjs');
+var hasPendingDeviceRegistration = require('../../../shared/utils/functions/hasPendingDeviceRegistration/hasPendingDeviceRegistration.cjs');
+
+/**
+ * This hook detects when device registration is required and either:
+ * 1. Completes registration automatically if the URL contains a device token (redirect from email)
+ * 2. Shows the device registration modal if no token is present
+ */
+const useSyncDeviceRegistrationFlow = () => {
+    const { setShowAuthFlow, sdkHasLoaded, userWithMissingInfo } = useInternalDynamicContext.useInternalDynamicContext();
+    const { clearStackAndPush } = ViewContext.useViewContext();
+    // Device registration tokens are single-use. Track tokens we've already
+    // attempted to prevent re-firing if the effect re-runs (e.g. when
+    // userWithMissingInfo identity flips after the first call's auth update).
+    const attemptedDeviceTokenRef = React.useRef(null);
+    React.useEffect(() => {
+        let cancelled = false;
+        const syncDeviceRegistration = () => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+            var _a;
+            if (!sdkHasLoaded || !userWithMissingInfo) {
+                return;
+            }
+            if (!hasPendingDeviceRegistration.hasPendingDeviceRegistration(userWithMissingInfo)) {
+                return;
+            }
+            const url = ((_a = getInitialUrl.getInitialUrl()) === null || _a === void 0 ? void 0 : _a.href) || window.location.href;
+            // If the user arrived via the device registration email link,
+            // complete registration directly without showing the modal
+            if (client.detectDeviceRegistrationRedirect({ url })) {
+                const deviceToken = client.getDeviceRegistrationTokenFromUrl({ url });
+                if (attemptedDeviceTokenRef.current === deviceToken) {
+                    return;
+                }
+                attemptedDeviceTokenRef.current = deviceToken;
+                try {
+                    yield client.completeDeviceRegistration({ deviceToken });
+                    /**
+                     * Stop the flow and return to prevent the modal from being shown
+                     * on successful completion.
+                     */
+                    return;
+                }
+                catch (error) {
+                    logger.logger.error('Error completing device registration', error);
+                }
+            }
+            if (cancelled) {
+                return;
+            }
+            const { deviceRegistrationModal } = dynamicContextProps.getDynamicSettings();
+            if (deviceRegistrationModal && !deviceRegistrationModal.enabled) {
+                return;
+            }
+            clearStackAndPush('device-registration');
+            setShowAuthFlow(true);
+        });
+        syncDeviceRegistration();
+        return () => {
+            cancelled = true;
+        };
+    }, [sdkHasLoaded, setShowAuthFlow, userWithMissingInfo, clearStackAndPush]);
+};
+
+exports.useSyncDeviceRegistrationFlow = useSyncDeviceRegistrationFlow;

@@ -1,0 +1,25 @@
+import type { DynamicCoreState } from '../../../client/core/types';
+import type { KeychainService } from '../../../services/keychain';
+import type { Logger } from '../../../services/logger';
+import type { Storage } from '../../../services/storage/storage.types';
+import type { ObservableState } from '../../../utils/observable/observable.types';
+type MigrateSessionKeyToKeychainParams = {
+    keychain: KeychainService;
+    logger: Logger;
+    state: ObservableState<DynamicCoreState>;
+    storage: Storage;
+};
+/**
+ * Migrates legacy session keys from the hydrated state into the IndexedDB keychain
+ * as non-extractable CryptoKey objects.
+ *
+ * Must run after hydrateStateWithStorage so that state.sessionKeys already holds
+ * the legacy base64 blob (or the new public key hex if already migrated).
+ *
+ * Idempotent: skips if the keychain already has a `session` key.
+ * Throws on failure — callers should handle errors (e.g. .catch(() => logout(client))).
+  * @not-instrumented
+ */
+export declare const migrateSessionKeyToKeychain: ({ keychain, logger, state, storage, }: MigrateSessionKeyToKeychainParams) => Promise<void>;
+export {};
+//# sourceMappingURL=migrateSessionKeyToKeychain.d.ts.map

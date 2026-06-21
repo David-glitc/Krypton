@@ -1,0 +1,35 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+
+/* tslint:disable */
+function QuoteRequestFromJSON(json) {
+    return QuoteRequestFromJSONTyped(json);
+}
+function QuoteRequestFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'fromTokenAddress': json['fromTokenAddress'],
+        'slippage': !runtime.exists(json, 'slippage') ? undefined : json['slippage'],
+    };
+}
+function QuoteRequestToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'fromTokenAddress': value.fromTokenAddress,
+        'slippage': value.slippage,
+    };
+}
+
+exports.QuoteRequestFromJSON = QuoteRequestFromJSON;
+exports.QuoteRequestFromJSONTyped = QuoteRequestFromJSONTyped;
+exports.QuoteRequestToJSON = QuoteRequestToJSON;

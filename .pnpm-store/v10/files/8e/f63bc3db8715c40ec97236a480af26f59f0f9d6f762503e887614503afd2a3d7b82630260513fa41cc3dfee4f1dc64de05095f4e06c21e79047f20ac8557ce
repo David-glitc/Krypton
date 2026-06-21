@@ -1,0 +1,10 @@
+import type { DynamicClient } from '../../../client/types';
+type GenerateNonceSignatureParams = {
+    nonce: string;
+};
+/** @not-instrumented */
+export declare const generateNonceSignature: ({ nonce }: GenerateNonceSignatureParams, client: DynamicClient) => Promise<{
+    signature: string;
+}>;
+export {};
+//# sourceMappingURL=generateNonceSignature.d.ts.map

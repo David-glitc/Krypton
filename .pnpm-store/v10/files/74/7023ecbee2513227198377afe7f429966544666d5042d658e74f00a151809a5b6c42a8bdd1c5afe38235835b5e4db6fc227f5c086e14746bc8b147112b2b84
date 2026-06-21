@@ -1,0 +1,47 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+var utils = require('@dynamic-labs/utils');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var ViewContext = require('../../../context/ViewContext/ViewContext.cjs');
+var useDynamicEvents = require('../events/useDynamicEvents/useDynamicEvents.cjs');
+var useFundingExchangeHelpers = require('../useFundingExchangeHelpers/useFundingExchangeHelpers.cjs');
+var rejectPromiseRef = require('../../functions/rejectPromiseRef/rejectPromiseRef.cjs');
+
+const useConnectExchangeForFunding = () => {
+    const { setShowAuthFlow } = useInternalDynamicContext.useInternalDynamicContext();
+    const { clearStackAndPush } = ViewContext.useViewContext();
+    const { selectExchangeConfig } = useFundingExchangeHelpers.useFundingExchangeHelpers();
+    const promiseRef = React.useRef(null);
+    useDynamicEvents.useInternalDynamicEvents('authFlowClose', () => {
+        rejectPromiseRef.rejectPromiseRef(promiseRef, new utils.DynamicError('User cancelled'));
+    });
+    return React.useCallback((_a) => _tslib.__awaiter(void 0, [_a], void 0, function* ({ initiatedByWidget }) {
+        if (promiseRef.current)
+            return promiseRef.current.promise;
+        promiseRef.current = new utils.DeferredPromise();
+        const { onSelectExchange, showDefaultFooter } = selectExchangeConfig({
+            initiatedByWidget,
+            promiseRef,
+            resultBuilder: (exchange) => exchange,
+        });
+        clearStackAndPush('external-funding-exchange-list', {
+            onSelectExchange,
+            showDefaultFooter,
+        });
+        setShowAuthFlow(true, {
+            emitCancelAuth: false,
+            ignoreIfIsEmbeddedWidget: true,
+            initializeWalletConnect: false,
+            performMultiWalletChecks: false,
+        });
+        return promiseRef.current.promise;
+    }), [clearStackAndPush, selectExchangeConfig, setShowAuthFlow]);
+};
+
+exports.useConnectExchangeForFunding = useConnectExchangeForFunding;

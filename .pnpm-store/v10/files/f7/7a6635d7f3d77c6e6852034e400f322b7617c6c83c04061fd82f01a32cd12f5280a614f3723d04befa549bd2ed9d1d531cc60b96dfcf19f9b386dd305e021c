@@ -1,0 +1,5 @@
+import type { SocialProvider } from '../../social.types';
+export type SignInWithSocialPopUpParams = {
+    provider: SocialProvider;
+};
+//# sourceMappingURL=signInWithSocialPopUp.types.d.ts.map

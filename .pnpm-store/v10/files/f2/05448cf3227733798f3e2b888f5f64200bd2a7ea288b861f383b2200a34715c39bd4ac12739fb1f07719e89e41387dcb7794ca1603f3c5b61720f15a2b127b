@@ -1,0 +1,15 @@
+import type { TokenScope } from '@dynamic-labs/sdk-api-core';
+import type { User } from '../../../../user/user.types';
+type CompleteSocialAuthenticationParams = {
+    requestedScopes?: TokenScope[];
+    url: URL;
+};
+/**
+ * @deprecated Renamed to {@link completeSocialRedirect}. This alias will be
+ * removed in a future major version.
+ *
+ * @instrumented
+ */
+export declare const completeSocialAuthentication: (params: CompleteSocialAuthenticationParams, client?: import("../../../../../exports").DynamicClient) => Promise<User | null>;
+export {};
+//# sourceMappingURL=completeSocialAuthentication.d.ts.map

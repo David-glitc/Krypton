@@ -1,0 +1,30 @@
+import { PhoneData } from '@dynamic-labs/types';
+type PersistedEmailOtpState = {
+    type: 'email';
+    verificationUUID: string;
+    destination: string;
+    captchaToken?: string;
+};
+type PersistedSmsOtpState = {
+    type: 'sms';
+    verificationUUID: string;
+    destination: PhoneData;
+    captchaToken?: string;
+};
+export type PersistedOtpState = PersistedEmailOtpState | PersistedSmsOtpState;
+/**
+ * Persists OTP verification state to localStorage so it can survive
+ * webview remounts (e.g. Android WebView process kills on low-memory devices).
+ */
+export declare const persistOtpVerificationState: (state: PersistedOtpState) => void;
+/**
+ * Restores previously persisted OTP verification state, if any.
+ * Returns null when nothing is stored or storage is unavailable.
+ */
+export declare const restoreOtpVerificationState: () => PersistedOtpState | null;
+/**
+ * Clears any persisted OTP verification state from localStorage.
+ * Called after successful verification or when starting a new OTP flow.
+ */
+export declare const clearOtpVerificationState: () => void;
+export {};

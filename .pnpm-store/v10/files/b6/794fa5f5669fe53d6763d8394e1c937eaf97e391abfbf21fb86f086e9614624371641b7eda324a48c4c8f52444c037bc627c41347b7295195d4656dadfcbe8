@@ -1,0 +1,143 @@
+#import "DynamicClientWebView.h"
+#import <React/RCTBridgeModule.h>
+#import <React/RCTEventEmitter.h>
+#import <DynamicClientSpec/DynamicClientSpec.h>
+#if __has_include(<dynamic_labs_sdk_client/dynamic_labs_sdk_client-Swift.h>)
+#import <dynamic_labs_sdk_client/dynamic_labs_sdk_client-Swift.h>
+#else
+#import "dynamic_labs_sdk_client-Swift.h"
+#endif
+
+static NSString *const kMessageEventName = @"dynamicBridgeMessage";
+
+@interface DynamicClientWebView () <NativeDynamicWebViewSpec, DynamicWebViewImplDelegate> {
+  DynamicWebViewImpl *_impl;
+  BOOL _hasListeners;
+  // Messages that arrived before JS attached its listener (e.g. the
+  // iframe-ready handshake posted between `open` resolving and `onMessage`
+  // subscribing). Flushed in order on startObserving so the handshake is not
+  // lost. Accessed from two queues — the WKScriptMessageHandler callback runs
+  // on the main thread while startObserving/stopObserving run on the
+  // RCTEventEmitter method queue — so all access is serialized with
+  // @synchronized(self).
+  NSMutableArray<NSDictionary *> *_bufferedEvents;
+}
+@end
+
+@implementation DynamicClientWebView
+
+RCT_EXPORT_MODULE()
+
+- (instancetype)init {
+  self = [super init];
+  if (self) {
+    _impl = [[DynamicWebViewImpl alloc] init];
+    _impl.delegate = self;
+    _bufferedEvents = [NSMutableArray array];
+  }
+  return self;
+}
+
+#pragma mark - RCTEventEmitter
+
+- (NSArray<NSString *> *)supportedEvents {
+  return @[ kMessageEventName ];
+}
+
+- (void)startObserving {
+  // Flush messages buffered before the first listener attached, in order, so an
+  // early handshake message is delivered rather than dropped. Snapshot under
+  // the lock; send outside it so sendEventWithName: never runs while holding it.
+  NSArray<NSDictionary *> *pending;
+  @synchronized(self) {
+    _hasListeners = YES;
+    pending = [_bufferedEvents copy];
+    [_bufferedEvents removeAllObjects];
+  }
+  for (NSDictionary *event in pending) {
+    [self sendEventWithName:kMessageEventName body:event];
+  }
+}
+
+- (void)stopObserving {
+  @synchronized(self) {
+    _hasListeners = NO;
+  }
+}
+
+#pragma mark - NativeDynamicWebViewSpec
+
+- (void)open:(NSString *)instanceId
+         url:(NSString *)url
+     resolve:(RCTPromiseResolveBlock)resolve
+      reject:(RCTPromiseRejectBlock)reject {
+  [_impl openWithInstanceId:instanceId
+                        url:url
+                 completion:^(NSError * _Nullable error) {
+    if (error) {
+      // The Swift impl stores a discriminator string under the
+      // `DynamicWebViewReason` userInfo key. Surface it as the RCT reject
+      // code so the JS wrapper can translate to a typed
+      // `WebViewLoadFailedError` without parsing messages.
+      NSString *reason = error.userInfo[@"DynamicWebViewReason"];
+      NSString *rejectCode = reason
+        ? [NSString stringWithFormat:@"webview_%@", reason]
+        : @"webview_load_failed_error";
+      reject(rejectCode, error.localizedDescription, error);
+      return;
+    }
+    resolve([NSNull null]);
+  }];
+}
+
+- (void)sendMessage:(NSString *)instanceId data:(NSDictionary *)data {
+  [_impl sendMessageWithInstanceId:instanceId data:data];
+}
+
+- (void)close:(NSString *)instanceId {
+  [_impl closeWithInstanceId:instanceId];
+}
+
+- (void)addListener:(NSString *)eventName {
+  // Delegate to RCTEventEmitter so its internal listener counter increments
+  // and `startObserving` fires on the 0 -> 1 transition. Declaring this method
+  // in the TurboModule spec is required for codegen compatibility; forgetting
+  // to chain to super silently breaks event delivery (hasListeners stays NO).
+  [super addListener:eventName];
+}
+
+- (void)removeListeners:(double)count {
+  [super removeListeners:count];
+}
+
+#pragma mark - DynamicWebViewImplDelegate
+
+- (void)didReceiveMessageForInstanceId:(NSString *)instanceId
+                                  data:(id)data {
+  NSDictionary *event =
+      @{ @"instanceId": instanceId, @"data": data ?: [NSNull null] };
+  @synchronized(self) {
+    if (!_hasListeners) {
+      // Buffer until a listener attaches; otherwise an early message (the
+      // iframe-ready handshake) would be silently dropped and the ceremony
+      // would stall until the WaaS handshake timeout.
+      [_bufferedEvents addObject:event];
+      return;
+    }
+  }
+  [self sendEventWithName:kMessageEventName body:event];
+}
+
+#pragma mark - TurboModule
+
+- (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:
+    (const facebook::react::ObjCTurboModule::InitParams &)params {
+  return std::make_shared<facebook::react::NativeDynamicWebViewSpecJSI>(
+      params);
+}
+
++ (BOOL)requiresMainQueueSetup {
+  return NO;
+}
+
+@end

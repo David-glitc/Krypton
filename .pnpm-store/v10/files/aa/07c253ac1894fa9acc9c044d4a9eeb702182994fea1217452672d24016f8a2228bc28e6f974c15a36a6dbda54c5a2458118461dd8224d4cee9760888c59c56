@@ -1,0 +1,25 @@
+import type { Fetch } from '../../../fetch';
+import type { InstrumentationTransport } from '../../instrumentation.types';
+type CreateDynamicTransportParams = {
+    environmentId: string;
+    fetch: Fetch;
+};
+/**
+ * Creates a batched transport that ships instrumentation events to Dynamic's
+ * log ingestion endpoint.
+ *
+ * Events are queued synchronously and flushed as a single HTTP batch in the
+ * next microtask (via queueMicrotask). Multiple log() calls within the same
+ * synchronous tick are coalesced into one request, avoiding a round-trip per
+ * event.
+ *
+ * Fetch errors are swallowed to prevent an instrumentation failure from
+ * triggering another instrumentation event and causing an infinite loop.
+ *
+ * Works in both browser and SSR environments — fetch is injected and
+ * queueMicrotask is available in Node.js >= 11.
+  * @not-instrumented
+ */
+export declare const createDynamicTransport: (params: CreateDynamicTransportParams) => InstrumentationTransport;
+export {};
+//# sourceMappingURL=createDynamicTransport.d.ts.map

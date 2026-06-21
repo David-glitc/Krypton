@@ -1,0 +1,2 @@
+export { getDeviceRegistrationTokenFromUrl } from './getDeviceRegistrationTokenFromUrl';
+//# sourceMappingURL=index.d.ts.map

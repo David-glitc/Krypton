@@ -1,0 +1,21 @@
+import type { DynamicClient } from '../../../client/types';
+/**
+ * Fetches a batch of nonces from the API.
+ *
+ * Prefetching is critical for iOS deep link wallet providers (e.g. Phantom
+ * redirect). On iOS, a network request (like fetching a nonce) between a user
+ * action and a deeplink call will break the gesture chain, causing iOS to
+ * silently ignore the deeplink. By prefetching nonces ahead of time,
+ * `getNonce` can return synchronously from cache and the deeplink fires
+ * without an interrupting network round-trip.
+ *
+ * New nonces are **appended** to the existing pool so that unconsumed entries
+ * are not discarded by a background refetch.
+ *
+ * Concurrent refills are coalesced behind a single in-flight promise so that
+ * simultaneous callers share one `GET /nonces` round-trip instead of each
+ * issuing their own (which would inflate the pool and hammer the backend).
+ * @not-instrumented
+ */
+export declare const fetchAndStoreNonces: (client: DynamicClient) => Promise<void>;
+//# sourceMappingURL=fetchAndStoreNonces.d.ts.map

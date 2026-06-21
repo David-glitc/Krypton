@@ -1,0 +1,1386 @@
+import { B as getCore, C as isCookieEnabled, D as instrumentFunction, I as getDefaultClient, N as CLIENT_SDK_NAME, c as CHAINS_INFO_MAP, u as createApiClient, w as assertDefined, z as BaseError } from "./InvalidParamError-BqFQnYCi.native.esm.js";
+import { D as emitEvent, S as normalizeWalletNameWithChain, b as getWalletAccounts, f as checkAndRaiseWalletAccountsChangedEvent, h as getWalletProviderFromWalletAccount, j as setCookie, m as DYNAMIC_AUTH_COOKIE_NAME, p as emitWalletAccountsChangedEvent, v as createRuntimeServiceAccessKey } from "./getVerifiedCredentialForWalletAccount-DAmdvMY5.native.esm.js";
+import { i as NativeModuleNotLinkedError } from "./isMfaRequiredForAction-Dx4BPJVg.native.esm.js";
+import { AuthModeEnum } from "@dynamic-labs/sdk-api-core";
+import * as z from "zod/mini";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getGenericPassword, resetGenericPassword, setGenericPassword } from "react-native-keychain";
+import { Buffer as Buffer$1 } from "buffer";
+import EventEmitter, { EventEmitter as EventEmitter$1 } from "eventemitter3";
+import { TurboModuleRegistry } from "react-native";
+
+//#region src/utils/isEqualShallow/isEqualShallow.ts
+/**
+* Shallow compare two objects.
+*
+* Source: https://github.com/pmndrs/zustand/blob/main/src/vanilla/shallow.ts
+* @not-instrumented
+*/
+const isEqualShallow = (objA, objB) => {
+	if (Object.is(objA, objB)) return true;
+	if (typeof objA !== "object" || objA === null || typeof objB !== "object" || objB === null) return objA === objB;
+	if (objA instanceof Map && objB instanceof Map) {
+		if (objA.size !== objB.size) return false;
+		for (const [key, value] of objA) if (!Object.is(value, objB.get(key))) return false;
+		return true;
+	}
+	if (objA instanceof Set && objB instanceof Set) {
+		if (objA.size !== objB.size) return false;
+		for (const value of objA) if (!objB.has(value)) return false;
+		return true;
+	}
+	const keysA = Object.keys(objA);
+	if (keysA.length !== Object.keys(objB).length) return false;
+	for (const keyA of keysA) if (!Object.prototype.hasOwnProperty.call(objB, keyA) || !Object.is(objA[keyA], objB[keyA])) return false;
+	if (objA.constructor !== objB.constructor) return false;
+	return true;
+};
+
+//#endregion
+//#region src/utils/observable/subscribeWithSelector/subscribeWithSelector.ts
+/**
+* Allows subscribing to a slice of the state.
+* The slice is a computation of the states.
+*
+* The callback will only be called when the slice has changed.
+* Change is determined by shallow comparison.
+*
+* Returns a function to unsubscribe the callback.
+* @not-instrumented
+*/
+const subscribeWithSelector = (observable, selector) => (callback) => {
+	let lastSlice = selector(observable.get());
+	return observable.subscribe((value) => {
+		const nextSlice = selector(value);
+		if (isEqualShallow(nextSlice, lastSlice)) return;
+		lastSlice = nextSlice;
+		callback(nextSlice);
+	});
+};
+
+//#endregion
+//#region src/utils/retryOnFail/InvalidRetryOnFailCallError.ts
+/**
+* This error is thrown when the `retryOnFail` function is called with an invalid
+* number of retries (i.e. less than 0).
+*/
+var InvalidRetryOnFailCallError = class extends BaseError {
+	constructor(maxRetries) {
+		super({
+			cause: null,
+			code: "invalid_retry_on_fail_call_error",
+			docsUrl: null,
+			name: "InvalidRetryOnFailCallError",
+			shortMessage: `Invalid retries parameter for retryOnFail call: ${maxRetries}`
+		});
+	}
+};
+
+//#endregion
+//#region src/utils/retryOnFail/retryOnFail.ts
+/** @not-instrumented */
+const retryOnFail = async ({ delay = 0, fn, maxRetries }) => {
+	for (let retry = 0; retry <= maxRetries; retry++) try {
+		return await fn();
+	} catch (error) {
+		if (retry >= maxRetries) throw error;
+		if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay));
+	}
+	/**
+	* Reaching this point should never happen and this
+	* error is thrown to help us debug the issue.
+	*/
+	throw new InvalidRetryOnFailCallError(maxRetries);
+};
+
+//#endregion
+//#region src/modules/auth/isSignedIn/isSignedIn.ts
+/**
+* Checks if the user is currently signed in to the Dynamic client.
+*
+* The client is considered to be in a signed in state if a user has
+* authenticated or if the client has at least one wallet connected.
+*
+* @deprecated What counts as "signed in" is your app's business logic, not the
+* SDK's. This helper bakes in one opinion (a user OR any connected wallet),
+* which rarely matches every app and forces a dependency on us for every
+* variation. Compose your own check from the underlying primitives instead —
+* e.g. `Boolean(client.user) || isAnyWalletAccountConnected(client)` — and
+* layer in whatever your app requires (device registration, completed
+* onboarding, satisfied MFA, a required embedded wallet, …). See the
+* "Check if signed in" guide:
+* https://www.dynamic.xyz/docs/javascript/user-session-management
+*
+* @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+* @returns True if the user is signed in, false otherwise.
+* @not-instrumented
+*/
+const isSignedIn = (client = getDefaultClient()) => Boolean(client.user || getWalletAccounts(client).length > 0);
+
+//#endregion
+//#region src/services/storage/createLocalStorageAdapter/createLocalStorageAdapter.native.ts
+const NAMESPACE = "dynamic";
+const namespaceKey = (key) => `${NAMESPACE}:${key}`;
+/**
+* Creates a localStorage adapter for React Native.
+* Routes operations based on the `storageTier` option:
+* - `'default'`: uses AsyncStorage
+* - `'secure'`: uses react-native-keychain
+* @not-instrumented
+*/
+const createLocalStorageAdapter = () => {
+	return {
+		getItem: async (key, options) => {
+			if (options.storageTier === "secure") {
+				const result = await getGenericPassword({ service: key });
+				if (!result) return null;
+				return result.password;
+			} else return AsyncStorage.getItem(namespaceKey(key));
+		},
+		removeItem: async (key, options) => {
+			if (options.storageTier === "secure") await resetGenericPassword({ service: key });
+			else await AsyncStorage.removeItem(namespaceKey(key));
+		},
+		setItem: async (key, value, options) => {
+			if (options.storageTier === "secure") await setGenericPassword(key, value, { service: key });
+			else await AsyncStorage.setItem(namespaceKey(key), value);
+		}
+	};
+};
+
+//#endregion
+//#region src/errors/InvalidStorageSet.ts
+var InvalidStorageSet = class extends BaseError {
+	constructor({ key, value }) {
+		super({
+			cause: null,
+			code: "invalid_storage_set",
+			docsUrl: null,
+			metaMessages: [`key: ${key}`, value],
+			name: "InvalidStorageSet",
+			shortMessage: "Tried to store a value that does not match the schema"
+		});
+	}
+};
+
+//#endregion
+//#region src/services/storage/createStorage/formatForStorage/isValidDateISOString/isValidDateISOString.ts
+/**
+* Returns whether the given string is a valid ISO date string.
+*
+* Does not support timezone offsets.
+* @not-instrumented
+*/
+const isValidDateISOString = (value) => {
+	const date = new Date(value);
+	return !isNaN(date.getTime()) && date.toISOString() === value;
+};
+
+//#endregion
+//#region src/services/storage/createStorage/formatForStorage/storageFormat.ts
+const DATE_PREFIX = "__DATE__";
+/** @not-instrumented */
+const formatForStorage = (value) => {
+	const item = { value };
+	return JSON.stringify(item, (_, entry) => {
+		if (isValidDateISOString(entry)) return `${DATE_PREFIX}${entry}`;
+		return entry;
+	});
+};
+/** @not-instrumented */
+const parseFromStorage = (value) => {
+	try {
+		return JSON.parse(value, (_, entry) => {
+			if (typeof entry === "string" && entry.startsWith(DATE_PREFIX)) return new Date(entry.slice(8));
+			return entry;
+		});
+	} catch (error) {
+		return null;
+	}
+};
+
+//#endregion
+//#region src/services/storage/createStorage/createStorage.ts
+/**
+* Creates a Storage service to interact with storage adapter.
+* Reads the `storageTier` from each key's config and passes it
+* to the adapter on every operation, defaulting to `'default'`.
+* @not-instrumented
+*/
+const createStorage = ({ prefix = "", storageAdapter }) => {
+	const getPrefixedKey = (key) => prefix ? `${prefix}_${key}` : key;
+	const getAdapterOptions = (storageTier) => ({ storageTier: storageTier ?? "default" });
+	return {
+		getItem: async (storageKeySchema) => {
+			const prefixedKey = getPrefixedKey(storageKeySchema.key);
+			const options = getAdapterOptions(storageKeySchema.config?.storageTier);
+			const rawItem = await storageAdapter.getItem(prefixedKey, options);
+			const parsedItem = rawItem ? parseFromStorage(rawItem) : null;
+			/**
+			* The item saved to localStorage may be malformed.
+			* In this case, we remove it and return null.
+			*/
+			if (parsedItem !== null) {
+				const parsed = storageKeySchema.schema.safeParse(parsedItem.value);
+				if (parsed.success) return parsed.data;
+			}
+			/**
+			* The item saved to localStorage may be malformed.
+			* In this case, we remove it and return null.
+			*/
+			await storageAdapter.removeItem(prefixedKey, options);
+			return null;
+		},
+		removeItem: async (storageKeySchema) => {
+			await storageAdapter.removeItem(getPrefixedKey(storageKeySchema.key), getAdapterOptions(storageKeySchema.config?.storageTier));
+		},
+		setItem: async (storageKeySchema, value) => {
+			const parsed = storageKeySchema.schema.safeParse(value);
+			if (!parsed.success) throw new InvalidStorageSet({
+				key: storageKeySchema.key,
+				value: JSON.stringify(value)
+			});
+			const item = formatForStorage(parsed.data);
+			await storageAdapter.setItem(getPrefixedKey(storageKeySchema.key), item, getAdapterOptions(storageKeySchema.config?.storageTier));
+		}
+	};
+};
+
+//#endregion
+//#region src/services/storage/createStorageKeySchema/createStorageKeySchema.ts
+/** @not-instrumented */
+const createStorageKeySchema = (params) => {
+	return params;
+};
+
+//#endregion
+//#region src/modules/projectSettings/fetchProjectSettings/projectSettingsExpirationScheme.ts
+/**
+* The schema to track the expiration time of the project settings.
+*/
+const projectSettingsExpirationStorageKeySchema = createStorageKeySchema({
+	key: "projectSettingsExpiration",
+	schema: z.number()
+});
+
+//#endregion
+//#region src/modules/projectSettings/fetchProjectSettings/fetchProjectSettings.ts
+/**
+* Expiration time of the project settings in milliseconds.
+*/
+const PROJECT_SETTINGS_EXPIRATION_TIME = 1e3 * 60 * 5;
+/**
+* Fetches and updates the project settings from the API.
+*
+* This function retrieves the latest project configuration settings
+* from Dynamic's servers, including authentication options, enabled chains,
+* and security configurations. The settings are cached for performance.
+*
+* @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+* @returns A promise that resolves to the updated project settings.
+* @not-instrumented
+*/
+const fetchProjectSettings = async (client = getDefaultClient()) => {
+	const core = getCore(client);
+	const currentExpiration = await core.storage.getItem(projectSettingsExpirationStorageKeySchema);
+	if (Boolean(client.projectSettings) && !(currentExpiration && currentExpiration < Date.now()) && isSignedIn(client)) return client.projectSettings;
+	const apiClient = createApiClient({}, client);
+	core.logger.debug("[fetchProjectSettings] Fetching project settings...");
+	const doFetch = async () => apiClient.getEnvironmentSettings({
+		environmentId: core.environmentId,
+		sdkVersion: `${CLIENT_SDK_NAME}/${core.version}`
+	}, { credentials: "omit" });
+	const projectSettings = await retryOnFail({
+		fn: doFetch,
+		maxRetries: 2
+	});
+	core.state.set({ projectSettings: projectSettings ?? null });
+	await core.storage.setItem(projectSettingsExpirationStorageKeySchema, Date.now() + PROJECT_SETTINGS_EXPIRATION_TIME);
+	return projectSettings;
+};
+
+//#endregion
+//#region src/modules/sessionKeys/generateSessionKeys/generateSessionKeys.ts
+/** @not-instrumented */
+const generateSessionKeys = async (client) => {
+	const core = getCore(client);
+	await core.keychain.removeKey("session");
+	const publicKey = await core.keychain.generateKey("session");
+	assertDefined(publicKey, "Public key not found");
+	core.state.set({ sessionKeys: publicKey });
+	return { publicKey };
+};
+
+//#endregion
+//#region src/modules/wallets/utils/getAvailableWalletProvidersFromWalletAccounts/getAvailableWalletProvidersFromWalletAccounts.ts
+/** @not-instrumented */
+const getAvailableWalletProvidersFromWalletAccounts = (client) => {
+	const core = getCore(client);
+	const walletProvidersMap = /* @__PURE__ */ new Map();
+	getWalletAccounts(client).forEach((walletAccount) => {
+		if (walletProvidersMap.has(walletAccount.walletProviderKey)) return;
+		try {
+			const walletProvider = getWalletProviderFromWalletAccount({ walletAccount }, client);
+			walletProvidersMap.set(walletAccount.walletProviderKey, walletProvider);
+		} catch (error) {
+			core.logger.debug("Wallet provider not found for wallet account", {
+				error,
+				walletAccount: walletAccount.address
+			});
+		}
+	});
+	return Array.from(walletProvidersMap.values());
+};
+
+//#endregion
+//#region src/modules/wallets/destroyWalletProviders/destroyWalletProviders.ts
+/**
+* Tear down every wallet provider on the client.
+*
+* Each provider's `destroy` is responsible for its own local + remote
+* cleanup. We swallow errors so a failing destroy on one provider does not
+* block teardown of the others (e.g. during logout).
+*
+* @not-instrumented
+*/
+const destroyWalletProviders = async ({ reason }, client) => {
+	const core = getCore(client);
+	const walletProviders = getAvailableWalletProvidersFromWalletAccounts(client);
+	await Promise.all(walletProviders.map(async (walletProvider) => {
+		if (!walletProvider.destroy) return;
+		try {
+			await walletProvider.destroy({ reason });
+		} catch (err) {
+			core.logger.error(`Error destroying wallet provider ${walletProvider.key}`, err);
+		}
+	}));
+};
+
+//#endregion
+//#region src/modules/auth/logoutWithReason/logoutWithReason.ts
+/**
+* Logs the user out with an explicit reason.
+*
+* Revokes the session, clears auth state, terminates wallet providers, and
+* emits the `logout` client event with the given reason. The reason is also
+* captured as an argument on the function-instrumentation event, which is
+* how Datadog distinguishes between different logout causes.
+*
+* Use this instead of the public `logout` when triggering a logout from
+* internal or extension code — the caller owns the reason string, so the
+* telemetry correctly attributes *why* the logout happened.
+*
+* @param params - The logout params.
+* @param params.reason - Why the logout is being triggered. Extension authors
+*   needing a reason outside the SDK catalog can cast with `as LogoutReason`.
+* @param client - The Dynamic client instance.
+* @instrumented
+*/
+const logoutWithReason = async ({ reason }, client) => {
+	const core = getCore(client);
+	core.logger.debug("[logoutWithReason] Logging out...", { reason });
+	await destroyWalletProviders({ reason }, client);
+	if (client.user !== null) {
+		const apiClient = createApiClient({}, client);
+		try {
+			await apiClient.revokeSession({ environmentId: core.environmentId });
+		} catch (error) {
+			core.logger.error("Failed to revoke session", error);
+		}
+		/**
+		* This deletes the auth cookie if it exists.
+		* If the cookie doesn't exist, this sets a new cookie that expires immediately.
+		*/
+		if (isCookieEnabled(client)) setCookie(`${DYNAMIC_AUTH_COOKIE_NAME}=; Max-Age=-99999999; path=/; SameSite=Lax`);
+	}
+	await core.keychain.removeKey("session");
+	core.state.set({
+		captchaToken: null,
+		elevatedAccessTokens: [],
+		legacyToken: null,
+		mfaToken: null,
+		sessionExpiresAt: null,
+		sessionKeys: null,
+		token: null,
+		unverifiedWalletAccounts: [],
+		user: null
+	});
+	emitEvent({
+		args: { reason },
+		event: "logout"
+	}, client);
+	fetchProjectSettings(client);
+	generateSessionKeys(client);
+};
+const __logoutWithReason_impl = logoutWithReason;
+const __logoutWithReason_wrapped = instrumentFunction({
+	fn: __logoutWithReason_impl,
+	functionName: "logoutWithReason",
+	getCore: () => {
+		try {
+			return getCore(getDefaultClient());
+		} catch {
+			return;
+		}
+	}
+});
+
+//#endregion
+//#region src/utils/getBuffer/getBuffer.ts
+/** @not-instrumented */
+const getBuffer = () => typeof Buffer !== "undefined" ? Buffer : Buffer$1;
+
+//#endregion
+//#region src/utils/isServerSideRendering/isServerSideRendering.ts
+/**
+* Indicates if the code is running in a server-side environment.
+* @not-instrumented
+*/
+const isServerSideRendering = () => typeof window === "undefined";
+
+//#endregion
+//#region src/modules/initializeClient/consts.ts
+const REFRESH_USER_STATE_FROM_COOKIE_TRACKER_KEY = "refresh-user-state-from-cookie";
+const INITIALIZE_STORAGE_SYNC_TRACKER_KEY = "initialize-storage-sync";
+const FETCH_PROJECT_SETTINGS_TRACKER_KEY = "fetch-project-settings";
+const GENERATE_SESSION_KEYS_TRACKER_KEY = "generate-session-keys";
+const REFRESH_USER_STATE_FROM_VALID_TOKEN_TRACKER_KEY = "refresh-user-state-from-valid-token";
+
+//#endregion
+//#region src/utils/deferredPromise/createDeferredPromise.ts
+/** @not-instrumented */
+const createDeferredPromise = () => {
+	let resolve;
+	let reject;
+	return {
+		promise: new Promise((_resolve, _reject) => {
+			resolve = _resolve;
+			reject = _reject;
+		}),
+		reject: (reason) => reject?.(reason),
+		resolve: (value) => resolve?.(value)
+	};
+};
+
+//#endregion
+//#region src/errors/CannotTrackError.ts
+var CannotTrackError = class extends BaseError {
+	constructor() {
+		super({
+			cause: null,
+			code: "cannot_track_error",
+			docsUrl: null,
+			name: "CannotTrackError",
+			shortMessage: "All track calls must be performed in the same node tick"
+		});
+	}
+};
+
+//#endregion
+//#region src/services/crossTabBroadcast/crossTabBroadcast.schema.ts
+/**
+* Schema for validating cross-tab broadcast messages.
+*/
+const CrossTabBroadcastMessageSchema = z.object({
+	args: z.optional(z.unknown()),
+	event: z.string()
+});
+
+//#endregion
+//#region src/services/crossTabBroadcast/createCrossTabBroadcast/createCrossTabBroadcast.ts
+/**
+* Creates a cross-tab broadcast service instance using the BroadcastChannel API.
+*
+* Enables communication between multiple tabs/windows of the same application.
+* Messages are validated against the schema and invalid messages are silently ignored.
+*
+* In SSR or when BroadcastChannel is unavailable, returns a no-op implementation.
+*
+* @param params - Configuration parameters
+* @param params.channelName - The name of the broadcast channel to use
+* @returns A cross-tab broadcast service instance
+* @not-instrumented
+*/
+const createCrossTabBroadcast = ({ channelName }) => {
+	if (isServerSideRendering() || typeof BroadcastChannel === "undefined") return {
+		off: () => {},
+		on: () => {},
+		send: () => {}
+	};
+	const channel = new BroadcastChannel(channelName);
+	const eventEmitter = new EventEmitter();
+	const handleMessage = (messageEvent) => {
+		const parsed = CrossTabBroadcastMessageSchema.safeParse(messageEvent.data);
+		if (!parsed.success) return;
+		const { args, event } = parsed.data;
+		eventEmitter.emit(event, args);
+	};
+	channel.addEventListener("message", handleMessage);
+	return {
+		off: (event, callback) => {
+			eventEmitter.off(event, callback);
+		},
+		on: (event, callback) => {
+			eventEmitter.on(event, callback);
+		},
+		send: ({ args, event }) => {
+			channel.postMessage({
+				args,
+				event
+			});
+		}
+	};
+};
+
+//#endregion
+//#region src/services/logger/createLogger/createLogger.ts
+/**
+* Log levels and their corresponding numeric values
+*/
+const LOG_LEVELS = {
+	debug: 0,
+	error: 3,
+	info: 1,
+	warn: 2
+};
+const defaultConsole = console;
+/**
+* Creates a logger instance with configurable log level and event emission capabilities.
+* @returns A logger instance with debug, info, warn, and error methods
+* @not-instrumented
+*/
+const createLogger = (options = {}) => {
+	const eventEmitter = new EventEmitter$1();
+	const minLevel = options.level ?? "warn";
+	const shouldLog = (level) => {
+		return LOG_LEVELS[level] >= LOG_LEVELS[minLevel];
+	};
+	const formatMessage = (level, message) => {
+		return `[${(/* @__PURE__ */ new Date()).toISOString()}] ${level.toUpperCase()}: ${message}`;
+	};
+	const log = (level, consoleMethod, message, ...args) => {
+		eventEmitter.emit("log", level, message, ...args);
+		if (!shouldLog(level)) return;
+		consoleMethod(formatMessage(level, message), ...args);
+	};
+	return {
+		debug: (message, ...args) => log("debug", defaultConsole.debug, message, ...args),
+		error: (message, ...args) => log("error", defaultConsole.error, message, ...args),
+		info: (message, ...args) => log("info", defaultConsole.info, message, ...args),
+		off: eventEmitter.off.bind(eventEmitter),
+		on: eventEmitter.on.bind(eventEmitter),
+		warn: (message, ...args) => log("warn", defaultConsole.warn, message, ...args)
+	};
+};
+
+//#endregion
+//#region src/turboModules/NativeKeychain.ts
+var NativeKeychain_default = TurboModuleRegistry.getEnforcing("DynamicClientKeychain");
+
+//#endregion
+//#region src/utils/base64urlFromBytes/base64urlFromBytes.ts
+/**
+* Encodes a Uint8Array to a base64url string (RFC 4648 S5, no padding).
+* Used to encode binary data before sending to native modules over the bridge.
+*
+* @not-instrumented
+*/
+const base64urlFromBytes = (bytes) => btoa(String.fromCodePoint(...bytes)).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+
+//#endregion
+//#region src/utils/bufferToHex/bufferToHex.ts
+/**
+* Converts an ArrayBuffer or Uint8Array to a hex-encoded string
+* @not-instrumented
+*/
+const bufferToHex = (buffer) => [...buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer)].map((x) => x.toString(16).padStart(2, "0")).join("");
+
+//#endregion
+//#region src/utils/bytesFromBase64url/bytesFromBase64url.ts
+/**
+* Decodes a base64url-encoded string (RFC 4648 S5, no padding) to a Uint8Array.
+* Used to decode binary data received from native modules over the bridge.
+*
+* @not-instrumented
+*/
+const bytesFromBase64url = (s) => {
+	const base64 = s.replaceAll("-", "+").replaceAll("_", "/");
+	return Uint8Array.from(atob(base64), (c) => c.codePointAt(0) ?? 0);
+};
+
+//#endregion
+//#region src/utils/compressRawPublicKey/compressRawPublicKey.ts
+/**
+* Accepts a public key array buffer, and returns a buffer with the compressed version of the public key
+* @not-instrumented
+*/
+const compressRawPublicKey = (rawPublicKey) => {
+	const rawPublicKeyBytes = new Uint8Array(rawPublicKey);
+	const len = rawPublicKeyBytes.byteLength;
+	const compressedBytes = rawPublicKeyBytes.slice(0, 1 + len >>> 1);
+	compressedBytes[0] = 2 | rawPublicKeyBytes[len - 1] & 1;
+	return compressedBytes.buffer;
+};
+
+//#endregion
+//#region src/utils/derToP1363/InvalidDERSignatureError.ts
+var InvalidDERSignatureError = class extends BaseError {
+	constructor(message) {
+		super({
+			cause: null,
+			code: "invalid_der_signature_error",
+			docsUrl: null,
+			name: "InvalidDERSignatureError",
+			shortMessage: message
+		});
+	}
+};
+
+//#endregion
+//#region src/utils/derToP1363/derToP1363.ts
+/**
+* Converts a DER/X9.62 encoded ECDSA signature to IEEE P1363 format (r || s).
+* Native secure enclaves produce DER-encoded signatures; the server expects P1363.
+*
+* @not-instrumented
+*/
+const derToP1363 = (der) => {
+	if (der.length < 8 || der[0] !== 48) throw new InvalidDERSignatureError("Invalid DER signature format");
+	let offset = 2;
+	if (offset >= der.length || der[offset] !== 2) throw new InvalidDERSignatureError("Invalid DER signature: missing r INTEGER tag");
+	offset += 1;
+	if (offset >= der.length) throw new InvalidDERSignatureError("Invalid DER signature: missing r length");
+	const rLen = der[offset];
+	offset += 1;
+	if (offset + rLen > der.length) throw new InvalidDERSignatureError("Invalid DER signature: r bytes out of bounds");
+	let rBytes = der.slice(offset, offset + rLen);
+	offset += rLen;
+	if (offset >= der.length || der[offset] !== 2) throw new InvalidDERSignatureError("Invalid DER signature: missing s INTEGER tag");
+	offset += 1;
+	if (offset >= der.length) throw new InvalidDERSignatureError("Invalid DER signature: missing s length");
+	const sLen = der[offset];
+	offset += 1;
+	if (offset + sLen > der.length) throw new InvalidDERSignatureError("Invalid DER signature: s bytes out of bounds");
+	let sBytes = der.slice(offset, offset + sLen);
+	if (rBytes.length === 33 && rBytes[0] === 0) rBytes = rBytes.slice(1);
+	if (sBytes.length === 33 && sBytes[0] === 0) sBytes = sBytes.slice(1);
+	const result = new Uint8Array(64);
+	result.set(rBytes, 32 - rBytes.length);
+	result.set(sBytes, 64 - sBytes.length);
+	return result;
+};
+
+//#endregion
+//#region src/services/keychain/createKeychainService/ImportKeyNotSupportedError.ts
+var ImportKeyNotSupportedError = class extends BaseError {
+	constructor() {
+		super({
+			cause: null,
+			code: "import_key_not_supported_error",
+			details: "Hardware-backed keystores cannot import external private keys.",
+			docsUrl: null,
+			name: "ImportKeyNotSupportedError",
+			shortMessage: "importKey is not supported on React Native."
+		});
+	}
+};
+
+//#endregion
+//#region src/services/keychain/createKeychainService/KeyNotFoundError.ts
+var KeyNotFoundError = class extends BaseError {
+	constructor(keyName) {
+		super({
+			cause: null,
+			code: "key_not_found",
+			docsUrl: null,
+			name: "KeyNotFoundError",
+			shortMessage: `Key "${keyName}" not found in keychain`
+		});
+	}
+};
+
+//#endregion
+//#region src/services/keychain/createKeychainService/createKeychainService.native.ts
+/**
+* Creates a KeychainService backed by the platform's secure hardware
+* (iOS Secure Enclave / Android KeyStore with StrongBox or TEE).
+*
+* Keys are generated and stored inside the secure hardware and never
+* leave the device. The native module returns base64url-encoded data
+* which this wrapper converts to the hex format the SDK expects.
+*
+* @throws NativeModuleNotLinkedError if the native Keychain TurboModule is not available.
+*
+* @not-instrumented
+*/
+const createKeychainService = () => {
+	if (NativeKeychain_default == null) throw new NativeModuleNotLinkedError({ moduleName: "DynamicClientKeychain" });
+	const nativeModule = NativeKeychain_default;
+	const generateKey = async (keyName) => {
+		return bufferToHex(compressRawPublicKey(bytesFromBase64url((await nativeModule.generateKeyPair(keyName)).publicKey).buffer));
+	};
+	/**
+	* Importing external private keys is not supported on hardware-backed
+	* keystores (Secure Enclave / Android KeyStore). Keys must be generated
+	* on-device via generateKey().
+	*/
+	const importKey = () => {
+		throw new ImportKeyNotSupportedError();
+	};
+	const getPublicKey = async (keyName) => {
+		const result = await nativeModule.getPublicKey(keyName);
+		if (result == null) return null;
+		return bufferToHex(compressRawPublicKey(bytesFromBase64url(result.publicKey).buffer));
+	};
+	const sign = async (keyName, message) => {
+		if (!await nativeModule.hasKey(keyName)) throw new KeyNotFoundError(keyName);
+		const base64urlPayload = base64urlFromBytes(new TextEncoder().encode(message));
+		return bufferToHex(derToP1363(bytesFromBase64url((await nativeModule.sign(keyName, base64urlPayload)).signature)));
+	};
+	const hasKey = async (keyName) => {
+		return nativeModule.hasKey(keyName);
+	};
+	const removeKey = async (keyName) => {
+		await nativeModule.deleteKey(keyName);
+	};
+	return {
+		generateKey,
+		getPublicKey,
+		hasKey,
+		importKey,
+		removeKey,
+		sign
+	};
+};
+
+//#endregion
+//#region src/errors/InvalidRealtimePublishError.ts
+var InvalidRealtimePublishError = class extends BaseError {
+	constructor({ channel }) {
+		super({
+			cause: null,
+			code: "invalid_realtime_publish",
+			docsUrl: null,
+			metaMessages: [`channel: ${channel}`],
+			name: "InvalidRealtimePublishError",
+			shortMessage: "Tried to publish data that does not match the channel schema"
+		});
+	}
+};
+
+//#endregion
+//#region src/errors/RealtimeNotConnectedError.ts
+var RealtimeNotConnectedError = class extends BaseError {
+	constructor() {
+		super({
+			cause: null,
+			code: "realtime_not_connected_error",
+			docsUrl: null,
+			name: "RealtimeNotConnectedError",
+			shortMessage: "Realtime service is not connected. Call connect() before subscribing or publishing."
+		});
+	}
+};
+
+//#endregion
+//#region src/services/realtime/createRealtimeService/createRealtimeService.ts
+const ABLY_STATE_TO_REALTIME_STATE = {
+	closed: "closed",
+	closing: "closing",
+	connected: "connected",
+	connecting: "connecting",
+	disconnected: "disconnected",
+	failed: "failed",
+	initialized: "idle",
+	suspended: "suspended"
+};
+const mapAblyState = (ablyState) => ABLY_STATE_TO_REALTIME_STATE[ablyState] ?? "idle";
+/**
+* Creates a realtime pub/sub service backed by Ably.
+*
+* The service starts idle. Call `connect({ client })` to establish
+* a connection, passing the DynamicClient explicitly.
+*
+* SSR environments receive a no-op implementation.
+* @not-instrumented
+*/
+const createRealtimeService = () => {
+	if (isServerSideRendering()) return {
+		connect: () => Promise.resolve(),
+		disconnect: () => {},
+		getConnectionState: () => "idle",
+		off: () => {},
+		on: () => {},
+		publish: () => Promise.resolve(),
+		subscribe: () => Promise.resolve(),
+		unsubscribe: () => {}
+	};
+	const eventEmitter = new EventEmitter();
+	const channels = /* @__PURE__ */ new Map();
+	const handlerMap = /* @__PURE__ */ new WeakMap();
+	let ablyClient;
+	let connectionState = "idle";
+	let isConnecting = false;
+	const setConnectionState = (state) => {
+		connectionState = state;
+		eventEmitter.emit("connectionStateChange", state);
+	};
+	const getOrCreateChannel = (channelName) => {
+		const existing = channels.get(channelName);
+		if (existing) return existing;
+		if (!ablyClient) throw new RealtimeNotConnectedError();
+		const channel = ablyClient.channels.get(channelName);
+		channels.set(channelName, channel);
+		return channel;
+	};
+	const connect = async ({ client, headers }) => {
+		if (isConnecting) return;
+		isConnecting = true;
+		try {
+			const core = getCore(client);
+			if (ablyClient) {
+				ablyClient.close();
+				channels.clear();
+			}
+			const { BaseRealtime: AblyBaseRealtime, FetchRequest, WebSocketTransport } = await import("ably/modular");
+			ablyClient = new AblyBaseRealtime({
+				authCallback: (_tokenParams, callback) => {
+					createApiClient({ headers }, client).getRealtimeAuthToken({ environmentId: core.environmentId }).then((response) => {
+						callback(null, response.token);
+					}).catch((err) => {
+						callback(err instanceof Error ? err.message : String(err), null);
+					});
+				},
+				autoConnect: false,
+				plugins: {
+					FetchRequest,
+					WebSocketTransport
+				}
+			});
+			ablyClient.connection.on((stateChange) => {
+				setConnectionState(mapAblyState(stateChange.current));
+			});
+			ablyClient.connect();
+		} finally {
+			isConnecting = false;
+		}
+	};
+	const disconnect = () => {
+		if (!ablyClient) return;
+		for (const channel of channels.values()) channel.detach().catch(() => {});
+		channels.clear();
+		ablyClient.close();
+		ablyClient = void 0;
+	};
+	const subscribe = async ({ channelSchema, callback }) => {
+		const channel = getOrCreateChannel(channelSchema.channel);
+		const handler = (message) => {
+			const parsed = channelSchema.schema.safeParse(message.data);
+			if (!parsed.success) return;
+			callback({ data: parsed.data });
+		};
+		handlerMap.set(callback, handler);
+		await channel.subscribe(handler);
+	};
+	const unsubscribe = ({ channelSchema, callback }) => {
+		const channel = channels.get(channelSchema.channel);
+		if (!channel) return;
+		const handler = handlerMap.get(callback);
+		if (handler) {
+			channel.unsubscribe(handler);
+			handlerMap.delete(callback);
+		}
+	};
+	const publish = async ({ channelSchema, data }) => {
+		const parsed = channelSchema.schema.safeParse(data);
+		if (!parsed.success) throw new InvalidRealtimePublishError({ channel: channelSchema.channel });
+		await getOrCreateChannel(channelSchema.channel).publish("message", parsed.data);
+	};
+	return {
+		connect,
+		disconnect,
+		getConnectionState: () => connectionState,
+		off: (event, callback) => {
+			eventEmitter.off(event, callback);
+		},
+		on: (event, callback) => {
+			eventEmitter.on(event, callback);
+		},
+		publish,
+		subscribe,
+		unsubscribe
+	};
+};
+
+//#endregion
+//#region src/utils/getKeychainIndexedDBName/getKeychainIndexedDBName.ts
+/**
+* Builds the IndexedDB database name used by the keychain service for a given
+* environment. Centralizing this avoids drift between the SDK and any
+* extension code that needs to read or migrate the same database.
+*
+* @param params.environmentId - The Dynamic environment id.
+* @returns The IndexedDB database name for the keychain.
+* @not-instrumented
+*/
+const getKeychainIndexedDBName = ({ environmentId }) => `dynamic_${environmentId}_keychain`;
+
+//#endregion
+//#region src/errors/NoNetworkProvidersError.ts
+var NoNetworkProvidersError = class extends BaseError {
+	constructor() {
+		super({
+			cause: null,
+			code: "no_network_providers",
+			docsUrl: null,
+			name: "NoNetworkProvidersError",
+			shortMessage: "No networks were registered in the client"
+		});
+	}
+};
+
+//#endregion
+//#region src/errors/WalletAlreadyLinkedToAnotherUserError.ts
+var WalletAlreadyLinkedToAnotherUserError = class extends BaseError {
+	constructor({ cause }) {
+		super({
+			cause,
+			code: "wallet_already_linked_to_another_user_error",
+			docsUrl: null,
+			name: "WalletAlreadyLinkedToAnotherUserError",
+			shortMessage: "This wallet is already linked to another user"
+		});
+	}
+};
+
+//#endregion
+//#region src/errors/MethodNotImplementedError.ts
+var MethodNotImplementedError = class extends BaseError {
+	constructor(methodName) {
+		super({
+			cause: null,
+			code: "method_not_implemented_error",
+			docsUrl: null,
+			name: "MethodNotImplementedError",
+			shortMessage: `This method is not implemented: ${methodName}`
+		});
+	}
+};
+
+//#endregion
+//#region src/utils/getAppMetadata/getAppMetadata.ts
+/**
+* Reads the customer-supplied app name, logo, native link, and universal link.
+* — preferring `core.metadata` (set on the client) over project-settings fallbacks.
+*
+* @param client - The Dynamic client whose configuration drives the result.
+* @not-instrumented
+*/
+const getAppMetadata = (client) => {
+	const core = getCore(client);
+	const generalSettings = client.projectSettings?.general;
+	return {
+		appLogoUrl: core.metadata?.iconUrl ?? generalSettings?.appLogo ?? void 0,
+		appName: core.metadata?.name ?? generalSettings?.displayName ?? "",
+		appNativeLink: core.metadata?.nativeLink,
+		appUniversalLink: core.metadata?.universalLink
+	};
+};
+
+//#endregion
+//#region src/modules/captcha/isCaptchaRequired/isCaptchaRequired.ts
+/** @not-instrumented */
+const isCaptchaRequired = (client = getDefaultClient()) => {
+	const projectSettings = client.projectSettings;
+	assertDefined(projectSettings, "Project settings are not available");
+	return projectSettings.security.hCaptcha?.enabled ?? false;
+};
+
+//#endregion
+//#region src/modules/captcha/consumeCaptchaToken/consumeCaptchaToken.ts
+/**
+* Retrieves the current captcha token from the client state and sets it to null.
+* @not-instrumented
+*/
+const consumeCaptchaToken = (client) => {
+	const core = getCore(client);
+	const captchaToken = core.state.get().captchaToken;
+	if (isCaptchaRequired(client)) assertDefined(captchaToken, "Captcha token is required");
+	core.state.set({ captchaToken: null });
+	return captchaToken ?? void 0;
+};
+
+//#endregion
+//#region src/modules/captcha/setCaptchaToken/setCaptchaToken.ts
+/**
+* Sets the given captcha token in the client state.
+*
+* @param params.captchaToken - The captcha token to set.
+* @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+* @instrumented
+* @redact-params
+*/
+const setCaptchaToken = ({ captchaToken }, client = getDefaultClient()) => {
+	getCore(client).state.set({ captchaToken });
+};
+const __setCaptchaToken_impl = setCaptchaToken;
+const __setCaptchaToken_wrapped = instrumentFunction({
+	fn: __setCaptchaToken_impl,
+	functionName: "setCaptchaToken",
+	getCore: () => {
+		try {
+			return getCore(getDefaultClient());
+		} catch {
+			return;
+		}
+	},
+	redactAll: true
+});
+
+//#endregion
+//#region src/modules/extension/hasExtension/hasExtension.ts
+/**
+* Checks if a specific extension has been applied to the Dynamic client.
+*
+* Extensions add optional features to the Dynamic SDK,
+* such as EVM, Solana, or other chain support.
+*
+* @param params.extensionKey - The unique key identifying the extension to check for.
+* @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+* @returns True if the extension is applied, false otherwise.
+* @not-instrumented
+*/
+const hasExtension = ({ extensionKey }, client = getDefaultClient()) => {
+	return getCore(client).extensions.has(extensionKey);
+};
+
+//#endregion
+//#region src/modules/auth/createVisit/createVisit.ts
+/** @not-instrumented */
+const createVisit = async ({ walletAccount, authMode = AuthModeEnum.Only }, client) => {
+	const core = getCore(client);
+	const apiClient = createApiClient({}, client);
+	const walletProvider = getWalletProviderFromWalletAccount({ walletAccount }, client);
+	try {
+		const walletName = normalizeWalletNameWithChain({
+			chain: walletProvider.chain,
+			displayName: walletProvider.metadata.displayName
+		});
+		const connectRequest = {
+			address: walletAccount.address,
+			authMode,
+			chain: walletProvider.chain,
+			provider: walletProvider.walletProviderType,
+			walletName
+		};
+		await apiClient.createVisit({
+			connectRequest,
+			environmentId: core.environmentId
+		});
+	} catch (error) {
+		core.logger.error("Error creating visit", { error });
+	}
+};
+
+//#endregion
+//#region src/modules/wallets/unverifiedWalletAccounts/setUnverifiedWalletAccounts/setUnverifiedWalletAccounts.ts
+/**
+* Updates the unverified wallet account in the client state.
+* This will add new wallet accounts and override those with matching ids,
+* but will leave other preexisting wallet accounts unchanged.
+* @not-instrumented
+*/
+const setUnverifiedWalletAccounts = ({ unverifiedWalletAccountsToUpdate }, client) => {
+	if (unverifiedWalletAccountsToUpdate.length === 0) return;
+	const core = getCore(client);
+	const unverifiedWalletAccountsToUpdateIds = unverifiedWalletAccountsToUpdate.map(({ id }) => id);
+	const filteredUnverifiedWalletAccounts = core.state.get().unverifiedWalletAccounts.filter((unverifiedWalletAccount) => !unverifiedWalletAccountsToUpdateIds.includes(unverifiedWalletAccount.id));
+	core.state.set({ unverifiedWalletAccounts: [...filteredUnverifiedWalletAccounts, ...unverifiedWalletAccountsToUpdate] });
+};
+
+//#endregion
+//#region src/modules/wallets/walletProvider/walletProviderKeyMap/updateWalletProviderKeysForVerifiedCredentials/updateWalletProviderKeysForVerifiedCredentials.ts
+/** @not-instrumented */
+const updateWalletProviderKeysForVerifiedCredentials = ({ keysToUpdate }, client) => {
+	const core = getCore(client);
+	core.state.set({ walletProviderKeyMap: {
+		...core.state.get().walletProviderKeyMap,
+		...keysToUpdate
+	} });
+};
+
+//#endregion
+//#region src/modules/wallets/reconcileWalletAccountsAgainstClient/reconcileWalletAccountsAgainstClient.ts
+/**
+* Reconciles freshly-connected wallet accounts against the client state. For
+* each candidate it classifies as new, a re-connect of an existing unverified
+* account, or a re-connect of an already-verified account, then runs the
+* appropriate state mutation (`setUnverifiedWalletAccounts`,
+* `updateWalletProviderKeysForVerifiedCredentials`, `createVisit` for truly-new
+* entries) and emits a single `walletAccountsChanged` event if anything
+* actually changed. Returns the candidates with `verifiedCredentialId`
+* populated when the address already corresponded to a verified credential.
+*
+* @not-instrumented
+*/
+const reconcileWalletAccountsAgainstClient = ({ addToDynamicWalletAccounts = true, walletAccounts, walletProviderKey }, client) => {
+	if (walletAccounts.length === 0) return [];
+	const existingWalletAccounts = getWalletAccounts(client);
+	const newWalletAccounts = [];
+	const unverifiedWalletAccountsToUpdate = [];
+	const verifiedCredentialIdToWalletProviderKeyMap = {};
+	const reconciledWalletAccounts = walletAccounts.map((candidate) => {
+		const matchingExistingWalletAccount = existingWalletAccounts.find((existingWalletAccount) => existingWalletAccount.id === candidate.id);
+		if (!matchingExistingWalletAccount) {
+			newWalletAccounts.push(candidate);
+			return candidate;
+		}
+		const isWalletProviderKeyChanged = matchingExistingWalletAccount.walletProviderKey !== walletProviderKey;
+		if (matchingExistingWalletAccount.verifiedCredentialId) {
+			if (isWalletProviderKeyChanged) verifiedCredentialIdToWalletProviderKeyMap[matchingExistingWalletAccount.verifiedCredentialId] = walletProviderKey;
+			return {
+				...candidate,
+				verifiedCredentialId: matchingExistingWalletAccount.verifiedCredentialId
+			};
+		}
+		if (isWalletProviderKeyChanged) unverifiedWalletAccountsToUpdate.push(candidate);
+		return candidate;
+	});
+	let walletAccountsChanged = false;
+	if (Object.keys(verifiedCredentialIdToWalletProviderKeyMap).length > 0) {
+		updateWalletProviderKeysForVerifiedCredentials({ keysToUpdate: verifiedCredentialIdToWalletProviderKeyMap }, client);
+		walletAccountsChanged = true;
+	}
+	if (addToDynamicWalletAccounts) {
+		const accountsToWrite = [...unverifiedWalletAccountsToUpdate, ...newWalletAccounts];
+		if (accountsToWrite.length > 0) {
+			setUnverifiedWalletAccounts({ unverifiedWalletAccountsToUpdate: accountsToWrite }, client);
+			walletAccountsChanged = true;
+			for (const newWalletAccount of newWalletAccounts) createVisit({ walletAccount: newWalletAccount }, client);
+		}
+	}
+	if (walletAccountsChanged) emitWalletAccountsChangedEvent(client);
+	return reconciledWalletAccounts;
+};
+
+//#endregion
+//#region src/modules/wallets/utils/formatSignInMessage/formatSignInMessage.ts
+/**
+* Formats a sign in message to prove ownership of an address.
+* @not-instrumented
+*/
+const formatSignInMessage = async ({ domain, blockchainName, address, uri, chainId, nonce, issuedAt, requestId, statement, resources }) => {
+	const prefix = [`${domain} wants you to sign in with your ${blockchainName} account:`, address].join("\n");
+	const prefixWithStatementGap = statement ? "\n\n" : "\n";
+	const prefixWithStatement = `${[prefix, statement].join(prefixWithStatementGap)}\n`;
+	const suffixFields = [];
+	suffixFields.push(`URI: ${uri}`);
+	suffixFields.push("Version: 1");
+	if (chainId) suffixFields.push(`Chain ID: ${chainId}`);
+	suffixFields.push(`Nonce: ${nonce}`);
+	if (issuedAt) suffixFields.push(`Issued At: ${issuedAt}`);
+	if (requestId) suffixFields.push(`Request ID: ${requestId}`);
+	if (resources?.length) suffixFields.push(`Resources:${resources.map((resource) => "\n- " + resource).join()}`);
+	return [prefixWithStatement, suffixFields.join("\n")].join("\n");
+};
+
+//#endregion
+//#region src/modules/wallets/utils/getSignInMessage/createSignInMessageStatement/createSignInMessageStatement.ts
+/** @not-instrumented */
+const createSignInMessageStatement = (client) => {
+	const { appName } = getAppMetadata(client);
+	return `Welcome to ${appName}. Signing is the only way we can truly know that you are the owner of the wallet you are connecting. Signing is a safe, gas-less transaction that does not in any way give ${appName} permission to perform any transactions with your wallet.`;
+};
+
+//#endregion
+//#region src/modules/wallets/unverifiedWalletAccounts/removeUnverifiedWalletAccount/removeUnverifiedWalletAccount.ts
+/**
+* Removes an unverified wallet account from the client's state.
+* @not-instrumented
+*/
+const removeUnverifiedWalletAccount = ({ unverifiedWalletAccount }, client) => {
+	const core = getCore(client);
+	const previousState = core.state.get();
+	const { unverifiedWalletAccounts } = core.state.get();
+	const filteredUnverifiedWalletAccounts = unverifiedWalletAccounts.filter((account) => account.id !== unverifiedWalletAccount.id);
+	core.state.set({ unverifiedWalletAccounts: filteredUnverifiedWalletAccounts });
+	/**
+	* We check before raising because the wallet account we are removing might still
+	* be present in wallet accounts due to having been moved to verified credentials.
+	*/
+	checkAndRaiseWalletAccountsChangedEvent({ previousState }, client);
+};
+
+//#endregion
+//#region src/utils/isError/isError.ts
+/**
+* Check if the given value is an Error object
+* @not-instrumented
+*/
+const isError = (error) => error instanceof Error;
+
+//#endregion
+//#region src/utils/isErrorWithCode/isErrorWithCode.ts
+/**
+* Check if the given value is an Error object with a specific code
+* @not-instrumented
+*/
+const isErrorWithCode = (error, code) => {
+	if (!isError(error)) return false;
+	return "code" in error && error.code === code;
+};
+
+//#endregion
+//#region src/modules/wallets/verifyMessageSignatureOwnership/verifyMessageSignatureOwnership.ts
+/**
+* Verifies a signed message by calling either the verifyLink, verifyTransfer or verify API function,
+* depending on whether the user is signing in, linking or transferring a wallet.
+*
+* Does NOT call updateAuthFromVerifyResponse, it should be called from the return of this function.
+* @not-instrumented
+*/
+const verifyMessageSignatureOwnership = async ({ messageToSign, walletAddress, addressesWithTypes, signature, chain, isTransfer = false, walletDisplayName, walletProviderType, networkId, requestedScopes }, client) => {
+	const core = getCore(client);
+	const apiClient = createApiClient({}, client);
+	const walletName = normalizeWalletNameWithChain({
+		chain,
+		displayName: walletDisplayName
+	});
+	let verifyApiFunction;
+	if (!client.user) verifyApiFunction = apiClient.walletsSignin.bind(apiClient);
+	else if (isTransfer) verifyApiFunction = apiClient.verifyTransfer.bind(apiClient);
+	else if (client.user && requestedScopes) verifyApiFunction = apiClient.walletsVerify.bind(apiClient);
+	else verifyApiFunction = apiClient.verifyLink.bind(apiClient);
+	try {
+		return await verifyApiFunction({
+			environmentId: core.environmentId,
+			verifyRequest: {
+				additionalWalletAddresses: addressesWithTypes?.map((address) => ({
+					address: address.address,
+					publicKey: address.publicKey,
+					type: address.type
+				})),
+				captchaToken: consumeCaptchaToken(client),
+				chain,
+				messageToSign,
+				network: networkId,
+				publicWalletAddress: walletAddress,
+				requestedScopes,
+				signedMessage: signature,
+				walletName,
+				walletProvider: walletProviderType
+			}
+		});
+	} catch (error) {
+		core.logger.error("Failed to verify message signature ownership", error);
+		if (isErrorWithCode(error, "reassign_wallet_confirm") || isErrorWithCode(error, "merge_accounts_confirmation")) throw new WalletAlreadyLinkedToAnotherUserError({ cause: error });
+		throw error;
+	}
+};
+
+//#endregion
+//#region src/modules/wallets/networks/getSdkChainFromApiChainName/getSdkChainFromApiChainName.ts
+/**
+* Maps the chain name from the API to the SDK chain name
+* @not-instrumented
+*/
+const getSdkChainFromApiChainName = (chainName) => {
+	return Object.keys(CHAINS_INFO_MAP).find((chain) => CHAINS_INFO_MAP[chain].apiChainName === chainName) || null;
+};
+
+//#endregion
+//#region src/modules/wallets/networks/getNetworksData/getNetworksData.ts
+/**
+* Retrieves all available network configurations from project settings.
+*
+* This function returns detailed configuration data for all networks enabled
+* in your Dynamic project, including RPC URLs, native currencies, and metadata.
+*
+* If a `transformers.networkData` callback was provided in the client configuration,
+* it will be applied to each network before returning the data. This allows you to
+* customize network properties (such as RPC URLs) in a centralized way.
+*
+* @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+* @returns An array of network configuration data for all enabled networks.
+* @not-instrumented
+*/
+const getNetworksData = (client = getDefaultClient()) => {
+	const { state, transformers } = getCore(client);
+	const networkDataTransformer = transformers?.networkData ?? ((networkData) => networkData);
+	const { projectSettings } = state.get();
+	assertDefined(projectSettings, "projectSettings not found");
+	const networks = projectSettings.networks;
+	if (!networks) return [];
+	return networks.map((network) => {
+		if (!network.chainName) return [];
+		const chain = getSdkChainFromApiChainName(network.chainName);
+		if (!network?.networks?.length || !chain) return [];
+		return network.networks.map((networkConfiguration) => {
+			return networkDataTransformer({
+				blockExplorerUrls: networkConfiguration.blockExplorerUrls,
+				chain,
+				cluster: networkConfiguration.cluster,
+				displayName: networkConfiguration.vanityName || networkConfiguration.name,
+				genesisHash: networkConfiguration.genesisHash,
+				iconUrl: networkConfiguration.iconUrls[0],
+				name: networkConfiguration.name,
+				nativeCurrency: {
+					decimals: networkConfiguration.nativeCurrency.decimals,
+					iconUrl: networkConfiguration.nativeCurrency.iconUrl,
+					name: networkConfiguration.nativeCurrency.name,
+					symbol: networkConfiguration.nativeCurrency.symbol
+				},
+				networkId: networkConfiguration.networkId,
+				rpcUrls: { http: [...networkConfiguration.privateCustomerRpcUrls ?? [], ...networkConfiguration.rpcUrls ?? []] },
+				testnet: networkConfiguration.isTestnet ?? false
+			});
+		});
+	}).flat();
+};
+
+//#endregion
+//#region src/modules/wallets/networks/networkProviderBuilderRegistry/createNetworkProviderBuilderRegistry/createNetworkProviderBuilderRegistry.ts
+/** @not-instrumented */
+const createNetworkProviderBuilderRegistry = () => {
+	const registry = /* @__PURE__ */ new Map();
+	return {
+		get: () => registry,
+		register: (networkProviderBuilder) => {
+			registry.set(networkProviderBuilder.chain, networkProviderBuilder);
+		}
+	};
+};
+
+//#endregion
+//#region src/modules/wallets/networks/networkProviderBuilderRegistry/getNetworkProviderBuilderRegistry/getNetworkProviderBuilderRegistry.ts
+const getNetworkProviderBuilderRegistry = createRuntimeServiceAccessKey("networkProviderBuilderRegistry", createNetworkProviderBuilderRegistry);
+
+//#endregion
+//#region src/modules/wallets/networks/getNetworkProviders/getNetworkProviders.ts
+/**
+* Retrieves all registered network providers for enabled chains.
+* @not-instrumented
+*/
+const getNetworkProviders = (client) => {
+	const networkProviderBuilderRegistry = getNetworkProviderBuilderRegistry(client);
+	const registeredNetworkProviderBuilders = Array.from(networkProviderBuilderRegistry.get().values());
+	const networksData = getNetworksData(client);
+	return registeredNetworkProviderBuilders.map(({ builder, chain }) => {
+		return networksData.filter((networkData) => networkData.chain === chain).map(builder);
+	}).flat();
+};
+
+//#endregion
+//#region src/modules/wallets/networks/getNetworkProviderFromNetworkId/getNetworkProviderFromNetworkId.ts
+/** @not-instrumented */
+const getNetworkProviderFromNetworkId = ({ networkId, chain }, client) => {
+	const networkProviders = getNetworkProviders(client);
+	if (networkProviders.length === 0) throw new NoNetworkProvidersError();
+	const networkProvider = networkProviders.find((networkProvider$1) => networkProvider$1.networkId === networkId && networkProvider$1.chain === chain);
+	assertDefined(networkProvider, `No network provider found for chain ${chain} with network id ${networkId}`);
+	return networkProvider;
+};
+
+//#endregion
+export { GENERATE_SESSION_KEYS_TRACKER_KEY as A, createStorage as B, createKeychainService as C, CannotTrackError as D, CrossTabBroadcastMessageSchema as E, getBuffer as F, subscribeWithSelector as G, createLocalStorageAdapter as H, __logoutWithReason_wrapped as I, isEqualShallow as K, generateSessionKeys as L, REFRESH_USER_STATE_FROM_COOKIE_TRACKER_KEY as M, REFRESH_USER_STATE_FROM_VALID_TOKEN_TRACKER_KEY as N, createDeferredPromise as O, isServerSideRendering as P, fetchProjectSettings as R, createRealtimeService as S, createCrossTabBroadcast as T, isSignedIn as U, InvalidStorageSet as V, retryOnFail as W, getAppMetadata as _, verifyMessageSignatureOwnership as a, NoNetworkProvidersError as b, formatSignInMessage as c, setUnverifiedWalletAccounts as d, createVisit as f, isCaptchaRequired as g, consumeCaptchaToken as h, getNetworksData as i, INITIALIZE_STORAGE_SYNC_TRACKER_KEY as j, FETCH_PROJECT_SETTINGS_TRACKER_KEY as k, reconcileWalletAccountsAgainstClient as l, __setCaptchaToken_wrapped as m, getNetworkProviders as n, removeUnverifiedWalletAccount as o, hasExtension as p, getNetworkProviderBuilderRegistry as r, createSignInMessageStatement as s, getNetworkProviderFromNetworkId as t, updateWalletProviderKeysForVerifiedCredentials as u, MethodNotImplementedError as v, createLogger as w, getKeychainIndexedDBName as x, WalletAlreadyLinkedToAnotherUserError as y, createStorageKeySchema as z };
+//# sourceMappingURL=getNetworkProviderFromNetworkId-Cke-DBhx.native.esm.js.map

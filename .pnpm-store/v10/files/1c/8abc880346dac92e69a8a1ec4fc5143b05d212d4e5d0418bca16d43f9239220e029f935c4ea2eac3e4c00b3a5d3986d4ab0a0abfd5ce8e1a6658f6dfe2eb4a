@@ -1,0 +1,20 @@
+'use client'
+import { __awaiter } from '../../../../../_virtual/_tslib.js';
+import { useRef, useCallback } from 'react';
+import { runSafe } from '@dynamic-labs/utils';
+import '../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+
+const useHandleAuthenticatedUser = () => {
+    const { handlers } = useInternalDynamicContext();
+    const { handleAuthenticatedUser } = handlers !== null && handlers !== void 0 ? handlers : {};
+    const handleAuthenticatedUserRef = useRef(handleAuthenticatedUser);
+    handleAuthenticatedUserRef.current = handleAuthenticatedUser;
+    return useCallback((user) => __awaiter(void 0, void 0, void 0, function* () {
+        if (!handleAuthenticatedUserRef.current)
+            return;
+        yield runSafe(() => { var _a; return (_a = handleAuthenticatedUserRef.current) === null || _a === void 0 ? void 0 : _a.call(handleAuthenticatedUserRef, { user }); });
+    }), []);
+};
+
+export { useHandleAuthenticatedUser };

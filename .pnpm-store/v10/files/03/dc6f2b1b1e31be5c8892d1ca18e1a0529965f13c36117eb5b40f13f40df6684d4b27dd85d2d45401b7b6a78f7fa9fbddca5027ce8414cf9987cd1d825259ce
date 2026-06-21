@@ -1,0 +1,13 @@
+/**
+ * Converts a human-readable decimal amount string to the smallest unit
+ * representation as a bigint, using string-based arithmetic to avoid
+ * floating-point precision loss.
+ *
+ * @param amount - The amount as a decimal string (e.g. "1.5").
+ * @param decimals - The number of decimal places for the token.
+ * @returns The amount in smallest units as a bigint.
+ */
+export declare const parseAmountToSmallestUnit: ({ amount, decimals, }: {
+    amount: string;
+    decimals: number;
+}) => bigint;

@@ -1,0 +1,33 @@
+'use client'
+import { StorageService } from '@dynamic-labs/utils';
+import { CLIENT_SESSION_KEYS, CLIENT_SESSION_KEYS_STORAGE_OPTIONS } from '../../constants/sessionStorage.js';
+import '@dynamic-labs/iconic';
+import '@dynamic-labs/wallet-connector-core';
+import 'react';
+import 'react/jsx-runtime';
+import '../../../context/ViewContext/ViewContext.js';
+import { logger } from '../../../shared/logger.js';
+import '@dynamic-labs/wallet-book';
+import '../../constants/colors.js';
+import '../../constants/values.js';
+import '@dynamic-labs/sdk-api-core';
+import '../../../shared/consts/index.js';
+
+const getClientSessionKeys = () => {
+    const sessionKeysSS = StorageService.getItem(CLIENT_SESSION_KEYS, CLIENT_SESSION_KEYS_STORAGE_OPTIONS);
+    const decodedSessionKeys = sessionKeysSS
+        ? JSON.parse(Buffer.from(sessionKeysSS, 'base64').toString())
+        : undefined;
+    return decodedSessionKeys;
+};
+const clearClientSessionKeys = () => {
+    const clientSessionKeys = getClientSessionKeys();
+    logger.instrument('[SessionChaining] Clearing client session keys', {
+        key: 'clearing_client_session_keys',
+        sessionPublicKey: clientSessionKeys === null || clientSessionKeys === void 0 ? void 0 : clientSessionKeys.publicKey,
+        time: 0,
+    });
+    StorageService.removeItem(CLIENT_SESSION_KEYS, CLIENT_SESSION_KEYS_STORAGE_OPTIONS);
+};
+
+export { clearClientSessionKeys, getClientSessionKeys };

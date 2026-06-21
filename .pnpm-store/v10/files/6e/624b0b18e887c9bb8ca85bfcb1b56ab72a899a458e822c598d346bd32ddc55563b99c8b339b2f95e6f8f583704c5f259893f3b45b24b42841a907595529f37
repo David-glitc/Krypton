@@ -1,0 +1,350 @@
+import type { ForwardMPCClientV2 } from '@dynamic-labs-wallet/forward-mpc-client';
+import type { RoomTypeEnum, SignMessageEvmTransaction, SignMessageEvmUserOperation, SignMessageSvmTransaction } from '@dynamic-labs/sdk-api-core';
+import { type BackupLocation } from '../constants.js';
+import type { ThresholdSignatureScheme } from '../mpc/constants.js';
+import { AuthMode, type BackupLocationWithExternalKeyShareId, type BitcoinConfig, type EncryptedDelegatedKeyShareEnvelope, type ILogger, type KeygenCompleteResponse, type OpenRoomResponse, type RefreshResponse, type ReshareResponse, type RevokeDelegationResponse, type ShareSetType, type TraceContext, type WaasWalletResponse } from '../types.js';
+import { BaseClient } from './client.js';
+export declare class DynamicApiClient extends BaseClient {
+    /**
+     * When true, routes use `/api/v0/server` prefix (authenticated via API key)
+     * instead of `/api/v0/sdk` (authenticated via JWT).
+     * @see DYNT-537
+     */
+    private readonly sdkRoutePrefix;
+    /** Cached `${sdkRoutePrefix}/${environmentId}/waas` — base for all waas-scoped endpoints. */
+    private readonly waasRoutePrefix;
+    constructor({ environmentId, authToken, backupServiceAuthToken, baseApiUrl, authMode, sdkVersion, forwardMPCClient, baseClientKeysharesRelayApiUrl, logger, isServerSdk, onUnauthorized, }: {
+        environmentId: string;
+        authToken?: string;
+        backupServiceAuthToken?: string;
+        baseApiUrl?: string;
+        authMode?: AuthMode;
+        sdkVersion?: string;
+        forwardMPCClient?: ForwardMPCClientV2;
+        baseClientKeysharesRelayApiUrl?: string;
+        logger?: ILogger;
+        /** Use server SDK routes (/api/v0/server) instead of browser SDK routes (/api/v0/sdk). */
+        isServerSdk?: boolean;
+        /** Fired when a backend call returns 401. See BaseClient. */
+        onUnauthorized?: () => void;
+    });
+    getBackupRelayToken({ traceContext }: {
+        traceContext?: TraceContext;
+    }): Promise<any>;
+    authenticateApiToken({ environmentId }: {
+        environmentId: string;
+    }): Promise<import("axios").AxiosResponse<any, any, {}>>;
+    createWalletAccount({ chainName, clientKeygenIds, dynamicRequestId, thresholdSignatureScheme, skipLock, bitcoinConfig, onError, onCeremonyComplete, traceContext, }: {
+        chainName: string;
+        dynamicRequestId?: string;
+        clientKeygenIds: string[];
+        thresholdSignatureScheme: ThresholdSignatureScheme;
+        skipLock?: boolean;
+        bitcoinConfig?: BitcoinConfig;
+        onError?: (error: Error) => void;
+        onCeremonyComplete?: (accountAddress: string, walletId: string, shareSetId?: string, shareSetType?: ShareSetType) => void;
+        traceContext?: TraceContext;
+    }): Promise<KeygenCompleteResponse>;
+    signMessage({ dynamicRequestId, walletId, shareSetId, message, onError, isFormatted, mfaToken, elevatedAccessToken, roomId, context, forwardMPCClientEnabled, traceContext, bitcoinConfig, }: {
+        dynamicRequestId?: string;
+        walletId: string;
+        shareSetId?: string;
+        message: string;
+        onError?: (error: Error) => void;
+        isFormatted?: boolean;
+        mfaToken?: string;
+        elevatedAccessToken?: string;
+        roomId?: string;
+        context?: SignMessageEvmTransaction | SignMessageSvmTransaction | SignMessageEvmUserOperation;
+        forwardMPCClientEnabled?: boolean;
+        traceContext?: TraceContext;
+        bitcoinConfig?: BitcoinConfig;
+    }): Promise<OpenRoomResponse>;
+    refreshWalletAccountShares({ dynamicRequestId, walletId, shareSetId, onError, onCeremonyComplete, mfaToken, elevatedAccessToken, traceContext, }: {
+        dynamicRequestId?: string;
+        walletId: string;
+        shareSetId?: string;
+        onError?: (error: Error) => void;
+        onCeremonyComplete?: (accountAddress: string, walletId: string, shareSetId?: string, shareSetType?: ShareSetType) => void;
+        mfaToken?: string;
+        elevatedAccessToken?: string;
+        traceContext?: TraceContext;
+    }): Promise<RefreshResponse>;
+    reshare({ walletId, shareSetId, dynamicRequestId, clientKeygenIds, oldThresholdSignatureScheme, newThresholdSignatureScheme, delegateToProjectEnvironment, revokeDelegation, mfaToken, elevatedAccessToken, onError, onCeremonyComplete, traceContext, }: {
+        dynamicRequestId?: string;
+        walletId: string;
+        shareSetId?: string;
+        clientKeygenIds: string[];
+        oldThresholdSignatureScheme: ThresholdSignatureScheme;
+        newThresholdSignatureScheme: ThresholdSignatureScheme;
+        delegateToProjectEnvironment?: boolean;
+        revokeDelegation?: boolean;
+        mfaToken?: string;
+        elevatedAccessToken?: string;
+        onError?: (error: Error) => void;
+        onCeremonyComplete?: (accountAddress: string, walletId: string, shareSetId?: string, shareSetType?: ShareSetType) => void;
+        traceContext?: TraceContext;
+    }): Promise<ReshareResponse>;
+    exportKey({ mfaToken, elevatedAccessToken, dynamicRequestId, walletId, shareSetId, exportId, bitcoinConfig, onError, traceContext, }: {
+        mfaToken?: string;
+        elevatedAccessToken?: string;
+        dynamicRequestId?: string;
+        walletId: string;
+        shareSetId?: string;
+        exportId: string;
+        bitcoinConfig?: BitcoinConfig;
+        onError?: (error: Error) => void;
+        traceContext?: TraceContext;
+    }): Promise<OpenRoomResponse>;
+    /**
+     * Kick off the Aleo view-key export MPC ceremony. Returns the MPC room once
+     * redcoast + wallet-service have joined; the client then joins the same
+     * room via Sodot's `exportViewKey` to receive the view key.
+     */
+    exportAleoViewKey({ mfaToken, elevatedAccessToken, dynamicRequestId, walletId, exportId, onError, traceContext, }: {
+        mfaToken?: string;
+        elevatedAccessToken?: string;
+        dynamicRequestId?: string;
+        walletId: string;
+        exportId: string;
+        onError?: (error: Error) => void;
+        traceContext?: TraceContext;
+    }): Promise<OpenRoomResponse>;
+    /**
+     * Kick off the Aleo signRequest MPC ceremony. Returns the MPC room once
+     * redcoast + wallet-service have joined; the client then joins the same
+     * room via Sodot's `signRequest` with the same payload to finalize.
+     */
+    signAleoRequest({ mfaToken, elevatedAccessToken, dynamicRequestId, walletId, payload, onError, traceContext, }: {
+        mfaToken?: string;
+        elevatedAccessToken?: string;
+        dynamicRequestId?: string;
+        walletId: string;
+        payload: unknown;
+        onError?: (error: Error) => void;
+        traceContext?: TraceContext;
+    }): Promise<OpenRoomResponse>;
+    /**
+     * Fetch the Aleo Feemaster sponsorship policy for a network. Redcoast
+     * holds the ANF Bearer key server-side and forwards. Caller usually
+     * doesn't walk the policy directly; `isAleoFeemasterCovered` is the
+     * convenience.
+     */
+    getAleoFeemasterPolicy({ network, traceContext, }: {
+        network: 'testnet' | 'mainnet';
+        traceContext?: TraceContext;
+    }): Promise<{
+        allowed_programs: Array<{
+            program_id: string;
+            allowed_functions?: string[] | null;
+        }> | null;
+    }>;
+    /**
+     * Coverage check via the redcoast convenience endpoint — server-side
+     * walks the (cached) policy and returns a boolean.
+     */
+    isAleoFeemasterCovered({ network, programId, functionName, traceContext, }: {
+        network: 'testnet' | 'mainnet';
+        programId: string;
+        functionName: string;
+        traceContext?: TraceContext;
+    }): Promise<boolean>;
+    /**
+     * Forward a user-signed Aleo Authorization to ANF (via redcoast) and
+     * return the corresponding `feeAuthorization` for bundling into a
+     * ProvingRequest. Throws on quota errors or service failures so the
+     * caller can fall back to user-paid fees.
+     */
+    requestAleoFeeAuthorization({ network, authorization, priorityFee, traceContext, }: {
+        network: 'testnet' | 'mainnet';
+        authorization: string;
+        priorityFee?: number;
+        traceContext?: TraceContext;
+    }): Promise<{
+        feeAuthorization: string;
+    }>;
+    /**
+     * Aleo RecordScanner — fetch the ephemeral public key Provable will
+     * use to encrypt the next view-key registration. Forwards through
+     * redcoast which holds the apiKey + consumerId server-side.
+     */
+    getAleoScannerPubkey({ network, traceContext, }: {
+        network: 'testnet' | 'mainnet';
+        traceContext?: TraceContext;
+    }): Promise<{
+        public_key: string;
+        key_id: string;
+    }>;
+    /**
+     * Aleo RecordScanner — register an encrypted view key. Body carries
+     * the iframe's `crypto_box_seal` ciphertext; redcoast forwards it
+     * verbatim. Server returns the assigned scanner UUID.
+     */
+    registerAleoScanner({ network, keyId, ciphertext, traceContext, }: {
+        network: 'testnet' | 'mainnet';
+        keyId: string;
+        ciphertext: string;
+        traceContext?: TraceContext;
+    }): Promise<{
+        uuid: string;
+    } & Record<string, unknown>>;
+    /**
+     * Aleo RecordScanner — find owned records by uuid + filter. The filter
+     * shape is passed through to Provable verbatim; the iframe handles
+     * local decryption with its view key.
+     */
+    findAleoScannerRecords({ network, filter, traceContext, }: {
+        network: 'testnet' | 'mainnet';
+        filter: Record<string, unknown>;
+        traceContext?: TraceContext;
+    }): Promise<{
+        records: unknown[];
+    }>;
+    /**
+     * Aleo RecordScanner — revoke a registration UUID.
+     */
+    revokeAleoScanner({ network, uuid, traceContext, }: {
+        network: 'testnet' | 'mainnet';
+        uuid: string;
+        traceContext?: TraceContext;
+    }): Promise<Record<string, unknown>>;
+    getDelegatedEncryptionKey({ environmentId, traceContext, }: {
+        environmentId: string;
+        traceContext?: TraceContext;
+    }): Promise<any>;
+    publishDelegatedKeyShare({ walletId, shareSetId, encryptedKeyShare, signedSessionId, requiresSignedSessionId, dynamicRequestId, traceContext, }: {
+        walletId: string;
+        shareSetId?: string;
+        encryptedKeyShare: EncryptedDelegatedKeyShareEnvelope;
+        dynamicRequestId: string;
+        signedSessionId?: string;
+        requiresSignedSessionId?: boolean;
+        traceContext?: TraceContext;
+    }): Promise<{
+        data: any;
+        status: number;
+    }>;
+    revokeDelegation({ walletId, shareSetId, signedSessionId, requiresSignedSessionId, dynamicRequestId, traceContext, }: {
+        walletId: string;
+        shareSetId: string;
+        dynamicRequestId: string;
+        signedSessionId?: string;
+        requiresSignedSessionId?: boolean;
+        traceContext?: TraceContext;
+    }): Promise<RevokeDelegationResponse>;
+    storeEncryptedBackupByWallet({ walletId, encryptedKeyShares, passwordEncrypted, signedSessionId, encryptionVersion, requiresSignedSessionId, dynamicRequestId, traceContext, }: {
+        walletId: string;
+        shareSetId?: string;
+        encryptedKeyShares: string[];
+        passwordEncrypted: boolean;
+        dynamicRequestId: string;
+        signedSessionId?: string;
+        encryptionVersion?: string;
+        requiresSignedSessionId?: boolean;
+        traceContext?: TraceContext;
+    }): Promise<any>;
+    markKeySharesAsBackedUp({ walletId, shareSetId, locations, dynamicRequestId, traceContext, passwordUpdateBatchId, }: {
+        walletId: string;
+        shareSetId?: string;
+        locations: BackupLocationWithExternalKeyShareId[];
+        dynamicRequestId: string;
+        traceContext?: TraceContext;
+        passwordUpdateBatchId?: string;
+    }): Promise<{
+        message: string;
+        walletId: string;
+        passwordUpdateStatus?: 'pending' | 'activated';
+        locationsWithKeyShares: {
+            location: BackupLocation;
+            id: string;
+            keygenId: string;
+            externalKeyShareId?: string;
+        }[];
+    }>;
+    recoverEncryptedBackupByWallet({ walletId, externalKeyShareIds, signedSessionId, mfaToken, requiresSignedSessionId, traceContext, userId, }: {
+        walletId: string;
+        shareSetId?: string;
+        externalKeyShareIds?: string[];
+        signedSessionId?: string;
+        mfaToken?: string;
+        requiresSignedSessionId?: boolean;
+        traceContext?: TraceContext;
+        userId?: string;
+    }): Promise<any>;
+    getAccessToken({ oauthAccountId, traceContext }: {
+        oauthAccountId: string;
+        traceContext?: TraceContext;
+    }): Promise<any>;
+    importPrivateKey({ chainName, dynamicRequestId, clientKeygenIds, thresholdSignatureScheme, bitcoinConfig, onError, onCeremonyComplete, traceContext, legacyWalletId, }: {
+        dynamicRequestId?: string;
+        chainName: string;
+        clientKeygenIds: string[];
+        thresholdSignatureScheme: ThresholdSignatureScheme;
+        bitcoinConfig?: BitcoinConfig;
+        onError?: (error: Error) => void;
+        onCeremonyComplete?: (accountAddress: string, walletId: string, shareSetId?: string, shareSetType?: ShareSetType) => void;
+        traceContext?: TraceContext;
+        /** ID of the legacy embedded wallet being upgraded to v3 */
+        legacyWalletId?: string;
+    }): Promise<KeygenCompleteResponse>;
+    getUser(dynamicRequestId: string, traceContext?: TraceContext): Promise<any>;
+    refreshUser(traceContext?: TraceContext): Promise<any>;
+    getEnvironmentSettings(traceContext?: TraceContext): Promise<any>;
+    getWaasWalletById({ walletId, traceContext, }: {
+        walletId: string;
+        traceContext?: TraceContext;
+    }): Promise<WaasWalletResponse>;
+    /**
+     * Fetch a single WaaS wallet by ID using the /sdk/{environmentId}/waas/{walletId} endpoint.
+     * This endpoint returns user information with verified credentials filtered to only include the specified WaaS wallet.
+     */
+    getWaasWalletByAddress({ walletAddress, traceContext, }: {
+        walletAddress: string;
+        traceContext?: TraceContext;
+    }): Promise<WaasWalletResponse>;
+    delegatedSignMessage({ walletId, shareSetId, message, isFormatted, dynamicRequestId, onError, context, traceContext, }: {
+        walletId: string;
+        /**
+         * Optional. The `shareSetId` from the `wallet.delegation.created`
+         * webhook payload (a `WaasWallets.id`). When omitted, redcoast resolves
+         * the right share set by walletId + shareSetType — see PR #9480.
+         */
+        shareSetId?: string;
+        message: string;
+        isFormatted?: boolean;
+        dynamicRequestId: string;
+        onError?: (error: Error) => void;
+        context?: SignMessageEvmTransaction | SignMessageSvmTransaction | SignMessageEvmUserOperation;
+        traceContext?: TraceContext;
+    }): Promise<OpenRoomResponse>;
+    createRooms({ walletId, roomType, roomCount, traceContext, }: {
+        walletId: string;
+        roomType?: RoomTypeEnum;
+        roomCount?: number;
+        traceContext?: TraceContext;
+    }): Promise<any>;
+    createRoomsWithoutWalletId({ roomType, thresholdSignatureScheme, roomCount, traceContext, }: {
+        roomType: RoomTypeEnum;
+        thresholdSignatureScheme: ThresholdSignatureScheme;
+        roomCount?: number;
+        traceContext?: TraceContext;
+    }): Promise<any>;
+    requestSvmSponsoredTransaction({ transaction, traceContext, }: {
+        /** Base64-encoded unsigned Solana transaction. */
+        transaction: string;
+        traceContext?: TraceContext;
+    }): Promise<{
+        transaction: string;
+    }>;
+    updateAdditionalAddresses({ walletId, additionalAddresses, dynamicRequestId, traceContext, }: {
+        walletId: string;
+        additionalAddresses: {
+            address: string;
+            type: string;
+            publicKey: string;
+        }[];
+        dynamicRequestId?: string;
+        traceContext?: TraceContext;
+    }): Promise<any>;
+}
+//# sourceMappingURL=api.d.ts.map

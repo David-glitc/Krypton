@@ -1,0 +1,4 @@
+import type { DeferredPromise } from './deferredPromise.types';
+/** @not-instrumented */
+export declare const createDeferredPromise: <T>() => DeferredPromise<T>;
+//# sourceMappingURL=createDeferredPromise.d.ts.map

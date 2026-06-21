@@ -1,0 +1,17 @@
+import type { WalletRecoveryState } from '@dynamic-labs-wallet/browser-wallet-client';
+import type { DynamicClient } from '../../../client/types/DynamicClient';
+import type { WalletAccount } from '../../wallets/walletAccount';
+type GetWalletRecoveryStateParams = {
+    walletAccount: WalletAccount;
+};
+/**
+ * Retrieves the recovery state of a WaaS wallet account.
+ *
+ * @param params.walletAccount - The WaaS wallet account to get the recovery state for.
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns A promise that resolves with the wallet recovery state.
+  * @not-instrumented
+ */
+export declare const getWalletRecoveryState: ({ walletAccount }: GetWalletRecoveryStateParams, client?: DynamicClient) => Promise<WalletRecoveryState>;
+export {};
+//# sourceMappingURL=getWalletRecoveryState.d.ts.map

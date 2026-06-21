@@ -1,0 +1,13 @@
+import type { User } from '../../user/user.types';
+/**
+ * Checks if device registration is required for the given user.
+ *
+ * This function determines if the user has the deviceRegistration
+ * scope, indicating that device registration is required.
+ *
+ * @param user - The user to check.
+ * @returns True if device registration is required, false otherwise.
+  * @not-instrumented
+ */
+export declare const isDeviceRegistrationRequired: (user: User) => boolean;
+//# sourceMappingURL=isDeviceRegistrationRequired.d.ts.map

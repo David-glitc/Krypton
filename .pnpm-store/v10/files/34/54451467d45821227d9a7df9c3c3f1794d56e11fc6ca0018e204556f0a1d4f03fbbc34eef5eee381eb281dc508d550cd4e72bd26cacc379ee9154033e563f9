@@ -1,0 +1,68 @@
+'use client'
+import { __awaiter } from '../../../../_virtual/_tslib.js';
+import { VersionedTransaction } from '@solana/web3.js';
+import { getDefaultClient, getCore, createApiClient } from '@dynamic-labs-sdk/client/core';
+import { FetchService } from '@dynamic-labs/utils';
+
+const serializeTransaction = (transaction) => {
+    if (transaction instanceof VersionedTransaction) {
+        return Buffer.from(new Uint8Array(transaction.serialize())).toString('base64');
+    }
+    else {
+        return Buffer.from(new Uint8Array(transaction.serialize({ verifySignatures: false }))).toString('base64');
+    }
+};
+const deserializeTransaction = (serializedTransaction) => {
+    const transactionBuffer = Buffer.from(serializedTransaction, 'base64');
+    return VersionedTransaction.deserialize(new Uint8Array(transactionBuffer));
+};
+const optimizeSolanaTransaction = (environmentId, transaction, address) => __awaiter(void 0, void 0, void 0, function* () {
+    const serializedTransaction = serializeTransaction(transaction);
+    const request = {
+        environmentId,
+        solanaTransactionOptimizationRequest: {
+            address,
+            transaction: serializedTransaction,
+        },
+    };
+    const response = yield createApiClient({}, getDefaultClient()).optimizeTransaction(request);
+    const optimizedTransaction = deserializeTransaction(response.transaction);
+    return optimizedTransaction;
+});
+/**
+ * Sponsors a Solana transaction using the Grid API via our backend.
+ * This covers network fees so users don't need SOL for gas.
+ *
+ * Uses direct fetch to avoid SDK API client dependency version issues.
+ */
+const sponsorSolanaTransaction = (environmentId, transaction) => __awaiter(void 0, void 0, void 0, function* () {
+    const serializedTransaction = serializeTransaction(transaction);
+    const client = getDefaultClient();
+    const core = getCore(client);
+    const { legacyToken } = core.state.get();
+    const url = `${core.apiBaseUrl}/sdk/${environmentId}/solana/sponsorTransaction`;
+    if (!legacyToken) {
+        throw new Error('No auth token available for sponsoring transaction');
+    }
+    const response = yield FetchService.fetch(url, {
+        body: JSON.stringify({ transaction: serializedTransaction }),
+        credentials: 'include',
+        headers: {
+            Authorization: `Bearer ${legacyToken}`,
+            'Content-Type': 'application/json',
+        },
+        method: 'POST',
+    });
+    if (!response.ok) {
+        const errorBody = yield response.json().catch(() => ({}));
+        throw new Error(errorBody.error || `Failed to sponsor transaction: ${response.status}`);
+    }
+    const data = yield response.json();
+    if (!data.transaction) {
+        throw new Error('Invalid API response: missing transaction field');
+    }
+    const sponsoredTransaction = deserializeTransaction(data.transaction);
+    return sponsoredTransaction;
+});
+
+export { deserializeTransaction, optimizeSolanaTransaction, serializeTransaction, sponsorSolanaTransaction };

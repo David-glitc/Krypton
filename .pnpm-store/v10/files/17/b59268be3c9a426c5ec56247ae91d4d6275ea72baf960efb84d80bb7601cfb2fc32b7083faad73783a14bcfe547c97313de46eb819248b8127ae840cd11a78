@@ -1,0 +1,30 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var sdkApiCore = require('@dynamic-labs/sdk-api-core');
+var parseToken = require('../../../../shared/utils/functions/parseToken/parseToken.cjs');
+var getMinAuthToken = require('../getMinAuthToken/getMinAuthToken.cjs');
+
+/**
+ * Reads signin_credential_id from the current min JWT claims.
+ * Returns undefined if no token, decode fails, or claim is missing.
+ */
+const getSignInCredentialIdFromMinToken = () => {
+    const token = getMinAuthToken.getMinAuthToken();
+    if (!token)
+        return undefined;
+    const payload = parseToken.parseToken(token);
+    if (!payload || typeof payload !== 'object')
+        return undefined;
+    try {
+        const minJwt = sdkApiCore.MinifiedDynamicJwtFromJSON(payload);
+        return minJwt.signinCredentialId;
+    }
+    catch (_a) {
+        return undefined;
+    }
+};
+
+exports.getSignInCredentialIdFromMinToken = getSignInCredentialIdFromMinToken;

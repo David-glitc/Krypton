@@ -1,0 +1,13 @@
+import type { VerifyResponse } from '@dynamic-labs/sdk-api-core';
+import type { VerifyPasskeyMfaParams, VerifyRecoveryCodeParams, VerifyTotpMfaParams } from './useStepUpAuthentication.types';
+import type { useStepUpState } from './useStepUpState';
+type StepUpStateActions = ReturnType<typeof useStepUpState>;
+type UseStepUpMfaParams = {
+    stateActions: StepUpStateActions;
+};
+export declare const useStepUpMfa: ({ stateActions }: UseStepUpMfaParams) => {
+    verifyPasskeyMfa: ({ requestedScopes, }: VerifyPasskeyMfaParams) => Promise<VerifyResponse | null>;
+    verifyRecoveryCode: ({ code, requestedScopes, }: VerifyRecoveryCodeParams) => Promise<VerifyResponse | null>;
+    verifyTotpMfa: ({ code, deviceId, requestedScopes, }: VerifyTotpMfaParams) => Promise<VerifyResponse | null>;
+};
+export {};

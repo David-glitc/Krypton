@@ -1,0 +1,1516 @@
+import { AuthMode, getEnvironmentFromUrl, IFRAME_DOMAIN_MAP, WalletOperation } from '@dynamic-labs-wallet/core';
+export { AuthMode, MPC_RELAY_PREPROD_API_URL, MPC_RELAY_PROD_API_URL, ThresholdSignatureScheme, WalletOperation } from '@dynamic-labs-wallet/core';
+import { createRequestChannel, parseMessageTransportData, applyDefaultMessageOrigin, createMessageTransport, applyRecoveryManager, makeWaitForUnblock } from '@dynamic-labs/message-transport';
+import { Logger } from '@dynamic-labs/logger';
+
+function _extends() {
+    _extends = Object.assign || function assign(target) {
+        for(var i = 1; i < arguments.length; i++){
+            var source = arguments[i];
+            for(var key in source)if (Object.prototype.hasOwnProperty.call(source, key)) target[key] = source[key];
+        }
+        return target;
+    };
+    return _extends.apply(this, arguments);
+}
+
+class iframeMessageHandler {
+    // Handle error response from iframe message handler
+    handleIframeMessageResponseError(response) {
+        if (typeof response === 'object' && response !== null && 'error' in response) {
+            throw new Error(String(response.error));
+        }
+    }
+    async getWallets(request) {
+        const response = await this.requestChannel.request('getWallets', request);
+        this.handleIframeMessageResponseError(response);
+        return response;
+    }
+    async getAllWallets(request) {
+        const response = await this.requestChannel.request('getAllWallets', request);
+        this.handleIframeMessageResponseError(response);
+        return response;
+    }
+    async getWallet(request) {
+        const response = await this.requestChannel.request('getWallet', request);
+        this.handleIframeMessageResponseError(response);
+        return response;
+    }
+    async createWalletAccount(request) {
+        const response = await this.requestChannel.request('createWalletAccount', request);
+        this.handleIframeMessageResponseError(response);
+        return response;
+    }
+    async requiresPasswordForOperation(request) {
+        const response = await this.requestChannel.request('requiresPasswordForOperation', request);
+        this.handleIframeMessageResponseError(response);
+        return response;
+    }
+    async signMessage(request) {
+        const response = await this.requestChannel.request('signMessage', request);
+        this.handleIframeMessageResponseError(response);
+        return response;
+    }
+    async signRawMessage(request) {
+        const response = await this.requestChannel.request('signRawMessage', request);
+        this.handleIframeMessageResponseError(response);
+        return response;
+    }
+    async signTransaction(request) {
+        const response = await this.requestChannel.request('signTransaction', request);
+        this.handleIframeMessageResponseError(response);
+        return response;
+    }
+    async isPasswordEncrypted(request) {
+        const response = await this.requestChannel.request('isPasswordEncrypted', request);
+        this.handleIframeMessageResponseError(response);
+        return response;
+    }
+    async backupKeySharesToGoogleDrive(request) {
+        const response = await this.requestChannel.request('backupKeySharesToGoogleDrive', request);
+        this.handleIframeMessageResponseError(response);
+    }
+    async backupKeySharesToICloud(request) {
+        const response = await this.requestChannel.request('backupKeySharesToICloud', request);
+        this.handleIframeMessageResponseError(response);
+    }
+    async displayICloudSignIn(chainName) {
+        await this.requestChannel.request('displayICloudSignIn', {
+            chainName
+        });
+    }
+    async hideICloudSignIn() {
+        await this.requestChannel.request('hideICloudSignIn');
+    }
+    async isICloudAuthenticated(chainName) {
+        return this.requestChannel.request('isICloudAuthenticated', {
+            chainName
+        });
+    }
+    async delegateKeyShares(request) {
+        const response = await this.requestChannel.request('delegateKeyShares', request);
+        this.handleIframeMessageResponseError(response);
+    }
+    async revokeDelegation(request) {
+        const response = await this.requestChannel.request('revokeDelegation', request);
+        this.handleIframeMessageResponseError(response);
+    }
+    async exportClientKeysharesFromGoogleDrive(request) {
+        const response = await this.requestChannel.request('exportClientKeysharesFromGoogleDrive', request);
+        this.handleIframeMessageResponseError(response);
+    }
+    async refreshWalletAccountShares(request) {
+        const response = await this.requestChannel.request('refreshWalletAccountShares', request);
+        this.handleIframeMessageResponseError(response);
+    }
+    async reshare(request) {
+        const response = await this.requestChannel.request('reshare', request);
+        this.handleIframeMessageResponseError(response);
+    }
+    async exportPrivateKey(request) {
+        const response = await this.requestChannel.request('exportPrivateKey', request);
+        this.handleIframeMessageResponseError(response);
+    }
+    async proveAleoTransaction(request) {
+        const response = await this.requestChannel.request('proveAleoTransaction', request);
+        this.handleIframeMessageResponseError(response);
+        return response;
+    }
+    async findAleoOwnedRecords(request) {
+        const response = await this.requestChannel.request('findAleoOwnedRecords', request);
+        this.handleIframeMessageResponseError(response);
+        return response;
+    }
+    async isAleoFeemasterCovered(request) {
+        const response = await this.requestChannel.request('isAleoFeemasterCovered', request);
+        this.handleIframeMessageResponseError(response);
+        return Boolean(response);
+    }
+    async verifyPassword(request) {
+        const response = await this.requestChannel.request('verifyPassword', request);
+        this.handleIframeMessageResponseError(response);
+    }
+    async updatePassword(request) {
+        const response = await this.requestChannel.request('updatePassword', request);
+        this.handleIframeMessageResponseError(response);
+    }
+    async setPassword(request) {
+        const response = await this.requestChannel.request('setPassword', request);
+        this.handleIframeMessageResponseError(response);
+    }
+    async importPrivateKey(request) {
+        const response = await this.requestChannel.request('importPrivateKey', request);
+        this.handleIframeMessageResponseError(response);
+        return response;
+    }
+    async sendAuthToken(token, authMode, traceContext) {
+        return this.requestChannel.request('sendAuthToken', token, authMode, traceContext);
+    }
+    async exportClientKeyshares(request) {
+        const response = await this.requestChannel.request('exportClientKeyshares', request);
+        this.handleIframeMessageResponseError(response);
+    }
+    async offlineExportPrivateKey(request) {
+        const response = await this.requestChannel.request('offlineExportPrivateKey', request);
+        this.handleIframeMessageResponseError(response);
+        return response;
+    }
+    async signTypedData(request) {
+        const response = await this.requestChannel.request('signTypedData', request);
+        this.handleIframeMessageResponseError(response);
+        return response;
+    }
+    async cleanup() {
+        return this.requestChannel.request('cleanup');
+    }
+    async getWalletRecoveryState(request) {
+        const response = await this.requestChannel.request('getWalletRecoveryState', request);
+        this.handleIframeMessageResponseError(response);
+        return response;
+    }
+    async unlockWallet(request) {
+        const response = await this.requestChannel.request('unlockWallet', request);
+        this.handleIframeMessageResponseError(response);
+        return response;
+    }
+    constructor(messageTransport){
+        this.requestChannel = createRequestChannel(messageTransport);
+    }
+}
+
+const logger = new Logger('DynamicWaasWalletClient');
+
+const setupMessageTransportBridge = (messageTransport, iframe, iframeOrigin)=>{
+    const logger = new Logger('debug');
+    function hostListener(message) {
+        if (message.origin !== 'host') return;
+        // Detached iframe (relogin / RN modal unmount left a stale ref): log and
+        // drop. The request channel's 5s timeout will trigger the transport's
+        // recovery manager, which rebuilds the iframe and retries on a fresh
+        // bridge. Throwing here would break that recovery flow because the
+        // listener runs synchronously inside emit().
+        if (!(iframe == null ? void 0 : iframe.contentWindow) || iframe.isConnected === false) {
+            logger.error('Cannot send message to iframe: contentWindow is unavailable');
+            return;
+        }
+        try {
+            iframe.contentWindow.postMessage(message, iframeOrigin);
+        } catch (error) {
+            // "Attempt to postMessage on disconnected port" (Firefox) — same path: log + drop.
+            logger.error('Failed to post message to iframe:', error);
+        }
+    }
+    messageTransport.on(hostListener);
+    const handleIncomingMessage = (message)=>{
+        const { data } = message;
+        if (!data) return;
+        if ((data == null ? void 0 : data.origin) !== 'webview') {
+            return;
+        }
+        if (typeof data !== 'object') {
+            return;
+        }
+        try {
+            const message = parseMessageTransportData(data);
+            messageTransport.emit(message);
+        } catch (error) {
+            if (!(error instanceof SyntaxError)) {
+                logger.error('Error handling incoming message:', error);
+            }
+        }
+    };
+    /**
+   * Handle incoming message from android client
+   */ // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    document.addEventListener('message', handleIncomingMessage);
+    /**
+   * Handle incoming message from iOS client
+   */ window.addEventListener('message', handleIncomingMessage);
+    return ()=>{
+        messageTransport.off(hostListener);
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error
+        document.removeEventListener('message', handleIncomingMessage);
+        window.removeEventListener('message', handleIncomingMessage);
+    };
+};
+
+const createIframeWaasSDKContainer = ()=>{
+    let iframe = null;
+    const messageHandlers = new Set();
+    const errorHandlers = new Set();
+    let windowListenerAttached = false;
+    let cspListenerAttached = false;
+    const windowMessageListener = (event)=>{
+        if (event.source !== (iframe == null ? void 0 : iframe.contentWindow)) return;
+        // Defense in depth: verify event.origin matches the iframe's URL origin.
+        // The source check alone is insufficient — a cross-origin navigation can
+        // keep contentWindow stable while changing event.origin to an attacker.
+        let expectedOrigin;
+        try {
+            expectedOrigin = new URL(iframe.src).origin;
+        } catch (e) {
+            return;
+        }
+        if (event.origin !== expectedOrigin) return;
+        // Only forward payloads that match a known shape so a compromised iframe
+        // cannot inject arbitrary data into subscribers. Two shapes are accepted:
+        //   1. Handshake: a non-empty string (e.g. `iframe-ready-${instanceId}`).
+        //   2. Transport message: a plain object explicitly tagged `origin: 'webview'`.
+        const { data } = event;
+        const isHandshake = typeof data === 'string' && data.length > 0;
+        const isTransportMessage = typeof data === 'object' && data !== null && !Array.isArray(data) && 'origin' in data && data.origin === 'webview';
+        if (!isHandshake && !isTransportMessage) return;
+        for (const handler of messageHandlers){
+            handler(data);
+        }
+    };
+    const fireError = (error)=>{
+        for (const handler of errorHandlers){
+            handler(error);
+        }
+    };
+    const cspViolationListener = (event)=>{
+        var _event_blockedURI, _event_violatedDirective, _event_violatedDirective1;
+        const iframeOrigin = (iframe == null ? void 0 : iframe.src) ? new URL(iframe.src).origin : undefined;
+        const affectsIframe = iframeOrigin && ((_event_blockedURI = event.blockedURI) == null ? void 0 : _event_blockedURI.includes(iframeOrigin)) || ((_event_violatedDirective = event.violatedDirective) == null ? void 0 : _event_violatedDirective.includes('frame-src')) || ((_event_violatedDirective1 = event.violatedDirective) == null ? void 0 : _event_violatedDirective1.includes('child-src'));
+        if (!affectsIframe) return;
+        logger.error('CSP violation detected that may affect iframe loading:', {
+            blockedURI: event.blockedURI,
+            violatedDirective: event.violatedDirective,
+            originalPolicy: event.originalPolicy,
+            sourceFile: event.sourceFile,
+            lineNumber: event.lineNumber,
+            columnNumber: event.columnNumber,
+            iframeOrigin
+        });
+    };
+    return {
+        async setUrl (url) {
+            iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.style.position = 'fixed';
+            iframe.style.top = '0';
+            iframe.style.left = '0';
+            iframe.style.width = '0';
+            iframe.style.height = '0';
+            iframe.style.border = 'none';
+            iframe.style.pointerEvents = 'none';
+            iframe.setAttribute('title', 'Dynamic Wallet Iframe');
+            iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-downloads');
+            iframe.setAttribute('referrerpolicy', 'origin');
+            iframe.onerror = (error)=>{
+                fireError(error);
+            };
+            if (!cspListenerAttached) {
+                document.addEventListener('securitypolicyviolation', cspViolationListener);
+                cspListenerAttached = true;
+            }
+            iframe.src = url;
+            document.body.appendChild(iframe);
+        },
+        sendMessage (data) {
+            if (!(iframe == null ? void 0 : iframe.contentWindow)) {
+                throw new Error('Cannot send message: iframe not loaded');
+            }
+            const origin = new URL(iframe.src).origin;
+            try {
+                iframe.contentWindow.postMessage(data, origin);
+            } catch (error) {
+                // This catches "Attempt to postMessage on disconnected port" errors
+                // which occur when the iframe has been navigated away or destroyed.
+                logger.error('Failed to post message to iframe:', error);
+                throw error;
+            }
+        },
+        onMessage (handler) {
+            messageHandlers.add(handler);
+            if (!windowListenerAttached) {
+                window.addEventListener('message', windowMessageListener);
+                windowListenerAttached = true;
+            }
+            return ()=>{
+                messageHandlers.delete(handler);
+            };
+        },
+        onError (handler) {
+            errorHandlers.add(handler);
+            return ()=>{
+                errorHandlers.delete(handler);
+            };
+        },
+        isAlive () {
+            var _iframe_isConnected;
+            // contentWindow goes null when the iframe is removed from the DOM or its
+            // page is torn down (relogin, RN modal unmount, etc.). isConnected falls
+            // back to true on jsdom where the property is absent so the production
+            // contract still holds.
+            return !!(iframe == null ? void 0 : iframe.contentWindow) && ((_iframe_isConnected = iframe.isConnected) != null ? _iframe_isConnected : true);
+        },
+        destroy () {
+            if (windowListenerAttached) {
+                window.removeEventListener('message', windowMessageListener);
+                windowListenerAttached = false;
+            }
+            if (cspListenerAttached) {
+                document.removeEventListener('securitypolicyviolation', cspViolationListener);
+                cspListenerAttached = false;
+            }
+            messageHandlers.clear();
+            errorHandlers.clear();
+            iframe == null ? void 0 : iframe.remove();
+            iframe = null;
+        }
+    };
+};
+
+const FRAME_ANCESTORS_QUERY_PARAM = 'frameAncestors';
+/**
+ * Builds the iframe message transport with the recovery + block decorators.
+ *
+ * The transport stack from outside in:
+ *   applyRecoveryManager  — exposes recoveryManager + retry tracking used by
+ *                           the request channel's 5s timeout.
+ *   applyDefaultMessageOrigin — stamps outgoing messages with origin: 'host'.
+ *   makeWaitForUnblock    — lets us pause emit() while we rebuild a torn-down
+ *                           iframe so in-flight retries land on a fresh bridge
+ *                           instead of the dead one. bypassBlockIf lets the
+ *                           re-auth message and incoming webview messages flow
+ *                           during the blocked window — without that bypass,
+ *                           the queued retry would arrive at the rebuilt iframe
+ *                           before its auth token and get rejected.
+ */ function createIframeMessageTransport() {
+    return applyRecoveryManager({
+        messageTransport: applyDefaultMessageOrigin({
+            defaultOrigin: 'host',
+            messageTransport: makeWaitForUnblock({
+                messageTransport: createMessageTransport(),
+                bypassBlockIf: (message)=>message.origin === 'webview' || message.type === 'sendAuthToken'
+            })
+        })
+    });
+}
+class IframeManager {
+    /**
+   * Apply constructor-provided overrides for the iframe load timeout and
+   * retry budget to the static singleton state. Writing to the statics keeps
+   * the timeout doubling logic in {@link resetSharedWaasSDKContainer}
+   * coherent across instances that share the same `iframeLoadPromise`.
+   *
+   * Invalid values (non-finite, out of range) are clamped or ignored rather
+   * than thrown — the iframe must still load even if a misconfigured host
+   * passes nonsense.
+   */ static applyLoadTuning({ iframeLoadTimeout, maxRetryAttempts }) {
+        if (typeof iframeLoadTimeout === 'number' && Number.isFinite(iframeLoadTimeout)) {
+            IframeManager.iframeLoadTimeout = Math.min(Math.max(iframeLoadTimeout, IframeManager.minIframeLoadTimeout), IframeManager.maxIframeLoadTimeout);
+        }
+        if (typeof maxRetryAttempts === 'number' && Number.isFinite(maxRetryAttempts)) {
+            IframeManager.maxRetryAttempts = Math.min(Math.max(Math.floor(maxRetryAttempts), 0), IframeManager.maxAllowedRetryAttempts);
+        }
+    }
+    // Simply load the iframe from localhost
+    async initialize() {
+        await this.doInitializeIframeCommunication();
+    }
+    /**
+   * this is called on class construction time
+   * @returns {Promise<void>} that resolves when the iframe is loaded and the message transport and iframe storage are initialized
+   */ initializeIframeCommunication() {
+        var _IframeManager;
+        var _iframeLoadPromise;
+        (_iframeLoadPromise = (_IframeManager = IframeManager).iframeLoadPromise) != null ? _iframeLoadPromise : _IframeManager.iframeLoadPromise = this.doInitializeIframeCommunication();
+        return IframeManager.iframeLoadPromise;
+    }
+    /**
+   * initialize the iframe communication by awaiting the iframe load promise
+   * and initializing the message transport and iframe storage after iframe is successfully loaded
+   */ async doInitializeIframeCommunication() {
+        try {
+            await this.loadIframe();
+        } catch (error) {
+            this.logger.error('Error initializing iframe:', error);
+            throw error;
+        }
+    }
+    buildIframeUrlSearchParams() {
+        var _this_instanceId, _this_sdkVersion, _this_baseClientKeysharesRelayApiUrl;
+        const params = new URLSearchParams({
+            instanceId: (_this_instanceId = this.instanceId) != null ? _this_instanceId : '',
+            hostOrigin: window.location.origin,
+            environmentId: this.environmentId,
+            baseApiUrl: this.baseApiUrl,
+            baseMPCRelayApiUrl: this.baseMPCRelayApiUrl,
+            sdkVersion: (_this_sdkVersion = this.sdkVersion) != null ? _this_sdkVersion : '',
+            debug: String(this.debug),
+            baseClientKeysharesRelayApiUrl: (_this_baseClientKeysharesRelayApiUrl = this.baseClientKeysharesRelayApiUrl) != null ? _this_baseClientKeysharesRelayApiUrl : '',
+            secureStorage: this.secureStorage ? 'true' : ''
+        });
+        const seenAdditional = new Set();
+        for (const raw of this.additionalTrustedOrigins){
+            const trimmed = raw.trim();
+            if (!trimmed) {
+                continue;
+            }
+            if (trimmed.length > IframeManager.maxTrustedOriginStringLength) {
+                this.logger.warn('Skipping additionalTrustedOrigin (exceeds max length)');
+                continue;
+            }
+            try {
+                const u = new URL(trimmed);
+                if (u.protocol !== 'http:' && u.protocol !== 'https:') {
+                    this.logger.warn('Skipping additionalTrustedOrigin (unsupported scheme)', {
+                        trimmed
+                    });
+                    continue;
+                }
+                const origin = u.origin;
+                if (seenAdditional.has(origin)) {
+                    continue;
+                }
+                if (seenAdditional.size >= IframeManager.maxAdditionalTrustedOrigins) {
+                    this.logger.warn('additionalTrustedOrigin limit reached, extra entries ignored');
+                    break;
+                }
+                seenAdditional.add(origin);
+                params.append(FRAME_ANCESTORS_QUERY_PARAM, origin);
+            } catch (e) {
+                this.logger.warn('Skipping invalid additionalTrustedOrigin', {
+                    trimmed
+                });
+            }
+        }
+        return params;
+    }
+    /**
+   * Build the URL that the transport provider should load.
+   */ buildIframeUrl() {
+        const params = this.buildIframeUrlSearchParams();
+        return `${this.iframeDomain}/waas-v1/${this.environmentId}?${params.toString()}`;
+    }
+    /**
+   * Set up the bridge between the MessageTransport and the WaasSDKContainer.
+   * - Host-origin messages from the transport are forwarded to the sandbox host via sendMessage.
+   * - Messages received from the sandbox host are parsed and emitted into the transport.
+   *
+   * Returns a teardown function so callers can detach listeners when the
+   * sandbox host is rebuilt (needed by the recovery flow — the transport
+   * survives the rebuild and would otherwise accumulate stale listeners).
+   */ setupWaasSDKContainerBridge(transport, waasSDKContainer) {
+        // Forward outgoing host messages to the sandbox host
+        const transportListener = (message)=>{
+            if (message.origin === 'host') {
+                waasSDKContainer.sendMessage(message);
+            }
+        };
+        transport.on(transportListener);
+        // Forward incoming messages from the sandbox host to the transport
+        const unsubscribeFromWaasSDKContainer = waasSDKContainer.onMessage((data)=>{
+            if (typeof data !== 'object' || data === null) return;
+            if (!('origin' in data) || data.origin !== 'webview') return;
+            try {
+                const parsed = parseMessageTransportData(data);
+                if (!parsed) return;
+                transport.emit(parsed);
+            } catch (error) {
+                if (!(error instanceof SyntaxError)) {
+                    this.logger.error('Error handling incoming message:', error);
+                }
+            }
+        });
+        return ()=>{
+            transport.off(transportListener);
+            unsubscribeFromWaasSDKContainer();
+        };
+    }
+    /**
+   * initialize the message transport after iframe is successfully loaded
+   */ async initializeMessageTransport() {
+        if (this.messageTransport && this.iframeMessageHandler) {
+            this.logger.debug('Skipping initializeMessageTransport: transport and message handler already initialized');
+            return;
+        }
+        await this.initializeIframeCommunication();
+        const transport = createIframeMessageTransport();
+        this.messageTransport = transport;
+        var _this_waasSDKContainer;
+        const waasSDKContainer = (_this_waasSDKContainer = this.waasSDKContainer) != null ? _this_waasSDKContainer : IframeManager.sharedWaasSDKContainer;
+        if (waasSDKContainer) {
+            this.cleanupBridge = this.setupWaasSDKContainerBridge(transport, waasSDKContainer);
+        } else if (this.iframe) {
+            // Fallback for the display container flow which still uses raw iframes
+            this.cleanupBridge = setupMessageTransportBridge(this.messageTransport, this.iframe, this.iframeDomain);
+        } else {
+            throw new Error('No sandbox host or iframe available');
+        }
+        this.iframeMessageHandler = new iframeMessageHandler(this.messageTransport);
+        // Set up request channel to handle messages from iframe (for secureStorage,
+        // getSignedSessionId, and the unauthorized notification)
+        if (this.secureStorage || this.getSignedSessionIdCallback || this.onUnauthorized) {
+            this.iframeRequestChannel = this.setupIframeRequestHandlers(this.messageTransport);
+        }
+        // The recovery callback runs synchronously when the request channel's
+        // timeout calls triggerRecovery. block() must run before we await anything
+        // so the request channel's recursive sendMessage() lands on the queue
+        // instead of the dead bridge.
+        this.cleanupRecoverySubscription = transport.recoveryManager.onRecoveryRequested(()=>{
+            this.logger.info('(recoverIframe) Iframe transport recovery requested — rebuilding iframe');
+            transport.block();
+            void this.recoverIframe(transport).catch((error)=>{
+                this.logger.error('(recoverIframe) Iframe recovery failed:', error);
+                // Unblock so the queued retry rejects with a real error rather than
+                // hanging forever waiting on a transport that will never flow.
+                transport.unblock();
+            });
+        });
+        // Transport starts blocked (default of makeWaitForUnblock). Release it
+        // before sending the auth token so the initial message flows normally.
+        transport.unblock();
+        await this.initAuthToken();
+    }
+    /**
+   * Rebuild the sandbox host and its bridge while preserving the message transport
+   * (which owns the request channel's retry timer and recovery manager).
+   *
+   * Triggered by the request channel's recovery flow when an outgoing message
+   * goes 5s without an ack — typically because the iframe was torn down by a
+   * relogin or RN modal unmount and the host still holds a stale reference.
+   */ async recoverIframe(transport) {
+        var _IframeManager_sharedWaasSDKContainer;
+        // If the shared container is still alive, the request channel's 5s timeout
+        // fired for a *non-death* reason — slow server, overloaded MPC ceremony,
+        // etc. Rebuilding in that case actively breaks things: it tears a healthy
+        // container out from under in-flight operations and amplifies retries when
+        // the next message also times out → endless cascade.
+        //
+        // Just unblock the transport (the request channel's own retry will
+        // re-send the message on the same live container) and bail out. Only the
+        // real dead-container case below falls through to the rebuild.
+        if ((_IframeManager_sharedWaasSDKContainer = IframeManager.sharedWaasSDKContainer) == null ? void 0 : _IframeManager_sharedWaasSDKContainer.isAlive()) {
+            this.logger.info('(recoverIframe) Container still alive — request-channel timeout, skipping rebuild');
+            if (this.waasSDKContainer !== IframeManager.sharedWaasSDKContainer) {
+                // A concurrent recovery already swapped in a fresh shared container. Our
+                // bridge still forwards to the old (now-dead) one, so re-point it before
+                // unblock flushes the queued retry — otherwise the flush calls sendMessage
+                // on a torn-down iframe ("iframe not loaded").
+                this.cleanupBridge == null ? void 0 : this.cleanupBridge.call(this);
+                this.waasSDKContainer = IframeManager.sharedWaasSDKContainer;
+                this.cleanupBridge = this.setupWaasSDKContainerBridge(transport, this.waasSDKContainer);
+            }
+            transport.unblock();
+            return;
+        }
+        // Detach listeners attached to the dead container, then destroy it.
+        // The transport, iframeMessageHandler, and iframeRequestChannel are
+        // intentionally kept — they're tied to the request channel's in-flight
+        // retry that we want to flush after rebuild.
+        this.cleanupBridge == null ? void 0 : this.cleanupBridge.call(this);
+        this.cleanupBridge = null;
+        if (IframeManager.sharedWaasSDKContainer) {
+            IframeManager.sharedWaasSDKContainer.destroy();
+            IframeManager.sharedWaasSDKContainer = null;
+        }
+        IframeManager.iframeLoadPromise = null;
+        this.waasSDKContainer = null;
+        // Defer the rebuild + concurrency control to loadIframe(): the first
+        // chain to land here will fall through to the remount branch (shared
+        // container is dead, iframeLoadPromise is null), set iframeLoadPromise,
+        // and start the mount. Subsequent chains' loadIframe() calls during this
+        // window see iframeLoadPromise set and await the same load — concurrent
+        // rebuilds collapse for free, no extra static needed.
+        //
+        // The transport, iframeMessageHandler, and iframeRequestChannel are
+        // intentionally kept — they're tied to the request channel's in-flight
+        // retry that we want to flush after rebuild.
+        this.logger.info('(recoverIframe) Rebuilding shared container');
+        await this.loadIframe();
+        var _this_waasSDKContainer;
+        const waasSDKContainer = (_this_waasSDKContainer = this.waasSDKContainer) != null ? _this_waasSDKContainer : IframeManager.sharedWaasSDKContainer;
+        if (!waasSDKContainer) {
+            throw new Error('Failed to mount fresh container during recovery');
+        }
+        this.cleanupBridge = this.setupWaasSDKContainerBridge(transport, waasSDKContainer);
+        // Re-send auth token to the new sandbox host before the queued retry flushes.
+        // sendAuthToken bypasses the block (see bypassBlockIf in
+        // createIframeMessageTransport), so this resolves before unblock() runs
+        // and the queued operation hits an authenticated iframe.
+        await this.initAuthToken();
+        transport.unblock();
+    }
+    /**
+   * Sets up message handlers for iframe → host requests (secureStorage and getSignedSessionId)
+   */ setupIframeRequestHandlers(transport) {
+        // Create a request channel to handle requests FROM iframe
+        const requestChannel = createRequestChannel(transport);
+        if (this.secureStorage) {
+            // Handle getClientKeyShare requests from iframe
+            requestChannel.handle('getClientKeyShare', this.handleGetClientKeyShare.bind(this));
+            // Handle setClientKeyShare requests from iframe
+            requestChannel.handle('setClientKeyShare', this.handleSetClientKeyShare.bind(this));
+            // Handle removeClientKeyShare requests from iframe
+            requestChannel.handle('removeClientKeyShare', this.handleRemoveClientKeyShare.bind(this));
+        }
+        if (this.getSignedSessionIdCallback) {
+            // Handle getSignedSessionId requests from iframe
+            requestChannel.handle('getSignedSessionId', this.handleGetSignedSessionId.bind(this));
+        }
+        if (this.onUnauthorized) {
+            // Handle the iframe's 401 notification (iframe → host)
+            requestChannel.handle('notifyUnauthorized', this.handleNotifyUnauthorized.bind(this));
+        }
+        return requestChannel;
+    }
+    /**
+   * Handler for the iframe's `notifyUnauthorized` reverse-channel request.
+   * Fires the host's logout callback once per session; further 401 bursts are
+   * ignored until the next session re-initializes this manager.
+   */ async handleNotifyUnauthorized(_request) {
+        if (this.unauthorizedHandled) {
+            return;
+        }
+        this.unauthorizedHandled = true;
+        this.logger.info('(notifyUnauthorized) iframe reported a 401 — invoking host logout callback');
+        try {
+            await (this.onUnauthorized == null ? void 0 : this.onUnauthorized.call(this));
+        } catch (error) {
+            this.logger.error('(notifyUnauthorized) onUnauthorized handler threw:', error);
+        }
+    }
+    /**
+   * Handler for getClientKeyShare requests from iframe
+   */ async handleGetClientKeyShare(request) {
+        if (!this.secureStorage) {
+            throw new Error('Secure storage not available');
+        }
+        const keyShares = await this.secureStorage.getClientKeyShare(request.accountAddress);
+        return {
+            keyShares
+        };
+    }
+    /**
+   * Handler for setClientKeyShare requests from iframe
+   */ async handleSetClientKeyShare(request) {
+        if (!this.secureStorage) {
+            throw new Error('Secure storage not available');
+        }
+        await this.secureStorage.setClientKeyShare(request.accountAddress, request.keyShares);
+    }
+    /**
+   * Handler for removeClientKeyShare requests from iframe
+   */ async handleRemoveClientKeyShare(request) {
+        if (!this.secureStorage) {
+            throw new Error('Secure storage not available');
+        }
+        await this.secureStorage.removeClientKeyShare(request.accountAddress);
+    }
+    /**
+   * Handler for getSignedSessionId requests from iframe
+   */ async handleGetSignedSessionId(_request) {
+        if (!this.getSignedSessionIdCallback) {
+            throw new Error('Signed session ID callback not available');
+        }
+        const signedSessionId = await this.getSignedSessionIdCallback();
+        return {
+            signedSessionId
+        };
+    }
+    /**
+   * securely exchange the auth token with iframe securely
+   */ async initAuthToken() {
+        if (!this.iframeMessageHandler) {
+            throw new Error('Iframe message handler not initialized');
+        }
+        try {
+            // Send auth token to iframe
+            await this.iframeMessageHandler.sendAuthToken(this.authToken, this.authMode);
+        } catch (error) {
+            throw new Error('Failed to establish secure token exchange: ' + error);
+        }
+    }
+    /**
+   * Reset the shared provider and iframe load promise, and iframe instance count
+   */ resetSharedWaasSDKContainer() {
+        this.cleanupBridge == null ? void 0 : this.cleanupBridge.call(this);
+        this.cleanupBridge = null;
+        this.cleanupRecoverySubscription == null ? void 0 : this.cleanupRecoverySubscription.call(this);
+        this.cleanupRecoverySubscription = null;
+        if (IframeManager.sharedWaasSDKContainer) {
+            IframeManager.sharedWaasSDKContainer.destroy();
+            IframeManager.sharedWaasSDKContainer = null;
+        }
+        IframeManager.iframeInstanceCount = 0;
+        IframeManager.iframeLoadPromise = null;
+        this.waasSDKContainer = null;
+        this.iframeMessageHandler = null;
+        this.messageTransport = null;
+        // Double the timeout to give more time for slow networks, capped at the configured maximum.
+        IframeManager.iframeLoadTimeout = Math.min(IframeManager.iframeLoadTimeout * 2, IframeManager.maxIframeLoadTimeout);
+    }
+    async loadIframe() {
+        var _IframeManager_sharedWaasSDKContainer;
+        // If the shared container is still alive, reuse it. The alive check (not
+        // just `if sharedWaasSDKContainer`) is what lets recoverIframe simply call
+        // loadIframe again on a dead container: we fall through to the remount
+        // branch below instead of adopting the corpse.
+        if ((_IframeManager_sharedWaasSDKContainer = IframeManager.sharedWaasSDKContainer) == null ? void 0 : _IframeManager_sharedWaasSDKContainer.isAlive()) {
+            this.waasSDKContainer = IframeManager.sharedWaasSDKContainer;
+            IframeManager.iframeInstanceCount++;
+            return Promise.resolve();
+        }
+        // If a load is in progress, wait for it, then assign
+        if (IframeManager.iframeLoadPromise) {
+            return IframeManager.iframeLoadPromise.then(()=>{
+                this.waasSDKContainer = IframeManager.sharedWaasSDKContainer;
+                IframeManager.iframeInstanceCount++;
+            });
+        }
+        // sharedWaasSDKContainer is dead (or never existed) and no load is in
+        // flight. Destroy the stale corpse so createWaasSDKContainerLoadPromise
+        // mounts a fresh one.
+        if (IframeManager.sharedWaasSDKContainer) {
+            IframeManager.sharedWaasSDKContainer.destroy();
+            IframeManager.sharedWaasSDKContainer = null;
+        }
+        const loadPromise = IframeManager.iframeLoadPromise = this.createWaasSDKContainerLoadPromise();
+        // Clear iframeLoadPromise once the load settles so the "in flight" branch
+        // above only fires while a load is actually pending. Otherwise it would
+        // keep returning a resolved promise pointing at the (potentially later
+        // dead) container, and the next caller would adopt a corpse without ever
+        // taking the remount branch.
+        //
+        // The trailing .catch swallows the rejection that finally re-throws —
+        // the original error still propagates to the caller via the returned
+        // loadPromise; this side chain just keeps unhandled rejections out of
+        // jest test reports / process listeners.
+        loadPromise.finally(()=>{
+            if (IframeManager.iframeLoadPromise === loadPromise) {
+                IframeManager.iframeLoadPromise = null;
+            }
+        }).catch(()=>{
+        // Original rejection is delivered through the returned loadPromise.
+        });
+        return loadPromise;
+    }
+    createWaasSDKContainerLoadPromise() {
+        return new Promise((resolve, reject)=>{
+            const attemptLoad = ()=>{
+                IframeManager.iframeLoadAttempts++;
+                this.logger.debug(`Loading iframe for waas wallet client... (attempt ${IframeManager.iframeLoadAttempts}/${IframeManager.maxRetryAttempts + 1})`, this.getIframeContext());
+                const waasSDKContainer = this.createWaasSDKContainer();
+                const context = _extends({}, this.getIframeContext(), {
+                    attempt: IframeManager.iframeLoadAttempts
+                });
+                const handleError = (error)=>{
+                    clearTimeout(timeoutId);
+                    unsubscribeHandshake();
+                    unsubscribeError();
+                    waasSDKContainer.destroy();
+                    // Check if we should retry
+                    if (IframeManager.iframeLoadAttempts <= IframeManager.maxRetryAttempts) {
+                        const errorMsg = error instanceof Error ? error.message : String(error);
+                        this.logger.warn(`(loadIframe) Iframe failed to load on attempt ${IframeManager.iframeLoadAttempts}, retrying... context: ${JSON.stringify(context)}, error: ${errorMsg}`);
+                        // Retry after a short delay
+                        setTimeout(attemptLoad, 1000);
+                    } else {
+                        // Max retries reached, give up
+                        this.logger.error('Iframe failed to load after all retry attempts: ', error);
+                        this.resetSharedWaasSDKContainer();
+                        IframeManager.iframeLoadAttempts = 0;
+                        reject(new Error(`Failed to load iframe after all retry attempts... context: ${JSON.stringify(context)}`));
+                    }
+                };
+                // Set up timeout (handleError closure captures timeoutId/unsubscribe* declared below;
+                // they are assigned synchronously before any async callback can fire).
+                const timeoutId = setTimeout(()=>{
+                    handleError('Iframe load timeout');
+                }, IframeManager.iframeLoadTimeout);
+                // Surface container-level errors (e.g. iframe.onerror) so we don't wait for the full timeout.
+                const unsubscribeError = waasSDKContainer.onError(handleError);
+                // Listen for the handshake message through the sandbox host's onMessage
+                const unsubscribeHandshake = waasSDKContainer.onMessage((data)=>{
+                    if (data === `iframe-ready-${this.instanceId}`) {
+                        clearTimeout(timeoutId);
+                        unsubscribeHandshake();
+                        unsubscribeError();
+                        IframeManager.sharedWaasSDKContainer = waasSDKContainer;
+                        this.waasSDKContainer = waasSDKContainer;
+                        IframeManager.iframeInstanceCount++;
+                        IframeManager.iframeLoadAttempts = 0; // Reset retry counter on success
+                        resolve();
+                        this.logger.debug('Iframe loaded successfully...', this.getIframeContext());
+                    }
+                });
+                const url = this.buildIframeUrl();
+                this.logger.debug('Creating iframe with src:', url);
+                waasSDKContainer.setUrl(url).catch(handleError);
+            };
+            // Start the first attempt
+            attemptLoad();
+        });
+    }
+    getIframeContext() {
+        var _this_sdkVersion;
+        return {
+            iframeDomain: this.iframeDomain,
+            environmentId: this.environmentId,
+            sdkVersion: (_this_sdkVersion = this.sdkVersion) != null ? _this_sdkVersion : '',
+            instanceId: this.instanceId,
+            chainName: this.chainName,
+            iframeLoadTimeout: IframeManager.iframeLoadTimeout
+        };
+    }
+    /**
+   * Load an iframe for a specific container
+   * @param {HTMLElement} container - The container to which the iframe will be attached
+   * @returns {Promise<HTMLIFrameElement>} that resolves when the iframe is loaded
+   */ loadIframeForContainer(container) {
+        return new Promise((resolve, reject)=>{
+            var _this_sdkVersion;
+            const context = {
+                iframeDomain: this.iframeDomain,
+                environmentId: this.environmentId,
+                sdkVersion: (_this_sdkVersion = this.sdkVersion) != null ? _this_sdkVersion : '',
+                instanceId: this.instanceId,
+                chainName: this.chainName,
+                iframeLoadTimeout: IframeManager.iframeLoadTimeout
+            };
+            this.logger.debug(`Loading iframe for container...`, context);
+            const iframe = document.createElement('iframe');
+            let messageListener = null;
+            const iframeTimeoutId = setTimeout(()=>{
+                if (messageListener) {
+                    window.removeEventListener('message', messageListener);
+                }
+                this.logger.error(`(loadIframeForContainer) Iframe load timeout due to no handshake message from iframe, this could be network issues, incorrect iframe domain, or CORS errors that prevents iframe from being loaded or sending handshake message, context: ${JSON.stringify(context)}`);
+                reject(new Error(`(loadIframeForContainer) Iframe load timeout due to no handshake message from iframe, this could be network issues, incorrect iframe domain, or CORS errors that prevents iframe from being loaded or sending handshake message, context: ${JSON.stringify(context)}`));
+            }, IframeManager.iframeLoadTimeout);
+            iframe.style.display = 'block';
+            iframe.style.width = '100%';
+            iframe.style.height = '100%';
+            iframe.setAttribute('title', 'Dynamic Wallet Storage');
+            iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+            iframe.setAttribute('referrerpolicy', 'origin');
+            const params = this.buildIframeUrlSearchParams();
+            iframe.src = `${this.iframeDomain}/waas-v1/${this.environmentId}?${params.toString()}`;
+            this.logger.debug('Creating iframe with src:', iframe.src);
+            // Add iframe to the provided container
+            container.appendChild(iframe);
+            iframe.onload = ()=>{
+                // The message listener is already set up, so iframe can send ready message
+                this.logger.debug('Iframe onload fired, waiting for ready message...');
+            };
+            iframe.onerror = (error)=>{
+                if (messageListener) {
+                    window.removeEventListener('message', messageListener);
+                }
+                clearTimeout(iframeTimeoutId);
+                this.logger.error('Iframe failed to load due to errors: ', error);
+                reject(new Error('Failed to load iframe due to unknown load errors, this is likely a browser or network issue.'));
+            };
+            // Set up message listener BEFORE creating iframe
+            messageListener = (event)=>{
+                if (event.source === iframe.contentWindow && event.data === `iframe-ready-${this.instanceId}`) {
+                    if (messageListener) {
+                        window.removeEventListener('message', messageListener);
+                    }
+                    clearTimeout(iframeTimeoutId);
+                    this.iframe = iframe;
+                    IframeManager.iframeInstanceCount++;
+                    resolve(iframe);
+                    var _this_sdkVersion;
+                    this.logger.debug('Iframe loaded successfully...', {
+                        iframeDomain: this.iframeDomain,
+                        environmentId: this.environmentId,
+                        sdkVersion: (_this_sdkVersion = this.sdkVersion) != null ? _this_sdkVersion : '',
+                        instanceId: this.instanceId,
+                        chainName: this.chainName
+                    });
+                }
+            };
+            window.addEventListener('message', messageListener);
+        });
+    }
+    /**
+   * Initializes the iframe display for a specific container.
+   *
+   * @param {HTMLElement} container - The container to which the iframe will be attached.
+   * @returns:
+   *   iframe: HTMLIFrameElement;
+   *   iframeDisplay: IframeDisplayChannelAdapter;
+   *   cleanup: () => void;
+   */ async initializeIframeDisplayForContainer({ container }) {
+        try {
+            const iframe = await this.loadIframeForContainer(container);
+            const transport = applyDefaultMessageOrigin({
+                defaultOrigin: 'host',
+                messageTransport: createMessageTransport()
+            });
+            const cleanupBridge = setupMessageTransportBridge(transport, iframe, this.iframeDomain);
+            const iframeDisplay = new iframeMessageHandler(transport);
+            // Set up iframe request handlers on this transport so the display iframe
+            // can access key shares (e.g. for exportPrivateKey) and signed session ID
+            if (this.secureStorage || this.getSignedSessionIdCallback) {
+                this.setupIframeRequestHandlers(transport);
+            }
+            var _this_authMode;
+            // if authMode is header: inform iframe the authMode with auth token
+            // if authMode is cookie:  inform iframe the authMode with empty authToken
+            await iframeDisplay.sendAuthToken(this.authToken, (_this_authMode = this.authMode) != null ? _this_authMode : AuthMode.HEADER);
+            return {
+                iframe,
+                iframeDisplay,
+                cleanup: ()=>{
+                    cleanupBridge();
+                    container.removeChild(iframe);
+                }
+            };
+        } catch (error) {
+            this.logger.error('Error initializing iframe:', error);
+            throw error;
+        }
+    }
+    async cleanup() {
+        await this.initializeMessageTransport();
+        if (!this.iframeMessageHandler) {
+            throw new Error('Iframe message handler not initialized');
+        }
+        // The iframe-side cleanup handler clears localStorage + secureStorage
+        // (initWaasWalletHandler.ts), which is best-effort: if it doesn't ACK
+        // within the request channel's 5s timeout, the channel rejects with a
+        // (misleadingly named) NO_HANDLERS_REGISTERED error. Pre-#1063 that
+        // rejection was masked because recoverIframe rebuilt the iframe and
+        // the retry hit a fresh handler; post-#1063 we keep the (slow) alive
+        // iframe, the rejection surfaces, and — uncaught here — becomes an
+        // unhandled promise rejection / pageerror. RN-web's secureStorage is
+        // slow enough to trigger this routinely, breaking the
+        // `sign-message-new-wallet` re-login flow.
+        //
+        // Swallow the error: we're about to remove the iframe from the DOM
+        // (or another instance is, when iframeInstanceCount drops to 0),
+        // which obsoletes anything the cleanup handler would have cleared.
+        // Stale storage from a missed cleanup is cleared by the next iframe
+        // init's __resetInitializationState anyway.
+        try {
+            await this.iframeMessageHandler.cleanup();
+        } catch (error) {
+            this.logger.warn('(cleanup) iframeMessageHandler.cleanup() failed; proceeding with DOM teardown', {
+                error: error instanceof Error ? error.message : error
+            });
+        }
+        if (this.waasSDKContainer) {
+            IframeManager.iframeInstanceCount--;
+            // Always detach THIS instance's bridge + recovery subscription, even when
+            // other instances keep the shared container alive (multi-chain sessions
+            // share one static container). Leaving them attached lets a logged-out
+            // transport's retry timer fire recovery and flush a queued message into a
+            // torn-down container on the next session — the "iframe not loaded" pageerror.
+            this.cleanupBridge == null ? void 0 : this.cleanupBridge.call(this);
+            this.cleanupBridge = null;
+            this.cleanupRecoverySubscription == null ? void 0 : this.cleanupRecoverySubscription.call(this);
+            this.cleanupRecoverySubscription = null;
+            if (IframeManager.sharedWaasSDKContainer && IframeManager.iframeInstanceCount === 0) {
+                IframeManager.sharedWaasSDKContainer.destroy();
+                IframeManager.sharedWaasSDKContainer = null;
+                IframeManager.iframeLoadPromise = null;
+            }
+            this.waasSDKContainer = null;
+            // Drop the transport + handler so the next operation re-inits and rebuilds a
+            // fresh bridge instead of short-circuiting on initializeMessageTransport's
+            // "already initialized" guard with a now-detached bridge.
+            this.messageTransport = null;
+            this.iframeMessageHandler = null;
+            this.iframeRequestChannel = undefined;
+            // Re-arm the unauthorized guard so a future session can trigger logout again.
+            this.unauthorizedHandled = false;
+        }
+    }
+    constructor({ environmentId, baseApiUrl, baseMPCRelayApiUrl, chainName, sdkVersion, authMode = AuthMode.HEADER, authToken, debug, baseClientKeysharesRelayApiUrl, additionalTrustedOrigins, iframeLoadTimeout, maxRetryAttempts }, internalOptions){
+        this.logger = logger;
+        this.instanceId = null;
+        this.iframeDomain = null;
+        this.messageTransport = null;
+        this.iframeMessageHandler = null;
+        /** Teardown function returned by setupMessageTransportBridge — detaches all
+   * listeners. Tracked so we can rebuild the bridge on iframe recovery without
+   * leaking listeners against the dead iframe. */ this.cleanupBridge = null;
+        /** Unsubscribe for the onRecoveryRequested listener. Tracked so logout detaches
+   * it — otherwise the request channel's retry timer keeps firing recovery against
+   * a torn-down transport on the next session. */ this.cleanupRecoverySubscription = null;
+        this.iframe = null;
+        this.waasSDKContainer = null;
+        /** One-shot guard so a burst of 401 notifications triggers a single logout. */ this.unauthorizedHandled = false;
+        this.environmentId = environmentId;
+        this.authToken = authToken;
+        this.authMode = authMode;
+        this.baseApiUrl = baseApiUrl;
+        this.baseMPCRelayApiUrl = baseMPCRelayApiUrl;
+        this.chainName = chainName;
+        this.sdkVersion = sdkVersion;
+        this.baseClientKeysharesRelayApiUrl = baseClientKeysharesRelayApiUrl;
+        this.additionalTrustedOrigins = additionalTrustedOrigins ? [
+            ...additionalTrustedOrigins
+        ] : [];
+        // Set secure storage adapter if provided (internal use only)
+        if (internalOptions == null ? void 0 : internalOptions.secureStorage) {
+            this.secureStorage = internalOptions.secureStorage;
+        }
+        // Set signed session ID callback if provided (internal use only)
+        if (internalOptions == null ? void 0 : internalOptions.getSignedSessionId) {
+            this.getSignedSessionIdCallback = internalOptions.getSignedSessionId;
+        }
+        var _internalOptions_createWaasSDKContainer;
+        this.createWaasSDKContainer = (_internalOptions_createWaasSDKContainer = internalOptions == null ? void 0 : internalOptions.createWaasSDKContainer) != null ? _internalOptions_createWaasSDKContainer : createIframeWaasSDKContainer;
+        this.onUnauthorized = internalOptions == null ? void 0 : internalOptions.onUnauthorized;
+        const environment = getEnvironmentFromUrl(baseApiUrl);
+        this.iframeDomain = IFRAME_DOMAIN_MAP[environment];
+        if (this.authMode === AuthMode.COOKIE) {
+            this.iframeDomain = this.baseApiUrl;
+        }
+        // Generate unique instanceId when client is created
+        this.instanceId = crypto.randomUUID();
+        this.debug = Boolean(debug);
+        this.logger.setLogLevel(this.debug ? 'DEBUG' : 'INFO');
+        IframeManager.applyLoadTuning({
+            iframeLoadTimeout,
+            maxRetryAttempts
+        });
+    }
+}
+IframeManager.iframeLoadPromise = null;
+/**
+   * Initial timeout (ms) for the iframe to complete its boot handshake.
+   * On each failed attempt the active timeout doubles (capped at 60_000ms — see
+   * {@link resetSharedWaasSDKContainer}) before the next retry.
+   *
+   * Default chosen to comfortably cover the iframe's P95 cold-start at the
+   * time of writing (~13s for global traffic on a 3 MB MPC WASM payload).
+   * Override via the `iframeLoadTimeout` constructor option when the host
+   * environment needs a different budget (e.g. constrained mobile webviews).
+   *
+   * Held as a static (not instance) field because the shared
+   * `iframeLoadPromise` is itself static — all instances in a page must
+   * agree on the active timeout for the retry doubling logic to remain
+   * coherent.
+   */ IframeManager.iframeLoadTimeout = 20000;
+IframeManager.iframeLoadAttempts = 0;
+/**
+   * Number of retry attempts beyond the initial load attempt. The total
+   * number of attempts is `maxRetryAttempts + 1`. Override via the
+   * `maxRetryAttempts` constructor option.
+   */ IframeManager.maxRetryAttempts = 1;
+IframeManager.minIframeLoadTimeout = 1000;
+IframeManager.maxIframeLoadTimeout = 60000;
+IframeManager.maxAllowedRetryAttempts = 10;
+IframeManager.sharedWaasSDKContainer = null;
+IframeManager.iframeInstanceCount = 0;
+IframeManager.maxAdditionalTrustedOrigins = 32;
+IframeManager.maxTrustedOriginStringLength = 200;
+
+class DynamicWalletClient extends IframeManager {
+    async withHandler(operation) {
+        await this.initializeMessageTransport();
+        if (!this.iframeMessageHandler) {
+            throw new Error('Iframe message handler not initialized');
+        }
+        return operation(this.iframeMessageHandler);
+    }
+    async getWallets() {
+        return this.withHandler((handler)=>handler.getWallets({
+                chainName: this.chainName
+            }));
+    }
+    async getAllWallets() {
+        return this.withHandler((handler)=>handler.getAllWallets({
+                chainName: this.chainName
+            }));
+    }
+    async getWallet({ accountAddress, walletOperation = WalletOperation.NO_OPERATION, signedSessionId, authToken }) {
+        return this.withHandler((handler)=>handler.getWallet({
+                chainName: this.chainName,
+                accountAddress,
+                walletOperation,
+                signedSessionId,
+                authToken
+            }));
+    }
+    async getWalletRecoveryState({ accountAddress, authToken, signedSessionId, password, traceContext }) {
+        return this.withHandler((handler)=>handler.getWalletRecoveryState({
+                chainName: this.chainName,
+                accountAddress,
+                authToken,
+                signedSessionId,
+                password,
+                traceContext
+            }));
+    }
+    async unlockWallet({ accountAddress, password, signedSessionId, authToken, traceContext }) {
+        return this.withHandler((handler)=>handler.unlockWallet({
+                chainName: this.chainName,
+                accountAddress,
+                password,
+                signedSessionId,
+                authToken,
+                traceContext
+            }));
+    }
+    async createWalletAccount({ thresholdSignatureScheme, password = undefined, signedSessionId, authToken, traceContext, bitcoinConfig }) {
+        return this.withHandler((handler)=>handler.createWalletAccount({
+                chainName: this.chainName,
+                thresholdSignatureScheme,
+                password,
+                signedSessionId,
+                authToken,
+                traceContext,
+                bitcoinConfig
+            }));
+    }
+    async requiresPasswordForOperation({ accountAddress, walletOperation = WalletOperation.REACH_THRESHOLD, authToken }) {
+        return this.withHandler((handler)=>handler.requiresPasswordForOperation({
+                chainName: this.chainName,
+                accountAddress,
+                walletOperation,
+                authToken
+            }));
+    }
+    async isPasswordEncrypted({ accountAddress, authToken }) {
+        return this.withHandler((handler)=>handler.isPasswordEncrypted({
+                chainName: this.chainName,
+                accountAddress,
+                authToken
+            }));
+    }
+    async signMessage({ message, accountAddress, password = undefined, signedSessionId, authToken, mfaToken, elevatedAccessToken, context, traceContext, bitcoinConfig }) {
+        const contextString = JSON.stringify(context, (_key, value)=>typeof value === 'bigint' ? value.toString() : value);
+        return this.withHandler((handler)=>handler.signMessage({
+                chainName: this.chainName,
+                message,
+                accountAddress,
+                password,
+                signedSessionId,
+                authToken,
+                mfaToken,
+                elevatedAccessToken,
+                context: contextString,
+                traceContext,
+                bitcoinConfig
+            }));
+    }
+    async signRawMessage({ message, accountAddress, password = undefined, signedSessionId, authToken, mfaToken, elevatedAccessToken, context, traceContext, bitcoinConfig }) {
+        return this.withHandler((handler)=>handler.signRawMessage({
+                chainName: this.chainName,
+                message,
+                accountAddress,
+                password,
+                signedSessionId,
+                authToken,
+                mfaToken,
+                elevatedAccessToken,
+                context,
+                traceContext,
+                bitcoinConfig
+            }));
+    }
+    /**
+   * Signs a transaction and returns the signature, @transaction is a string of the serialized transaction
+   * EVM:
+   *   transaction = serializeTransaction()
+   * SOL:
+   *   const messageBytes = transaction.serializeMessage();
+   *   const messageToSign = Buffer.from(messageBytes).toString("hex");
+   * SUI:
+   *  const txBytes = await txb.build({ client });
+   *  const txString = Buffer.from(txBytes).toString("hex");
+   */ async signTransaction({ senderAddress, transaction, password = undefined, signedSessionId, authToken, mfaToken, elevatedAccessToken, chainId, traceContext, bitcoinConfig }) {
+        return this.withHandler((handler)=>handler.signTransaction({
+                chainName: this.chainName,
+                senderAddress,
+                transaction,
+                password,
+                signedSessionId,
+                authToken,
+                mfaToken,
+                elevatedAccessToken,
+                chainId,
+                traceContext,
+                bitcoinConfig
+            }));
+    }
+    async signTypedData({ accountAddress, typedData, password = undefined, signedSessionId, authToken, mfaToken, elevatedAccessToken, traceContext }) {
+        return this.withHandler((handler)=>handler.signTypedData({
+                chainName: this.chainName,
+                accountAddress,
+                typedData: JSON.stringify(typedData),
+                password,
+                signedSessionId,
+                authToken,
+                mfaToken,
+                elevatedAccessToken,
+                traceContext
+            }));
+    }
+    async backupKeySharesToGoogleDrive({ accountAddress, password = undefined, signedSessionId, authToken, googleDriveAccessToken, traceContext }) {
+        return this.withHandler((handler)=>handler.backupKeySharesToGoogleDrive({
+                chainName: this.chainName,
+                accountAddress,
+                password,
+                signedSessionId,
+                authToken,
+                googleDriveAccessToken,
+                traceContext
+            }));
+    }
+    async backupKeySharesToICloud({ accountAddress, password = undefined, signedSessionId, authToken, traceContext }) {
+        return this.withHandler((handler)=>handler.backupKeySharesToICloud({
+                chainName: this.chainName,
+                accountAddress,
+                password,
+                signedSessionId,
+                authToken,
+                traceContext
+            }));
+    }
+    async displayICloudSignIn({ displayContainer }) {
+        const { iframeDisplay } = await this.initializeIframeDisplayForContainer({
+            container: displayContainer
+        });
+        if (!iframeDisplay) {
+            throw new Error('Failed to initialize iframe handler with display functionality');
+        }
+        return iframeDisplay.displayICloudSignIn(this.chainName);
+    }
+    async hideICloudSignIn() {
+        return this.withHandler((handler)=>handler.hideICloudSignIn());
+    }
+    async isICloudAuthenticated() {
+        return this.withHandler((handler)=>handler.isICloudAuthenticated(this.chainName));
+    }
+    async delegateKeyShares({ accountAddress, password, signedSessionId, authToken, mfaToken, traceContext }) {
+        return this.withHandler((handler)=>handler.delegateKeyShares({
+                chainName: this.chainName,
+                accountAddress,
+                password,
+                signedSessionId,
+                authToken,
+                mfaToken,
+                traceContext
+            }));
+    }
+    async revokeDelegation({ accountAddress, password, signedSessionId, authToken, mfaToken, traceContext }) {
+        return this.withHandler((handler)=>handler.revokeDelegation({
+                chainName: this.chainName,
+                accountAddress,
+                password,
+                signedSessionId,
+                authToken,
+                mfaToken,
+                traceContext
+            }));
+    }
+    async exportClientKeysharesFromGoogleDrive({ accountAddress, password, signedSessionId, authToken, googleDriveAccessToken, traceContext }) {
+        return this.withHandler((handler)=>handler.exportClientKeysharesFromGoogleDrive({
+                chainName: this.chainName,
+                accountAddress,
+                password,
+                signedSessionId,
+                authToken,
+                googleDriveAccessToken,
+                traceContext
+            }));
+    }
+    async refreshWalletAccountShares({ accountAddress, password, signedSessionId, authToken, mfaToken, elevatedAccessToken, traceContext }) {
+        return this.withHandler((handler)=>handler.refreshWalletAccountShares({
+                chainName: this.chainName,
+                accountAddress,
+                password,
+                signedSessionId,
+                authToken,
+                mfaToken,
+                elevatedAccessToken,
+                traceContext
+            }));
+    }
+    async reshare({ accountAddress, oldThresholdSignatureScheme, newThresholdSignatureScheme, password, signedSessionId, authToken, mfaToken, elevatedAccessToken, traceContext }) {
+        return this.withHandler((handler)=>handler.reshare({
+                chainName: this.chainName,
+                accountAddress,
+                oldThresholdSignatureScheme,
+                newThresholdSignatureScheme,
+                password,
+                signedSessionId,
+                authToken,
+                mfaToken,
+                elevatedAccessToken,
+                traceContext
+            }));
+    }
+    async exportPrivateKey({ accountAddress, elevatedAccessToken, displayContainer, password, signedSessionId, authToken, mfaToken, traceContext, bitcoinConfig }) {
+        const { iframeDisplay } = await this.initializeIframeDisplayForContainer({
+            container: displayContainer
+        });
+        if (!iframeDisplay) {
+            throw new Error('Failed to initialize iframe handler with display functionality');
+        }
+        return iframeDisplay.exportPrivateKey({
+            chainName: this.chainName,
+            accountAddress,
+            password,
+            signedSessionId,
+            authToken,
+            mfaToken,
+            elevatedAccessToken,
+            traceContext,
+            bitcoinConfig
+        });
+    }
+    /**
+   * Aleo full transaction: view key → MPC sign → prove + broadcast via DPS.
+   * Forwards to the iframe's DynamicAleoWalletClient.proveTransaction. View
+   * key stays in the iframe throughout.
+   */ async proveTransaction({ accountAddress, programId, functionName, inputs, inputTypes, broadcast, password, signedSessionId, authToken, mfaToken, elevatedAccessToken, chainId, traceContext }) {
+        return this.withHandler((handler)=>handler.proveAleoTransaction({
+                chainName: 'ALEO',
+                accountAddress,
+                programId,
+                functionName,
+                inputs,
+                inputTypes,
+                broadcast,
+                password,
+                signedSessionId,
+                authToken,
+                mfaToken,
+                elevatedAccessToken,
+                chainId,
+                traceContext
+            }));
+    }
+    /**
+   * List all Aleo records owned by the wallet via Provable's RecordScanner —
+   * across every Aleo program (credits.aleo, custom tokens, etc.). Each record
+   * carries `program_name` + `record_name` so callers can classify by token.
+   * View key stays in the iframe — the scanner runs inside the iframe's
+   * DynamicAleoWalletClient.
+   */ async findOwnedRecords({ accountAddress, password, signedSessionId, authToken, mfaToken, elevatedAccessToken, chainId, traceContext }) {
+        return this.withHandler((handler)=>handler.findAleoOwnedRecords({
+                chainName: 'ALEO',
+                accountAddress,
+                password,
+                signedSessionId,
+                authToken,
+                mfaToken,
+                elevatedAccessToken,
+                chainId,
+                traceContext
+            }));
+    }
+    /**
+   * Coverage check against ANF's Feemaster policy for any Aleo
+   * (programId, functionName) pair on the given network. Used by the widget
+   * to decide whether a user-paid confirmation modal is needed before a
+   * shield/send/join. Goes through the iframe so the same `apiClient` /
+   * baseApiUrl / auth pipeline as every other call applies. Never throws —
+   * returns `false` on any policy fetch failure.
+   */ async isAleoFeemasterCovered({ programId, functionName, chainId, traceContext }) {
+        return this.withHandler((handler)=>handler.isAleoFeemasterCovered({
+                chainName: 'ALEO',
+                programId,
+                functionName,
+                chainId,
+                traceContext
+            }));
+    }
+    async verifyPassword({ accountAddress, password, walletOperation = WalletOperation.NO_OPERATION, signedSessionId, authToken, traceContext }) {
+        return this.withHandler((handler)=>handler.verifyPassword({
+                chainName: this.chainName,
+                accountAddress,
+                password,
+                walletOperation,
+                signedSessionId,
+                authToken,
+                traceContext
+            }));
+    }
+    async updatePassword({ accountAddress, existingPassword, newPassword, signedSessionId, authToken, passwordUpdateBatchId, traceContext }) {
+        return this.withHandler((handler)=>handler.updatePassword({
+                chainName: this.chainName,
+                accountAddress,
+                existingPassword,
+                newPassword,
+                signedSessionId,
+                authToken,
+                passwordUpdateBatchId,
+                traceContext
+            }));
+    }
+    async setPassword({ accountAddress, newPassword, signedSessionId, authToken, passwordUpdateBatchId, traceContext }) {
+        return this.withHandler((handler)=>handler.setPassword({
+                chainName: this.chainName,
+                accountAddress,
+                newPassword,
+                signedSessionId,
+                authToken,
+                passwordUpdateBatchId,
+                traceContext
+            }));
+    }
+    async importPrivateKey({ privateKey, thresholdSignatureScheme, password, signedSessionId, authToken, publicAddressCheck, addressType, traceContext, legacyWalletId }) {
+        return this.withHandler((handler)=>handler.importPrivateKey({
+                chainName: this.chainName,
+                privateKey,
+                thresholdSignatureScheme,
+                password,
+                signedSessionId,
+                authToken,
+                publicAddressCheck,
+                addressType,
+                traceContext,
+                legacyWalletId
+            }));
+    }
+    async exportClientKeyshares({ accountAddress, password, signedSessionId, authToken, traceContext }) {
+        return this.withHandler((handler)=>handler.exportClientKeyshares({
+                chainName: this.chainName,
+                accountAddress,
+                password,
+                signedSessionId,
+                authToken,
+                traceContext
+            }));
+    }
+    /**
+   * keyShares is stringified list of EcdsaKeygenResult[] and Ed25519KeygenResult[]
+   */ async offlineExportPrivateKey({ keyShares, derivationPath, traceContext }) {
+        const args = {
+            chainName: this.chainName,
+            keyShares,
+            derivationPath
+        };
+        const serializedArgs = JSON.stringify(args);
+        const argsBuffer = new TextEncoder().encode(serializedArgs);
+        const base64Args = Buffer.from(argsBuffer).toString('base64');
+        return this.withHandler((handler)=>handler.offlineExportPrivateKey({
+                chainName: this.chainName,
+                base64Args,
+                traceContext
+            }));
+    }
+    constructor({ environmentId, authToken, baseApiUrl, baseMPCRelayApiUrl, baseClientKeysharesRelayApiUrl, chainName, sdkVersion, debug, authMode = AuthMode.HEADER, additionalTrustedOrigins, iframeLoadTimeout, maxRetryAttempts }, internalOptions){
+        super({
+            environmentId,
+            authToken,
+            baseApiUrl,
+            baseMPCRelayApiUrl,
+            baseClientKeysharesRelayApiUrl,
+            chainName,
+            sdkVersion,
+            debug,
+            authMode,
+            additionalTrustedOrigins,
+            iframeLoadTimeout,
+            maxRetryAttempts
+        }, internalOptions);
+    // Note: secureStorage and getSignedSessionId are already set by IframeManager constructor
+    }
+}
+
+export { DynamicWalletClient, createIframeWaasSDKContainer };

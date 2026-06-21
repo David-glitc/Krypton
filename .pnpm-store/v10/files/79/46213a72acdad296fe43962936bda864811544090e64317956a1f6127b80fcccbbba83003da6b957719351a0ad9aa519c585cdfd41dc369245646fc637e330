@@ -1,0 +1,4 @@
+import type { DynamicClient } from '../../../client/types';
+/** @not-instrumented */
+export declare const raiseStateEvents: (client: DynamicClient) => void;
+//# sourceMappingURL=raiseStateEvents.d.ts.map

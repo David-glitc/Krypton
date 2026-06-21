@@ -1,0 +1,5 @@
+import type { Middleware } from '@dynamic-labs/sdk-api-core';
+import type { DynamicClient } from '../../../../client/types';
+/** @not-instrumented */
+export declare const createDeviceSignatureHeadersMiddleware: (client: DynamicClient) => Middleware;
+//# sourceMappingURL=createDeviceSignatureHeadersMiddleware.d.ts.map

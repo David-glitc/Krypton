@@ -1,0 +1,12 @@
+export type SetLongTimeoutOptions = {
+    /** The function to invoke after the delay elapses. */
+    callback: () => void;
+    /** The delay in milliseconds before invoking the callback. */
+    delay: number;
+};
+/**
+ * A replacement for setTimeout that supports delays longer than 2147483647ms (~24.8 days).
+ * @not-instrumented
+ */
+export declare const setLongTimeout: ({ callback, delay, }: SetLongTimeoutOptions) => VoidFunction;
+//# sourceMappingURL=setLongTimeout.d.ts.map

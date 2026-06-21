@@ -1,0 +1,6 @@
+/**
+ * Check if the given value is an Error object
+  * @not-instrumented
+ */
+export declare const isError: (error: unknown) => error is Error;
+//# sourceMappingURL=isError.d.ts.map

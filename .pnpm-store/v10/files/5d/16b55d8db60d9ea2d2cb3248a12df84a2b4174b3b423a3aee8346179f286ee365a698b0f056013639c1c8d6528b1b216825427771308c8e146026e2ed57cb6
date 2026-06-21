@@ -1,0 +1,7 @@
+/**
+ * Filter duplicates from an array by equality.
+ * Uses a Set internally.
+  * @not-instrumented
+ */
+export declare const filterDuplicates: <T>(array: T[]) => T[];
+//# sourceMappingURL=filterDuplicates.d.ts.map

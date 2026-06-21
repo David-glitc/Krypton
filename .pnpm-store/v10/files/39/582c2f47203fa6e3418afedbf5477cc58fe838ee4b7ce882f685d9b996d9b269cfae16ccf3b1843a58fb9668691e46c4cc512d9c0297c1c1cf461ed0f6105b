@@ -1,0 +1,18 @@
+import type { WalletOption } from '../walletOptionsCatalogue.types';
+type HasInstalledProviderParams = {
+    walletOption: WalletOption;
+};
+/**
+ * True when the wallet option has a `withWalletProvider` connection — i.e.
+ * the user already has the wallet available in the page (browser extension,
+ * Wallet Standard announcement, window injection, or an SDK-backed provider
+ * one of our chain extensions registered). `connectionOptions` is
+ * pre-sorted, so a registered provider always sits at index 0 when present.
+ *
+ * @param params.walletOption - The wallet option to inspect.
+ * @returns True when an installed provider is available.
+ * @not-instrumented
+ */
+export declare const hasInstalledProvider: ({ walletOption, }: HasInstalledProviderParams) => boolean;
+export {};
+//# sourceMappingURL=hasInstalledProvider.d.ts.map

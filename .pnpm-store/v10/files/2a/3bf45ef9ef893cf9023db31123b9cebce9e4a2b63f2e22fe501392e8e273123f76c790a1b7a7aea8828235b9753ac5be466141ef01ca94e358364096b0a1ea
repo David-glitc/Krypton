@@ -1,0 +1,61 @@
+import { exists } from '../runtime.js';
+import { ChainEnumFromJSON, ChainEnumToJSON } from './ChainEnum.js';
+import { WalletTransactionAssetTransferFromJSON, WalletTransactionAssetTransferToJSON } from './WalletTransactionAssetTransfer.js';
+import { WalletTransactionFeeFromJSON, WalletTransactionFeeToJSON } from './WalletTransactionFee.js';
+import { WalletTransactionTypeFromJSON, WalletTransactionTypeToJSON } from './WalletTransactionType.js';
+
+/* tslint:disable */
+function WalletTransactionFromJSON(json) {
+    return WalletTransactionFromJSONTyped(json);
+}
+function WalletTransactionFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'transactionHash': json['transactionHash'],
+        'blockNumber': json['blockNumber'],
+        'transactionTimestamp': (new Date(json['transactionTimestamp'])),
+        'blockHash': !exists(json, 'blockHash') ? undefined : json['blockHash'],
+        'blockExplorerUrls': json['blockExplorerUrls'],
+        'fromAddress': json['fromAddress'],
+        'toAddress': json['toAddress'],
+        'labels': (json['labels'].map(WalletTransactionTypeFromJSON)),
+        'assetTransfers': (json['assetTransfers'].map(WalletTransactionAssetTransferFromJSON)),
+        'chainName': ChainEnumFromJSON(json['chainName']),
+        'networkId': json['networkId'],
+        'description': !exists(json, 'description') ? undefined : json['description'],
+        'source': !exists(json, 'source') ? undefined : json['source'],
+        'spam': !exists(json, 'spam') ? undefined : json['spam'],
+        'transactionType': !exists(json, 'transactionType') ? undefined : json['transactionType'],
+        'fee': !exists(json, 'fee') ? undefined : WalletTransactionFeeFromJSON(json['fee']),
+    };
+}
+function WalletTransactionToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'transactionHash': value.transactionHash,
+        'blockNumber': value.blockNumber,
+        'transactionTimestamp': (value.transactionTimestamp.toISOString()),
+        'blockHash': value.blockHash,
+        'blockExplorerUrls': value.blockExplorerUrls,
+        'fromAddress': value.fromAddress,
+        'toAddress': value.toAddress,
+        'labels': (value.labels.map(WalletTransactionTypeToJSON)),
+        'assetTransfers': (value.assetTransfers.map(WalletTransactionAssetTransferToJSON)),
+        'chainName': ChainEnumToJSON(value.chainName),
+        'networkId': value.networkId,
+        'description': value.description,
+        'source': value.source,
+        'spam': value.spam,
+        'transactionType': value.transactionType,
+        'fee': WalletTransactionFeeToJSON(value.fee),
+    };
+}
+
+export { WalletTransactionFromJSON, WalletTransactionFromJSONTyped, WalletTransactionToJSON };

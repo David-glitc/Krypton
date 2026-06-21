@@ -1,0 +1,10 @@
+import { BaseError } from './base';
+type InvalidSocialCallbackOriginErrorParams = {
+    actualOrigin: string;
+    expectedOrigin: string;
+};
+export declare class InvalidSocialCallbackOriginError extends BaseError {
+    constructor({ actualOrigin, expectedOrigin, }: InvalidSocialCallbackOriginErrorParams);
+}
+export {};
+//# sourceMappingURL=InvalidSocialCallbackOriginError.d.ts.map

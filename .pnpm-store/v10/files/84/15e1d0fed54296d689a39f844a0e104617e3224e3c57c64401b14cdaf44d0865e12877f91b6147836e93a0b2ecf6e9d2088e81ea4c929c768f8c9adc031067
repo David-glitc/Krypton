@@ -1,0 +1,33 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var SdkEnvironmentIdWaasWalletIdAdditionalAddressesAdditionalAddresses = require('./SdkEnvironmentIdWaasWalletIdAdditionalAddressesAdditionalAddresses.cjs');
+
+/* tslint:disable */
+function InlineObjectFromJSON(json) {
+    return InlineObjectFromJSONTyped(json);
+}
+function InlineObjectFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'additionalAddresses': (json['additionalAddresses'].map(SdkEnvironmentIdWaasWalletIdAdditionalAddressesAdditionalAddresses.SdkEnvironmentIdWaasWalletIdAdditionalAddressesAdditionalAddressesFromJSON)),
+    };
+}
+function InlineObjectToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'additionalAddresses': (value.additionalAddresses.map(SdkEnvironmentIdWaasWalletIdAdditionalAddressesAdditionalAddresses.SdkEnvironmentIdWaasWalletIdAdditionalAddressesAdditionalAddressesToJSON)),
+    };
+}
+
+exports.InlineObjectFromJSON = InlineObjectFromJSON;
+exports.InlineObjectFromJSONTyped = InlineObjectFromJSONTyped;
+exports.InlineObjectToJSON = InlineObjectToJSON;

@@ -1,0 +1,10 @@
+import { TransactionConfirmationTimeoutError } from '@dynamic-labs/utils';
+import { TransactionError } from '../TransactionConfirmationView.types';
+export declare const isConfirmationTimeoutError: (error: TransactionError) => error is TransactionConfirmationTimeoutError;
+export declare const getTransactionSignatureFromError: (error: TransactionError) => string | undefined;
+export declare const isTransactionExecutionError: <T>(error: unknown) => error is {
+    walk: () => T;
+};
+export declare const getPolicyViolationErrorMsg: (error: TransactionError) => string;
+export declare const isPolicyViolationError: (error: TransactionError) => boolean | undefined;
+export declare const transactionErrorMessage: (err: TransactionError) => string | undefined;

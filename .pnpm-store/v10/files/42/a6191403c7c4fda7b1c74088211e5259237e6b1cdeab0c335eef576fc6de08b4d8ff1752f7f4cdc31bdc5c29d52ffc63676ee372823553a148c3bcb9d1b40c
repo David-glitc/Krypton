@@ -1,0 +1,18 @@
+import type { WalletSchema } from '../legacyWalletBook.types';
+type HasUsableDeeplinkParams = {
+    wallet: WalletSchema;
+};
+/**
+ * Whether a wallet book entry exposes at least one mobile deeplink the
+ * catalogue can drive — either a native scheme (`metamask://`) or a
+ * universal link (`https://metamask.app.link`). Used by the URI-deeplink
+ * builders (`buildWalletConnectOptions`, `buildMetaMaskSdkUriOptions`)
+ * to skip wallets that have no app to launch.
+ *
+ * @param params.wallet - The wallet schema from the wallet book.
+ * @returns True when the wallet has a native or universal mobile link.
+ * @not-instrumented
+ */
+export declare const hasUsableDeeplink: ({ wallet, }: HasUsableDeeplinkParams) => boolean;
+export {};
+//# sourceMappingURL=hasUsableDeeplink.d.ts.map

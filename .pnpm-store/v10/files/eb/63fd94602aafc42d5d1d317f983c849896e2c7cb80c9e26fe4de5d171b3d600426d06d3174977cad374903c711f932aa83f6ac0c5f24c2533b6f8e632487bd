@@ -1,0 +1,41 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+
+/* tslint:disable */
+function RefreshKeySharesResponseFromJSON(json) {
+    return RefreshKeySharesResponseFromJSONTyped(json);
+}
+function RefreshKeySharesResponseFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'roomId': json['roomId'],
+        'serverKeygenIds': json['serverKeygenIds'],
+        'newServerKeygenIds': !runtime.exists(json, 'newServerKeygenIds') ? undefined : json['newServerKeygenIds'],
+        'walletId': !runtime.exists(json, 'walletId') ? undefined : json['walletId'],
+        'shareSetId': !runtime.exists(json, 'shareSetId') ? undefined : json['shareSetId'],
+    };
+}
+function RefreshKeySharesResponseToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'roomId': value.roomId,
+        'serverKeygenIds': value.serverKeygenIds,
+        'newServerKeygenIds': value.newServerKeygenIds,
+        'walletId': value.walletId,
+        'shareSetId': value.shareSetId,
+    };
+}
+
+exports.RefreshKeySharesResponseFromJSON = RefreshKeySharesResponseFromJSON;
+exports.RefreshKeySharesResponseFromJSONTyped = RefreshKeySharesResponseFromJSONTyped;
+exports.RefreshKeySharesResponseToJSON = RefreshKeySharesResponseToJSON;

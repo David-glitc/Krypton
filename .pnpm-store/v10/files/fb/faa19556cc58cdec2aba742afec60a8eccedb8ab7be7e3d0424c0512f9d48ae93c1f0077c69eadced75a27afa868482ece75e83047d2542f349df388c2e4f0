@@ -1,0 +1,61 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var UserWalletsContext = require('../../../context/UserWalletsContext/UserWalletsContext.cjs');
+var useConnectAndSign = require('../authenticationHooks/useConnectAndSign/useConnectAndSign.cjs');
+
+const useStepUpWallet = ({ credentialId, stateActions, }) => {
+    const { setSelectedWalletConnectorKey } = useInternalDynamicContext.useInternalDynamicContext();
+    const connectAndSign = useConnectAndSign.useConnectAndSign();
+    const { userWallets } = UserWalletsContext.useInternalUserWallets();
+    const { setError, setLoading, setSuccess } = stateActions;
+    const verifyWallet = React.useCallback((_a) => _tslib.__awaiter(void 0, [_a], void 0, function* ({ requestedScopes, walletId, }) {
+        setLoading();
+        const effectiveId = walletId !== null && walletId !== void 0 ? walletId : credentialId;
+        const wallet = effectiveId
+            ? userWallets.find((w) => w.id === effectiveId)
+            : userWallets[0];
+        if (!wallet) {
+            const message = effectiveId
+                ? `Wallet with id "${effectiveId}" not found`
+                : 'No connected wallets found for step-up authentication';
+            setError(message);
+            return;
+        }
+        const connector = wallet.connector;
+        setSelectedWalletConnectorKey({
+            chain: connector.connectedChain,
+            key: connector.key,
+        });
+        try {
+            yield connectAndSign({
+                requestedScopes,
+                walletConnector: connector,
+            });
+            setSuccess();
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error
+                ? error.message
+                : 'Failed to verify wallet for step-up authentication';
+            setError(errorMessage);
+        }
+    }), [
+        connectAndSign,
+        credentialId,
+        setError,
+        setLoading,
+        setSelectedWalletConnectorKey,
+        setSuccess,
+        userWallets,
+    ]);
+    return { verifyWallet };
+};
+
+exports.useStepUpWallet = useStepUpWallet;

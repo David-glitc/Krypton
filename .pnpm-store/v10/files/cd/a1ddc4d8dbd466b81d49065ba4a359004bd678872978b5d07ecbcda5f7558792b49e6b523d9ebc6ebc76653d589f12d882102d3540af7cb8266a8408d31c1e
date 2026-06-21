@@ -1,0 +1,36 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var ChainSettlementConfig = require('./ChainSettlementConfig.cjs');
+var SettlementStrategyEnum = require('./SettlementStrategyEnum.cjs');
+
+/* tslint:disable */
+function SettlementConfigInputFromJSON(json) {
+    return SettlementConfigInputFromJSONTyped(json);
+}
+function SettlementConfigInputFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'strategy': SettlementStrategyEnum.SettlementStrategyEnumFromJSON(json['strategy']),
+        'settlements': (json['settlements'].map(ChainSettlementConfig.ChainSettlementConfigFromJSON)),
+    };
+}
+function SettlementConfigInputToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'strategy': SettlementStrategyEnum.SettlementStrategyEnumToJSON(value.strategy),
+        'settlements': (value.settlements.map(ChainSettlementConfig.ChainSettlementConfigToJSON)),
+    };
+}
+
+exports.SettlementConfigInputFromJSON = SettlementConfigInputFromJSON;
+exports.SettlementConfigInputFromJSONTyped = SettlementConfigInputFromJSONTyped;
+exports.SettlementConfigInputToJSON = SettlementConfigInputToJSON;

@@ -1,0 +1,43 @@
+{
+  "name": "@dynamic-labs-wallet/core",
+  "version": "1.0.16",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "@dynamic-labs/sdk-api-core": "^0.0.984",
+    "@dynamic-labs-wallet/primitives": "1.0.16",
+    "axios": "1.16.0",
+    "uuid": "11.1.0"
+  },
+  "peerDependencies": {
+    "@dynamic-labs-wallet/forward-mpc-client": "0.10.1"
+  },
+  "files": [
+    "*",
+    "node_modules/**/*"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "nx": {
+    "sourceRoot": "packages/core/src",
+    "projectType": "library",
+    "name": "core",
+    "targets": {
+      "build": {}
+    }
+  },
+  "main": "./index.cjs",
+  "module": "./index.esm.js",
+  "types": "./index.esm.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./index.esm.d.ts",
+      "import": "./index.esm.js",
+      "require": "./index.cjs",
+      "default": "./index.esm.js"
+    }
+  },
+  "devDependencies": {}
+}

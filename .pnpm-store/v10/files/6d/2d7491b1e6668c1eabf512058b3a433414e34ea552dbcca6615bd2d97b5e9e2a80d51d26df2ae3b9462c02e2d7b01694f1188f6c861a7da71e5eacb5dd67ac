@@ -1,0 +1,6 @@
+/**
+ * This hook detects when device registration is required and either:
+ * 1. Completes registration automatically if the URL contains a device token (redirect from email)
+ * 2. Shows the device registration modal if no token is present
+ */
+export declare const useSyncDeviceRegistrationFlow: () => void;

@@ -1,0 +1,51 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+var CheckoutModeEnum = require('./CheckoutModeEnum.cjs');
+var DepositAmountsConfigInput = require('./DepositAmountsConfigInput.cjs');
+var DestinationConfigInput = require('./DestinationConfigInput.cjs');
+var SettlementConfigInput = require('./SettlementConfigInput.cjs');
+
+/* tslint:disable */
+function CheckoutFromJSON(json) {
+    return CheckoutFromJSONTyped(json);
+}
+function CheckoutFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'id': json['id'],
+        'mode': CheckoutModeEnum.CheckoutModeEnumFromJSON(json['mode']),
+        'settlementConfig': SettlementConfigInput.SettlementConfigInputFromJSON(json['settlementConfig']),
+        'destinationConfig': !runtime.exists(json, 'destinationConfig') ? undefined : DestinationConfigInput.DestinationConfigInputFromJSON(json['destinationConfig']),
+        'depositConfig': !runtime.exists(json, 'depositConfig') ? undefined : DepositAmountsConfigInput.DepositAmountsConfigInputFromJSON(json['depositConfig']),
+        'enableOrchestration': json['enableOrchestration'],
+        'createdAt': (new Date(json['createdAt'])),
+        'updatedAt': (new Date(json['updatedAt'])),
+    };
+}
+function CheckoutToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'id': value.id,
+        'mode': CheckoutModeEnum.CheckoutModeEnumToJSON(value.mode),
+        'settlementConfig': SettlementConfigInput.SettlementConfigInputToJSON(value.settlementConfig),
+        'destinationConfig': DestinationConfigInput.DestinationConfigInputToJSON(value.destinationConfig),
+        'depositConfig': DepositAmountsConfigInput.DepositAmountsConfigInputToJSON(value.depositConfig),
+        'enableOrchestration': value.enableOrchestration,
+        'createdAt': (value.createdAt.toISOString()),
+        'updatedAt': (value.updatedAt.toISOString()),
+    };
+}
+
+exports.CheckoutFromJSON = CheckoutFromJSON;
+exports.CheckoutFromJSONTyped = CheckoutFromJSONTyped;
+exports.CheckoutToJSON = CheckoutToJSON;

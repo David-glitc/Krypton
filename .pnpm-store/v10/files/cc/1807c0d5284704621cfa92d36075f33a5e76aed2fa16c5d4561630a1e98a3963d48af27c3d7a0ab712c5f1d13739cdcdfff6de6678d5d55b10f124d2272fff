@@ -1,0 +1,19 @@
+// This file is a TurboModule spec consumed by React Native codegen.
+// The `interface`, `default export`, and `react-native` import are hard
+// requirements of the codegen parser and intentionally deviate from the
+// project's conventions. Codegen discovers specs by the `Native*` filename
+// prefix, so this file cannot be renamed to `.native.ts`.
+
+import { type TurboModule, TurboModuleRegistry } from 'react-native';
+
+export interface Spec extends TurboModule {
+  deleteKey(key: string): Promise<void>;
+  generateKeyPair(key: string): Promise<{ publicKey: string }>;
+  getPublicKey(key: string): Promise<{ publicKey: string } | null>;
+  hasKey(key: string): Promise<boolean>;
+  isAvailable(): Promise<boolean>;
+  sign(key: string, payload: string): Promise<{ signature: string }>;
+}
+
+// eslint-disable-next-line import/no-default-export
+export default TurboModuleRegistry.getEnforcing<Spec>('DynamicClientKeychain');

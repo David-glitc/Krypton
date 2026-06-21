@@ -1,0 +1,16 @@
+import { MutableRefObject } from 'react';
+import { PhoneData } from '@dynamic-labs/types';
+import { useEmbeddedWalletSessionKeys } from '../../../../utils/hooks';
+import { ProviderVerificationHandler } from '../../types';
+type UseRestoreOtpVerificationStateParams = {
+    embeddedWalletSessionKeys: ReturnType<typeof useEmbeddedWalletSessionKeys>;
+    environmentId: string;
+    handlerRef: MutableRefObject<ProviderVerificationHandler<string | PhoneData> | null>;
+};
+/**
+ * Restores a persisted OTP verification handler from localStorage on mount.
+ * This handles the case where the webview was killed by Android on low-memory
+ * devices and needs to resume an in-progress OTP flow.
+ */
+export declare const useRestoreOtpVerificationState: ({ embeddedWalletSessionKeys, environmentId, handlerRef, }: UseRestoreOtpVerificationStateParams) => void;
+export {};

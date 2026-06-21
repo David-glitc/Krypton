@@ -1,0 +1,24 @@
+import type { Logger } from '../../logger/logger.types';
+import type { ObservableState } from '../../../utils/observable/observable.types';
+import type { Instrumentation } from '../instrumentation.types';
+type ConnectLoggerToInstrumentationParams = {
+    environmentId: string;
+    extensions: Set<string>;
+    instrumentation: Instrumentation;
+    logger: Logger;
+    sdkSessionId: string;
+    sdkVersion: string;
+    state: ObservableState<DynamicCoreState>;
+};
+/**
+ * Subscribes to the logger's 'log' event and forwards every entry to the
+ * instrumentation service as an InstrumentationEvent.
+ *
+ * Bridges the logger and instrumentation subsystems without coupling them
+ * at construction time — either can exist without the other.
+ * Only error-level log entries are forwarded.
+  * @not-instrumented
+ */
+export declare const connectLoggerToInstrumentation: ({ environmentId, extensions, instrumentation, logger, sdkSessionId, sdkVersion, state, }: ConnectLoggerToInstrumentationParams) => void;
+export {};
+//# sourceMappingURL=connectLoggerToInstrumentation.d.ts.map

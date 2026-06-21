@@ -1,0 +1,1 @@
+{"version":3,"file":"InvalidSocialCallbackOriginError.d.ts","sourceRoot":"","sources":["../../src/errors/InvalidSocialCallbackOriginError.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,SAAS,EAAE,MAAM,QAAQ,CAAC;AAEnC,KAAK,sCAAsC,GAAG;IAC5C,YAAY,EAAE,MAAM,CAAC;IACrB,cAAc,EAAE,MAAM,CAAC;CACxB,CAAC;AAEF,qBAAa,gCAAiC,SAAQ,SAAS;gBACjD,EACV,YAAY,EACZ,cAAc,GACf,EAAE,sCAAsC;CAS1C"}

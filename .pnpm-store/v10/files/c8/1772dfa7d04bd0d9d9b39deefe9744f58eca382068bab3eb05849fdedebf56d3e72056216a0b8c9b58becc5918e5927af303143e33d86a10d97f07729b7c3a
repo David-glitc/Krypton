@@ -1,0 +1,19 @@
+import * as anchor from '@coral-xyz/anchor';
+import * as types from '../../types';
+type PublicKey = anchor.web3.PublicKey;
+type BN = anchor.BN;
+/**
+ * Helper responsible for deriving PDA addresses tied to the LazorKit program.
+ * Centralizing these derivations keeps the main client small and ensures
+ * consistent validation for every caller.
+ */
+export declare class WalletPdaFactory {
+    private readonly programId;
+    constructor(programId: PublicKey);
+    smartWallet(walletId: BN): PublicKey;
+    walletState(smartWallet: PublicKey): PublicKey;
+    walletDevice(smartWallet: PublicKey, credentialHash: types.CredentialHash | number[]): PublicKey;
+    chunk(smartWallet: PublicKey, nonce: BN): PublicKey;
+}
+export {};
+//# sourceMappingURL=walletPdas.d.ts.map

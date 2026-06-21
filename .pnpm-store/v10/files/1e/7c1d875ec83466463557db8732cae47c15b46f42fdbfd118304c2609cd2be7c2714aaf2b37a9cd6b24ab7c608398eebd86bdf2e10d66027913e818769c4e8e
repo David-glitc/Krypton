@@ -1,0 +1,6 @@
+/**
+ * Indicates if the code is running in a server-side environment.
+  * @not-instrumented
+ */
+export declare const isServerSideRendering: () => boolean;
+//# sourceMappingURL=isServerSideRendering.d.ts.map

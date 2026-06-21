@@ -1,0 +1,15 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var DynamicError = require('./DynamicError.cjs');
+
+class TransactionFailedError extends DynamicError.DynamicError {
+    constructor(chainError) {
+        super(`Transaction failed: ${JSON.stringify(chainError)}`);
+        this.chainError = chainError;
+    }
+}
+
+exports.TransactionFailedError = TransactionFailedError;

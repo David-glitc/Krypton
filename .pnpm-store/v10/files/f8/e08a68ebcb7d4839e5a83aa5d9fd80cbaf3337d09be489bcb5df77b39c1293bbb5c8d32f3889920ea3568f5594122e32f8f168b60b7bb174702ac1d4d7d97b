@@ -1,0 +1,33 @@
+'use client'
+import { __awaiter } from '../../../../../../_virtual/_tslib.js';
+import { jsx } from 'react/jsx-runtime';
+import { useCallback } from 'react';
+import { useDynamicBridgeWidgetContext } from '../../context/DynamicBridgeWidgetContext/DynamicBridgeWidgetContext.js';
+import '../../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { useViewContext } from '../../../../context/ViewContext/ViewContext.js';
+import { useUserUpdateRequestInternal } from '../../../../utils/hooks/useUserUpdateRequest/useUserUpdateRequest.js';
+import { UserProfileForm } from '../../../../components/UserProfileForm/UserProfileForm.js';
+
+const EditProfileView = () => {
+    const { pushView } = useViewContext();
+    const { goToProfileView } = useDynamicBridgeWidgetContext();
+    const { setShowAuthFlow } = useInternalDynamicContext();
+    const { updateUser } = useUserUpdateRequestInternal({
+        validationSchemaStripUnknown: true,
+    });
+    const onEditProfileFormSubmit = useCallback((formValues) => __awaiter(void 0, void 0, void 0, function* () {
+        const { isEmailVerificationRequired, isSmsVerificationRequired } = yield updateUser(formValues);
+        goToProfileView();
+        if (isEmailVerificationRequired || isSmsVerificationRequired) {
+            setShowAuthFlow(true, {
+                ignoreIfIsEmbeddedWidget: false,
+                performMultiWalletChecks: false,
+            });
+            pushView(isEmailVerificationRequired ? 'verify-email' : 'verify-sms');
+        }
+    }), [goToProfileView, setShowAuthFlow, pushView, updateUser]);
+    return (jsx(UserProfileForm, { onEditProfileSubmit: onEditProfileFormSubmit, onEditProfileCancel: goToProfileView }));
+};
+
+export { EditProfileView, EditProfileView as default };

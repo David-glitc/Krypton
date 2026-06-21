@@ -1,0 +1,207 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+var client$1 = require('@dynamic-labs-sdk/client');
+var core = require('@dynamic-labs-sdk/client/core');
+var utils = require('@dynamic-labs/utils');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+require('../../../ViewContext/ViewContext.cjs');
+var logger = require('../../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+var localStorage = require('../../../../utils/constants/localStorage.cjs');
+require('../../../../utils/constants/colors.cjs');
+require('../../../../utils/constants/values.cjs');
+require('@dynamic-labs/sdk-api-core');
+require('../../../../shared/consts/index.cjs');
+var authMode = require('../../../../store/state/authMode/authMode.cjs');
+var connectedWalletsInfo = require('../../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+var primaryWalletId = require('../../../../store/state/primaryWalletId/primaryWalletId.cjs');
+var useDynamicEvents = require('../../../../utils/hooks/events/useDynamicEvents/useDynamicEvents.cjs');
+require('../../useDynamicContext/useDynamicContext.cjs');
+require('../../useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+require('../../../CaptchaContext/CaptchaContext.cjs');
+require('../../../ErrorContext/ErrorContext.cjs');
+require('@dynamic-labs/multi-wallet');
+require('react-international-phone');
+require('../../../../store/state/nonce/nonce.cjs');
+var client = require('../../../../client/client.cjs');
+require('../../../../config/ApiEndpoint.cjs');
+require('../../../../events/dynamicEvents.cjs');
+require('@dynamic-labs/locale');
+require('../../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../../utils/functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+require('../../../AccessDeniedContext/AccessDeniedContext.cjs');
+require('../../../AccountExistsContext/AccountExistsContext.cjs');
+require('../../../UserWalletsContext/UserWalletsContext.cjs');
+require('../../../../store/state/loadingAndLifecycle/loadingAndLifecycle.cjs');
+require('../../../VerificationContext/VerificationContext.cjs');
+require('react-dom');
+require('../../../../utils/functions/compareChains/compareChains.cjs');
+require('../../../../views/Passkey/utils/findPrimaryEmbeddedChain/findPrimaryEmbeddedChain.cjs');
+require('../../../ThemeContext/ThemeContext.cjs');
+require('../../../../utils/hooks/useUserUpdateRequest/useUpdateUser/userFieldsSchema.cjs');
+require('bs58');
+require('@dynamic-labs/types');
+require('../../../SocialRedirectContext/SocialRedirectContext.cjs');
+require('../../../LoadingContext/LoadingContext.cjs');
+require('../../../WalletContext/WalletContext.cjs');
+require('../../../../utils/hooks/useEmbeddedWallet/useSecureEnclaveEmbeddedWallet/constants.cjs');
+require('yup');
+require('../../../MockContext/MockContext.cjs');
+require('../../../../views/CollectUserDataView/useFields.cjs');
+require('../../../FieldsStateContext/FieldsStateContext.cjs');
+require('../../../UserFieldEditorContext/UserFieldEditorContext.cjs');
+require('@dynamic-labs/rpc-providers');
+require('../../../../store/state/walletOptions/walletOptions.cjs');
+require('react-i18next');
+require('../../../../components/Accordion/components/AccordionItem/AccordionItem.cjs');
+require('../../../../components/Alert/Alert.cjs');
+require('../../../../components/ShadowDOM/ShadowDOM.cjs');
+require('../../../../components/IconButton/IconButton.cjs');
+require('../../../../components/InlineWidget/InlineWidget.cjs');
+require('../../../../components/Input/Input.cjs');
+require('../../../../components/IsBrowser/IsBrowser.cjs');
+require('../../../../components/MenuList/Dropdown/Dropdown.cjs');
+require('../../../../components/OverlayCard/OverlayCard.cjs');
+require('../../../../components/Transition/ZoomTransition/ZoomTransition.cjs');
+require('../../../../components/Transition/SlideInUpTransition/SlideInUpTransition.cjs');
+require('../../../../components/Transition/OpacityTransition/OpacityTransition.cjs');
+require('../../../../components/PasskeyCreatedSuccessBanner/PasskeyCreatedSuccessBanner.cjs');
+require('../../../../components/Popper/Popper/Popper.cjs');
+require('../../../../components/Popper/PopperContext/PopperContext.cjs');
+require('react-focus-lock');
+require('qrcode');
+require('formik');
+require('../../../../utils/hooks/useSubdomainCheck/useSubdomainCheck.cjs');
+require('../../../WalletGroupContext/WalletGroupContext.cjs');
+require('../../../../widgets/DynamicWidget/context/DynamicWidgetContext.cjs');
+require('../../../../utils/hooks/useGetMfaToken/useGetMfaToken.cjs');
+require('../../../../utils/hooks/useWalletBackup/useWalletBackup.cjs');
+require('../../../../utils/hooks/useWalletBackup/BackupError.cjs');
+require('../../../../utils/hooks/useWalletBackup/types.cjs');
+require('../../../../utils/hooks/useWalletBackup/cloudProviders.cjs');
+require('../../../IpConfigurationContext/IpConfigurationContext.cjs');
+require('../../../ConnectWithOtpContext/ConnectWithOtpContext.cjs');
+require('../../../../widgets/DynamicBridgeWidget/views/WalletsView/components/SecondaryWallets/SecondaryWallets.cjs');
+require('@hcaptcha/react-hcaptcha');
+require('../../../../widgets/DynamicWidget/helpers/convertExchangeKeyAndProviderEnum.cjs');
+require('../../../../views/ExchangeWhitelistWarning/ExchangeWhitelistWarning.cjs');
+require('../../../ErrorContext/hooks/useErrorText/useErrorText.cjs');
+require('../../../FooterAnimationContext/index.cjs');
+require('../../../../views/MfaChooseDeviceView/useGetMfaOptions/useGetMfaOptions.cjs');
+require('../../../PasskeyContext/PasskeyContext.cjs');
+require('../../../OnrampContext/OnrampContext.cjs');
+require('../../../../utils/hooks/useWalletDelegation/DelegationError.cjs');
+require('../../../../store/state/sendBalances.cjs');
+require('../../../../store/state/connectorsInitializing/connectorsInitializing.cjs');
+require('../../../../components/OverlayCardBase/OverlayCardTarget/OverlayCardTarget.cjs');
+require('../../../../widgets/DynamicWidget/components/DynamicWidgetHeader/DynamicWidgetHeader.cjs');
+require('../../../../views/TransactionConfirmationView/TransactionConfirmationView.cjs');
+require('../../../../widgets/DynamicWidget/components/PasskeyCard/PasskeyCard.cjs');
+require('../../../../widgets/DynamicWidget/views/CryptoComOnramp/CryptoComOnramp.cjs');
+require('../../../../../index.cjs');
+require('../../../../widgets/DynamicWidget/views/ManagePasskeysMfaWidgetView/ManagePasskeysMfaWidgetView.cjs');
+require('../../../../widgets/DynamicWidget/views/ManageTotpMfaWidgetView/ManageTotpMfaWidgetView.cjs');
+require('../../../../widgets/DynamicWidget/views/ReceiveWalletFunds/ReceiveWalletFunds.cjs');
+require('../../../../store/state/tokenBalances.cjs');
+require('../../../../store/state/multichainBalances.cjs');
+require('@dynamic-labs/store');
+require('../../../../shared/utils/functions/getInitialUrl/getInitialUrl.cjs');
+
+const PUBLIC_LOGOUT_REASON = 'user-intent';
+const STORAGE_PARSE_FAILURE_REASON = 'storage-parse-failure';
+const useHandleLogout = (params) => {
+    const paramsRef = React.useRef(params);
+    paramsRef.current = params;
+    const logoutReactSdk = React.useCallback((reason) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        const p = paramsRef.current;
+        // We store which wallet connectors were active before logout
+        // to not have to worry about having the array change midway through
+        const activeConnectors = [
+            ...p.walletConnectors,
+            ...p.connectedWallets.map((connectedWallet) => connectedWallet.connector),
+        ];
+        logger.logger.logVerboseTroubleshootingMessage('useHandleLogout called', {
+            params: paramsRef.current,
+            reason,
+        });
+        utils.tracing.logEvent('logout', `useHandleLogout called (reason=${reason})`);
+        // Surface the logout reason to Datadog. Every internal logout path funnels
+        // through here, but the reason was only sent to tracing/verbose — never the
+        // HTTP log transport — so logout causes were invisible in DD (e.g. an
+        // auto-logout firing mid-ceremony that revokes the session and abandons
+        // wallet creation). @environmentId is attached by the transport from its
+        // post URL; pair with @key:sdk_logout to see the reason breakdown per env.
+        logger.logger.instrument('SDK logout', {
+            key: 'sdk_logout',
+            reason: reason !== null && reason !== void 0 ? reason : 'unspecified',
+            time: 0,
+        });
+        // The trace buffer is otherwise never sent — flush the logout + session-key
+        // context so a logout that aborts wallet creation is diagnosable in DD.
+        utils.tracing.flush((packed) => logger.logger.instrument(packed), ['logout', 'session-key']);
+        p.setSelectedWalletConnectorKey(null);
+        p.clearAllWalletConnectSessions();
+        p.setShowDynamicUserProfile(false);
+        p.setShowBridgeWidget(false);
+        p.resetLoginWithEmail();
+        p.setLegacyIsVerifying(false);
+        utils.StorageService.removeItem(localStorage.WALLET_PICKER_SEARCH_KEY);
+        utils.StorageService.removeItem(localStorage.EXCHANGE_PICKER_SEARCH_KEY);
+        utils.StorageService.removeItem(localStorage.PHANTOM_SIGNATURE_STATE);
+        utils.StorageService.removeItem(localStorage.DELEGATION_STATE);
+        authMode.setAuthMode(p.initialAuthenticationMode);
+        p.setShowAuthFlow(false, {
+            emitCancelAuth: false,
+            ignoreIfIsEmbeddedWidget: false,
+            initializeWalletConnect: false,
+            performMultiWalletChecks: false,
+        });
+        p.setMultiWalletWidgetState('idle');
+        connectedWalletsInfo.resetConnectedWalletsInfo();
+        p.removeBridgeOnboardingCompleted();
+        primaryWalletId.resetPrimaryWalletId();
+        p.removeConnectedNameService();
+        p.removeSessionStorageSessionKeys();
+        yield Promise.all(
+        // Narrow to the client-SDK LogoutReason at the connector boundary. SDK-invented
+        // reasons flow through untyped; connectors ignore values they don't recognize.
+        activeConnectors.map((connector) => connector.endSession(reason)));
+    }), []);
+    const handleLogOutWithReason = React.useCallback((reason) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        if (typeof reason !== 'string') {
+            throw new Error('Invalid reason');
+        }
+        // Cast to LogoutReason here — this is the one place unsound widening meets
+        // the client SDK's narrow union. The client SDK forwards the string to
+        // Datadog as-is; unknown values are logged, not parsed.
+        yield core.logoutWithReason({ reason: reason }, client.getDynamicClient());
+        yield logoutReactSdk(reason);
+    }), [logoutReactSdk]);
+    const handleLogOut = React.useCallback(() => handleLogOutWithReason(PUBLIC_LOGOUT_REASON), [handleLogOutWithReason]);
+    React.useEffect(() => client$1.onEvent({
+        event: 'logout',
+        listener: (metadata) => {
+            logoutReactSdk(metadata === null || metadata === void 0 ? void 0 : metadata.reason);
+        },
+    }), [logoutReactSdk]);
+    /** Trigger a logout when the SDK failed to load data from storage */
+    React.useEffect(() => {
+        const handler = () => handleLogOutWithReason(STORAGE_PARSE_FAILURE_REASON);
+        utils.StorageService.events.on('parseFailure', handler);
+        return () => {
+            utils.StorageService.events.off('parseFailure', handler);
+        };
+    }, [handleLogOutWithReason]);
+    /** Allows triggering a logout from anywhere in the code */
+    useDynamicEvents.useInternalDynamicEvents('triggerLogout', (reason) => handleLogOutWithReason(reason));
+    return { handleLogOut, handleLogOutWithReason };
+};
+
+exports.useHandleLogout = useHandleLogout;

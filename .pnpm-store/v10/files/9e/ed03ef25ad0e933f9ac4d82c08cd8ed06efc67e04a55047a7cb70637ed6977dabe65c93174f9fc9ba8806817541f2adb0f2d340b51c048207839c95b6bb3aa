@@ -1,0 +1,68 @@
+import type { checkStepUpAuth, OTPVerification } from '@dynamic-labs-sdk/client';
+import type { ProviderEnum, TokenScope, VerifyResponse } from '@dynamic-labs/sdk-api-core';
+export type StepUpAuthenticationState = {
+    error: string | null;
+    isLoading: boolean;
+    otpVerification: OTPVerification | null;
+};
+export type SendOtpParams = {
+    credentialId?: string;
+};
+export type VerifyOtpParams = {
+    requestedScopes?: TokenScope[];
+    verificationToken: string;
+};
+export type VerifyWalletParams = {
+    requestedScopes?: TokenScope[];
+    walletId?: string;
+};
+export type VerifyPasskeyMfaParams = {
+    requestedScopes?: TokenScope[];
+};
+export type VerifyTotpMfaParams = {
+    code: string;
+    deviceId?: string;
+    requestedScopes?: TokenScope[];
+};
+export type VerifyRecoveryCodeParams = {
+    code: string;
+    requestedScopes?: TokenScope[];
+};
+export type VerifySocialParams = {
+    provider: ProviderEnum;
+    requestedScopes?: TokenScope[];
+};
+export type IsStepUpRequiredParams = {
+    scope: TokenScope;
+};
+export type UseStepUpAuthenticationParams = {
+    credentialId?: string;
+};
+export type PromptMfaParams = {
+    createMfaToken?: boolean;
+    requestedScopes?: TokenScope[];
+};
+export type PromptReauthParams = {
+    createMfaToken?: boolean;
+    requestedScopes?: TokenScope[];
+};
+export type PromptStepUpAuthParams = {
+    createMfaToken?: boolean;
+    requestedScopes?: TokenScope[];
+};
+export type UseStepUpAuthenticationReturn = {
+    checkStepUpAuth: typeof checkStepUpAuth;
+    isStepUpRequired: (params: IsStepUpRequiredParams) => Promise<boolean>;
+    promptMfa: (props?: PromptMfaParams) => Promise<string | undefined>;
+    promptReauthenticate: (props?: PromptReauthParams) => Promise<string | undefined>;
+    promptStepUpAuth: (props?: PromptStepUpAuthParams) => Promise<string | undefined>;
+    resetState: () => void;
+    sendOtp: (params?: SendOtpParams) => Promise<OTPVerification | null>;
+    state: StepUpAuthenticationState;
+    verifyOtp: (params: VerifyOtpParams) => Promise<VerifyResponse | null>;
+    verifyPasskeyMfa: (params: VerifyPasskeyMfaParams) => Promise<VerifyResponse | null>;
+    verifyRecoveryCode: (params: VerifyRecoveryCodeParams) => Promise<VerifyResponse | null>;
+    verifyTotpMfa: (params: VerifyTotpMfaParams) => Promise<VerifyResponse | null>;
+    verifySocial: (params: VerifySocialParams) => Promise<void>;
+    verifyWallet: (params: VerifyWalletParams) => Promise<void>;
+};

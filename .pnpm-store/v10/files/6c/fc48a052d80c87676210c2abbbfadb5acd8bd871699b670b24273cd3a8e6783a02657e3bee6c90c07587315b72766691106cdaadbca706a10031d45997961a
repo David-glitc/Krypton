@@ -1,0 +1,56 @@
+import type { TokenBalance } from '@dynamic-labs/sdk-api-core';
+import type { WalletAccount } from '../../wallets/walletAccount';
+type GetTokenBalancesBaseParams = {
+    /**
+     * Whether to filter out spam tokens.
+     * Defaults to true.
+     * @not-instrumented
+     */
+    filterSpamTokens?: boolean;
+    /** Whether to force a refresh of the balances instead of using the api cached value. */
+    forceRefresh?: boolean;
+    /** Whether to include the native token balance. */
+    includeNative?: boolean;
+    /** Whether to include the prices of the tokens. */
+    includePrices?: boolean;
+    /** The wallet account to get the balances for. */
+    walletAccount: WalletAccount;
+    /** If provided, only return balances for the specified contracts. */
+    whitelistedContracts?: Array<string>;
+};
+export type GetTokenBalancesParams = GetTokenBalancesBaseParams & ({
+    /**
+     * The network ID to get the balances for.
+     * If neither `networkId` nor `networkIds` is provided, the active network ID will be used.
+     * Mutually exclusive with `networkIds`.
+     */
+    networkId?: number;
+    networkIds?: never;
+} | {
+    networkId?: never;
+    /**
+     * The network IDs to get the balances for.
+     * Mutually exclusive with `networkId`.
+     */
+    networkIds?: string[];
+});
+/**
+ * Retrieves the token balances for a wallet account on one chain. Fetched
+ * from the Dynamic API.
+ *
+ * Use this for ERC-20-style token balances scoped to a single wallet
+ * account. Supports optional spam filtering, price inclusion, native-token
+ * inclusion, and one-or-many networks within the wallet's chain.
+ *
+ * For native-only balance, use {@link getNativeBalance}. For a
+ * multi-chain portfolio across many addresses, use
+ * {@link getMultichainTokenBalances}.
+ *
+ * @param params.walletAccount - The wallet account to get the balances for.
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns A promise that resolves to an array of token balances.
+ * @not-instrumented
+ */
+export declare const getTokenBalances: ({ walletAccount, networkId, networkIds, includePrices, includeNative, filterSpamTokens, whitelistedContracts, forceRefresh, }: GetTokenBalancesParams, client?: import("../../../exports").DynamicClient) => Promise<TokenBalance[]>;
+export {};
+//# sourceMappingURL=getTokenBalances.d.ts.map

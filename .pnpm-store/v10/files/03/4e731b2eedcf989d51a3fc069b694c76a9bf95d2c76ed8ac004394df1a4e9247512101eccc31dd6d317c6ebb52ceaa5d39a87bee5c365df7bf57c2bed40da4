@@ -1,0 +1,6 @@
+/**
+ * Converts an ArrayBuffer or Uint8Array to a hex-encoded string
+  * @not-instrumented
+ */
+export declare const bufferToHex: (buffer: ArrayBufferLike | Uint8Array) => string;
+//# sourceMappingURL=bufferToHex.d.ts.map

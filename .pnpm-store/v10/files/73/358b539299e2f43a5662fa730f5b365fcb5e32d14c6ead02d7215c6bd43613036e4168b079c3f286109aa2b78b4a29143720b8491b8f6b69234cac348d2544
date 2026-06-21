@@ -1,0 +1,37 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+
+/* tslint:disable */
+function CheckoutGasEstimateFromJSON(json) {
+    return CheckoutGasEstimateFromJSONTyped(json);
+}
+function CheckoutGasEstimateFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'usdValue': !runtime.exists(json, 'usdValue') ? undefined : json['usdValue'],
+        'nativeValue': !runtime.exists(json, 'nativeValue') ? undefined : json['nativeValue'],
+        'nativeSymbol': !runtime.exists(json, 'nativeSymbol') ? undefined : json['nativeSymbol'],
+    };
+}
+function CheckoutGasEstimateToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'usdValue': value.usdValue,
+        'nativeValue': value.nativeValue,
+        'nativeSymbol': value.nativeSymbol,
+    };
+}
+
+exports.CheckoutGasEstimateFromJSON = CheckoutGasEstimateFromJSON;
+exports.CheckoutGasEstimateFromJSONTyped = CheckoutGasEstimateFromJSONTyped;
+exports.CheckoutGasEstimateToJSON = CheckoutGasEstimateToJSON;

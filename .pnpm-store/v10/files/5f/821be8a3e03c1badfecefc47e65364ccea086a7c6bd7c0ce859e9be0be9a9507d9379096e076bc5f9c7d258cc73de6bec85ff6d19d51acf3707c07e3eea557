@@ -1,0 +1,35 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var DeviceRegistrationResponse = require('./DeviceRegistrationResponse.cjs');
+
+/* tslint:disable */
+function DeviceRegistrationsResponseFromJSON(json) {
+    return DeviceRegistrationsResponseFromJSONTyped(json);
+}
+function DeviceRegistrationsResponseFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'count': json['count'],
+        'deviceRegistrations': (json['deviceRegistrations'].map(DeviceRegistrationResponse.DeviceRegistrationResponseFromJSON)),
+    };
+}
+function DeviceRegistrationsResponseToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'count': value.count,
+        'deviceRegistrations': (value.deviceRegistrations.map(DeviceRegistrationResponse.DeviceRegistrationResponseToJSON)),
+    };
+}
+
+exports.DeviceRegistrationsResponseFromJSON = DeviceRegistrationsResponseFromJSON;
+exports.DeviceRegistrationsResponseFromJSONTyped = DeviceRegistrationsResponseFromJSONTyped;
+exports.DeviceRegistrationsResponseToJSON = DeviceRegistrationsResponseToJSON;

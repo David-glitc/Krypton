@@ -1,0 +1,13 @@
+'use client'
+import '../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+
+const useViewSettings = (viewType) => {
+    var _a, _b, _c;
+    const { projectSettings, overrides } = useInternalDynamicContext();
+    const apiViewSettings = (_b = (_a = projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.sdk) === null || _a === void 0 ? void 0 : _a.views) === null || _b === void 0 ? void 0 : _b.find((view) => view.type === viewType);
+    const overrideViewSettings = (_c = overrides === null || overrides === void 0 ? void 0 : overrides.views) === null || _c === void 0 ? void 0 : _c.find((view) => view.type === viewType);
+    return (overrideViewSettings || apiViewSettings);
+};
+
+export { useViewSettings };

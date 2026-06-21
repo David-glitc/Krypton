@@ -1,0 +1,146 @@
+'use client'
+import { getWallets, isWalletWithRequiredFeatureSet } from '@mysten/wallet-standard';
+import { sanitizeName } from '@dynamic-labs/utils';
+import { getWalletMetadataFromWalletBook, walletConnectorEvents } from '@dynamic-labs/wallet-connector-core';
+import { Slush } from '../slush/Slush.js';
+import { Injected } from './injected.js';
+
+// Wallets with custom connectors that should not be auto-generated
+const walletsWithCustomConnectors = {
+    slush: Slush,
+};
+/**
+ * Teardown for the active wallet-standard discovery (register listener + poll).
+ * Recreated on each fetchSuiInjectedWalletConnectors call.
+ */
+let teardownSuiWalletStandardDiscovery = null;
+// Some extensions inject after the initial snapshot (e.g. on prerendered pages
+// where content scripts only run at activation), and a one-shot register
+// listener can miss an announcement that fires before we subscribe. Polling
+// the wallet-standard registry for a short window catches those late arrivals
+// without a refresh. Mirrors the solana wallet-standard discovery.
+const SUI_WALLET_STANDARD_POLL_INTERVAL_MS = 300;
+const SUI_WALLET_STANDARD_POLL_DURATION_MS = 5000;
+const getCustomConnectorForKey = (name) => {
+    var _a;
+    return (_a = Object.entries(walletsWithCustomConnectors).find(([key]) => name.toLowerCase().includes(key.toLowerCase()))) === null || _a === void 0 ? void 0 : _a[1];
+};
+const supportsRequiredSuiFeatures = (wallet) => { var _a; return Boolean((_a = wallet.features) === null || _a === void 0 ? void 0 : _a['sui:signPersonalMessage']); };
+const createSuiWalletStandardConnector = (wallet) => {
+    const sanitizedName = sanitizeName(wallet.name);
+    const customConnector = getCustomConnectorForKey(sanitizedName);
+    const isInstalled = true;
+    if (customConnector) {
+        return class extends customConnector {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            constructor(props) {
+                super(wallet.name, isInstalled, Object.assign({ metadata: {
+                        groupKey: sanitizedName,
+                        icon: wallet.icon,
+                        id: wallet.name,
+                        name: wallet.name,
+                    }, name: wallet.name, overrideKey: `${sanitizedName}sui`, wallet: wallet }, props));
+            }
+        };
+    }
+    return class extends Injected {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        constructor(props) {
+            super(wallet.name, isInstalled, Object.assign({ metadata: {
+                    groupKey: sanitizedName,
+                    icon: wallet.icon,
+                    id: wallet.name,
+                    name: wallet.name,
+                }, name: wallet.name, overrideKey: `${sanitizedName}sui`, wallet: wallet }, props));
+        }
+    };
+};
+const setupSuiWalletStandardDiscovery = () => {
+    // check to ensure this method doesn't run with SSR
+    if (typeof window === 'undefined') {
+        return;
+    }
+    teardownSuiWalletStandardDiscovery === null || teardownSuiWalletStandardDiscovery === void 0 ? void 0 : teardownSuiWalletStandardDiscovery();
+    // Tracks wallets already surfaced so neither the register listener nor the
+    // poll emits a duplicate providerInjected for the same wallet.
+    const discoveredWallets = new Set();
+    const handleWallet = (wallet) => {
+        if (discoveredWallets.has(wallet.name)) {
+            return;
+        }
+        if (!supportsRequiredSuiFeatures(wallet)) {
+            return;
+        }
+        discoveredWallets.add(wallet.name);
+        walletConnectorEvents.emit('providerInjected', {
+            injectedConnectorConstructor: createSuiWalletStandardConnector(wallet),
+        });
+    };
+    const wallets = getWallets();
+    // Wallets already present are returned synchronously by
+    // fetchSuiInjectedWalletConnectors, so seed them as discovered (no emit
+    // needed); the listener and poll then only fire for wallets that appear
+    // afterwards.
+    wallets.get().forEach((wallet) => {
+        if (supportsRequiredSuiFeatures(wallet)) {
+            discoveredWallets.add(wallet.name);
+        }
+    });
+    const removeRegisterListener = wallets.on('register', (...registered) => {
+        registered.forEach(handleWallet);
+    });
+    const pollForNewWallets = () => {
+        getWallets().get().forEach(handleWallet);
+    };
+    const pollIntervalId = setInterval(pollForNewWallets, SUI_WALLET_STANDARD_POLL_INTERVAL_MS);
+    const pollTimeoutId = setTimeout(() => {
+        clearInterval(pollIntervalId);
+    }, SUI_WALLET_STANDARD_POLL_DURATION_MS);
+    teardownSuiWalletStandardDiscovery = () => {
+        removeRegisterListener === null || removeRegisterListener === void 0 ? void 0 : removeRegisterListener();
+        clearInterval(pollIntervalId);
+        clearTimeout(pollTimeoutId);
+    };
+};
+const fetchSuiInjectedWalletConnectors = ({ walletBook, }) => {
+    var _a;
+    setupSuiWalletStandardDiscovery();
+    const walletStandardWallets = getWallets().get();
+    const suiWalletStandardWallets = walletStandardWallets.filter((wallet) => isWalletWithRequiredFeatureSet(wallet, ['sui:signPersonalMessage']));
+    const suiWalletsByKey = Object.fromEntries(suiWalletStandardWallets.map((wallet) => [wallet.name, wallet]));
+    const walletBookConnectors = Object.entries((_a = walletBook === null || walletBook === void 0 ? void 0 : walletBook.wallets) !== null && _a !== void 0 ? _a : {})
+        .filter(([key, wallet]) => {
+        var _a, _b;
+        const injectedConfig = (_a = wallet.injectedConfig) === null || _a === void 0 ? void 0 : _a.find((config) => config.chain === 'sui');
+        const isSuiWallet = Boolean(injectedConfig);
+        const walletStandardName = (_b = injectedConfig === null || injectedConfig === void 0 ? void 0 : injectedConfig.walletStandard) === null || _b === void 0 ? void 0 : _b.name;
+        // If the wallet is injected via wallet standard, use that over the wallet book entry
+        const shouldBeFiltered = walletStandardName && suiWalletsByKey[walletStandardName];
+        // Filter out wallets that have custom connectors
+        const hasCustomConnector = Boolean(getCustomConnectorForKey(key));
+        return isSuiWallet && !shouldBeFiltered && !hasCustomConnector;
+    })
+        .map(([key, wallet]) => {
+        // Currently we only support wallet standard wallets
+        const isInstalled = false;
+        const metadata = getWalletMetadataFromWalletBook({
+            walletBook,
+            walletBookWallet: wallet,
+            walletKey: key,
+        });
+        return class extends Injected {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            constructor(props) {
+                super(wallet.name, isInstalled, Object.assign({ metadata, overrideKey: key, wallet: wallet, walletBookEntry: wallet }, props));
+            }
+        };
+    });
+    // Wallet standard wallets don't always have injectedConfig from wallet book,
+    // so we filter them by checking if they support critical sui features.
+    const walletStandardConnectors = walletStandardWallets
+        .filter(supportsRequiredSuiFeatures)
+        .map(createSuiWalletStandardConnector);
+    return [...walletBookConnectors, ...walletStandardConnectors];
+};
+
+export { fetchSuiInjectedWalletConnectors };

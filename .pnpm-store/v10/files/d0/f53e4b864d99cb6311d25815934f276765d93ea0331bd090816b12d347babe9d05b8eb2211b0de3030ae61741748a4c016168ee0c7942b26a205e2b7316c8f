@@ -1,0 +1,28 @@
+import type { CheckoutTransaction } from '../checkout.types';
+export type GetCheckoutTransactionQuoteParams = {
+    /**
+     * Optional chain identifier the source funds will originate from for this
+     * quote. When provided, this overrides the fromChainId recorded at
+     * attachSource time. The chain family (fromChainName) and source address
+     * (fromAddress) are locked at attachSource time — to switch chain families
+     * or wallets, call attachSource again.
+     */
+    fromChainId?: string;
+    /**
+     * When omitted, defaults to native token for the chain specified in
+     * fromChainName in the attach source step.
+     */
+    fromTokenAddress?: string;
+    slippage?: number;
+    transactionId: string;
+};
+/**
+ * Fetches a quote for a checkout transaction
+ *
+ * @param params GetCheckoutTransactionQuoteParams - The quote parameters.
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns The updated checkout transaction with quote data
+ * @not-instrumented
+ */
+export declare const getCheckoutTransactionQuote: ({ fromChainId, fromTokenAddress, slippage, transactionId, }: GetCheckoutTransactionQuoteParams, client?: import("../../../exports").DynamicClient) => Promise<CheckoutTransaction>;
+//# sourceMappingURL=getCheckoutTransactionQuote.d.ts.map

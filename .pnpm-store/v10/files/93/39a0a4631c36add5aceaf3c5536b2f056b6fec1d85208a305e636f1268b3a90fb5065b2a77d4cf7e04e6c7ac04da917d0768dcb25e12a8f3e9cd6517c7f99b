@@ -1,0 +1,25 @@
+package xyz.dynamic.client.manifest
+
+import com.facebook.react.bridge.Arguments
+import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.bridge.WritableMap
+import com.facebook.react.module.annotations.ReactModule
+import xyz.dynamic.client.BuildConfig
+import xyz.dynamic.client.NativeReactNativeManifestSpec
+
+@ReactModule(name = ReactNativeManifestModule.NAME)
+class ReactNativeManifestModule(reactContext: ReactApplicationContext) :
+    NativeReactNativeManifestSpec(reactContext) {
+
+    companion object {
+        const val NAME = "DynamicClientManifest"
+    }
+
+    override fun getName(): String = NAME
+
+    override fun getManifest(): WritableMap {
+        val manifest = Arguments.createMap()
+        manifest.putString("sdkVersion", BuildConfig.DYNAMIC_SDK_VERSION)
+        return manifest
+    }
+}

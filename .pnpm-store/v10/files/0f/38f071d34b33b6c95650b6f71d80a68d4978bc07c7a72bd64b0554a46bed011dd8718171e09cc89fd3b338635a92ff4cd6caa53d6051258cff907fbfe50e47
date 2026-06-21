@@ -1,0 +1,68 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var React = require('react');
+require('@dynamic-labs-sdk/client/core');
+require('@dynamic-labs/sdk-api-core');
+require('eventemitter3');
+require('@dynamic-labs/utils');
+require('@dynamic-labs-sdk/client');
+require('../../../config/ApiEndpoint.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+require('../../../context/ViewContext/ViewContext.cjs');
+var logger = require('../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('../../constants/colors.cjs');
+require('../../constants/values.cjs');
+require('../../../shared/consts/index.cjs');
+require('../../../../../_virtual/_tslib.cjs');
+require('@dynamic-labs/multi-wallet');
+require('react-international-phone');
+require('../../../store/state/nonce/nonce.cjs');
+require('@dynamic-labs/locale');
+var dynamicContextProps = require('../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../store/state/primaryWalletId/primaryWalletId.cjs');
+require('../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+require('../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+require('../../../events/dynamicEvents.cjs');
+var useUser = require('../../../client/extension/user/useUser/useUser.cjs');
+
+const INITIAL_STATE = {
+    error: null,
+    isLoading: false,
+    otpVerification: null,
+};
+const useStepUpState = () => {
+    const user = useUser.useUser();
+    const environmentId = dynamicContextProps.useEnvironmentId();
+    const [state, setState] = React.useState(INITIAL_STATE);
+    const logContext = React.useMemo(() => ({ environmentId, userId: user === null || user === void 0 ? void 0 : user.id }), [environmentId, user === null || user === void 0 ? void 0 : user.id]);
+    const resetState = React.useCallback(() => {
+        setState(INITIAL_STATE);
+    }, []);
+    const setLoading = React.useCallback(() => {
+        setState((prev) => (Object.assign(Object.assign({}, prev), { error: null, isLoading: true })));
+    }, []);
+    const setSuccess = React.useCallback((patch) => {
+        setState((prev) => (Object.assign(Object.assign(Object.assign({}, prev), { error: null, isLoading: false }), patch)));
+    }, []);
+    const setError = React.useCallback((errorMessage) => {
+        setState((prev) => (Object.assign(Object.assign({}, prev), { error: errorMessage, isLoading: false })));
+        logger.logger.error(errorMessage, logContext);
+    }, [logContext]);
+    return {
+        logContext,
+        resetState,
+        setError,
+        setLoading,
+        setState,
+        setSuccess,
+        state,
+    };
+};
+
+exports.useStepUpState = useStepUpState;

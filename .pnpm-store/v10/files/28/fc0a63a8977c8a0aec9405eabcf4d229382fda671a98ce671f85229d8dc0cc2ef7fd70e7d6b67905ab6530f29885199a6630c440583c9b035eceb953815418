@@ -1,0 +1,13 @@
+import type { ShouldFilterWalletParams } from '../../shouldFilterWallet/shouldFilterWallet';
+/**
+ * WalletConnect-specific filter. Applies the generic
+ * {@link shouldFilterWallet} eligibility rules and additionally drops
+ * wallets that do not advertise WalletConnect `sign_v2` support — the
+ * protocol version Dynamic pairs against.
+ *
+ * @returns True if the wallet should be excluded from the WalletConnect
+ *   catalog, false otherwise.
+ * @not-instrumented
+ */
+export declare const shouldFilterWalletForWalletConnect: ({ wallet, walletKey, }: ShouldFilterWalletParams) => boolean;
+//# sourceMappingURL=shouldFilterWalletForWalletConnect.d.ts.map

@@ -1,0 +1,33 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var TokenScope = require('./TokenScope.cjs');
+
+/* tslint:disable */
+function StepUpCheckRequestFromJSON(json) {
+    return StepUpCheckRequestFromJSONTyped(json);
+}
+function StepUpCheckRequestFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'scope': TokenScope.TokenScopeFromJSON(json['scope']),
+    };
+}
+function StepUpCheckRequestToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'scope': TokenScope.TokenScopeToJSON(value.scope),
+    };
+}
+
+exports.StepUpCheckRequestFromJSON = StepUpCheckRequestFromJSON;
+exports.StepUpCheckRequestFromJSONTyped = StepUpCheckRequestFromJSONTyped;
+exports.StepUpCheckRequestToJSON = StepUpCheckRequestToJSON;

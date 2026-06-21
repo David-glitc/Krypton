@@ -1,0 +1,54 @@
+'use client'
+import { __awaiter } from '../../../../../../_virtual/_tslib.js';
+import { jsx, jsxs } from 'react/jsx-runtime';
+import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import { ErrorContainer } from '../../../../components/ErrorContainer/ErrorContainer.js';
+import { IconButton } from '../../../../components/IconButton/IconButton.js';
+import { ModalHeader } from '../../../../components/ModalHeader/ModalHeader.js';
+import { PinField } from '../../../../components/PinField/PinField.js';
+import { Typography } from '../../../../components/Typography/Typography.js';
+import '../../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { useViewContext } from '../../../../context/ViewContext/ViewContext.js';
+import { ReactComponent as SvgClose } from '../../../../shared/assets/close.js';
+import '@dynamic-labs/iconic';
+import { useWidgetContext } from '../../context/DynamicWidgetContext.js';
+
+const PIN_LENGTH = 6;
+const ExportSharesPasscodeView = () => {
+    const { t } = useTranslation();
+    const { setDynamicWidgetView } = useWidgetContext();
+    const { setShowAuthFlow } = useInternalDynamicContext();
+    const { pushView } = useViewContext();
+    const [error, setError] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isValidated, setIsValidated] = useState(false);
+    const handleCloseClick = useCallback(() => setDynamicWidgetView('account-and-security-settings'), [setDynamicWidgetView]);
+    const handlePinComplete = useCallback((passcode) => __awaiter(void 0, void 0, void 0, function* () {
+        setError(null);
+        setIsLoading(true);
+        try {
+            setIsValidated(true);
+            setShowAuthFlow(true, {
+                ignoreIfIsEmbeddedWidget: false,
+                performMultiWalletChecks: false,
+            });
+            pushView('export-shares-view', { passcode });
+        }
+        catch (_a) {
+            setError(t('dyn_export_shares_passcode.error'));
+            setIsValidated(false);
+        }
+        finally {
+            setIsLoading(false);
+        }
+    }), [pushView, setShowAuthFlow, t]);
+    const handlePinChange = useCallback(() => {
+        setError(null);
+    }, []);
+    const closeButton = (jsx(IconButton, { type: 'button', onClick: handleCloseClick, "data-testid": 'close-button', children: jsx(SvgClose, {}) }));
+    return (jsxs("div", { className: 'export-shares-passcode-view', children: [jsx(ModalHeader, { trailing: closeButton, children: jsx("div", { className: 'send-balance-page-layout__header-content', children: jsx(Typography, { variant: 'title', color: 'primary', copykey: 'dyn_export_shares_passcode.title', children: t('dyn_export_shares_passcode.title') }) }) }), jsx("div", { className: 'account-wrap', children: jsxs("div", { className: 'export-shares-passcode-view__content', children: [error && (jsx(ErrorContainer, { variant: 'error', withIcon: false, children: error })), jsx("div", { className: 'export-shares-passcode-view__description', children: jsx(Typography, { variant: 'body_normal', color: 'secondary', copykey: 'dyn_export_shares_passcode.description', children: t('dyn_export_shares_passcode.description') }) }), jsx("div", { className: 'export-shares-passcode-view__label', children: jsx(Typography, { variant: 'body_small', color: 'secondary', copykey: 'dyn_export_shares_passcode.enter_passcode', children: t('dyn_export_shares_passcode.enter_passcode') }) }), jsx("div", { className: 'export-shares-passcode-view__pin-container', children: jsx(PinField, { initialValue: Array(PIN_LENGTH).fill(''), isLoading: isLoading, handleComplete: handlePinComplete, isValidated: isValidated, inputMode: 'numeric', pattern: '[0-9]*', hasError: Boolean(error), onChange: handlePinChange }) })] }) })] }));
+};
+
+export { ExportSharesPasscodeView };

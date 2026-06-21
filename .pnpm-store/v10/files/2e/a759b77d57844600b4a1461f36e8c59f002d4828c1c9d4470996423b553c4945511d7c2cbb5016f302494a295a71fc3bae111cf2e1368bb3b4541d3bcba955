@@ -1,0 +1,45 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+var CheckoutModeEnum = require('./CheckoutModeEnum.cjs');
+var DepositAmountsConfigInput = require('./DepositAmountsConfigInput.cjs');
+var DestinationConfigInput = require('./DestinationConfigInput.cjs');
+var SettlementConfigInput = require('./SettlementConfigInput.cjs');
+
+/* tslint:disable */
+function CheckoutCreateRequestFromJSON(json) {
+    return CheckoutCreateRequestFromJSONTyped(json);
+}
+function CheckoutCreateRequestFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'mode': CheckoutModeEnum.CheckoutModeEnumFromJSON(json['mode']),
+        'settlementConfig': SettlementConfigInput.SettlementConfigInputFromJSON(json['settlementConfig']),
+        'destinationConfig': DestinationConfigInput.DestinationConfigInputFromJSON(json['destinationConfig']),
+        'depositConfig': !runtime.exists(json, 'depositConfig') ? undefined : DepositAmountsConfigInput.DepositAmountsConfigInputFromJSON(json['depositConfig']),
+        'enableOrchestration': !runtime.exists(json, 'enableOrchestration') ? undefined : json['enableOrchestration'],
+    };
+}
+function CheckoutCreateRequestToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'mode': CheckoutModeEnum.CheckoutModeEnumToJSON(value.mode),
+        'settlementConfig': SettlementConfigInput.SettlementConfigInputToJSON(value.settlementConfig),
+        'destinationConfig': DestinationConfigInput.DestinationConfigInputToJSON(value.destinationConfig),
+        'depositConfig': DepositAmountsConfigInput.DepositAmountsConfigInputToJSON(value.depositConfig),
+        'enableOrchestration': value.enableOrchestration,
+    };
+}
+
+exports.CheckoutCreateRequestFromJSON = CheckoutCreateRequestFromJSON;
+exports.CheckoutCreateRequestFromJSONTyped = CheckoutCreateRequestFromJSONTyped;
+exports.CheckoutCreateRequestToJSON = CheckoutCreateRequestToJSON;

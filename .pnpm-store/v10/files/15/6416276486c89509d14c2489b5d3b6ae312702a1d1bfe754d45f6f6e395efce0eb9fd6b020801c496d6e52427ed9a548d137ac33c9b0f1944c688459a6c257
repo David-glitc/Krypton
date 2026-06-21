@@ -1,0 +1,74 @@
+'use client'
+import { __awaiter } from '../../../../../../_virtual/_tslib.js';
+import { jsxs, jsx } from 'react/jsx-runtime';
+import { useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import { isSessionKeyCompatibleWallet } from '@dynamic-labs/wallet-connector-core';
+import { IconButton } from '../../../../components/IconButton/IconButton.js';
+import { ModalHeader } from '../../../../components/ModalHeader/ModalHeader.js';
+import { Typography } from '../../../../components/Typography/Typography.js';
+import { TypographyButton } from '../../../../components/TypographyButton/TypographyButton.js';
+import '../../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { useViewContext } from '../../../../context/ViewContext/ViewContext.js';
+import { ReactComponent as SvgChevronLeft } from '../../../../shared/assets/chevron-left.js';
+import { ReactComponent as SvgExportPrivateKey } from '../../../../shared/assets/export-private-key.js';
+import { ReactComponent as SvgExportRecoveryPhrase } from '../../../../shared/assets/export-recovery-phrase.js';
+import '@dynamic-labs/iconic';
+import { useEmbeddedReveal } from '../../../../utils/hooks/useEmbeddedReveal/useEmbeddedReveal.js';
+import { useIsPasswordEncrypted } from '../../../../utils/hooks/useIsPasswordEncrypted/useIsPasswordEncrypted.js';
+import { usePasskeyRecovery } from '../../../../utils/hooks/usePasskeyRecovery/usePasskeyRecovery.js';
+import { useSmartWallets } from '../../../../utils/hooks/useSmartWallets/useSmartWallets.js';
+import { useWidgetContext } from '../../context/DynamicWidgetContext.js';
+
+const ExportAndRecoveryView = () => {
+    var _a, _b;
+    const { t } = useTranslation();
+    const { setDynamicWidgetView } = useWidgetContext();
+    const { primaryWallet, setShowAuthFlow } = useInternalDynamicContext();
+    const { pushView } = useViewContext();
+    const { getEOAWallet } = useSmartWallets();
+    const { initPasskeyRecoveryProcess, shouldInitRecovery } = usePasskeyRecovery();
+    const { initExportProcess } = useEmbeddedReveal();
+    const isPasswordEncrypted = useIsPasswordEncrypted();
+    const eoaWallet = primaryWallet && getEOAWallet(primaryWallet);
+    const wallet = eoaWallet !== null && eoaWallet !== void 0 ? eoaWallet : primaryWallet;
+    const isSessionKeyCompatible = (primaryWallet && isSessionKeyCompatibleWallet(primaryWallet)) ||
+        (eoaWallet && isSessionKeyCompatibleWallet(eoaWallet));
+    const isV3WaasWallet = Boolean(wallet && ((_b = (_a = wallet === null || wallet === void 0 ? void 0 : wallet.connector) === null || _a === void 0 ? void 0 : _a.key) === null || _b === void 0 ? void 0 : _b.startsWith('dynamicwaas')));
+    const handleBackClick = useCallback(() => setDynamicWidgetView('account-and-security-settings'), [setDynamicWidgetView]);
+    const handlePrivateKeyClick = useCallback(() => __awaiter(void 0, void 0, void 0, function* () {
+        if (!isSessionKeyCompatible) {
+            if (yield shouldInitRecovery()) {
+                yield initPasskeyRecoveryProcess(undefined, {
+                    type: 'reveal',
+                });
+            }
+        }
+        return initExportProcess();
+    }), [
+        isSessionKeyCompatible,
+        shouldInitRecovery,
+        initPasskeyRecoveryProcess,
+        initExportProcess,
+    ]);
+    const handleExportSharesClick = useCallback(() => {
+        setShowAuthFlow(true, {
+            ignoreIfIsEmbeddedWidget: false,
+            performMultiWalletChecks: false,
+        });
+        if (isPasswordEncrypted) {
+            setDynamicWidgetView('export-shares-passcode');
+        }
+        else {
+            pushView('export-shares-view');
+        }
+    }, [isPasswordEncrypted, setDynamicWidgetView, setShowAuthFlow, pushView]);
+    const exportIconClasses = 'settings-view__body__section__button__icon';
+    const privateKeyButtonStartSlot = useMemo(() => (jsxs("div", { className: 'settings-view__body__section__button__start-slot', children: [jsx(SvgExportPrivateKey, { className: exportIconClasses }), jsx(Typography, { color: 'primary', weight: 'medium', copykey: 'dyn_export_and_recovery.private_key', children: t('dyn_export_and_recovery.private_key') })] })), [exportIconClasses, t]);
+    const exportSharesButtonStartSlot = useMemo(() => (jsxs("div", { className: 'settings-view__body__section__button__start-slot', children: [jsx(SvgExportRecoveryPhrase, { className: exportIconClasses }), jsxs("div", { className: 'export-and-recovery-view__export-shares-label', children: [jsx(Typography, { color: 'primary', weight: 'medium', copykey: 'dyn_export_and_recovery.export_shares', children: t('dyn_export_and_recovery.export_shares') }), jsx("span", { className: 'export-and-recovery-view__advanced-badge', children: jsx(Typography, { variant: 'body_small', color: 'inherit', weight: 'medium', copykey: 'dyn_export_and_recovery.advanced', children: t('dyn_export_and_recovery.advanced') }) })] })] })), [exportIconClasses, t]);
+    const backButton = (jsx(IconButton, { type: 'button', onClick: handleBackClick, "data-testid": 'back-button', children: jsx(SvgChevronLeft, {}) }));
+    return (jsxs("div", { className: 'export-and-recovery-view', children: [jsx(ModalHeader, { leading: backButton, children: jsx("div", { className: 'send-balance-page-layout__header-content', children: jsx(Typography, { variant: 'title', color: 'primary', copykey: 'dyn_export_and_recovery.title', children: t('dyn_export_and_recovery.title') }) }) }), jsx("div", { className: 'account-wrap', children: jsxs("div", { className: 'settings-view__body', children: [jsx(TypographyButton, { dataTestId: 'private-key-button', onClick: handlePrivateKeyClick, buttonClassName: 'settings-view__body__section__button', startSlot: privateKeyButtonStartSlot, endSlot: jsx(SvgChevronLeft, { className: 'settings-view__body__section__button__icon-secondary--rotate' }), showInternalLoading: false }), isV3WaasWallet && (jsx(TypographyButton, { dataTestId: 'export-shares-button', onClick: handleExportSharesClick, buttonClassName: 'settings-view__body__section__button', startSlot: exportSharesButtonStartSlot, endSlot: jsx(SvgChevronLeft, { className: 'settings-view__body__section__button__icon-secondary--rotate' }), showInternalLoading: false }))] }) })] }));
+};
+
+export { ExportAndRecoveryView };

@@ -1,0 +1,30 @@
+import { exists } from '../runtime.js';
+import { CheckoutGasEstimateFromJSON, CheckoutGasEstimateToJSON } from './CheckoutGasEstimate.js';
+
+/* tslint:disable */
+function CheckoutFeeBreakdownFromJSON(json) {
+    return CheckoutFeeBreakdownFromJSONTyped(json);
+}
+function CheckoutFeeBreakdownFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'totalFeeUsd': !exists(json, 'totalFeeUsd') ? undefined : json['totalFeeUsd'],
+        'gasEstimate': !exists(json, 'gasEstimate') ? undefined : CheckoutGasEstimateFromJSON(json['gasEstimate']),
+    };
+}
+function CheckoutFeeBreakdownToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'totalFeeUsd': value.totalFeeUsd,
+        'gasEstimate': CheckoutGasEstimateToJSON(value.gasEstimate),
+    };
+}
+
+export { CheckoutFeeBreakdownFromJSON, CheckoutFeeBreakdownFromJSONTyped, CheckoutFeeBreakdownToJSON };

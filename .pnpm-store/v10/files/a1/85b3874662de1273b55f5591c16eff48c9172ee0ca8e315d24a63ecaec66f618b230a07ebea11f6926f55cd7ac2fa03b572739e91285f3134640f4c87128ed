@@ -1,0 +1,40 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var jsxRuntime = require('react/jsx-runtime');
+var classNames = require('../../../utils/functions/classNames/classNames.cjs');
+var Typography = require('../../Typography/Typography.cjs');
+var icons = require('./icons.cjs');
+
+const renderIcon = (icon) => {
+    if (icon === 'individual')
+        return jsxRuntime.jsx(icons.IndividualIcon, {});
+    if (icon === 'exchange')
+        return jsxRuntime.jsx(icons.ExchangeIcon, {});
+    return null;
+};
+/**
+ * Generic 2+ option segmented control rendered inside the SDK's send form
+ * when an `IUITransaction` exposes `transactionModes`. Aleo is the first
+ * caller (Individual / Exchange = private vs. public transfer); the
+ * component is intentionally chain-agnostic so any future chain can opt
+ * in by populating the same field on its UI transaction.
+ */
+const TransactionModeSegmentedControl = ({ options, selectedId, onChange, disabled = false }) => (jsxRuntime.jsx("div", { className: 'transaction-mode-segmented-control', role: 'radiogroup', "aria-label": 'Transaction mode', children: options.map((option) => {
+        const active = option.id === selectedId;
+        const isDisabled = disabled || option.disabled === true;
+        return (jsxRuntime.jsxs("button", { type: 'button', role: 'radio', "aria-checked": active, "aria-label": option.label, "aria-disabled": isDisabled, title: option.disabled && option.disabledReason
+                ? option.disabledReason
+                : undefined, disabled: isDisabled, className: classNames.classNames('transaction-mode-segmented-control__option', {
+                'transaction-mode-segmented-control__option--active': active,
+                'transaction-mode-segmented-control__option--disabled': isDisabled,
+            }), onClick: () => {
+                if (!isDisabled && !active) {
+                    onChange(option.id);
+                }
+            }, children: [option.icon && (jsxRuntime.jsx("span", { className: 'transaction-mode-segmented-control__option-icon', children: renderIcon(option.icon) })), jsxRuntime.jsx(Typography.Typography, { variant: 'body_small', weight: active ? 'bold' : 'regular', color: active ? 'primary' : 'secondary', children: option.label })] }, option.id));
+    }) }));
+
+exports.TransactionModeSegmentedControl = TransactionModeSegmentedControl;

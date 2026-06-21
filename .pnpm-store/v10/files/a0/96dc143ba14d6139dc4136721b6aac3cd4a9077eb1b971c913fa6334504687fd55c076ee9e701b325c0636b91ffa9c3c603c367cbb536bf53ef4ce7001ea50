@@ -1,0 +1,38 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var ChainEnum = require('./ChainEnum.cjs');
+var DestinationTypeEnum = require('./DestinationTypeEnum.cjs');
+
+/* tslint:disable */
+function ChainDestinationConfigFromJSON(json) {
+    return ChainDestinationConfigFromJSONTyped(json);
+}
+function ChainDestinationConfigFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'chainName': ChainEnum.ChainEnumFromJSON(json['chainName']),
+        'type': DestinationTypeEnum.DestinationTypeEnumFromJSON(json['type']),
+        'identifier': json['identifier'],
+    };
+}
+function ChainDestinationConfigToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'chainName': ChainEnum.ChainEnumToJSON(value.chainName),
+        'type': DestinationTypeEnum.DestinationTypeEnumToJSON(value.type),
+        'identifier': value.identifier,
+    };
+}
+
+exports.ChainDestinationConfigFromJSON = ChainDestinationConfigFromJSON;
+exports.ChainDestinationConfigFromJSONTyped = ChainDestinationConfigFromJSONTyped;
+exports.ChainDestinationConfigToJSON = ChainDestinationConfigToJSON;

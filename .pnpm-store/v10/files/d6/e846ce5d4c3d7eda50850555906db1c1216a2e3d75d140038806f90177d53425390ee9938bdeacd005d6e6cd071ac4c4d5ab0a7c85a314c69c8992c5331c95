@@ -1,0 +1,231 @@
+buildscript {
+  repositories {
+    google()
+    mavenCentral()
+    gradlePluginPortal()
+  }
+  dependencies {
+    classpath "com.android.tools.build:gradle:8.7.2"
+    // Standalone-only (see settings.gradle's marker). In a consuming app the
+    // Kotlin and React Native gradle plugins come from the app's root
+    // buildscript; adding them here could clash with the app's plugin versions.
+    // react-native-gradle-plugin is substituted by the includeBuild in
+    // settings.gradle.
+    if (gradle.ext.has('dynamicClientStandaloneBuild')) {
+      classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.20"
+      classpath "com.facebook.react:react-native-gradle-plugin"
+    }
+  }
+}
+
+apply plugin: "com.android.library"
+apply plugin: "com.facebook.react"
+apply plugin: "org.jetbrains.kotlin.android"
+
+import groovy.json.JsonSlurper
+
+// True only when this module is built on its own for unit testing (the marker is
+// set in settings.gradle, which a consuming app never evaluates). EVERYTHING
+// guarded by this must stay off in an app's autolinked build, where this
+// build.gradle is consumed as a subproject and the app owns React Native and
+// codegen configuration. Keeping these test-only concerns out of that path is
+// what makes the customer build identical to before this test setup was added.
+def isStandaloneTestBuild = gradle.ext.has('dynamicClientStandaloneBuild')
+
+def packageJson = new JsonSlurper().parseText(file("../package.json").text)
+def sdkVersion = packageJson.version
+
+def safeExtGet(prop, fallback) {
+  return rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
+}
+
+if (isStandaloneTestBuild) {
+  // Point TurboModule codegen at the monorepo-root node_modules. For a LIBRARY
+  // module the com.facebook.react plugin reads reactNativeDir/codegenDir from the
+  // root project's `privateReact` extension (the public `react {}` block only
+  // feeds these for app modules), and both default to `<project>/../node_modules`
+  // — i.e. packages/client/node_modules, which doesn't exist under pnpm. We
+  // repoint them at the hoisted repo-root node_modules. `root` correctly defaults
+  // to packages/client, so package.json's codegenConfig (name: DynamicClientSpec,
+  // jsSrcsDir: src/turboModules, javaPackageName: xyz.dynamic.client) is picked up
+  // automatically. This MUST be standalone-only: `privateReact` is the shared
+  // app-wide extension, so repointing it in an autolinked build would break
+  // codegen for the whole app and every other library.
+  def privateReactExtension = rootProject.extensions.getByName("privateReact")
+  privateReactExtension.reactNativeDir.set(file("../../../node_modules/react-native"))
+  privateReactExtension.codegenDir.set(file("../../../node_modules/@react-native/codegen"))
+}
+
+android {
+  namespace "xyz.dynamic.client"
+
+  compileSdkVersion safeExtGet("compileSdkVersion", 35)
+
+  defaultConfig {
+    minSdkVersion safeExtGet("minSdkVersion", 24)
+    targetSdkVersion safeExtGet("targetSdkVersion", 35)
+    buildConfigField "String", "DYNAMIC_SDK_VERSION", "\"${sdkVersion}\""
+  }
+
+  buildFeatures {
+    buildConfig true
+  }
+
+  buildTypes {
+    release {
+      minifyEnabled false
+    }
+  }
+
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+  }
+
+  kotlinOptions {
+    jvmTarget = "17"
+  }
+
+  sourceSets {
+    main {
+      java.srcDirs += [
+        "generated/java",
+        "generated/jni"
+      ]
+    }
+  }
+
+  if (isStandaloneTestBuild) {
+    testOptions {
+      unitTests {
+        // Robolectric needs the merged Android resources/manifest.
+        includeAndroidResources = true
+        // FOOTGUN: returnDefaultValues makes un-shadowed android.jar stubs return
+        // 0/null/false instead of throwing "Method ... not mocked". It is only
+        // needed for the non-Robolectric tests (e.g. DynamicWebViewBridgeTest)
+        // that touch android types without Robolectric's shadows in place;
+        // Robolectric-run tests get real shadows and don't rely on it. The
+        // tradeoff is that a test which silently hits a real Android path won't
+        // fail loudly — so any new test that depends on actual framework
+        // behavior MUST run under @RunWith(RobolectricTestRunner) rather than
+        // leaning on these defaults.
+        returnDefaultValues = true
+      }
+    }
+  }
+}
+
+repositories {
+  mavenCentral()
+  google()
+}
+
+dependencies {
+  if (isStandaloneTestBuild) {
+    // Standalone build resolves the published react-android from Maven Central
+    // pinned to the exact React Native version installed in the monorepo. Read
+    // it from react-native's own package.json (the same repo-root node_modules
+    // the codegen repointing above targets) rather than hardcoding a literal, so
+    // it cannot drift from the RN version the app actually ships when RN is
+    // bumped.
+    def reactNativeVersion = new JsonSlurper()
+      .parseText(file("../../../node_modules/react-native/package.json").text)
+      .version
+    implementation "com.facebook.react:react-android:${reactNativeVersion}"
+  } else {
+    // App build: let the consuming app's React Native version decide.
+    implementation "com.facebook.react:react-android"
+  }
+
+  // androidx.webkit is a runtime dependency for BOTH app and standalone builds
+  // (unlike the test-only deps below). It exposes origin-scoped, main-frame-aware
+  // WebView APIs over the device's installed System WebView: WebMessageListener
+  // (a string-safe JS<->native channel that replaces addJavascriptInterface),
+  // document-start script injection, and the multi-profile store (per-instance
+  // ephemeral storage). Every call site is gated on
+  // WebViewFeature.isFeatureSupported(). Version mirrors react-native-webview's
+  // overridable `webkitVersion` property; the feature floor is ~1.10.0. Latest
+  // stable at time of writing is 1.16.0 — bumping past 1.12.x may require
+  // compileSdk >= 36.
+  implementation "androidx.webkit:webkit:${safeExtGet('webkitVersion', '1.12.1')}"
+}
+
+// ---------------------------------------------------------------------------
+// Test-only setup. None of this is applied in a consuming app's autolinked
+// build (guarded by isStandaloneTestBuild), so it cannot affect customers.
+// ---------------------------------------------------------------------------
+if (isStandaloneTestBuild) {
+  // JaCoCo line/branch coverage for the JVM unit tests. Report-only: it never
+  // fails the build, it just emits HTML + XML under build/reports/jacoco.
+  apply plugin: "jacoco"
+
+  // Robolectric normally downloads its instrumented `android-all` SDK jar at
+  // test time via its own HTTP client, which fails behind the corporate proxy
+  // (Gradle is configured with an SSL truststore that Robolectric's fetcher does
+  // not use). Instead we let Gradle resolve the exact jar Robolectric expects for
+  // the @Config(sdk = 35) the tests pin (matching compileSdk/targetSdk, which is
+  // the SDK Robolectric loads the app package against), copy it into a build dir,
+  // and run Robolectric in offline mode against it. The version string is tied to
+  // the Robolectric version below — bump both together.
+  def robolectricSdkVersion = "15-robolectric-12650502-i7"
+
+  configurations {
+    robolectricSdk
+  }
+
+  dependencies {
+    testImplementation "junit:junit:4.13.2"
+    // 4.14+ is required for Android API 35 (compileSdk) support.
+    testImplementation "org.robolectric:robolectric:4.14.1"
+    testImplementation "io.mockk:mockk:1.13.13"
+    // Real org.json implementation for the JSON-conversion util tests (the
+    // android.jar stub ships no-op org.json).
+    testImplementation "org.json:json:20240303"
+
+    robolectricSdk "org.robolectric:android-all-instrumented:${robolectricSdkVersion}"
+  }
+
+  def robolectricSdkDir = layout.buildDirectory.dir("robolectric-sdk")
+  def copyRobolectricSdk = tasks.register("copyRobolectricSdk", Copy) {
+    from configurations.robolectricSdk
+    into robolectricSdkDir
+  }
+
+  tasks.withType(Test).configureEach {
+    dependsOn(copyRobolectricSdk)
+    systemProperty "robolectric.offline", "true"
+    systemProperty "robolectric.dependency.dir", robolectricSdkDir.get().asFile.absolutePath
+
+    // Robolectric loads classes in its own sandbox classloader, which have no
+    // code "location"; without includeNoLocationClasses JaCoCo skips them and
+    // reports ~0% for every Robolectric-run test. The jdk.internal exclude
+    // avoids a JaCoCo instrumentation error on those classes.
+    jacoco {
+      includeNoLocationClasses = true
+      excludes = ["jdk.internal.*"]
+    }
+  }
+
+  tasks.register("jacocoTestReport", JacocoReport) {
+    dependsOn "testDebugUnitTest"
+    group = "verification"
+    description = "Generates a JaCoCo coverage report for the debug unit tests."
+
+    reports {
+      html.required.set(true)
+      xml.required.set(true)
+    }
+
+    def buildDirFile = layout.buildDirectory.get().asFile
+    // Exclude generated and framework classes that carry no testable logic:
+    // codegen TurboModule specs, BuildConfig, and resource R classes.
+    def coverageExclusions = ["**/Native*Spec*.*", "**/BuildConfig.*", "**/R.class", "**/R\$*.class"]
+    classDirectories.setFrom(
+      fileTree(dir: "${buildDirFile}/tmp/kotlin-classes/debug", excludes: coverageExclusions)
+    )
+    sourceDirectories.setFrom(files("${projectDir}/src/main/java"))
+    executionData.setFrom(
+      fileTree(dir: buildDirFile, includes: ["jacoco/testDebugUnitTest.exec"])
+    )
+  }
+}

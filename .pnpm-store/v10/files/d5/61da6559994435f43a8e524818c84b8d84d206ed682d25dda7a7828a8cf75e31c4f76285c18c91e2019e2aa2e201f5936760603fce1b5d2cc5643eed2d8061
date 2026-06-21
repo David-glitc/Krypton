@@ -1,0 +1,10 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var core = require('@dynamic-labs-sdk/client/core');
+
+const createDeviceSignatureHeadersMiddleware = () => core.createDeviceSignatureHeadersMiddleware(core.getDefaultClient());
+
+exports.createDeviceSignatureHeadersMiddleware = createDeviceSignatureHeadersMiddleware;

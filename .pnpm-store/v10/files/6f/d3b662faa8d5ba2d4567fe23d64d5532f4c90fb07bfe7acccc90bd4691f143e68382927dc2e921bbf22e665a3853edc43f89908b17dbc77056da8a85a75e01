@@ -1,0 +1,7 @@
+export type AuthOrigin = 'connect-and-sign' | 'connect-and-sign-split-steps' | 'email-verification' | 'phantom-redirect' | 'social-auth' | 'social-redirect' | 'user-auth' | 'wallet-verify';
+export type AuthLoginFailedContext = {
+    authOrigin: AuthOrigin;
+    provider?: string;
+    stage?: 'connect' | 'verify';
+};
+export declare const instrumentAuthLoginFailed: (err: unknown, context: AuthLoginFailedContext) => void;

@@ -1,0 +1,129 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+var client = require('@dynamic-labs-sdk/client');
+var sdkApiCore = require('@dynamic-labs/sdk-api-core');
+require('@dynamic-labs-sdk/client/core');
+require('eventemitter3');
+require('@dynamic-labs/utils');
+require('../../../config/ApiEndpoint.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+require('../../../context/ViewContext/ViewContext.cjs');
+require('../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('../../constants/colors.cjs');
+require('../../constants/values.cjs');
+require('../../../shared/consts/index.cjs');
+require('@dynamic-labs/multi-wallet');
+require('react-international-phone');
+require('../../../store/state/nonce/nonce.cjs');
+require('@dynamic-labs/locale');
+require('../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../store/state/primaryWalletId/primaryWalletId.cjs');
+require('../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+require('../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+require('../../../events/dynamicEvents.cjs');
+var useUser = require('../../../client/extension/user/useUser/useUser.cjs');
+
+const isCountryCode = (value) => value !== undefined && value in client.supportedCountries;
+const isOtpCapableCredential = (cred) => cred.format === sdkApiCore.JwtVerifiedCredentialFormatEnum.Email ||
+    cred.format === sdkApiCore.JwtVerifiedCredentialFormatEnum.PhoneNumber;
+const resolveTargetCredential = (credentials, credentialId) => {
+    var _a, _b;
+    if (credentialId) {
+        return ((_a = credentials.find((cred) => cred.id === credentialId)) !== null && _a !== void 0 ? _a : `Credential with id "${credentialId}" not found`);
+    }
+    return ((_b = credentials.find((cred) => cred.signInEnabled && isOtpCapableCredential(cred))) !== null && _b !== void 0 ? _b : 'No sign-in enabled email or SMS credential found for step-up authentication');
+};
+const sendEmailOtp = (credential) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+    if (!credential.email) {
+        throw new Error('Email credential is missing email address');
+    }
+    return client.sendEmailOTP({ email: credential.email });
+});
+const sendSmsOtp = (credential) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const normalizedPhoneCountryCode = (_a = credential.phoneCountryCode) === null || _a === void 0 ? void 0 : _a.replace(/^\+/, '');
+    const matchedCountryCode = Object.keys(client.supportedCountries).find((key) => client.supportedCountries[key].code === normalizedPhoneCountryCode);
+    const isoCountryCode = isCountryCode(credential.isoCountryCode)
+        ? credential.isoCountryCode
+        : matchedCountryCode;
+    if (!credential.phoneNumber || !isoCountryCode) {
+        throw new Error('SMS credential is missing phone number or country code');
+    }
+    return client.sendSmsOTP({ isoCountryCode, phoneNumber: credential.phoneNumber });
+});
+const dispatchOtp = (credential) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+    return credential.format === sdkApiCore.JwtVerifiedCredentialFormatEnum.Email
+        ? sendEmailOtp(credential)
+        : sendSmsOtp(credential);
+});
+const useStepUpOtp = ({ credentialId, stateActions, }) => {
+    const user = useUser.useUser();
+    const { setError, setLoading, setSuccess } = stateActions;
+    const otpVerificationRef = React.useRef(null);
+    const sendOtp = React.useCallback((params) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        var _a;
+        const credentials = user === null || user === void 0 ? void 0 : user.verifiedCredentials;
+        if (!(credentials === null || credentials === void 0 ? void 0 : credentials.length)) {
+            setError('No verified credentials found for the authenticated user');
+            return null;
+        }
+        const effectiveCredentialId = (_a = params === null || params === void 0 ? void 0 : params.credentialId) !== null && _a !== void 0 ? _a : credentialId;
+        const result = resolveTargetCredential(credentials, effectiveCredentialId);
+        if (typeof result === 'string') {
+            setError(result);
+            return null;
+        }
+        if (!isOtpCapableCredential(result)) {
+            setError(`Credential format "${result.format}" does not support OTP verification. Only email and SMS credentials are supported`);
+            return null;
+        }
+        setLoading();
+        try {
+            const otpVerification = yield dispatchOtp(result);
+            otpVerificationRef.current = otpVerification;
+            setSuccess({ otpVerification });
+            return otpVerification;
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to send OTP';
+            setError(errorMessage);
+            return null;
+        }
+    }), [credentialId, setError, setLoading, setSuccess, user === null || user === void 0 ? void 0 : user.verifiedCredentials]);
+    const verifyOtp = React.useCallback((_b) => _tslib.__awaiter(void 0, [_b], void 0, function* ({ requestedScopes, verificationToken, }) {
+        const otpVerification = otpVerificationRef.current;
+        if (!otpVerification) {
+            setError('OTP verification has not been initiated. Call sendOtp() first');
+            return null;
+        }
+        setLoading();
+        try {
+            const response = yield client.verifyOTP({
+                otpVerification,
+                requestedScopes,
+                verificationToken,
+            });
+            setSuccess();
+            return response;
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to verify OTP';
+            setError(errorMessage);
+            return null;
+        }
+    }), [setError, setLoading, setSuccess]);
+    const resetOtpRef = React.useCallback(() => {
+        otpVerificationRef.current = null;
+    }, []);
+    return { resetOtpRef, sendOtp, verifyOtp };
+};
+
+exports.useStepUpOtp = useStepUpOtp;

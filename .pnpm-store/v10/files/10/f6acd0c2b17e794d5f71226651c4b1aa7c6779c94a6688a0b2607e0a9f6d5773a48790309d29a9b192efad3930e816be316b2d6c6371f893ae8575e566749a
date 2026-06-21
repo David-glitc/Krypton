@@ -1,0 +1,1 @@
+{"version":3,"file":"InvalidRealtimePublishError.d.ts","sourceRoot":"","sources":["../../src/errors/InvalidRealtimePublishError.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,SAAS,EAAE,MAAM,QAAQ,CAAC;AAEnC,KAAK,4BAA4B,GAAG;IAClC,OAAO,EAAE,MAAM,CAAC;CACjB,CAAC;AAEF,qBAAa,2BAA4B,SAAQ,SAAS;gBAC5C,EAAE,OAAO,EAAE,EAAE,4BAA4B;CAWtD"}

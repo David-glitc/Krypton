@@ -1,0 +1,3 @@
+import type { WaasSDKContainer } from '@dynamic-labs-wallet/core';
+export declare const createIframeWaasSDKContainer: () => WaasSDKContainer;
+//# sourceMappingURL=createIframeWaasSDKContainer.d.ts.map

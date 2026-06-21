@@ -1,0 +1,45 @@
+'use client'
+import { __awaiter } from '../../../../../_virtual/_tslib.js';
+import { useCallback } from 'react';
+import { DeferredPromise } from '@dynamic-labs/utils';
+import '../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { useViewContext } from '../../../context/ViewContext/ViewContext.js';
+import { dynamicEvents } from '../../../events/dynamicEvents.js';
+
+const usePromptWalletUnlock = () => {
+    const { setShowAuthFlow } = useInternalDynamicContext();
+    const { pushView } = useViewContext();
+    const promptWalletUnlock = useCallback((_a) => __awaiter(void 0, [_a], void 0, function* ({ accountAddress, chainName, }) {
+        const deferred = new DeferredPromise();
+        setShowAuthFlow(true, { ignoreIfIsEmbeddedWidget: false });
+        pushView('unlock-wallet', { accountAddress, chainName });
+        const passwordProvidedHandler = (payload) => {
+            if (payload.accountAddress === accountAddress &&
+                payload.chainName === chainName) {
+                deferred.resolve(payload.password);
+            }
+        };
+        dynamicEvents.on('walletUnlockPasswordProvided', passwordProvidedHandler);
+        const cancelledHandler = (payload) => {
+            if (payload.accountAddress === accountAddress &&
+                payload.chainName === chainName) {
+                deferred.resolve(undefined);
+            }
+        };
+        dynamicEvents.on('walletUnlockCancelled', cancelledHandler);
+        const authFlowCloseHandler = () => {
+            deferred.resolve(undefined);
+        };
+        dynamicEvents.on('authFlowClose', authFlowCloseHandler);
+        deferred.promise.finally(() => {
+            dynamicEvents.off('walletUnlockPasswordProvided', passwordProvidedHandler);
+            dynamicEvents.off('walletUnlockCancelled', cancelledHandler);
+            dynamicEvents.off('authFlowClose', authFlowCloseHandler);
+        });
+        return deferred.promise;
+    }), [setShowAuthFlow, pushView]);
+    return promptWalletUnlock;
+};
+
+export { usePromptWalletUnlock };

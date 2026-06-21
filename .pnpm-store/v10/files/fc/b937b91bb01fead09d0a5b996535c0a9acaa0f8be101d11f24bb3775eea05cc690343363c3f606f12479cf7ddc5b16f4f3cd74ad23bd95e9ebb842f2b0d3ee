@@ -1,0 +1,11 @@
+import type { ISolana } from '@dynamic-labs/solana-core';
+import type { StandardWallet } from './types.js';
+/**
+ * Adapts a wallet-standard Wallet into the ISolana interface that Dynamic expects.
+ *
+ * The MetaMask Connect Solana SDK produces a wallet-standard Wallet with features
+ * like standard:connect, solana:signTransaction, etc. Dynamic's SolanaWalletConnector
+ * works with the ISolana interface (EventEmitter + signTransaction/signMessage/etc).
+ * This adapter bridges the two.
+ */
+export declare function createWalletStandardAdapter(wallet: StandardWallet, getSelectedNetwork: () => string): ISolana;

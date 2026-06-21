@@ -1,0 +1,18 @@
+import { WebViewLoadFailedError } from '../../../errors/WebViewLoadFailedError';
+/**
+ * Translates a native `DynamicWebView.open()` rejection into a typed
+ * `WebViewLoadFailedError`. Maps the native RCT reject code to the JS-level
+ * `WebViewLoadFailureReason` discriminator (falling back to
+ * `navigation_failed` for unrecognized codes) and carries through the
+ * structured `statusCode` / `underlyingError` metadata.
+ *
+ * The `reason` it produces is the contract `createWaasSDKContainer` branches
+ * on — notably `emitError` swallows `cancelled` because that code is only ever
+ * produced by our own `close()` teardown (verified on both the iOS and Android
+ * native sides). Keep `REASON_BY_NATIVE_CODE` in sync with the native reject
+ * codes so that branching stays correct.
+ *
+ * @not-instrumented
+ */
+export declare const translateNativeOpenError: (err: unknown) => WebViewLoadFailedError;
+//# sourceMappingURL=translateNativeOpenError.d.ts.map

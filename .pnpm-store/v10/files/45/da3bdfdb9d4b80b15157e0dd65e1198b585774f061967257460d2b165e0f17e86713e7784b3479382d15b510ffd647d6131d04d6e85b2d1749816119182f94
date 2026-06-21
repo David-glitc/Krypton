@@ -1,0 +1,8 @@
+import * as anchor from '@coral-xyz/anchor';
+type TransactionInstruction = anchor.web3.TransactionInstruction;
+type PublicKey = anchor.web3.PublicKey;
+export declare function calculateSplitIndex(instructions: readonly TransactionInstruction[]): number[];
+export declare function calculateCpiHash(cpiInstructions: readonly TransactionInstruction[], smartWallet: PublicKey, cpiSigners?: readonly PublicKey[]): number[];
+export declare function collectCpiAccountMetas(cpiInstructions: readonly TransactionInstruction[], cpiSigners?: readonly PublicKey[]): anchor.web3.AccountMeta[];
+export {};
+//# sourceMappingURL=cpi.d.ts.map

@@ -1,0 +1,281 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+var buildTokenKey = require('./buildTokenKey.cjs');
+var nativeTokenKey = require('./nativeTokenKey.cjs');
+var pollOnShielded = require('./pollOnShielded.cjs');
+
+/**
+ * Selects which of `tokens` should attempt an auto-shield on this cycle.
+ * A token is a candidate when:
+ *  - it has a positive raw balance,
+ *  - the registry recognises it as shieldable,
+ *  - it has a usable idempotency key (address OR `isNative: true`), and
+ *  - we haven't already attempted it for this `accountAddress` this
+ *    session (`seenKeys`).
+ *
+ * Pure / module-scope so the effect body stays small (the cognitive
+ *  complexity counter doesn't have to walk into the predicate).
+ */
+const buildShieldCandidates = (args) => {
+    const { tokens, accountAddress, shieldHandle, seenKeys } = args;
+    return tokens.filter((token) => {
+        if (!token.rawBalance || token.rawBalance <= 0)
+            return false;
+        if (!shieldHandle.canShieldToken({
+            address: token.address,
+            isNative: token.isNative,
+        })) {
+            return false;
+        }
+        const tokenKey = buildTokenKey.buildTokenKey(token);
+        if (!tokenKey)
+            return false;
+        return !seenKeys.has(`${accountAddress}:${tokenKey}`);
+    });
+};
+/**
+ * Attempt to auto-shield a single token. Returns `true` only if the shield
+ * ceremony broadcast successfully. On any short-circuit (sponsorship miss,
+ * zero atomic units, dispatch error) the seen-key is removed so the next
+ * refresh can retry. Cancellation is checked via the `isCancelled` thunk
+ * so the effect-cleanup `cancelled` flag stays in scope.
+ */
+const tryShieldOneToken = (token, deps) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c;
+    const { accountAddress, shieldHandle, seenKeys, isCancelled, inFlightTokenKeys, onShieldDispatched, } = deps;
+    const tokenKey = buildTokenKey.buildTokenKey(token) || nativeTokenKey.nativeTokenKey;
+    const key = `${accountAddress}:${tokenKey}`;
+    seenKeys.add(key);
+    let sponsored = false;
+    try {
+        sponsored =
+            (_b = (yield ((_a = shieldHandle.isShieldSponsored) === null || _a === void 0 ? void 0 : _a.call(shieldHandle, {
+                address: token.address,
+                isNative: token.isNative,
+            })))) !== null && _b !== void 0 ? _b : false;
+    }
+    catch (_d) {
+        sponsored = false;
+    }
+    if (isCancelled())
+        return false;
+    if (!sponsored) {
+        seenKeys.delete(key);
+        return false;
+    }
+    const atomic = BigInt(Math.round((_c = token.rawBalance) !== null && _c !== void 0 ? _c : 0));
+    if (atomic <= BigInt(0)) {
+        seenKeys.delete(key);
+        return false;
+    }
+    inFlightTokenKeys === null || inFlightTokenKeys === void 0 ? void 0 : inFlightTokenKeys.add(tokenKey);
+    try {
+        yield shieldHandle.shieldToken({
+            amount: atomic,
+            isNative: token.isNative,
+            tokenAddress: token.address,
+        });
+        // Optimistic-UI hand-off: notify the consumer the broadcast was
+        //  accepted so it can deduct the unshielded balance locally and
+        //  prepend a synthesised shielded row. Synchronous and best-effort;
+        //  failures inside the callback don't roll back the shield.
+        try {
+            onShieldDispatched === null || onShieldDispatched === void 0 ? void 0 : onShieldDispatched({ amount: atomic, token });
+        }
+        catch (_e) {
+            /* swallow — optimistic hand-off is best-effort */
+        }
+        return true;
+    }
+    catch (_f) {
+        seenKeys.delete(key);
+        return false;
+    }
+    finally {
+        inFlightTokenKeys === null || inFlightTokenKeys === void 0 ? void 0 : inFlightTokenKeys.delete(tokenKey);
+    }
+});
+const useAleoAutoShieldSponsoredTokens = ({ accountAddress, unshieldedTokenBalances, shieldHandle, onShielded, onShieldDispatched, }) => {
+    // Tracks `(accountAddress:tokenAddress)` we've already attempted in this
+    //  session. Cleared implicitly on a full page reload.
+    const seenKeysRef = React.useRef(new Set());
+    const [isShielding, setIsShielding] = React.useState(false);
+    // Counter of in-flight `run()` promises. Each effect-run that has at
+    //  least one candidate increments on entry and decrements in `.finally()`.
+    //  Without this counter, a stale `run()` resolving after a re-fire could
+    //  flip `isShielding` to `false` while a *new* `run()` is still active —
+    //  the indicator would blink off mid-shield, and the empty-candidates
+    //  path of a new effect-run would also wrongly clear the indicator
+    //  belonging to a still-running ceremony. We only call `setIsShielding(false)`
+    //  when the counter reaches `0`.
+    const activeRunsRef = React.useRef(0);
+    // Tracks component-lifetime mount state. The per-effect `cancelled`
+    //  variable signals "this particular run is no longer relevant", but
+    //  it gets flipped to `true` whenever deps change (e.g. when an
+    //  `onShielded` balance refresh updates `unshieldedTokenBalances`).
+    //  Using `cancelled` to gate state cleanup would leave `isShielding`
+    //  stuck at `true` because the cancelled run's `.finally()` skips the
+    //  setState. `mountedRef` only flips on actual unmount.
+    //
+    //  Important: refs persist across React 18 Strict Mode's fake
+    //  unmount/re-mount cycle in dev. We MUST set `mountedRef.current =
+    //  true` at the start of the mount effect body (not just at
+    //  `useRef(true)` init), or Strict Mode's first cleanup leaves the
+    //  ref `false` for the entire second mount, and `setIsShielding(false)`
+    //  is permanently skipped.
+    const mountedRef = React.useRef(true);
+    React.useEffect(() => {
+        mountedRef.current = true;
+        return () => {
+            mountedRef.current = false;
+        };
+    }, []);
+    // Identity-stable set of token keys we're currently broadcasting for.
+    //  Mutated in `tryShieldOneToken` (add on entry, delete in `finally`)
+    //  via the `inFlightKeysAdapter` below. We rebuild the returned `Set`
+    //  as a new instance on every mutation so React consumers re-render;
+    //  the underlying ref-held Set is internal and never exposed.
+    const inFlightKeysRef = React.useRef(new Set());
+    const [currentlyShieldingTokenKeys, setCurrentlyShieldingTokenKeys] = React.useState(() => new Set());
+    // Stable adapter we hand to `tryShieldOneToken`. Each add/delete
+    //  mutates the ref-held set and publishes a fresh ReadonlySet snapshot
+    //  to state so subscribers re-render. We can't pass `inFlightKeysRef.current`
+    //  directly because the consumer can't subscribe to mutation — the
+    //  state copy is what makes this observable from React.
+    const inFlightKeysAdapter = React.useMemo(() => ({
+        add: (key) => {
+            inFlightKeysRef.current.add(key);
+            if (mountedRef.current) {
+                setCurrentlyShieldingTokenKeys(new Set(inFlightKeysRef.current));
+            }
+        },
+        delete: (key) => {
+            inFlightKeysRef.current.delete(key);
+            if (mountedRef.current) {
+                setCurrentlyShieldingTokenKeys(new Set(inFlightKeysRef.current));
+            }
+        },
+    }), 
+    // mountedRef is stable; we read its `.current` inside the closures
+    //  to avoid resubscribing consumers on every mount.
+    []);
+    // Content fingerprint for the balance list. We re-run the effect only
+    //  when balances *meaningfully* change (token added/removed/balance
+    //  shifted), not on every render where the parent passes a new array
+    //  reference. Without this, parent re-renders re-fire the effect, the
+    //  cleanup sets `cancelled = true` on the in-flight run, and the
+    //  shieldToken dispatch never happens after the slow `isShieldSponsored`
+    //  network call resolves.
+    const balanceFingerprint = React.useMemo(() => (unshieldedTokenBalances !== null && unshieldedTokenBalances !== void 0 ? unshieldedTokenBalances : [])
+        .map((t) => {
+        var _a, _b;
+        return `${(_a = t.address) !== null && _a !== void 0 ? _a : nativeTokenKey.nativeTokenKey}|${t.isNative ? 1 : 0}|${(_b = t.rawBalance) !== null && _b !== void 0 ? _b : 0}`;
+    })
+        // Use `localeCompare` so the sort is locale-aware and stable across
+        //  JS engines (default `Array.prototype.sort` on strings is
+        //  implementation-defined for non-ASCII input — `localeCompare` is
+        //  the spec-mandated comparator for human-meaningful ordering).
+        .sort((a, b) => a.localeCompare(b))
+        .join(','), [unshieldedTokenBalances]);
+    React.useEffect(() => {
+        if (!accountAddress || !shieldHandle)
+            return;
+        if (!unshieldedTokenBalances || unshieldedTokenBalances.length === 0) {
+            return;
+        }
+        if (typeof shieldHandle.isShieldSponsored !== 'function')
+            return;
+        let cancelled = false;
+        const isCancelled = () => cancelled;
+        const candidates = buildShieldCandidates({
+            accountAddress,
+            seenKeys: seenKeysRef.current,
+            shieldHandle,
+            tokens: unshieldedTokenBalances,
+        });
+        if (candidates.length === 0) {
+            // No candidates this cycle — only clear the indicator if no other
+            //  run is still in flight. Without the counter check, a re-fire
+            //  whose cleanup cancelled the previous run would clobber the
+            //  still-active in-flight indicator owned by a different effect-run
+            //  (which can happen when deps churn during a ceremony).
+            if (mountedRef.current && activeRunsRef.current === 0) {
+                setIsShielding(false);
+            }
+            return;
+        }
+        // Flip the indicator on synchronously inside the effect so React
+        //  groups it with the initial render commit (the call site is
+        //  inherently `act()`-wrapped by `renderHook` / the user-event flow
+        //  that drove the props change). Setting it inside the async `run()`
+        //  fires the state update in a microtask AFTER the effect returns,
+        //  which trips React 18's "update not wrapped in act(...)" warning
+        //  that the test setup converts to a failure.
+        if (mountedRef.current)
+            setIsShielding(true);
+        activeRunsRef.current += 1;
+        const run = () => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+            let didShield = false;
+            for (const token of candidates) {
+                if (cancelled)
+                    return;
+                const ok = yield tryShieldOneToken(token, {
+                    accountAddress,
+                    inFlightTokenKeys: inFlightKeysAdapter,
+                    isCancelled,
+                    onShieldDispatched,
+                    seenKeys: seenKeysRef.current,
+                    shieldHandle,
+                });
+                if (ok)
+                    didShield = true;
+            }
+            if (didShield && !cancelled && onShielded) {
+                yield pollOnShielded.pollOnShielded(onShielded, isCancelled);
+            }
+        });
+        run()
+            .catch(() => {
+            /* swallow — see method jsdoc */
+        })
+            .finally(() => {
+            // Decrement the in-flight counter. Only clear the indicator if
+            //  this was the LAST active run — otherwise an overlapping run
+            //  (started by a re-fire while this one was mid-shield) is still
+            //  shielding and the UI should keep showing "Auto-shielding…".
+            activeRunsRef.current = Math.max(0, activeRunsRef.current - 1);
+            if (!mountedRef.current)
+                return;
+            if (activeRunsRef.current > 0)
+                return;
+            // Defer the setState by one macrotask via `setTimeout(0)`. In
+            //  production the 0ms delay is imperceptible. In tests it lets the
+            //  framework's afterEach `act()` drain wrap the trailing state
+            //  update, instead of firing it inside the synchronous microtask
+            //  drain of a `waitFor` poll where it sits OUTSIDE any act region
+            //  and trips React 18's "update not wrapped in act" warning gate.
+            //  We re-check the counter inside the timer callback because a
+            //  fresh effect-run could have incremented it during the 0ms gap.
+            setTimeout(() => {
+                if (mountedRef.current && activeRunsRef.current === 0) {
+                    setIsShielding(false);
+                }
+            }, 0);
+        });
+        return () => {
+            cancelled = true;
+        };
+        // `unshieldedTokenBalances` is read inside the effect but tracked via
+        //  `balanceFingerprint` so reference-only changes don't re-fire and
+        //  cancel an in-flight shield ceremony.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [accountAddress, balanceFingerprint, shieldHandle, onShielded]);
+    return { currentlyShieldingTokenKeys, isShielding };
+};
+
+exports.useAleoAutoShieldSponsoredTokens = useAleoAutoShieldSponsoredTokens;

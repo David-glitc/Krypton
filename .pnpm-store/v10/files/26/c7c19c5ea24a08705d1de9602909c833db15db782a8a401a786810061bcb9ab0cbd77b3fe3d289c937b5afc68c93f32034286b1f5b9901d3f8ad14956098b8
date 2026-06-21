@@ -1,0 +1,15 @@
+import type { OTPVerification } from '@dynamic-labs-sdk/client';
+import { VerifyResponse } from '@dynamic-labs/sdk-api-core';
+import type { SendOtpParams, VerifyOtpParams } from './useStepUpAuthentication.types';
+import type { useStepUpState } from './useStepUpState';
+type StepUpStateActions = ReturnType<typeof useStepUpState>;
+type UseStepUpOtpParams = {
+    credentialId?: string;
+    stateActions: StepUpStateActions;
+};
+export declare const useStepUpOtp: ({ credentialId, stateActions, }: UseStepUpOtpParams) => {
+    resetOtpRef: () => void;
+    sendOtp: (params?: SendOtpParams) => Promise<OTPVerification | null>;
+    verifyOtp: ({ requestedScopes, verificationToken, }: VerifyOtpParams) => Promise<VerifyResponse | null>;
+};
+export {};

@@ -1,0 +1,13 @@
+/**
+ * Extracts the session ID (`sid` claim) from a JWT token string.
+ *
+ * Decodes the base64url-encoded payload segment of the token and reads the
+ * `sid` field. This is used to correlate instrumentation events with the
+ * authenticated session, without ever forwarding the full token.
+ *
+ * Returns `null` when no token is present, when the token is malformed, or
+ * when the payload does not contain a `sid` claim.
+  * @not-instrumented
+ */
+export declare const extractSessionId: (token: string) => string | null;
+//# sourceMappingURL=extractSessionId.d.ts.map

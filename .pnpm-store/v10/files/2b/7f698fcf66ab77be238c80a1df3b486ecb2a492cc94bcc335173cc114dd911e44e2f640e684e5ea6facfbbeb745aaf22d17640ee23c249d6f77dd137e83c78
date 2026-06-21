@@ -1,0 +1,103 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../../_virtual/_tslib.cjs');
+var jsxRuntime = require('react/jsx-runtime');
+var React = require('react');
+var reactI18next = require('react-i18next');
+var walletConnectorCore = require('@dynamic-labs/wallet-connector-core');
+var Skeleton = require('../../../../components/Skeleton/Skeleton.cjs');
+require('../../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+require('@dynamic-labs/iconic');
+var midnightShielded = require('../../../../shared/assets/midnight-shielded.cjs');
+var midnightUnshielded = require('../../../../shared/assets/midnight-unshielded.cjs');
+require('../../../../context/ViewContext/ViewContext.cjs');
+require('../../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('@dynamic-labs/utils');
+require('../../../../utils/constants/colors.cjs');
+require('../../../../utils/constants/values.cjs');
+require('@dynamic-labs/sdk-api-core');
+require('../../../../shared/consts/index.cjs');
+var classNames = require('../../../../utils/functions/classNames/classNames.cjs');
+var usePromise = require('../../../../utils/hooks/usePromise/usePromise.cjs');
+
+const DUST_SEGMENTS = 20;
+const truncateToDecimals = (value, decimals) => {
+    const [whole, fractional] = value.split('.');
+    if (!fractional || decimals <= 0)
+        return whole;
+    const sliced = fractional.slice(0, decimals);
+    let end = sliced.length;
+    while (end > 0 && sliced[end - 1] === '0') {
+        end -= 1;
+    }
+    const trimmed = sliced.slice(0, end);
+    return trimmed.length > 0 ? `${whole}.${trimmed}` : whole;
+};
+const getDustFillCount = (balance, cap) => {
+    const b = parseFloat(balance);
+    const c = parseFloat(cap);
+    if (!c || isNaN(b) || isNaN(c))
+        return 0;
+    return Math.round(Math.min(b / c, 1) * DUST_SEGMENTS);
+};
+const TABS = [
+    {
+        copykey: 'dyn_active_wallet_info.midnight_shielded_balance',
+        id: 'shielded',
+    },
+    {
+        copykey: 'dyn_active_wallet_info.midnight_unshielded_balance',
+        id: 'unshielded',
+    },
+];
+const ActiveMidnightWalletBalance = ({ isLoading = false, }) => {
+    const { t } = reactI18next.useTranslation();
+    const { primaryWallet } = useInternalDynamicContext.useInternalDynamicContext();
+    const [activeTab, setActiveTab] = React.useState('shielded');
+    const walletAddress = primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.address;
+    const enabled = Boolean(!isLoading && primaryWallet && walletConnectorCore.isMidnightConnector(primaryWallet.connector));
+    const { data: balances, isLoading: balancesLoading } = usePromise.usePromise(() => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        if (!primaryWallet ||
+            !walletConnectorCore.isMidnightConnector(primaryWallet.connector) ||
+            !walletConnectorCore.isMidnightWallet(primaryWallet)) {
+            return undefined;
+        }
+        return primaryWallet.getFormattedBalances();
+    }), {
+        deps: [walletAddress, primaryWallet],
+        enabled,
+    });
+    const { dustBalance, shieldedBalance, unshieldedBalance } = balances !== null && balances !== void 0 ? balances : {};
+    if (isLoading || balancesLoading) {
+        return (jsxRuntime.jsx("div", { className: 'active-midnight-balance', children: jsxRuntime.jsx(Skeleton.Skeleton, { className: 'active-midnight-balance__skeleton' }) }));
+    }
+    const dustFill = dustBalance
+        ? getDustFillCount(dustBalance.balance, dustBalance.cap)
+        : 0;
+    const dustBalanceDisplay = dustBalance
+        ? {
+            balance: truncateToDecimals(dustBalance.balance, 2),
+            cap: truncateToDecimals(dustBalance.cap, 2),
+        }
+        : undefined;
+    const activeBalance = activeTab === 'shielded' ? shieldedBalance : unshieldedBalance;
+    return (jsxRuntime.jsx("div", { className: 'active-midnight-balance', children: jsxRuntime.jsxs("div", { className: 'active-midnight-balance__card', children: [dustBalance && (jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [jsxRuntime.jsxs("div", { className: 'active-midnight-balance__dust', children: [jsxRuntime.jsxs("div", { className: 'active-midnight-balance__dust-header', children: [jsxRuntime.jsxs("div", { className: 'active-midnight-balance__dust-title', children: [jsxRuntime.jsx("svg", { className: 'active-midnight-balance__dust-icon', width: '12', height: '12', viewBox: '0 0 24 24', children: jsxRuntime.jsx("path", { d: 'M13 2L3 14h9l-1 8 10-12h-9l1-8z' }) }), jsxRuntime.jsx("span", { className: 'active-midnight-balance__dust-label', "data-copykey": 'dyn_active_wallet_info.midnight_dust_generating', children: t('dyn_active_wallet_info.midnight_dust_generating') })] }), jsxRuntime.jsxs("span", { className: 'active-midnight-balance__dust-count', children: [dustBalanceDisplay === null || dustBalanceDisplay === void 0 ? void 0 : dustBalanceDisplay.balance, "/", dustBalanceDisplay === null || dustBalanceDisplay === void 0 ? void 0 : dustBalanceDisplay.cap] })] }), jsxRuntime.jsx("div", { className: 'active-midnight-balance__dust-bar', children: Array.from({ length: DUST_SEGMENTS }, (_, i) => (jsxRuntime.jsx("div", { className: [
+                                            'active-midnight-balance__dust-segment',
+                                            i === 0 && 'active-midnight-balance__dust-segment--first',
+                                            i === DUST_SEGMENTS - 1 &&
+                                                'active-midnight-balance__dust-segment--last',
+                                            i < dustFill &&
+                                                'active-midnight-balance__dust-segment--filled',
+                                        ]
+                                            .filter(Boolean)
+                                            .join(' ') }, i))) })] }), jsxRuntime.jsx("div", { className: 'active-midnight-balance__divider' })] })), jsxRuntime.jsx("div", { className: 'active-midnight-balance__tab-bar', children: TABS.map(({ id, copykey }) => (jsxRuntime.jsx("button", { className: classNames.classNames('active-midnight-balance__tab', {
+                            'active-midnight-balance__tab--active': activeTab === id,
+                        }), "data-copykey": copykey, onClick: () => setActiveTab(id), children: t(copykey) }, id))) }), jsxRuntime.jsxs("div", { className: 'active-midnight-balance__pocket', children: [activeTab === 'shielded' ? (jsxRuntime.jsx(midnightShielded.ReactComponent, { className: 'active-midnight-balance__pocket-icon' })) : (jsxRuntime.jsx(midnightUnshielded.ReactComponent, { className: 'active-midnight-balance__pocket-icon' })), jsxRuntime.jsxs("span", { className: 'active-midnight-balance__amount', children: [activeBalance !== null && activeBalance !== void 0 ? activeBalance : '—', " NIGHT"] })] })] }) }));
+};
+
+exports.ActiveMidnightWalletBalance = ActiveMidnightWalletBalance;

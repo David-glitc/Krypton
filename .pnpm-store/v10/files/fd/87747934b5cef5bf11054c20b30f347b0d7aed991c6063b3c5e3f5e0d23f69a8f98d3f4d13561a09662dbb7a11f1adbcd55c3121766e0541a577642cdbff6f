@@ -1,0 +1,9 @@
+export type KeychainService = {
+    generateKey(keyName: string): Promise<string>;
+    getPublicKey(keyName: string): Promise<string | null>;
+    hasKey(keyName: string): Promise<boolean>;
+    importKey(keyName: string, jwk: JsonWebKey): Promise<string>;
+    removeKey(keyName: string): Promise<void>;
+    sign(keyName: string, message: string): Promise<string>;
+};
+//# sourceMappingURL=keychain.types.d.ts.map

@@ -1,0 +1,49 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../_virtual/_tslib.cjs');
+var jsxRuntime = require('react/jsx-runtime');
+var React = require('react');
+var OTPVerificationView = require('../../components/OTPVerificationView/OTPVerificationView.cjs');
+var EmailIcon = require('../../components/EmailIcon/EmailIcon.cjs');
+var PhoneIcon = require('../../components/PhoneIcon/PhoneIcon.cjs');
+var useStepUpAuthentication = require('../../utils/hooks/useStepUpAuthentication/useStepUpAuthentication.cjs');
+
+const StepUpReauthOtpView = ({ credentialId, displayLabel, requestedScopes, type, onSuccess, }) => {
+    const { sendOtp, verifyOtp, state } = useStepUpAuthentication.useStepUpAuthentication({
+        credentialId,
+    });
+    const [verificationSuccess, setVerificationSuccess] = React.useState(false);
+    const hasSentInitialOtpRef = React.useRef(false);
+    const MainIcon = type === 'sms' ? PhoneIcon.PhoneIcon : EmailIcon.EmailIcon;
+    const { error, isLoading } = state;
+    React.useEffect(() => {
+        if (hasSentInitialOtpRef.current)
+            return;
+        hasSentInitialOtpRef.current = true;
+        sendOtp();
+    }, [sendOtp]);
+    const handlePinComplete = (verificationToken) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        const response = yield verifyOtp({
+            requestedScopes,
+            verificationToken,
+        });
+        if (!response) {
+            // Verification failed but the user can retry — the error is surfaced
+            // via state.error from useStepUpAuthentication. Do NOT call onError here
+            // because that permanently rejects the deferred promise, making subsequent
+            // retries unable to resolve it.
+            return;
+        }
+        setVerificationSuccess(true);
+        onSuccess();
+    });
+    const displayError = error ? new Error(error) : undefined;
+    return (jsxRuntime.jsx(OTPVerificationView.OTPVerificationView, { MainIcon: MainIcon, displayedDestination: displayLabel, error: displayError, isLoading: isLoading, isValid: verificationSuccess, onPinComplete: handlePinComplete, retryHandler: () => {
+            void sendOtp();
+        }, successBannerTextKey: 'dyn_otp_verification.verification_succeeded' }));
+};
+
+exports.StepUpReauthOtpView = StepUpReauthOtpView;

@@ -1,0 +1,34 @@
+'use client'
+import { useRef, useCallback } from 'react';
+import '../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { rejectPromiseRef } from '../../functions/rejectPromiseRef/rejectPromiseRef.js';
+import { resolvePromiseRef } from '../../functions/resolvePromiseRef/resolvePromiseRef.js';
+
+const useFundingExchangeHelpers = () => {
+    const { setShowAuthFlow } = useInternalDynamicContext();
+    const initiatedByWidgetRef = useRef(false);
+    const selectExchangeConfig = useCallback(({ promiseRef, initiatedByWidget, resultBuilder, }) => ({
+        onSelectExchange: (value) => {
+            if (!promiseRef.current)
+                return;
+            try {
+                initiatedByWidgetRef.current = initiatedByWidget;
+                resolvePromiseRef(promiseRef, resultBuilder(value));
+            }
+            catch (err) {
+                rejectPromiseRef(promiseRef, err);
+            }
+            finally {
+                setShowAuthFlow(false);
+            }
+        },
+        showDefaultFooter: true,
+    }), [setShowAuthFlow]);
+    return {
+        initiatedByWidgetRef,
+        selectExchangeConfig,
+    };
+};
+
+export { useFundingExchangeHelpers };

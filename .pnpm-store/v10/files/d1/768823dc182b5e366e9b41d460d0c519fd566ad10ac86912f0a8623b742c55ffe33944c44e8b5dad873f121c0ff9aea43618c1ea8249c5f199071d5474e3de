@@ -1,0 +1,10 @@
+import type { StoredKey } from '../createKeychainService.types';
+export type SetIndexedDBItemOptions = {
+    /** The IndexedDB database handle. */
+    db: IDBDatabase;
+    /** The stored key entry to write. */
+    entry: StoredKey;
+};
+/** @not-instrumented */
+export declare const setIndexedDBItem: ({ db, entry, }: SetIndexedDBItemOptions) => Promise<void>;
+//# sourceMappingURL=setIndexedDBItem.d.ts.map

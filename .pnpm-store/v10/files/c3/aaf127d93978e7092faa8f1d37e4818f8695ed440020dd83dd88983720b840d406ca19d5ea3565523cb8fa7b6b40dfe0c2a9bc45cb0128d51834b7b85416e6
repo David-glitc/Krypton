@@ -1,0 +1,5 @@
+import type { WalletProvider } from '../../wallets/walletProvider';
+import type { WaasWalletProvider } from '../waas.types';
+/** @not-instrumented */
+export declare const isWaasWalletProvider: (walletProvider: WalletProvider) => walletProvider is WaasWalletProvider;
+//# sourceMappingURL=isWaasWalletProvider.d.ts.map

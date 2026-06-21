@@ -1,0 +1,82 @@
+import * as anchor from '@coral-xyz/anchor';
+import { DefaultPolicy } from '../anchor/types/default_policy';
+import * as types from '../types';
+/**
+ * Parameters for building initialize policy instruction
+ */
+export interface BuildInitPolicyIxParams {
+    /** Wallet ID (required, must be non-negative) */
+    readonly walletId: anchor.BN;
+    /** Passkey public key (33 bytes, required) */
+    readonly passkeyPublicKey: types.PasskeyPublicKey | number[];
+    /** Credential hash (32 bytes, required) */
+    readonly credentialHash: types.CredentialHash | number[];
+    /** Policy signer PDA address (required) */
+    readonly policySigner: anchor.web3.PublicKey;
+    /** Smart wallet PDA address (required) */
+    readonly smartWallet: anchor.web3.PublicKey;
+    /** Wallet state PDA address (required) */
+    readonly walletState: anchor.web3.PublicKey;
+}
+/**
+ * Parameters for building check policy instruction
+ */
+export interface BuildCheckPolicyIxParams {
+    /** Wallet ID (required, must be non-negative) */
+    readonly walletId: anchor.BN;
+    /** Passkey public key (33 bytes, required) */
+    readonly passkeyPublicKey: types.PasskeyPublicKey | number[];
+    /** Policy signer PDA address (required) */
+    readonly policySigner: anchor.web3.PublicKey;
+    /** Smart wallet PDA address (required) */
+    readonly smartWallet: anchor.web3.PublicKey;
+    /** Credential hash (32 bytes, required) */
+    readonly credentialHash: types.CredentialHash | number[];
+    /** Policy data buffer (required, must be a Buffer instance) */
+    readonly policyData: Buffer;
+}
+export declare class DefaultPolicyClient {
+    readonly connection: anchor.web3.Connection;
+    readonly program: anchor.Program<DefaultPolicy>;
+    readonly programId: anchor.web3.PublicKey;
+    constructor(connection: anchor.web3.Connection);
+    /**
+     * Gets the policy PDA for a given smart wallet
+     *
+     * @param smartWallet - Smart wallet PDA address
+     * @returns Policy PDA address
+     * @throws {ValidationError} if smartWallet is invalid
+     */
+    policyPda(smartWallet: anchor.web3.PublicKey): anchor.web3.PublicKey;
+    /**
+     * Gets the default policy data size in bytes
+     *
+     * @returns Policy data size in bytes
+     */
+    getPolicyDataSize(): number;
+    /**
+     * Validates BuildInitPolicyIxParams
+     */
+    private validateInitPolicyParams;
+    /**
+     * Builds the initialize policy instruction
+     *
+     * @param params - Initialize policy parameters
+     * @returns Transaction instruction
+     * @throws {ValidationError} if parameters are invalid
+     */
+    buildInitPolicyIx(params: BuildInitPolicyIxParams): Promise<anchor.web3.TransactionInstruction>;
+    /**
+     * Validates BuildCheckPolicyIxParams
+     */
+    private validateCheckPolicyParams;
+    /**
+     * Builds the check policy instruction
+     *
+     * @param params - Check policy parameters
+     * @returns Transaction instruction
+     * @throws {ValidationError} if parameters are invalid
+     */
+    buildCheckPolicyIx(params: BuildCheckPolicyIxParams): Promise<anchor.web3.TransactionInstruction>;
+}
+//# sourceMappingURL=defaultPolicy.d.ts.map

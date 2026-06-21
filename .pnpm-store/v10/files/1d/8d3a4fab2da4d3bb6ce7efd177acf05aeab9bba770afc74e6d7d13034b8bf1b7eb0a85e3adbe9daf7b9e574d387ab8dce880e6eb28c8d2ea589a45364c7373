@@ -1,0 +1,27 @@
+import { AleoCuratedTokenPriceFromJSON, AleoCuratedTokenPriceToJSON } from './AleoCuratedTokenPrice.js';
+
+/* tslint:disable */
+function AleoCuratedPricesResponseResultFromJSON(json) {
+    return AleoCuratedPricesResponseResultFromJSONTyped(json);
+}
+function AleoCuratedPricesResponseResultFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'prices': (json['prices'].map(AleoCuratedTokenPriceFromJSON)),
+    };
+}
+function AleoCuratedPricesResponseResultToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'prices': (value.prices.map(AleoCuratedTokenPriceToJSON)),
+    };
+}
+
+export { AleoCuratedPricesResponseResultFromJSON, AleoCuratedPricesResponseResultFromJSONTyped, AleoCuratedPricesResponseResultToJSON };

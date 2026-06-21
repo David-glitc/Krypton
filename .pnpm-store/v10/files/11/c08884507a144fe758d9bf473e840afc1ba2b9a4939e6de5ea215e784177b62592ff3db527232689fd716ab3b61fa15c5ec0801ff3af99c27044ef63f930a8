@@ -1,0 +1,28 @@
+'use client'
+import { __awaiter } from '../../../../../_virtual/_tslib.js';
+import { useRef, useCallback } from 'react';
+import '../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { usePromptWalletUnlock } from '../usePromptWalletUnlock/usePromptWalletUnlock.js';
+
+const useGetWalletPassword = () => {
+    const { handlers } = useInternalDynamicContext();
+    const promptWalletUnlock = usePromptWalletUnlock();
+    // Use ref pattern to avoid callback recreation when handlers change
+    const getWalletPasswordHandlerRef = useRef(handlers === null || handlers === void 0 ? void 0 : handlers.getWalletPassword);
+    getWalletPasswordHandlerRef.current = handlers === null || handlers === void 0 ? void 0 : handlers.getWalletPassword;
+    const getWalletPassword = useCallback((_a) => __awaiter(void 0, [_a], void 0, function* ({ accountAddress, chainName, }) {
+        // If custom handler provided, use it
+        if (getWalletPasswordHandlerRef.current) {
+            return getWalletPasswordHandlerRef.current({
+                accountAddress,
+                chainName,
+            });
+        }
+        // Otherwise use default UI prompt
+        return promptWalletUnlock({ accountAddress, chainName });
+    }), [promptWalletUnlock]);
+    return getWalletPassword;
+};
+
+export { useGetWalletPassword };

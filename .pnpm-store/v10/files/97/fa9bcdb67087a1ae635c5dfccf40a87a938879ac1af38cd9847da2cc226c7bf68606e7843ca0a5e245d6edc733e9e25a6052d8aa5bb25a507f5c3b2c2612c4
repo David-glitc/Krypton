@@ -1,0 +1,9 @@
+import type * as z from 'zod/mini';
+import type { StorageKeySchema, StorageKeySchemaConfig } from '../storage.types';
+/** @not-instrumented */
+export declare const createStorageKeySchema: <T>(params: {
+    config?: StorageKeySchemaConfig;
+    key: string;
+    schema: z.ZodMiniType<T>;
+}) => StorageKeySchema<T>;
+//# sourceMappingURL=createStorageKeySchema.d.ts.map

@@ -1,0 +1,56 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../../_virtual/_tslib.cjs');
+var jsxRuntime = require('react/jsx-runtime');
+var React = require('react');
+var reactI18next = require('react-i18next');
+var client$1 = require('@dynamic-labs-sdk/client');
+var client = require('../../../../client/client.cjs');
+var IconButton = require('../../../../components/IconButton/IconButton.cjs');
+var ModalHeader = require('../../../../components/ModalHeader/ModalHeader.cjs');
+var Skeleton = require('../../../../components/Skeleton/Skeleton.cjs');
+var TextButton = require('../../../../components/TextButton/TextButton.cjs');
+var Typography = require('../../../../components/Typography/Typography.cjs');
+var chevronLeft = require('../../../../shared/assets/chevron-left.cjs');
+require('@dynamic-labs/iconic');
+require('../../../../context/ViewContext/ViewContext.cjs');
+var usePromise = require('../../../../utils/hooks/usePromise/usePromise.cjs');
+var DynamicWidgetContext = require('../../context/DynamicWidgetContext.cjs');
+var RemoveAllDevicesPrompt = require('./components/RemoveAllDevicesPrompt/RemoveAllDevicesPrompt.cjs');
+var RemoveDevicePrompt = require('./components/RemoveDevicePrompt/RemoveDevicePrompt.cjs');
+var TrustedDeviceTile = require('./components/TrustedDeviceTile/TrustedDeviceTile.cjs');
+
+const ManageTrustedDevicesView = () => {
+    var _a, _b;
+    const { t } = reactI18next.useTranslation();
+    const { setDynamicWidgetView } = DynamicWidgetContext.useWidgetContext();
+    const dynamicClient = client.useDynamicClient();
+    const [deviceIdToRemove, setDeviceIdToRemove] = React.useState(null);
+    const [showRemoveAll, setShowRemoveAll] = React.useState(false);
+    const { data: devices, isLoading, retrigger, } = usePromise.usePromise(() => client$1.getRegisteredDevices(), {
+        initialData: [],
+    });
+    const handleBackClick = React.useCallback(() => setDynamicWidgetView('account-and-security-settings'), [setDynamicWidgetView]);
+    const handleConfirmRemoveDevice = React.useCallback(() => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        if (!deviceIdToRemove)
+            return;
+        yield client$1.revokeRegisteredDevice({ deviceRegistrationId: deviceIdToRemove });
+        setDeviceIdToRemove(null);
+        // Revoking the current device logs the user out; skip the refetch to avoid a 401.
+        if (dynamicClient.user)
+            retrigger();
+    }), [deviceIdToRemove, dynamicClient, retrigger]);
+    const handleConfirmRemoveAll = React.useCallback(() => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        yield client$1.revokeAllRegisteredDevices();
+        setShowRemoveAll(false);
+        // revokeAllRegisteredDevices always logs the user out; no refetch needed.
+    }), []);
+    const backButton = (jsxRuntime.jsx(IconButton.IconButton, { type: 'button', onClick: handleBackClick, "data-testid": 'back-button', children: jsxRuntime.jsx(chevronLeft.ReactComponent, {}) }));
+    return (jsxRuntime.jsxs("div", { className: 'manage-trusted-devices-view', children: [jsxRuntime.jsx(ModalHeader.ModalHeader, { leading: backButton, children: jsxRuntime.jsx("div", { className: 'send-balance-page-layout__header-content', children: jsxRuntime.jsx(Typography.Typography, { variant: 'title', color: 'primary', copykey: 'dyn_device_management.manage_title', children: t('dyn_device_management.manage_title') }) }) }), jsxRuntime.jsxs("div", { className: 'manage-trusted-devices-view__scroll-container', children: [isLoading && (jsxRuntime.jsx(Skeleton.Skeleton, { count: 3, className: 'manage-trusted-devices-view__skeleton', dataTestId: 'trusted-devices-skeleton' })), !isLoading && devices.length === 0 && (jsxRuntime.jsx(Typography.Typography, { className: 'manage-trusted-devices-view__no-devices', variant: 'body_normal', color: 'secondary', copykey: 'dyn_device_management.no_devices', children: t('dyn_device_management.no_devices') })), !isLoading &&
+                        devices.map((device) => device.userAgent ? (jsxRuntime.jsx(TrustedDeviceTile.TrustedDeviceTile, { userAgent: device.userAgent, createdAt: device.createdAt, isCurrentDevice: device.isCurrentDevice, onClickDelete: () => setDeviceIdToRemove(device.id) }, device.id)) : null)] }), !isLoading && devices.length > 0 && (jsxRuntime.jsx("div", { className: 'manage-trusted-devices-view__footer', children: jsxRuntime.jsx(TextButton.TextButton, { className: 'manage-trusted-devices-view__remove-all-button', onClick: () => setShowRemoveAll(true), "data-testid": 'remove-all-devices-button', children: t('dyn_device_management.remove_all_devices') }) })), deviceIdToRemove !== null && (jsxRuntime.jsx(RemoveDevicePrompt.RemoveDevicePrompt, { deviceUserAgent: (_b = (_a = devices.find((d) => d.id === deviceIdToRemove)) === null || _a === void 0 ? void 0 : _a.userAgent) !== null && _b !== void 0 ? _b : '', onConfirm: handleConfirmRemoveDevice, onCancel: () => setDeviceIdToRemove(null) })), showRemoveAll && (jsxRuntime.jsx(RemoveAllDevicesPrompt.RemoveAllDevicesPrompt, { onConfirm: handleConfirmRemoveAll, onCancel: () => setShowRemoveAll(false) }))] }));
+};
+
+exports.ManageTrustedDevicesView = ManageTrustedDevicesView;

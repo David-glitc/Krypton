@@ -1,0 +1,24 @@
+import * as anchor from '@coral-xyz/anchor';
+import { PasskeySignature, Signature } from './types';
+/**
+ * Builds a Secp256r1 signature verification instruction for passkey authentication
+ *
+ * @param passkeySignature - Validated passkey signature data
+ * @returns Transaction instruction for signature verification
+ * @throws {ValidationError} if passkeySignature is invalid
+ */
+export declare function buildPasskeyVerificationInstruction(passkeySignature: PasskeySignature): anchor.web3.TransactionInstruction;
+/**
+ * Converts passkey signature data to the format expected by smart contract instructions
+ *
+ * @param passkeySignature - Validated passkey signature data
+ * @returns Instruction arguments with validated byte arrays
+ * @throws {ValidationError} if passkeySignature is invalid
+ */
+export declare function convertPasskeySignatureToInstructionArgs(passkeySignature: PasskeySignature): {
+    passkeyPublicKey: number[];
+    signature: Signature;
+    clientDataJsonRaw: Buffer;
+    authenticatorDataRaw: Buffer;
+};
+//# sourceMappingURL=auth.d.ts.map

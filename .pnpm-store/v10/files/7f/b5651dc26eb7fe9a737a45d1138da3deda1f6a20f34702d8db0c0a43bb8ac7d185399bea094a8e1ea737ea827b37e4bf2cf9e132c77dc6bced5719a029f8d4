@@ -1,0 +1,28 @@
+/**
+ * React Native TurboModule spec for the `ReactNativeManifest` native module.
+ *
+ * Consumed by React Native codegen to emit the Android/iOS native interfaces.
+ * The filename must stay prefixed with `Native` — codegen's parser discovers
+ * spec files by that convention and will silently skip anything else, leaving
+ * the native module uncompiled. Do not rename this file.
+ *
+ * The `interface` keyword, the `default export`, and the locally-declared
+ * `ReactNativeManifest` type are hard requirements of the codegen parser and
+ * intentionally deviate from project conventions: codegen parses this file
+ * statically and does NOT follow imported type aliases, so the return shape
+ * must be defined inline here. The canonical type lives in
+ * `nativeManifest.types.ts`; the `assertSameShape` line below is a TS-only
+ * check that fails the build if the two definitions drift.
+ */
+import { type TurboModule, TurboModuleRegistry } from 'react-native';
+
+export type ReactNativeManifest = {
+  sdkVersion: string;
+};
+
+export interface Spec extends TurboModule {
+  getManifest(): ReactNativeManifest;
+}
+
+// eslint-disable-next-line import/no-default-export -- codegen requires a default export of the TurboModule spec
+export default TurboModuleRegistry.get<Spec>('DynamicClientManifest');

@@ -1,0 +1,2 @@
+import { Context } from 'react';
+export declare const createProviderHook: <T>(context: Context<T | undefined>, providerName: string, ssrSafeDefault?: T) => (() => T);

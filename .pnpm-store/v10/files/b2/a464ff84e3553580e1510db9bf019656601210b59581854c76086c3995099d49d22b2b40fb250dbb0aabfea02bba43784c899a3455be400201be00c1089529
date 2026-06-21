@@ -1,0 +1,15 @@
+import type { DynamicClient } from '../../../client/types';
+export type SetInstrumentationEnabledOptions = {
+    /** Whether event collection should be active. */
+    enabled: boolean;
+};
+/**
+ * Enables or disables event collection for the client's instrumentation service.
+ *
+ * When enabled, events are forwarded to the configured transport on every
+ * instrumented function call. When disabled, instrumented functions run
+ * normally but emit no telemetry.
+ * @instrumented
+ */
+export declare const setInstrumentationEnabled: ({ enabled }: SetInstrumentationEnabledOptions, client?: DynamicClient) => void;
+//# sourceMappingURL=setInstrumentationEnabled.d.ts.map

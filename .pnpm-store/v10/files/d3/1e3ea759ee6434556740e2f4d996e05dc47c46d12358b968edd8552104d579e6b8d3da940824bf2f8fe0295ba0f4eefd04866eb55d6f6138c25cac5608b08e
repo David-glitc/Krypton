@@ -1,0 +1,21 @@
+import type { WalletBookSchema } from '../../../legacyWalletBook/legacyWalletBook.types';
+type FindByNameMatchParams = {
+    candidate: string;
+    walletBook: WalletBookSchema;
+};
+/**
+ * Looks for a wallet book entry whose `name` or `shortName` normalizes to
+ * the same string as `candidate`. Used as a fallback by
+ * `findWalletOptionKeyForProviderKey` for providers whose
+ * `walletProviderKey` strips down to a value that does not match any
+ * `walletBook.wallets` key directly (e.g. an extension whose display name
+ * happens to match the wallet's `shortName` instead of its book key).
+ *
+ * @param params.candidate - The lowercased, chain-suffix-stripped candidate.
+ * @param params.walletBook - The fetched wallet book.
+ * @returns The matching wallet book wallet key, or `undefined`.
+ * @not-instrumented
+ */
+export declare const findByNameMatch: ({ candidate, walletBook, }: FindByNameMatchParams) => string | undefined;
+export {};
+//# sourceMappingURL=findByNameMatch.d.ts.map

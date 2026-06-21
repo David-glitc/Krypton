@@ -1,0 +1,111 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+var utils = require('@dynamic-labs/utils');
+require('../../../../index.cjs');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var ViewContext = require('../../../context/ViewContext/ViewContext.cjs');
+var rejectPromiseRef = require('../../functions/rejectPromiseRef/rejectPromiseRef.cjs');
+var useDynamicEvents = require('../events/useDynamicEvents/useDynamicEvents.cjs');
+var useFundingExchangeHelpers = require('../useFundingExchangeHelpers/useFundingExchangeHelpers.cjs');
+var useFundingHelpers = require('../useFundingHelpers/useFundingHelpers.cjs');
+var resolvePromiseRef = require('../../functions/resolvePromiseRef/resolvePromiseRef.cjs');
+var dynamicEvents = require('../../../events/dynamicEvents.cjs');
+
+const useConnectUnifiedForFunding = () => {
+    const { setShowAuthFlow } = useInternalDynamicContext.useInternalDynamicContext();
+    const { clearStackAndPush } = ViewContext.useViewContext();
+    const { initiatedByWidgetRef, getWalletAddress, resetWalletConnectSession } = useFundingHelpers.useFundingHelpers();
+    const { selectExchangeConfig } = useFundingExchangeHelpers.useFundingExchangeHelpers();
+    const promiseRef = React.useRef(null);
+    useDynamicEvents.useInternalDynamicEvents('authFlowClose', () => {
+        rejectPromiseRef.rejectPromiseRef(promiseRef, new utils.DynamicError('User cancelled'));
+    });
+    const openList = React.useCallback((initiatedByWidget) => {
+        const { onSelectExchange } = selectExchangeConfig({
+            initiatedByWidget,
+            promiseRef,
+            resultBuilder: (exchange) => ({
+                exchange,
+                kind: 'exchange',
+            }),
+        });
+        clearStackAndPush('unified-wallet-exchange-list', {
+            onSelectExchange,
+            onSelectOnRamp: (onramp) => {
+                if (!promiseRef.current)
+                    return;
+                try {
+                    initiatedByWidgetRef.current = initiatedByWidget;
+                    resolvePromiseRef.resolvePromiseRef(promiseRef, {
+                        kind: 'onramp',
+                        onramp,
+                    });
+                }
+                catch (err) {
+                    rejectPromiseRef.rejectPromiseRef(promiseRef, err);
+                }
+                finally {
+                    setShowAuthFlow(false);
+                }
+            },
+            onSelectWallet: (_a) => _tslib.__awaiter(void 0, [_a], void 0, function* ({ walletConnector, }) {
+                if (!promiseRef.current)
+                    return;
+                try {
+                    initiatedByWidgetRef.current = initiatedByWidget;
+                    const walletAddress = yield getWalletAddress(walletConnector);
+                    if (!walletAddress) {
+                        rejectPromiseRef.rejectPromiseRef(promiseRef, new utils.DynamicError('No wallet address found'));
+                        return;
+                    }
+                    const wallet = walletConnector.createWallet({
+                        address: walletAddress,
+                        chain: walletConnector.connectedChain,
+                        connector: walletConnector,
+                        id: 'external-funding-wallet',
+                        isAuthenticated: false,
+                        key: walletConnector.key,
+                    });
+                    resolvePromiseRef.resolvePromiseRef(promiseRef, { kind: 'wallet', wallet });
+                    dynamicEvents.publicDynamicEvents.emit('walletConnectedForFunding', {
+                        initiatedByWidget,
+                        isPhantomRedirect: false,
+                        wallet,
+                    });
+                }
+                catch (error) {
+                    rejectPromiseRef.rejectPromiseRef(promiseRef, error);
+                }
+            }),
+            showDefaultFooter: true,
+        });
+    }, [
+        clearStackAndPush,
+        getWalletAddress,
+        initiatedByWidgetRef,
+        selectExchangeConfig,
+        setShowAuthFlow,
+    ]);
+    return React.useCallback((_a) => _tslib.__awaiter(void 0, [_a], void 0, function* ({ initiatedByWidget }) {
+        if (promiseRef.current)
+            return promiseRef.current.promise;
+        resetWalletConnectSession();
+        promiseRef.current = new utils.DeferredPromise();
+        openList(initiatedByWidget);
+        setShowAuthFlow(true, {
+            emitCancelAuth: false,
+            ignoreIfIsEmbeddedWidget: true,
+            initializeWalletConnect: true,
+            performMultiWalletChecks: false,
+        });
+        return promiseRef.current.promise;
+    }), [openList, resetWalletConnectSession, setShowAuthFlow]);
+};
+
+exports.useConnectUnifiedForFunding = useConnectUnifiedForFunding;

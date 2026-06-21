@@ -1,0 +1,2 @@
+export { useStepUpAuthentication } from './useStepUpAuthentication';
+export type { IsStepUpRequiredParams, PromptMfaParams, PromptReauthParams, PromptStepUpAuthParams, StepUpAuthenticationState, UseStepUpAuthenticationParams, UseStepUpAuthenticationReturn, VerifyOtpParams, VerifyPasskeyMfaParams, VerifyRecoveryCodeParams, VerifySocialParams, VerifyTotpMfaParams, VerifyWalletParams, } from './useStepUpAuthentication.types';

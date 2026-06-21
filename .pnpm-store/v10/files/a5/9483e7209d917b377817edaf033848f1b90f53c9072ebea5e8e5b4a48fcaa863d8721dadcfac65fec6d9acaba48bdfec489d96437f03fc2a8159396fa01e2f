@@ -1,0 +1,27 @@
+import type { WalletBookSchema } from '../../legacyWalletBook/legacyWalletBook.types';
+import type { InstallationUrls } from '../walletOptionsCatalogue.types';
+type BuildInstallationUrlsByWalletOptionKeyParams = {
+    walletBook: WalletBookSchema;
+};
+/**
+ * Collects install / download URLs for every wallet book entry that has
+ * at least one installable surface, keyed by the wallet option key the
+ * wallet groups under. The catalogue assembly step merges this map into
+ * the per-key wallet option shell so `WalletOption.installationUrls` is
+ * populated alongside (or instead of) `connectionOptions`.
+ *
+ * First-seen URLs win when multiple wallet book entries resolve to the
+ * same wallet option key — wallet book authors put the most accurate
+ * install links on the canonical entry, so the first-seen one is the
+ * right pick.
+ *
+ * Reuses the generic `shouldFilterWallet` rules so embedded wallets do
+ * not appear here either — they're not user-installable products.
+ *
+ * @param params.walletBook - The fetched wallet book.
+ * @returns A map from wallet option key to its install URL bag.
+ * @not-instrumented
+ */
+export declare const buildInstallationUrlsByWalletOptionKey: ({ walletBook, }: BuildInstallationUrlsByWalletOptionKeyParams) => Map<string, InstallationUrls>;
+export {};
+//# sourceMappingURL=buildInstallationUrlsByWalletOptionKey.d.ts.map

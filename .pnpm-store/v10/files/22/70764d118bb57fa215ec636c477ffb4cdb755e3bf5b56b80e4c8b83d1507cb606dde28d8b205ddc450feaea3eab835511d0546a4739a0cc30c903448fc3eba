@@ -1,0 +1,2 @@
+export { canConnectWithHardwareWallet } from './canConnectWithHardwareWallet';
+//# sourceMappingURL=index.d.ts.map

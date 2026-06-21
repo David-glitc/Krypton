@@ -1,0 +1,41 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+
+/* tslint:disable */
+function WalletTransactionFeeFromJSON(json) {
+    return WalletTransactionFeeFromJSONTyped(json);
+}
+function WalletTransactionFeeFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'amount': !runtime.exists(json, 'amount') ? undefined : json['amount'],
+        'sponsored': !runtime.exists(json, 'sponsored') ? undefined : json['sponsored'],
+        'sponsor': !runtime.exists(json, 'sponsor') ? undefined : json['sponsor'],
+        'gasUsed': !runtime.exists(json, 'gasUsed') ? undefined : json['gasUsed'],
+        'gasPrice': !runtime.exists(json, 'gasPrice') ? undefined : json['gasPrice'],
+    };
+}
+function WalletTransactionFeeToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'amount': value.amount,
+        'sponsored': value.sponsored,
+        'sponsor': value.sponsor,
+        'gasUsed': value.gasUsed,
+        'gasPrice': value.gasPrice,
+    };
+}
+
+exports.WalletTransactionFeeFromJSON = WalletTransactionFeeFromJSON;
+exports.WalletTransactionFeeFromJSONTyped = WalletTransactionFeeFromJSONTyped;
+exports.WalletTransactionFeeToJSON = WalletTransactionFeeToJSON;

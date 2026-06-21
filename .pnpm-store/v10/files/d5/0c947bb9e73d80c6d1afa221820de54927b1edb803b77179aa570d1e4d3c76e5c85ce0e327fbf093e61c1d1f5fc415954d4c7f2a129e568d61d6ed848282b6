@@ -1,0 +1,38 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+var SwapStatusRequestChain = require('./SwapStatusRequestChain.cjs');
+
+/* tslint:disable */
+function SwapStatusRequestFromJSON(json) {
+    return SwapStatusRequestFromJSONTyped(json);
+}
+function SwapStatusRequestFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'from': !runtime.exists(json, 'from') ? undefined : SwapStatusRequestChain.SwapStatusRequestChainFromJSON(json['from']),
+        'to': !runtime.exists(json, 'to') ? undefined : SwapStatusRequestChain.SwapStatusRequestChainFromJSON(json['to']),
+        'txHash': json['txHash'],
+    };
+}
+function SwapStatusRequestToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'from': SwapStatusRequestChain.SwapStatusRequestChainToJSON(value.from),
+        'to': SwapStatusRequestChain.SwapStatusRequestChainToJSON(value.to),
+        'txHash': value.txHash,
+    };
+}
+
+exports.SwapStatusRequestFromJSON = SwapStatusRequestFromJSON;
+exports.SwapStatusRequestFromJSONTyped = SwapStatusRequestFromJSONTyped;
+exports.SwapStatusRequestToJSON = SwapStatusRequestToJSON;

@@ -1,0 +1,28 @@
+import * as z from 'zod/mini';
+/**
+ * Zod schema for realtime events published to a checkout transaction's channel.
+ * Uses z.string() for axis and state fields to remain valid when new states are
+ * added to the backend without requiring a SDK update.
+ */
+declare const checkoutTransactionEventSchema: z.ZodMiniObject<{
+    axis: z.ZodMiniString<string>;
+    newState: z.ZodMiniString<string>;
+    previousState: z.ZodMiniString<string>;
+    timestamp: z.ZodMiniString<string>;
+    transactionId: z.ZodMiniString<string>;
+}, z.core.$strip>;
+export type CheckoutTransactionEvent = z.infer<typeof checkoutTransactionEventSchema>;
+/**
+ * Creates a typed realtime channel schema for a given checkout transaction.
+ * Channel name follows the backend convention: `transaction:{transactionId}`.
+ * @not-instrumented
+ */
+export declare const createCheckoutTransactionChannelSchema: (transactionId: string) => import("../../../../services/realtime").RealtimeChannelSchema<{
+    axis: string;
+    newState: string;
+    previousState: string;
+    timestamp: string;
+    transactionId: string;
+}>;
+export {};
+//# sourceMappingURL=createCheckoutTransactionChannelSchema.d.ts.map

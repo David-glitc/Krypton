@@ -1,0 +1,16 @@
+import { useEmbeddedWalletSessionKeys } from '../../../../utils/hooks';
+import { ProviderVerificationHandler } from '../../types';
+type BuildEmailOtpHandlerParams = {
+    captchaToken: string | undefined;
+    email: string;
+    embeddedWalletSessionKeys: ReturnType<typeof useEmbeddedWalletSessionKeys>;
+    environmentId: string;
+    initialVerificationUUID: string;
+};
+/**
+ * Builds a ProviderVerificationHandler for email OTP from the given parameters.
+ * Used both after creating a new email verification and when restoring a
+ * persisted verification state after a webview remount.
+ */
+export declare const buildEmailOtpHandler: ({ captchaToken, email, embeddedWalletSessionKeys: { shouldRegisterSessionKeysOnSignin, generateSessionKey, }, environmentId, initialVerificationUUID, }: BuildEmailOtpHandlerParams) => ProviderVerificationHandler<string>;
+export {};

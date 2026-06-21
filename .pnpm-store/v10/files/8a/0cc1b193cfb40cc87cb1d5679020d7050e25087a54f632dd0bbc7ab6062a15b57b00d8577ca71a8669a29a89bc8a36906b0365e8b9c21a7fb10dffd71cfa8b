@@ -1,0 +1,49 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+var EIP7702Authorization = require('./EIP7702Authorization.cjs');
+var SponsorEVMTransactionRequestCalls = require('./SponsorEVMTransactionRequestCalls.cjs');
+
+/* tslint:disable */
+function SponsorEVMTransactionRequestFromJSON(json) {
+    return SponsorEVMTransactionRequestFromJSONTyped(json);
+}
+function SponsorEVMTransactionRequestFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'authorization': !runtime.exists(json, 'authorization') ? undefined : EIP7702Authorization.EIP7702AuthorizationFromJSON(json['authorization']),
+        'calls': (json['calls'].map(SponsorEVMTransactionRequestCalls.SponsorEVMTransactionRequestCallsFromJSON)),
+        'chainId': json['chainId'],
+        'deadline': json['deadline'],
+        'nonce': json['nonce'],
+        'signature': json['signature'],
+        'relayer': json['relayer'],
+        'walletAddress': json['walletAddress'],
+    };
+}
+function SponsorEVMTransactionRequestToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'authorization': EIP7702Authorization.EIP7702AuthorizationToJSON(value.authorization),
+        'calls': (value.calls.map(SponsorEVMTransactionRequestCalls.SponsorEVMTransactionRequestCallsToJSON)),
+        'chainId': value.chainId,
+        'deadline': value.deadline,
+        'nonce': value.nonce,
+        'signature': value.signature,
+        'relayer': value.relayer,
+        'walletAddress': value.walletAddress,
+    };
+}
+
+exports.SponsorEVMTransactionRequestFromJSON = SponsorEVMTransactionRequestFromJSON;
+exports.SponsorEVMTransactionRequestFromJSONTyped = SponsorEVMTransactionRequestFromJSONTyped;
+exports.SponsorEVMTransactionRequestToJSON = SponsorEVMTransactionRequestToJSON;

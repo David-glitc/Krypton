@@ -1,0 +1,107 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var sdkApiCore = require('@dynamic-labs/sdk-api-core');
+require('../../constants/values.cjs');
+require('@dynamic-labs/utils');
+require('@dynamic-labs/multi-wallet');
+var logger = require('../../../shared/logger.cjs');
+require('react-international-phone');
+require('../../constants/colors.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react');
+require('react/jsx-runtime');
+require('../../../context/ViewContext/ViewContext.cjs');
+require('@dynamic-labs/wallet-book');
+require('../../../shared/consts/index.cjs');
+require('../../../store/state/nonce/nonce.cjs');
+var isProviderEnabled = require('../../functions/isProviderEnabled/isProviderEnabled.cjs');
+require('@dynamic-labs-sdk/client/core');
+require('eventemitter3');
+require('@dynamic-labs-sdk/client');
+require('../../../config/ApiEndpoint.cjs');
+require('../../../events/dynamicEvents.cjs');
+var oauth = require('../../../data/api/oauth/oauth.cjs');
+require('@dynamic-labs/locale');
+require('../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../store/state/primaryWalletId/primaryWalletId.cjs');
+require('../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+require('../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var useSocialAuth = require('../useSocialAuth/useSocialAuth.cjs');
+var getInitialUrl = require('../../../shared/utils/functions/getInitialUrl/getInitialUrl.cjs');
+var CaptchaContext = require('../../../context/CaptchaContext/CaptchaContext.cjs');
+
+const useTelegramLogin = () => {
+    const { sdkHasLoaded, user, projectSettings, environmentId } = useInternalDynamicContext.useInternalDynamicContext();
+    const providers = (projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.providers) || [];
+    const { getCaptchaToken } = CaptchaContext.useCaptchaContext();
+    const { completeConnection } = useSocialAuth.useSocialAuth({});
+    const getTelegramAuthTokenFromURL = () => {
+        var _a, _b;
+        const telegramAuthToken = (_b = (_a = getInitialUrl.getInitialUrl()) === null || _a === void 0 ? void 0 : _a.searchParams.get('telegramAuthToken')) !== null && _b !== void 0 ? _b : undefined;
+        if (!telegramAuthToken) {
+            logger.logger.error(`telegramAuthToken was not found - please make sure to use the bot code implementation
+        provided https://github.com/dynamic-labs/telegram-miniapp-dynamic/blob/main/scripts/bot.ts.
+        And ensure that the Telegram Mini Web App is launched directly from the chatbot`);
+        }
+        return telegramAuthToken;
+    };
+    const canProceedWithTelegram = (telegramAuthToken) => {
+        let failureReason;
+        if (!isProviderEnabled.isProviderEnabled(providers, sdkApiCore.ProviderEnum.Telegram)) {
+            failureReason = 'Telegram provider is not enabled';
+        }
+        else if (!sdkHasLoaded) {
+            failureReason = 'SDK has not loaded';
+        }
+        else if (user) {
+            failureReason = 'User is already logged in';
+        }
+        else if (!telegramAuthToken) {
+            failureReason = 'Telegram auth token is missing';
+        }
+        if (failureReason) {
+            logger.logger.error(`Failed to check user Telegram authentication status due to reason: ${failureReason}`);
+        }
+        return !failureReason;
+    };
+    /**
+     * Returns whether or not this telegram user has been authenticated with Dynamic.
+     * @param authToken (Optional) the Telegram auth token of the user to check.
+     *                  If not provided, the SDK will attempt to grab the auth token from the URL if exists.
+     * @returns Promise<boolean> of whether or not the Telegram user has authenticated with Dynamic.
+     */
+    const isAuthWithTelegram = (authToken) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        const telegramAuthToken = authToken || getTelegramAuthTokenFromURL();
+        if (!canProceedWithTelegram(telegramAuthToken)) {
+            return false;
+        }
+        return Boolean(oauth.isUserLinkedWithTelegram(environmentId, { telegramAuthToken }));
+    });
+    const telegramSignIn = (...args_1) => _tslib.__awaiter(void 0, [...args_1], void 0, function* ({ forceCreateUser = false, authToken, } = {}) {
+        const validAuthToken = authToken || getTelegramAuthTokenFromURL();
+        if (!canProceedWithTelegram(validAuthToken)) {
+            return;
+        }
+        yield completeConnection({
+            authMode: 'signin',
+            captchaToken: getCaptchaToken(),
+            forceCreateUser,
+            provider: sdkApiCore.ProviderEnum.Telegram,
+            state: '',
+            telegramAuthToken: validAuthToken,
+        });
+    });
+    return {
+        isAuthWithTelegram,
+        telegramSignIn,
+    };
+};
+
+exports.useTelegramLogin = useTelegramLogin;

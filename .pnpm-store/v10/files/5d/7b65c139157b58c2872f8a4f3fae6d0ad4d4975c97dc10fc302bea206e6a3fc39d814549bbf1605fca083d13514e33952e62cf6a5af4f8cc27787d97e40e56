@@ -1,0 +1,17 @@
+'use client'
+import { jsx } from 'react/jsx-runtime';
+import { createContext, useState, useMemo } from 'react';
+import { createProviderHook } from '../../shared/utils/functions/createProviderHook/createProviderHook.js';
+
+const AccountExistsContext = createContext(undefined);
+const AccountExistsContextProvider = ({ children, }) => {
+    const [existentAccountData, setExistentAccountData] = useState();
+    const value = useMemo(() => ({
+        existentAccountData,
+        setExistentAccountData,
+    }), [existentAccountData, setExistentAccountData]);
+    return (jsx(AccountExistsContext.Provider, { value: value, children: children }));
+};
+const useAccountExistsContext = createProviderHook(AccountExistsContext, 'AccountExistsContextProvider');
+
+export { AccountExistsContext, AccountExistsContextProvider, useAccountExistsContext };

@@ -1,0 +1,1 @@
+{"version":3,"file":"shouldFilterWalletForWalletConnect.d.ts","sourceRoot":"","sources":["../../../../../src/modules/legacyWalletBook/getWalletConnectCatalog/shouldFilterWalletForWalletConnect/shouldFilterWalletForWalletConnect.ts"],"names":[],"mappings":"AACA,OAAO,KAAK,EAAE,wBAAwB,EAAE,MAAM,6CAA6C,CAAC;AAE5F;;;;;;;;;GASG;AACH,eAAO,MAAM,kCAAkC,2BAG5C,wBAAwB,KAAG,OAM7B,CAAC"}

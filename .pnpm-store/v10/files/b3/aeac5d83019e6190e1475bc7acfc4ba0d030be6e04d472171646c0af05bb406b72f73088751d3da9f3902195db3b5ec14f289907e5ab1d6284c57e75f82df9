@@ -1,0 +1,38 @@
+import { exists } from '../runtime.js';
+import { ChainEnumFromJSON, ChainEnumToJSON } from './ChainEnum.js';
+
+/* tslint:disable */
+function ChainSettlementConfigFromJSON(json) {
+    return ChainSettlementConfigFromJSONTyped(json);
+}
+function ChainSettlementConfigFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'chainName': ChainEnumFromJSON(json['chainName']),
+        'tokenAddress': json['tokenAddress'],
+        'chainId': json['chainId'],
+        'symbol': json['symbol'],
+        'tokenDecimals': json['tokenDecimals'],
+        'isNative': !exists(json, 'isNative') ? undefined : json['isNative'],
+    };
+}
+function ChainSettlementConfigToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'chainName': ChainEnumToJSON(value.chainName),
+        'tokenAddress': value.tokenAddress,
+        'chainId': value.chainId,
+        'symbol': value.symbol,
+        'tokenDecimals': value.tokenDecimals,
+        'isNative': value.isNative,
+    };
+}
+
+export { ChainSettlementConfigFromJSON, ChainSettlementConfigFromJSONTyped, ChainSettlementConfigToJSON };

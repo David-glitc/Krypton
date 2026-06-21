@@ -1,0 +1,309 @@
+'use client'
+import { __awaiter } from '../../../../../_virtual/_tslib.js';
+import { useCallback } from 'react';
+import { JwtVerifiedCredentialFormatEnum, ChainEnum } from '@dynamic-labs/sdk-api-core';
+import { StorageService } from '@dynamic-labs/utils';
+import '@dynamic-labs-sdk/client/core';
+import 'eventemitter3';
+import '@dynamic-labs-sdk/client';
+import '../../../config/ApiEndpoint.js';
+import '@dynamic-labs/iconic';
+import '@dynamic-labs/wallet-connector-core';
+import 'react/jsx-runtime';
+import { useViewContext } from '../../../context/ViewContext/ViewContext.js';
+import { logger } from '../../../shared/logger.js';
+import '@dynamic-labs/wallet-book';
+import { DELEGATION_STATE } from '../../constants/localStorage.js';
+import '../../constants/colors.js';
+import '../../constants/values.js';
+import '../../../shared/consts/index.js';
+import { USER_NOT_LOGGED_IN } from '../../constants/errors.js';
+import '@dynamic-labs/multi-wallet';
+import 'react-international-phone';
+import '../../../store/state/nonce/nonce.js';
+import '@dynamic-labs/locale';
+import { useEnvironmentId } from '../../../store/state/dynamicContextProps/dynamicContextProps.js';
+import '../../../store/state/primaryWalletId/primaryWalletId.js';
+import '../../../store/state/connectedWalletsInfo/connectedWalletsInfo.js';
+import '../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.js';
+import { dynamicEvents } from '../../../events/dynamicEvents.js';
+import { useUser } from '../../../client/extension/user/useUser/useUser.js';
+import { useProjectSettings } from '../../../client/extension/projectSettings/useProjectSettings/useProjectSettings.js';
+import '../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { useInternalUserWallets } from '../../../context/UserWalletsContext/UserWalletsContext.js';
+import { updateWaasWalletSettings } from '../../../data/api/waas/waas.js';
+import { useDynamicWaas } from '../useDynamicWaas/useDynamicWaas.js';
+import { useRefreshAuth } from '../useRefreshAuth/useRefreshAuth.js';
+import { DelegationError } from './DelegationError.js';
+
+// Pre-share-set backends mark delegation via keyShares[].backupLocation='delegated';
+// share-set backends use otherShareSets[].shareSetType='delegated' instead.
+const isWalletDelegated = (walletProperties) => {
+    var _a, _b;
+    const hasDelegatedKeyShare = (_a = walletProperties === null || walletProperties === void 0 ? void 0 : walletProperties.keyShares) === null || _a === void 0 ? void 0 : _a.some((keyShare) => keyShare.backupLocation === 'delegated');
+    const hasDelegatedShareSet = (_b = walletProperties === null || walletProperties === void 0 ? void 0 : walletProperties.otherShareSets) === null || _b === void 0 ? void 0 : _b.some((shareSet) => shareSet.shareSetType === 'delegated');
+    return Boolean(hasDelegatedKeyShare || hasDelegatedShareSet);
+};
+/**
+ * Gets pending wallets that are eligible for delegation.
+ * If wallets are provided and not empty, converts them to WalletWithStatus[] with pending status.
+ * Otherwise, returns all pending wallets from getWalletsDelegatedStatus.
+ */
+const getWalletsToDelegate = (wallets, getWalletsDelegatedStatus) => {
+    if (wallets && wallets.length > 0) {
+        const walletsWithDelegationStatus = getWalletsDelegatedStatus().filter((wallet) => wallet.status === 'pending' ||
+            wallet.status === 'denied' ||
+            wallet.isDismissedThisSession);
+        return walletsWithDelegationStatus.filter((wallet) => wallets.some((w) => w.accountAddress === wallet.address &&
+            w.chainName === wallet.chain));
+    }
+    const pendingWallets = getWalletsDelegatedStatus().filter((wallet) => wallet.status === 'pending');
+    return pendingWallets;
+};
+// Hook to trigger wallet delegation modal
+const useWalletDelegation = () => {
+    var _a, _b, _c;
+    const { setShowAuthFlow } = useInternalDynamicContext();
+    const { userWallets } = useInternalUserWallets();
+    const { pushView } = useViewContext();
+    const projectSettings = useProjectSettings();
+    const user = useUser();
+    const environmentId = useEnvironmentId();
+    const refresh = useRefreshAuth();
+    const { getWaasWalletConnector } = useDynamicWaas();
+    const waasSettings = projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.sdk.waas;
+    const delegatedAccessEnabled = (_a = waasSettings === null || waasSettings === void 0 ? void 0 : waasSettings.delegatedAccess) === null || _a === void 0 ? void 0 : _a.enabled;
+    const promptUsersOnSignIn = (_b = waasSettings === null || waasSettings === void 0 ? void 0 : waasSettings.delegatedAccess) === null || _b === void 0 ? void 0 : _b.promptUsersOnSignIn;
+    const requiresDelegation = (_c = waasSettings === null || waasSettings === void 0 ? void 0 : waasSettings.delegatedAccess) === null || _c === void 0 ? void 0 : _c.requiresDelegation;
+    const shouldPromptWalletDelegation = useCallback(() => {
+        if (!delegatedAccessEnabled ||
+            !promptUsersOnSignIn ||
+            !(user === null || user === void 0 ? void 0 : user.verifiedCredentials)) {
+            return false;
+        }
+        // Check session UI state
+        const sessionState = StorageService.getItem(DELEGATION_STATE);
+        if (sessionState === null || sessionState === void 0 ? void 0 : sessionState.dismissed) {
+            return false;
+        }
+        // Check if any waas wallet needs delegation
+        const waasCredentials = user.verifiedCredentials.filter((vc) => vc.walletName === 'dynamicwaas' &&
+            vc.format === JwtVerifiedCredentialFormatEnum.Blockchain);
+        const hasWalletNeedingDelegation = waasCredentials.some((vc) => {
+            var _a, _b, _c;
+            const isDelegated = isWalletDelegated(vc.walletProperties);
+            const hasDeniedAccess = ((_b = (_a = vc.walletProperties) === null || _a === void 0 ? void 0 : _a.settings) === null || _b === void 0 ? void 0 : _b.hasDeniedDelegatedAccess) === true;
+            const isDismissedThisSession = (_c = sessionState === null || sessionState === void 0 ? void 0 : sessionState.dismissedWallets) === null || _c === void 0 ? void 0 : _c.includes(vc.id);
+            return !isDelegated && !hasDeniedAccess && !isDismissedThisSession;
+        });
+        return hasWalletNeedingDelegation;
+    }, [user === null || user === void 0 ? void 0 : user.verifiedCredentials, delegatedAccessEnabled, promptUsersOnSignIn]);
+    const initDelegationProcess = useCallback((options) => __awaiter(void 0, void 0, void 0, function* () {
+        if (!user) {
+            throw new Error(USER_NOT_LOGGED_IN);
+        }
+        // Show the auth flow modal
+        setShowAuthFlow(true, {
+            ignoreIfIsEmbeddedWidget: false,
+            performMultiWalletChecks: false,
+        });
+        // Push the wallet delegation view with optional wallets override
+        pushView('wallet-delegation-view', {
+            wallets: options === null || options === void 0 ? void 0 : options.wallets,
+        });
+        return new Promise((resolve, reject) => {
+            dynamicEvents.once('embeddedWalletDelegationCompleted', () => resolve());
+            dynamicEvents.once('embeddedWalletDelegationFailed', (error) => reject(error));
+        });
+    }), [setShowAuthFlow, pushView, user]);
+    const getWalletsDelegatedStatus = useCallback(() => {
+        if (!(user === null || user === void 0 ? void 0 : user.verifiedCredentials)) {
+            return [];
+        }
+        // Get session UI state
+        const sessionState = StorageService.getItem(DELEGATION_STATE);
+        // Get waas credentials
+        const waasCredentials = user.verifiedCredentials.filter((vc) => vc.walletName === 'dynamicwaas' &&
+            vc.format === JwtVerifiedCredentialFormatEnum.Blockchain);
+        // Map credentials to wallets with status
+        return waasCredentials
+            .map((vc) => {
+            var _a, _b, _c;
+            let status = 'pending';
+            const isDelegated = isWalletDelegated(vc.walletProperties);
+            const hasDeniedAccess = ((_b = (_a = vc.walletProperties) === null || _a === void 0 ? void 0 : _a.settings) === null || _b === void 0 ? void 0 : _b.hasDeniedDelegatedAccess) === true;
+            if (isDelegated) {
+                status = 'delegated';
+            }
+            else if (hasDeniedAccess) {
+                status = 'denied';
+            }
+            // Check if dismissed this session (UI state only)
+            const isDismissedThisSession = (_c = sessionState === null || sessionState === void 0 ? void 0 : sessionState.dismissedWallets) === null || _c === void 0 ? void 0 : _c.includes(vc.id);
+            // Find corresponding wallet from userWallets
+            const wallet = userWallets.find((w) => w.address === vc.address);
+            if (!wallet) {
+                logger.warn('Wallet not found for verified credential', {
+                    address: vc.address,
+                    vcId: vc.id,
+                });
+                return null;
+            }
+            return Object.assign(Object.assign({}, wallet), { isDismissedThisSession,
+                status });
+        })
+            .filter((wallet) => wallet !== null)
+            .filter((wallet) => wallet.chain === ChainEnum.Evm || wallet.chain === ChainEnum.Sol);
+    }, [user === null || user === void 0 ? void 0 : user.verifiedCredentials, userWallets]);
+    const delegateKeyShares = useCallback((wallets, password) => __awaiter(void 0, void 0, void 0, function* () {
+        if (!delegatedAccessEnabled) {
+            throw new Error('Wallet delegation is not enabled for this project environment. Please check the project settings.');
+        }
+        // If wallets provided, only eligible wallets are returned; otherwise get pending wallets
+        const walletsToDelegate = getWalletsToDelegate(wallets, getWalletsDelegatedStatus).map((wallet) => ({
+            accountAddress: wallet.address,
+            chainName: wallet.chain,
+        }));
+        if (walletsToDelegate.length === 0) {
+            throw new Error('No eligible wallets to delegate, only Dynamic WaaS wallets are eligible for delegation');
+        }
+        const successfulWallets = [];
+        const failedWallets = [];
+        for (const wallet of walletsToDelegate) {
+            const walletConnector = getWaasWalletConnector(wallet.chainName);
+            if (!walletConnector) {
+                logger.warn('Wallet connector not found, skipping delegate', {
+                    accountAddress: wallet.accountAddress,
+                    chainName: wallet.chainName,
+                });
+                continue;
+            }
+            try {
+                yield walletConnector.delegateKeyShares(Object.assign({ accountAddress: wallet.accountAddress }, (password && { password })));
+                successfulWallets.push(wallet);
+            }
+            catch (error) {
+                logger.error('Failed to delegate key shares:', {
+                    error,
+                    wallet,
+                });
+                failedWallets.push({ cause: error, wallet });
+            }
+        }
+        // refresh() runs even on partial failure so wallet state stays in sync
+        // with the backend before we throw. Already-delegated wallets are
+        // filtered out by getWalletsToDelegate on retry, so the next attempt
+        // only re-runs the failed ones.
+        yield refresh();
+        if (failedWallets.length > 0) {
+            throw new DelegationError({
+                failedWallets,
+                operation: 'delegate',
+                successfulWallets,
+            });
+        }
+    }), [
+        getWaasWalletConnector,
+        refresh,
+        getWalletsDelegatedStatus,
+        delegatedAccessEnabled,
+    ]);
+    const revokeDelegation = useCallback((wallets, password) => __awaiter(void 0, void 0, void 0, function* () {
+        // Get current wallet statuses to check which ones are actually delegated
+        const walletsWithStatus = getWalletsDelegatedStatus();
+        const successfulWallets = [];
+        const failedWallets = [];
+        for (const wallet of wallets) {
+            const walletConnector = getWaasWalletConnector(wallet.chainName);
+            if (!walletConnector)
+                continue;
+            // Find the wallet status from getWalletsDelegatedStatus
+            const walletStatus = walletsWithStatus.find((w) => w.address === wallet.accountAddress && w.chain === wallet.chainName);
+            if (!walletStatus || walletStatus.status !== 'delegated') {
+                logger.warn('Wallet is not delegated, skipping revoke', {
+                    accountAddress: wallet.accountAddress,
+                    chainName: wallet.chainName,
+                    status: walletStatus === null || walletStatus === void 0 ? void 0 : walletStatus.status,
+                });
+                continue;
+            }
+            try {
+                yield walletConnector.revokeDelegation(Object.assign({ accountAddress: wallet.accountAddress }, (password && { password })));
+                successfulWallets.push(wallet);
+            }
+            catch (error) {
+                logger.error('Failed to revoke delegation:', {
+                    error,
+                    wallet,
+                });
+                failedWallets.push({ cause: error, wallet });
+            }
+        }
+        // refresh() runs even on partial failure so wallet state stays in sync
+        // with the backend before we throw. Still-delegated wallets are
+        // re-evaluated by walletStatus on retry so the next attempt only
+        // re-runs the ones that didn't actually revoke.
+        yield refresh();
+        if (failedWallets.length > 0) {
+            throw new DelegationError({
+                failedWallets,
+                operation: 'revoke',
+                successfulWallets,
+            });
+        }
+    }), [getWaasWalletConnector, refresh, getWalletsDelegatedStatus]);
+    const denyWalletDelegation = useCallback((walletId) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            // Update backend - permanent denial
+            yield updateWaasWalletSettings(environmentId, walletId, {
+                hasDeniedDelegatedAccess: true,
+            });
+            // Refresh user to get updated wallet properties
+            yield refresh();
+            // Clear any session UI state for this wallet
+            const sessionState = StorageService.getItem(DELEGATION_STATE) || {};
+            if (sessionState.dismissedWallets) {
+                sessionState.dismissedWallets = sessionState.dismissedWallets.filter((id) => id !== walletId);
+                StorageService.setItem(DELEGATION_STATE, sessionState);
+            }
+        }
+        catch (error) {
+            logger.error('Failed to deny wallet delegation', error);
+            throw error;
+        }
+    }), [environmentId, refresh]);
+    const dismissDelegationPrompt = useCallback((walletId) => {
+        const sessionState = StorageService.getItem(DELEGATION_STATE) || {};
+        if (walletId) {
+            // Dismiss specific wallet
+            sessionState.dismissedWallets = [
+                ...(sessionState.dismissedWallets || []),
+                walletId,
+            ];
+        }
+        else {
+            // Dismiss all (global dismiss)
+            sessionState.dismissed = true;
+        }
+        StorageService.setItem(DELEGATION_STATE, sessionState);
+    }, []);
+    const clearDelegationSessionState = useCallback(() => {
+        StorageService.removeItem(DELEGATION_STATE);
+    }, []);
+    return {
+        clearDelegationSessionState,
+        delegateKeyShares,
+        delegatedAccessEnabled,
+        denyWalletDelegation,
+        dismissDelegationPrompt,
+        getWalletsDelegatedStatus,
+        getWalletsToDelegate,
+        initDelegationProcess,
+        requiresDelegation,
+        revokeDelegation,
+        shouldPromptWalletDelegation,
+    };
+};
+
+export { getWalletsToDelegate, isWalletDelegated, useWalletDelegation };

@@ -1,0 +1,7 @@
+/**
+ * Re-export error classification utilities from forward-mpc-client.
+ * These utilities help standardize Forward MPC error handling across the SDK.
+ */
+export { classifyForwardMpcError, isForwardMpcError, isAttestationError, } from '@dynamic-labs-wallet/forward-mpc-client/utils';
+export type { ForwardMpcErrorType, ForwardMpcErrorClassification } from '@dynamic-labs-wallet/forward-mpc-client/utils';
+//# sourceMappingURL=forwardMpcErrorHandling.d.ts.map

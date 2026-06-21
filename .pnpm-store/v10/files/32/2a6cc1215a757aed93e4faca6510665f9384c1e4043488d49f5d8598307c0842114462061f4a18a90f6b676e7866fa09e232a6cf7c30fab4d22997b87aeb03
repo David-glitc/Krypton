@@ -1,0 +1,63 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+require('../../../context/ViewContext/ViewContext.cjs');
+var logger = require('../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('@dynamic-labs/utils');
+require('../../constants/colors.cjs');
+require('../../constants/values.cjs');
+require('@dynamic-labs/sdk-api-core');
+require('../../../shared/consts/index.cjs');
+
+const useSessionKeys = () => {
+    const { primaryWallet } = useInternalDynamicContext.useInternalDynamicContext();
+    const listSessions = React.useCallback(() => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const connector = primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.connector;
+        if (!(connector === null || connector === void 0 ? void 0 : connector.listSessions)) {
+            logger.logger.error('Connector does not support session key management');
+            return [];
+        }
+        logger.logger.debug('[ZkSyncConnector] listSessions');
+        try {
+            const sessions = yield connector.listSessions();
+            return sessions;
+        }
+        catch (error) {
+            logger.logger.error('Error fetching session keys:', error);
+            return [];
+        }
+    }), [primaryWallet]);
+    const revokeSession = React.useCallback((sessionId) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const connector = primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.connector;
+        if (!(connector === null || connector === void 0 ? void 0 : connector.revokeSession)) {
+            throw new Error('Connector does not support session key management');
+        }
+        logger.logger.debug('[ZkSyncConnector] revokeSession', sessionId);
+        try {
+            yield connector.revokeSession(sessionId);
+        }
+        catch (error) {
+            logger.logger.error('Error revoking session:', error);
+            throw error;
+        }
+    }), [primaryWallet]);
+    const value = React.useMemo(() => ({
+        listSessions,
+        revokeSession,
+    }), [listSessions, revokeSession]);
+    return value;
+};
+
+exports.useSessionKeys = useSessionKeys;

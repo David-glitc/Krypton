@@ -1,0 +1,40 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var ThresholdSignatureScheme = require('./ThresholdSignatureScheme.cjs');
+var WaasWalletShareSetType = require('./WaasWalletShareSetType.cjs');
+
+/* tslint:disable */
+function WaasShareSetFromJSON(json) {
+    return WaasShareSetFromJSONTyped(json);
+}
+function WaasShareSetFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'shareSetId': json['shareSetId'],
+        'shareSetType': WaasWalletShareSetType.WaasWalletShareSetTypeFromJSON(json['shareSetType']),
+        'thresholdSignatureScheme': ThresholdSignatureScheme.ThresholdSignatureSchemeFromJSON(json['thresholdSignatureScheme']),
+        'createdAt': (new Date(json['createdAt'])),
+    };
+}
+function WaasShareSetToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'shareSetId': value.shareSetId,
+        'shareSetType': WaasWalletShareSetType.WaasWalletShareSetTypeToJSON(value.shareSetType),
+        'thresholdSignatureScheme': ThresholdSignatureScheme.ThresholdSignatureSchemeToJSON(value.thresholdSignatureScheme),
+        'createdAt': (value.createdAt.toISOString()),
+    };
+}
+
+exports.WaasShareSetFromJSON = WaasShareSetFromJSON;
+exports.WaasShareSetFromJSONTyped = WaasShareSetFromJSONTyped;
+exports.WaasShareSetToJSON = WaasShareSetToJSON;

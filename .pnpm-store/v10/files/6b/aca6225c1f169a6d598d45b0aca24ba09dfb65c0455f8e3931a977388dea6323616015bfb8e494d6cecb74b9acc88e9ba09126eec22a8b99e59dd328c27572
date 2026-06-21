@@ -1,0 +1,2 @@
+export { EVM_COMPATIBLE_CHAINS, isEvmCompatibleChain, type EvmCompatibleChain } from './isEvmCompatibleChain.js';
+//# sourceMappingURL=index.d.ts.map

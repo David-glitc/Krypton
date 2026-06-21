@@ -1,0 +1,27 @@
+import { SdkEnvironmentIdWaasWalletIdAdditionalAddressesAdditionalAddressesFromJSON, SdkEnvironmentIdWaasWalletIdAdditionalAddressesAdditionalAddressesToJSON } from './SdkEnvironmentIdWaasWalletIdAdditionalAddressesAdditionalAddresses.js';
+
+/* tslint:disable */
+function InlineObjectFromJSON(json) {
+    return InlineObjectFromJSONTyped(json);
+}
+function InlineObjectFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'additionalAddresses': (json['additionalAddresses'].map(SdkEnvironmentIdWaasWalletIdAdditionalAddressesAdditionalAddressesFromJSON)),
+    };
+}
+function InlineObjectToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'additionalAddresses': (value.additionalAddresses.map(SdkEnvironmentIdWaasWalletIdAdditionalAddressesAdditionalAddressesToJSON)),
+    };
+}
+
+export { InlineObjectFromJSON, InlineObjectFromJSONTyped, InlineObjectToJSON };

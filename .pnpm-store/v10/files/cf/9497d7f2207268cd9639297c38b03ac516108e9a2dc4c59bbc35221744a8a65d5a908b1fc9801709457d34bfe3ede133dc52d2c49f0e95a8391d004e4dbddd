@@ -1,0 +1,39 @@
+/**
+ * Default key-based PII scrubber list, lowercased and matched against the
+ * lowercased object key.
+ *
+ * Two complementary mechanisms cover credential leakage:
+ *
+ * 1. Explicit keys listed here — matched exactly (case-insensitive). Use this
+ *    for keys that don't end in a generic credential suffix (e.g. `mnemonic`,
+ *    `seed`, `verificationCode`, `keyShare`).
+ * 2. Suffix matching in {@link scrubParameters} for the credential suffixes
+ *    enumerated by {@link PII_KEY_SUFFIXES} — catches any field whose name
+ *    ends in `token` or `jwt` (e.g. `mfaToken`, `minifiedJwt`, `accessToken`,
+ *    `idToken`, `captchaToken`, …) without needing to enumerate them here.
+ */
+export declare const DEFAULT_PII_FIELDS: string[];
+/**
+ * Lowercased suffixes used by {@link scrubParameters} to match credential-like
+ * keys without enumerating every variant (e.g. `mfaToken`, `accessToken`,
+ * `refreshToken`, `legacyToken`, `minifiedJwt`). Only suffixes that are
+ * unambiguously credentials belong here — `key` (matches `publicKey`) and
+ * `code` (matches `countryCode`) are too broad and must not be added.
+ */
+export declare const PII_KEY_SUFFIXES: string[];
+export declare const REDACTED_VALUE = "[REDACTED]";
+export declare const MAX_STRING_LENGTH = 500;
+export declare const TRUNCATED_SUFFIX = "...[truncated]";
+/**
+ * Label prefix for binary data placeholders. The full placeholder includes the
+ * byte length, e.g. `[Binary:16 bytes]`, so consumers can gauge data size
+ * without the actual bytes appearing in logs.
+ */
+export declare const BINARY_LABEL = "Binary";
+/**
+ * Placeholder emitted when a circular reference is detected in the value tree.
+ * Using a named constant makes it easy to search for or filter in downstream
+ * log tooling.
+ */
+export declare const CIRCULAR_VALUE = "[Circular]";
+//# sourceMappingURL=constants.d.ts.map

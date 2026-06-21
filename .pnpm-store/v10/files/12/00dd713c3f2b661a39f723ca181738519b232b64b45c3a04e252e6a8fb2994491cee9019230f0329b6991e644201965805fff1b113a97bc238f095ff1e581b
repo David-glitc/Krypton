@@ -1,0 +1,8 @@
+import type { DynamicClient } from '../../../../client/types';
+type CheckAndRaiseWalletAccountsChangedEventParams = {
+    previousState: Readonly<DynamicCoreState>;
+};
+/** @not-instrumented */
+export declare const checkAndRaiseWalletAccountsChangedEvent: ({ previousState }: CheckAndRaiseWalletAccountsChangedEventParams, client: DynamicClient) => void;
+export {};
+//# sourceMappingURL=checkAndRaiseWalletAccountsChangedEvent.d.ts.map

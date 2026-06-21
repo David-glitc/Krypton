@@ -1,0 +1,28 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../_virtual/_tslib.cjs');
+var utils = require('@dynamic-labs/utils');
+
+const createWaasClientSecureStorage = () => ({
+    getClientKeyShare: (accountAddress) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        const shares = utils.StorageService.getItem(`waas_client_key_share_${accountAddress}`, {
+            priority: ['secureStorage'],
+        });
+        return shares ? JSON.parse(shares) : [];
+    }),
+    removeClientKeyShare: (accountAddress) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        utils.StorageService.removeItem(`waas_client_key_share_${accountAddress}`, {
+            priority: ['secureStorage'],
+        });
+    }),
+    setClientKeyShare: (accountAddress, shares) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        return utils.StorageService.setItem(`waas_client_key_share_${accountAddress}`, JSON.stringify(shares), {
+            priority: ['secureStorage'],
+        });
+    }),
+});
+
+exports.createWaasClientSecureStorage = createWaasClientSecureStorage;

@@ -1,0 +1,71 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../../_virtual/_tslib.cjs');
+var client = require('@dynamic-labs-sdk/client');
+require('@dynamic-labs-sdk/client/core');
+require('@dynamic-labs/sdk-api-core');
+require('react');
+require('eventemitter3');
+require('@dynamic-labs/utils');
+require('../../../../config/ApiEndpoint.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+require('../../../../context/ViewContext/ViewContext.cjs');
+var logger = require('../../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('../../../constants/colors.cjs');
+require('../../../constants/values.cjs');
+require('../../../../shared/consts/index.cjs');
+require('@dynamic-labs/multi-wallet');
+require('react-international-phone');
+require('../../../../store/state/nonce/nonce.cjs');
+require('@dynamic-labs/locale');
+require('../../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+var primaryWalletId = require('../../../../store/state/primaryWalletId/primaryWalletId.cjs');
+var connectedWalletsInfo = require('../../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+require('../../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+require('../../../../events/dynamicEvents.cjs');
+var getMinAuthToken = require('../../../../client/extension/functions/getMinAuthToken/getMinAuthToken.cjs');
+var getExpiresAt = require('../../../../client/extension/functions/getExpiresAt/getExpiresAt.cjs');
+
+/**
+ * Detects mismatch between wallet info.
+ * If there is primary wallet id, but no user or connected wallets info,
+ * it means it's in a bad state and we should log out.
+ */
+const handleWalletInfoOutOfSync = (_a) => _tslib.__awaiter(void 0, [_a], void 0, function* ({ logout, }) {
+    const primaryWalletId$1 = primaryWalletId.getPrimaryWalletId();
+    if (!primaryWalletId$1) {
+        return;
+    }
+    const { user } = client.getDefaultClient();
+    const connectedWallets = connectedWalletsInfo.getConnectedWalletsInfo();
+    const token = getMinAuthToken.getMinAuthToken();
+    const sessionExpiresAt = getExpiresAt.getExpiresAt();
+    const isTokenExpired = sessionExpiresAt !== null && sessionExpiresAt <= Date.now();
+    logger.logger.debug('[handleWalletInfoOutOfSync] validation check', {
+        connectedWalletsCount: connectedWallets.length,
+        hasClientUser: Boolean(user),
+        hasToken: Boolean(token),
+        isTokenExpired,
+        primaryWalletId: primaryWalletId$1,
+        sessionExpiresAt,
+    });
+    if (user || connectedWallets.length > 0) {
+        return;
+    }
+    const reason = token && !isTokenExpired ? 'wallet info is out of sync' : 'session expired';
+    yield logout(reason, {
+        connectedWallets,
+        primaryWalletId: primaryWalletId$1,
+        user,
+    }, isTokenExpired
+        ? 'token-expired-validate-session'
+        : 'wallet-info-out-of-sync');
+});
+
+exports.handleWalletInfoOutOfSync = handleWalletInfoOutOfSync;

@@ -1,0 +1,49 @@
+import type { WithWalletProviderDisplayOverride } from '../buildWithWalletProviderOptions/buildWithWalletProviderOptions';
+import type { WalletConnectionOption } from '../walletOptionsCatalogue.types';
+/**
+ * A `connectionOption` tagged with the wallet option key it belongs under.
+ * Transformer outputs produce these; the catalogue groups them by
+ * `walletOptionKey` before building wallet option shells.
+ *
+ * `displayOverride` is set only by the `withWalletProvider` transformer,
+ * carrying the provider's self-announced `name` + `iconUrl`. The shell
+ * builder applies it on top of any wallet book entry — provider
+ * metadata wins over book branding.
+ */
+export type ConnectionOptionForWalletOption = {
+    displayOverride?: WithWalletProviderDisplayOverride;
+    option: WalletConnectionOption;
+    walletOptionKey: string;
+};
+/**
+ * Bucket of grouped options for a single wallet option key, plus the
+ * first-seen display override (if any). Returned by
+ * `groupOptionsByWalletOption` for the catalogue to feed into the shell
+ * builder.
+ */
+export type GroupedWalletOption = {
+    connectionOptions: WalletConnectionOption[];
+    displayOverride?: WithWalletProviderDisplayOverride;
+};
+type GroupOptionsByWalletOptionParams = {
+    options: ConnectionOptionForWalletOption[];
+};
+/**
+ * Buckets tagged connection options by their wallet option key. Preserves
+ * first-seen order so that the caller's choice of
+ * `walletOptionOrdering: 'relevance'` naturally inherits the upstream input
+ * order (wallet book order for walletConnect/inAppBrowser/installation,
+ * registry order for withWalletProvider).
+ *
+ * Carries through the first-seen `displayOverride` per wallet option
+ * key, so the shell builder can apply provider-announced metadata on
+ * top of any wallet book entry.
+ *
+ * @param params.options - The tagged options to group.
+ * @returns A map from wallet option key to its grouped option bucket,
+ *   iterable in first-seen order.
+ * @not-instrumented
+ */
+export declare const groupOptionsByWalletOption: ({ options, }: GroupOptionsByWalletOptionParams) => Map<string, GroupedWalletOption>;
+export {};
+//# sourceMappingURL=groupOptionsByWalletOption.d.ts.map

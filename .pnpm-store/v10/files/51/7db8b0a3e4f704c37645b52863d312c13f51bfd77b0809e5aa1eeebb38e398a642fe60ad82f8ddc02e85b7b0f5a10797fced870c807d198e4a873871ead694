@@ -1,0 +1,26 @@
+import type { WalletProviderData } from '../../wallets/walletProvider/walletProvider.types';
+type MatchWalletProvidersToCatalogGroupParams = {
+    catalogGroupKey: string;
+    catalogGroupName?: string;
+    walletProviders: WalletProviderData[];
+};
+/**
+ * Returns the wallet providers that belong to the same wallet group as the
+ * given WalletConnect catalog entry. Useful for de-duplicating "installed"
+ * vs "available via WalletConnect" wallets when rendering a combined list.
+ *
+ * Matching is done on normalized identifiers — lowercased, whitespace removed,
+ * and the literal substring "wallet" stripped — so that variations like:
+ *   - catalog key `"trust"` + catalog name `"Trust Wallet"`
+ *   - provider `groupKey: "trustwallet"` + `displayName: "Trust Wallet"`
+ * collapse into a single match.
+ *
+ * @param params.catalogGroupKey - Key of the catalog group (e.g. `"metamask"`).
+ * @param [params.catalogGroupName] - Optional display name (e.g. `"Trust Wallet"`); matched as a fallback when the key is opaque.
+ * @param params.walletProviders - Currently available wallet providers (from `getAvailableWalletProvidersData`).
+ * @returns The subset of `walletProviders` that match the catalog group.
+ * @not-instrumented
+ */
+export declare const matchWalletProvidersToCatalogGroup: ({ catalogGroupKey, catalogGroupName, walletProviders, }: MatchWalletProvidersToCatalogGroupParams) => WalletProviderData[];
+export {};
+//# sourceMappingURL=matchWalletProvidersToCatalogGroup.d.ts.map

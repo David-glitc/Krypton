@@ -1,0 +1,9 @@
+import { FC } from 'react';
+type TrustedDeviceTileProps = {
+    userAgent: string;
+    createdAt: Date;
+    isCurrentDevice: boolean;
+    onClickDelete?: () => void;
+};
+export declare const TrustedDeviceTile: FC<TrustedDeviceTileProps>;
+export {};

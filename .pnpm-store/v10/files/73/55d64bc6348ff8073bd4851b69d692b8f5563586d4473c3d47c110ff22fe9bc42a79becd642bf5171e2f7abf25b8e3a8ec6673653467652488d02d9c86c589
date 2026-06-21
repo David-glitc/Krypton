@@ -1,0 +1,69 @@
+'use client'
+import { __awaiter } from '../../../../../_virtual/_tslib.js';
+import { FetchService } from '@dynamic-labs/utils';
+import '@dynamic-labs-sdk/client/core';
+import '@dynamic-labs/sdk-api-core';
+import 'react';
+import 'eventemitter3';
+import '@dynamic-labs-sdk/client';
+import ApiEndpoint from '../../../config/ApiEndpoint.js';
+import '@dynamic-labs/iconic';
+import '@dynamic-labs/wallet-connector-core';
+import 'react/jsx-runtime';
+import '../../../context/ViewContext/ViewContext.js';
+import '../../../shared/logger.js';
+import '@dynamic-labs/wallet-book';
+import '../../../utils/constants/colors.js';
+import '../../../utils/constants/values.js';
+import '../../../shared/consts/index.js';
+import { getApiHeaders } from '../../../client/extension/hooks/useInitializeSdkClient/getApiHeaders/getApiHeaders.js';
+import '../../../events/dynamicEvents.js';
+import { getMinAuthToken } from '../../../client/extension/functions/getMinAuthToken/getMinAuthToken.js';
+import '@dynamic-labs/multi-wallet';
+import 'react-international-phone';
+import '../../../store/state/nonce/nonce.js';
+import { randomString } from '../../../utils/functions/randomString/randomString.js';
+import '@dynamic-labs/locale';
+import '../../../store/state/dynamicContextProps/dynamicContextProps.js';
+import '../../../store/state/primaryWalletId/primaryWalletId.js';
+import '../../../store/state/connectedWalletsInfo/connectedWalletsInfo.js';
+import '../../../utils/functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.js';
+
+/**
+ * Fetch the curated Aleo token price list for the given network. The
+ * endpoint returns every curated token regardless of balance, so this
+ * works as the price source for the Shielded balance tab — which never
+ * goes through the multichain `/accountBalances` pipeline.
+ *
+ * Auth + base URL mirror the OpenAPI-generated `sdkApi`. We don't go
+ * through `sdkApi` here because this endpoint isn't in the OpenAPI
+ * surface yet; a manual fetch keeps the dynamic-auth side small and
+ * focused, and the auth token / device-fingerprint headers are still
+ * picked up via `getApiHeaders` + `getMinAuthToken`.
+ */
+const getAleoCuratedPrices = (_a) => __awaiter(void 0, [_a], void 0, function* ({ environmentId, network, }) {
+    var _b, _c;
+    const basePath = ApiEndpoint.getBaseUrl();
+    if (!basePath)
+        return [];
+    // `basePath` already includes the `/api/v0` prefix (set on the
+    //  generated `Configuration().basePath`), so this path is just the
+    //  relative SDK route.
+    const url = `${basePath}/sdk/${encodeURIComponent(environmentId)}/chains/aleo/prices?network=${encodeURIComponent(network)}`;
+    const headers = Object.assign({ 'Content-Type': 'application/json', 'x-dyn-request-id': randomString(50) }, getApiHeaders());
+    const jwt = getMinAuthToken();
+    if (jwt) {
+        headers.Authorization = `Bearer ${jwt}`;
+    }
+    const response = yield FetchService.fetch(url, {
+        headers,
+        method: 'GET',
+    });
+    if (!response.ok) {
+        throw new Error(`getAleoCuratedPrices: ${response.status} ${response.statusText}`);
+    }
+    const data = (yield response.json());
+    return (_c = (_b = data === null || data === void 0 ? void 0 : data.result) === null || _b === void 0 ? void 0 : _b.prices) !== null && _c !== void 0 ? _c : [];
+});
+
+export { getAleoCuratedPrices };

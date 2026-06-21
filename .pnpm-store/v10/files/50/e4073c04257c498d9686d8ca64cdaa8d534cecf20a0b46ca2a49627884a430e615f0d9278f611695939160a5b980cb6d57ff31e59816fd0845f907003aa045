@@ -1,0 +1,17 @@
+import type { ConfirmTransactionParams } from '../walletProvider/walletProvider.types';
+/**
+ * Waits for a transaction to be confirmed on-chain.
+ *
+ * Delegates to the wallet provider's `confirmTransaction` implementation,
+ * which polls the appropriate chain API until the transaction is included
+ * in a block or the maximum wait time is exceeded.
+ *
+ * @param params.walletAccount - The wallet account that submitted the transaction.
+ * @param params.transactionHash - The transaction hash to wait for.
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns A promise that resolves when the transaction is confirmed.
+ * @throws If the wallet provider does not support the confirmTransaction method.
+ * @instrumented
+ */
+export declare const confirmTransaction: ({ walletAccount, transactionHash }: ConfirmTransactionParams, client?: import("../../../exports").DynamicClient) => Promise<void>;
+//# sourceMappingURL=confirmTransaction.d.ts.map

@@ -1,0 +1,43 @@
+import { exists } from '../runtime.js';
+import { MFAActionFromJSON, MFAActionToJSON } from './MFAAction.js';
+
+/* tslint:disable */
+/**
+* @export
+* @enum {string}
+*/
+var MFASettingsActionsTokenBehaviorEnum;
+(function (MFASettingsActionsTokenBehaviorEnum) {
+    MFASettingsActionsTokenBehaviorEnum["SingleUse"] = "single_use";
+    MFASettingsActionsTokenBehaviorEnum["TimeBound"] = "time_bound";
+})(MFASettingsActionsTokenBehaviorEnum || (MFASettingsActionsTokenBehaviorEnum = {}));
+function MFASettingsActionsFromJSON(json) {
+    return MFASettingsActionsFromJSONTyped(json);
+}
+function MFASettingsActionsFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'action': MFAActionFromJSON(json['action']),
+        'required': json['required'],
+        'tokenBehavior': !exists(json, 'tokenBehavior') ? undefined : json['tokenBehavior'],
+        'tokenExpirySeconds': !exists(json, 'tokenExpirySeconds') ? undefined : json['tokenExpirySeconds'],
+    };
+}
+function MFASettingsActionsToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'action': MFAActionToJSON(value.action),
+        'required': value.required,
+        'tokenBehavior': value.tokenBehavior,
+        'tokenExpirySeconds': value.tokenExpirySeconds,
+    };
+}
+
+export { MFASettingsActionsFromJSON, MFASettingsActionsFromJSONTyped, MFASettingsActionsToJSON, MFASettingsActionsTokenBehaviorEnum };

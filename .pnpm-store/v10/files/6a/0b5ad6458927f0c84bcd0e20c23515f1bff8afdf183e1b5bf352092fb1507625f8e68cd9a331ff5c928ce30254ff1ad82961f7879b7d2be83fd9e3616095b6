@@ -1,0 +1,34 @@
+import type { WalletSchema } from '../legacyWalletBook.types';
+/**
+ * Embedded wallet keys that should be filtered out from any external-wallet
+ * catalogue. These wallets are not products the user "connects" to from the
+ * wallet selection list — they are embedded sign-in methods that live behind
+ * different SDK entry points.
+ * @not-instrumented
+ */
+export declare const EMBEDDED_WALLET_KEYS: string[];
+export type ShouldFilterWalletParams = {
+    /** The wallet schema to check. */
+    wallet: WalletSchema;
+    /** The wallet key identifier. */
+    walletKey: string;
+};
+/**
+ * Generic "is this wallet eligible for an external-wallet catalogue" check.
+ * Filters out:
+ *
+ * 1. Embedded sign-in methods (see {@link EMBEDDED_WALLET_KEYS}).
+ * 2. Wallets that only ship a browser-extension injection (`injectedConfig`)
+ *    with no mobile or desktop links — these have no surface a customer
+ *    catalogue UI can drive to.
+ *
+ * Channel-specific eligibility (WalletConnect support, in-app browser URL,
+ * installation links, …) is the caller's responsibility — wrap this helper
+ * with an additional check, e.g.
+ * {@link shouldFilterWalletForWalletConnect}.
+ *
+ * @returns True if the wallet should be filtered out, false otherwise.
+ * @not-instrumented
+ */
+export declare const shouldFilterWallet: ({ wallet, walletKey, }: ShouldFilterWalletParams) => boolean;
+//# sourceMappingURL=shouldFilterWallet.d.ts.map

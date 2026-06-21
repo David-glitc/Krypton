@@ -1,0 +1,5 @@
+import { DynamicError } from './DynamicError';
+export declare class TransactionFailedError extends DynamicError {
+    readonly chainError: unknown;
+    constructor(chainError: unknown);
+}

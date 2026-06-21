@@ -1,0 +1,24 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+var utils = require('@dynamic-labs/utils');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+
+const useHandleAuthenticatedUser = () => {
+    const { handlers } = useInternalDynamicContext.useInternalDynamicContext();
+    const { handleAuthenticatedUser } = handlers !== null && handlers !== void 0 ? handlers : {};
+    const handleAuthenticatedUserRef = React.useRef(handleAuthenticatedUser);
+    handleAuthenticatedUserRef.current = handleAuthenticatedUser;
+    return React.useCallback((user) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        if (!handleAuthenticatedUserRef.current)
+            return;
+        yield utils.runSafe(() => { var _a; return (_a = handleAuthenticatedUserRef.current) === null || _a === void 0 ? void 0 : _a.call(handleAuthenticatedUserRef, { user }); });
+    }), []);
+};
+
+exports.useHandleAuthenticatedUser = useHandleAuthenticatedUser;

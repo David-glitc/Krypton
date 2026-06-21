@@ -1,0 +1,38 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+var SwapToken = require('./SwapToken.cjs');
+
+/* tslint:disable */
+function SwapGasCostFromJSON(json) {
+    return SwapGasCostFromJSONTyped(json);
+}
+function SwapGasCostFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'amount': json['amount'],
+        'amountUSD': !runtime.exists(json, 'amountUSD') ? undefined : json['amountUSD'],
+        'token': SwapToken.SwapTokenFromJSON(json['token']),
+    };
+}
+function SwapGasCostToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'amount': value.amount,
+        'amountUSD': value.amountUSD,
+        'token': SwapToken.SwapTokenToJSON(value.token),
+    };
+}
+
+exports.SwapGasCostFromJSON = SwapGasCostFromJSON;
+exports.SwapGasCostFromJSONTyped = SwapGasCostFromJSONTyped;
+exports.SwapGasCostToJSON = SwapGasCostToJSON;

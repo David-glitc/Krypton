@@ -1,0 +1,35 @@
+import type { InstallationUrls } from '../walletOptionsCatalogue.types';
+type GetInstallationLinkForCurrentPlatformParams = {
+    installationUrls: InstallationUrls;
+};
+/**
+ * Resolves the {@link InstallationUrls} field that matches the platform
+ * the SDK is currently running on:
+ *
+ * - iOS → `ios`
+ * - Android → `android`
+ * - Edge → `edge`
+ * - Opera → `opera`
+ * - Firefox → `firefox`
+ * - Safari → `safari`
+ * - Chrome (or other Chromium-based browsers) → `chrome`
+ *
+ * Returns `undefined` when no entry exists for the detected platform —
+ * callers typically render a "not available on this device" affordance
+ * in that case rather than offering a download targeted at a different
+ * browser/OS.
+ *
+ * Each branch returns exactly the field for the detected platform — no
+ * fallback to a different browser's URL. If you'd rather surface every
+ * link a wallet's manifest publishes so the user can pick where to
+ * install, read `installationUrls` directly instead of going through
+ * this helper.
+ *
+ * @param params.installationUrls - The wallet option's `installationUrls`
+ *   record (from `getWalletOptionsCatalogue`).
+ * @returns The install URL for the detected platform, or `undefined`.
+ * @not-instrumented
+ */
+export declare const getInstallationLinkForCurrentPlatform: ({ installationUrls, }: GetInstallationLinkForCurrentPlatformParams) => string | undefined;
+export {};
+//# sourceMappingURL=getInstallationLinkForCurrentPlatform.d.ts.map

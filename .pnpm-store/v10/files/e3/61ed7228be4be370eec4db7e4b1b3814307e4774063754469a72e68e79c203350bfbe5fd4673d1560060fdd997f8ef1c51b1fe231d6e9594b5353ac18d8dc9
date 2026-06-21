@@ -1,0 +1,35 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var ChainEnum = require('./ChainEnum.cjs');
+
+/* tslint:disable */
+function CheckoutTransactionDestinationAddressFromJSON(json) {
+    return CheckoutTransactionDestinationAddressFromJSONTyped(json);
+}
+function CheckoutTransactionDestinationAddressFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'address': json['address'],
+        'chainName': ChainEnum.ChainEnumFromJSON(json['chainName']),
+    };
+}
+function CheckoutTransactionDestinationAddressToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'address': value.address,
+        'chainName': ChainEnum.ChainEnumToJSON(value.chainName),
+    };
+}
+
+exports.CheckoutTransactionDestinationAddressFromJSON = CheckoutTransactionDestinationAddressFromJSON;
+exports.CheckoutTransactionDestinationAddressFromJSONTyped = CheckoutTransactionDestinationAddressFromJSONTyped;
+exports.CheckoutTransactionDestinationAddressToJSON = CheckoutTransactionDestinationAddressToJSON;

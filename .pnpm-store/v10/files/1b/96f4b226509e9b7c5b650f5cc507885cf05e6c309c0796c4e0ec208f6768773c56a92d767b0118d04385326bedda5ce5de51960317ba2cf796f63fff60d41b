@@ -1,0 +1,1 @@
+{"version":3,"file":"hasUsableDeeplink.d.ts","sourceRoot":"","sources":["../../../../src/modules/legacyWalletBook/hasUsableDeeplink/hasUsableDeeplink.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,YAAY,EAAE,MAAM,2BAA2B,CAAC;AAE9D,KAAK,uBAAuB,GAAG;IAC7B,MAAM,EAAE,YAAY,CAAC;CACtB,CAAC;AAEF;;;;;;;;;;GAUG;AACH,eAAO,MAAM,iBAAiB,gBAE3B,uBAAuB,KAAG,OAC+B,CAAC"}

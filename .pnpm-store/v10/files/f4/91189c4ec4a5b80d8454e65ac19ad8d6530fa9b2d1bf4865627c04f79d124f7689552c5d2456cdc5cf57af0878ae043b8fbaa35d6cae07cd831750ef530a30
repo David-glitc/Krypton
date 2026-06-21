@@ -1,0 +1,7 @@
+import type { DynamicClient } from '../../../client/types';
+/**
+ * Retrieves the current captcha token from the client state and sets it to null.
+  * @not-instrumented
+ */
+export declare const consumeCaptchaToken: (client: DynamicClient) => string | undefined;
+//# sourceMappingURL=consumeCaptchaToken.d.ts.map

@@ -1,0 +1,26 @@
+/**
+ * Result of an auth session. Either the user completed auth and the provider
+ * redirected back to `redirectUrl` (success), or the user dismissed the
+ * session (cancel).
+ */
+export type OpenAuthSessionResult = {
+    type: 'success';
+    url: string;
+} | {
+    type: 'cancel';
+};
+/**
+ * Opens an in-app authentication session (e.g. ASWebAuthenticationSession on
+ * iOS, Chrome Custom Tabs on Android) and resolves once the provider
+ * redirects back to `redirectUrl` — or the user cancels.
+ *
+ * Host apps inject this via `coreConfig.openAuthSession` so the SDK does not
+ * pull in a specific browser/auth-session dependency. On React Native you can
+ * plug in `react-native-inappbrowser-reborn` or a custom TurboModule that
+ * wraps ASWebAuthenticationSession / Custom Tabs.
+ */
+export type OpenAuthSession = (params: {
+    authUrl: string;
+    redirectUrl: string;
+}) => Promise<OpenAuthSessionResult>;
+//# sourceMappingURL=openAuthSession.types.d.ts.map

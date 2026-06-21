@@ -1,0 +1,10 @@
+import type { DynamicClient } from '../../../../client/types';
+import type { WalletAccount } from '../../walletAccount';
+type GetSignInMessageParams = {
+    nonce?: string;
+    walletAccount: WalletAccount;
+};
+/** @not-instrumented */
+export declare const getSignInMessage: ({ nonce: nonceOverride, walletAccount }: GetSignInMessageParams, client: DynamicClient) => Promise<string>;
+export {};
+//# sourceMappingURL=getSignInMessage.d.ts.map

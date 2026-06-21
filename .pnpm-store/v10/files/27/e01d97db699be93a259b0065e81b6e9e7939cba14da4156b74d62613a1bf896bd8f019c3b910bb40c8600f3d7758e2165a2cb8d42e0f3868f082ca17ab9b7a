@@ -1,0 +1,46 @@
+import type { Chain } from '../../chain';
+import type { CheckoutSupportedExchangeProvider, CheckoutTransaction } from '../checkout.types';
+type AttachCheckoutTransactionSourceWalletParams = {
+    /** The address of the user's wallet. */
+    fromAddress: string;
+    /** The network id for the token that the user is paying with. */
+    fromChainId: string;
+    /** The chain name of the user's wallet. */
+    fromChainName: Chain;
+    /** @defaultValue `'wallet'` */
+    sourceType?: 'wallet';
+    transactionId: string;
+};
+type AttachCheckoutTransactionSourceExchangeParams = {
+    /**
+     * The exchange provider key (e.g. `'coinbase'`).
+     * The backend uses this to look up the exchange configuration,
+     * generate a buy URL, and create the exchange source record.
+     */
+    exchangeProvider: CheckoutSupportedExchangeProvider;
+    sourceType: 'exchange';
+    transactionId: string;
+};
+/**
+ * Parameters for {@link attachCheckoutTransactionSource}.
+ *
+ * This is a discriminated union on `sourceType`:
+ * - `'wallet'` (default) — requires `fromAddress`, `fromChainId`, `fromChainName`
+ * - `'exchange'` — requires `exchangeProvider`
+ */
+export type AttachCheckoutTransactionSourceParams = AttachCheckoutTransactionSourceWalletParams | AttachCheckoutTransactionSourceExchangeParams;
+/**
+ * Attaches a payment source to a checkout transaction.
+ *
+ * For exchange sources, the backend generates the buy URL and creates the
+ * exchange source record. The response includes `exchangeSource.metadata.url`
+ * which can be embedded in an iframe for the user to complete payment.
+ *
+ * @param params AttachCheckoutTransactionSourceParams - The source details to attach.
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns The updated checkout transaction (with exchangeSource if sourceType is 'exchange')
+ * @instrumented
+ */
+export declare const attachCheckoutTransactionSource: (params: AttachCheckoutTransactionSourceParams, client?: import("../../../exports").DynamicClient) => Promise<CheckoutTransaction>;
+export {};
+//# sourceMappingURL=attachCheckoutTransactionSource.d.ts.map

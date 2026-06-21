@@ -1,0 +1,107 @@
+'use client'
+import { __awaiter } from '../../../../../_virtual/_tslib.js';
+import { useRef, useCallback } from 'react';
+import { DynamicError, DeferredPromise } from '@dynamic-labs/utils';
+import '../../../../index.js';
+import '../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { useViewContext } from '../../../context/ViewContext/ViewContext.js';
+import { rejectPromiseRef } from '../../functions/rejectPromiseRef/rejectPromiseRef.js';
+import { useInternalDynamicEvents } from '../events/useDynamicEvents/useDynamicEvents.js';
+import { useFundingExchangeHelpers } from '../useFundingExchangeHelpers/useFundingExchangeHelpers.js';
+import { useFundingHelpers } from '../useFundingHelpers/useFundingHelpers.js';
+import { resolvePromiseRef } from '../../functions/resolvePromiseRef/resolvePromiseRef.js';
+import { publicDynamicEvents } from '../../../events/dynamicEvents.js';
+
+const useConnectUnifiedForFunding = () => {
+    const { setShowAuthFlow } = useInternalDynamicContext();
+    const { clearStackAndPush } = useViewContext();
+    const { initiatedByWidgetRef, getWalletAddress, resetWalletConnectSession } = useFundingHelpers();
+    const { selectExchangeConfig } = useFundingExchangeHelpers();
+    const promiseRef = useRef(null);
+    useInternalDynamicEvents('authFlowClose', () => {
+        rejectPromiseRef(promiseRef, new DynamicError('User cancelled'));
+    });
+    const openList = useCallback((initiatedByWidget) => {
+        const { onSelectExchange } = selectExchangeConfig({
+            initiatedByWidget,
+            promiseRef,
+            resultBuilder: (exchange) => ({
+                exchange,
+                kind: 'exchange',
+            }),
+        });
+        clearStackAndPush('unified-wallet-exchange-list', {
+            onSelectExchange,
+            onSelectOnRamp: (onramp) => {
+                if (!promiseRef.current)
+                    return;
+                try {
+                    initiatedByWidgetRef.current = initiatedByWidget;
+                    resolvePromiseRef(promiseRef, {
+                        kind: 'onramp',
+                        onramp,
+                    });
+                }
+                catch (err) {
+                    rejectPromiseRef(promiseRef, err);
+                }
+                finally {
+                    setShowAuthFlow(false);
+                }
+            },
+            onSelectWallet: (_a) => __awaiter(void 0, [_a], void 0, function* ({ walletConnector, }) {
+                if (!promiseRef.current)
+                    return;
+                try {
+                    initiatedByWidgetRef.current = initiatedByWidget;
+                    const walletAddress = yield getWalletAddress(walletConnector);
+                    if (!walletAddress) {
+                        rejectPromiseRef(promiseRef, new DynamicError('No wallet address found'));
+                        return;
+                    }
+                    const wallet = walletConnector.createWallet({
+                        address: walletAddress,
+                        chain: walletConnector.connectedChain,
+                        connector: walletConnector,
+                        id: 'external-funding-wallet',
+                        isAuthenticated: false,
+                        key: walletConnector.key,
+                    });
+                    resolvePromiseRef(promiseRef, { kind: 'wallet', wallet });
+                    publicDynamicEvents.emit('walletConnectedForFunding', {
+                        initiatedByWidget,
+                        isPhantomRedirect: false,
+                        wallet,
+                    });
+                }
+                catch (error) {
+                    rejectPromiseRef(promiseRef, error);
+                }
+            }),
+            showDefaultFooter: true,
+        });
+    }, [
+        clearStackAndPush,
+        getWalletAddress,
+        initiatedByWidgetRef,
+        selectExchangeConfig,
+        setShowAuthFlow,
+    ]);
+    return useCallback((_a) => __awaiter(void 0, [_a], void 0, function* ({ initiatedByWidget }) {
+        if (promiseRef.current)
+            return promiseRef.current.promise;
+        resetWalletConnectSession();
+        promiseRef.current = new DeferredPromise();
+        openList(initiatedByWidget);
+        setShowAuthFlow(true, {
+            emitCancelAuth: false,
+            ignoreIfIsEmbeddedWidget: true,
+            initializeWalletConnect: true,
+            performMultiWalletChecks: false,
+        });
+        return promiseRef.current.promise;
+    }), [openList, resetWalletConnectSession, setShowAuthFlow]);
+};
+
+export { useConnectUnifiedForFunding };

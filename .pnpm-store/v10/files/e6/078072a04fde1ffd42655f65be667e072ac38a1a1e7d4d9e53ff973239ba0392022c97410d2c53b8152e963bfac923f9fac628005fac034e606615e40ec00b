@@ -1,0 +1,125 @@
+'use client'
+import { __awaiter } from '../../../../../_virtual/_tslib.js';
+import { useRef, useCallback } from 'react';
+import { verifyOTP, sendEmailOTP, supportedCountries, sendSmsOTP } from '@dynamic-labs-sdk/client';
+import { JwtVerifiedCredentialFormatEnum } from '@dynamic-labs/sdk-api-core';
+import '@dynamic-labs-sdk/client/core';
+import 'eventemitter3';
+import '@dynamic-labs/utils';
+import '../../../config/ApiEndpoint.js';
+import '@dynamic-labs/iconic';
+import '@dynamic-labs/wallet-connector-core';
+import 'react/jsx-runtime';
+import '../../../context/ViewContext/ViewContext.js';
+import '../../../shared/logger.js';
+import '@dynamic-labs/wallet-book';
+import '../../constants/colors.js';
+import '../../constants/values.js';
+import '../../../shared/consts/index.js';
+import '@dynamic-labs/multi-wallet';
+import 'react-international-phone';
+import '../../../store/state/nonce/nonce.js';
+import '@dynamic-labs/locale';
+import '../../../store/state/dynamicContextProps/dynamicContextProps.js';
+import '../../../store/state/primaryWalletId/primaryWalletId.js';
+import '../../../store/state/connectedWalletsInfo/connectedWalletsInfo.js';
+import '../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.js';
+import '../../../events/dynamicEvents.js';
+import { useUser } from '../../../client/extension/user/useUser/useUser.js';
+
+const isCountryCode = (value) => value !== undefined && value in supportedCountries;
+const isOtpCapableCredential = (cred) => cred.format === JwtVerifiedCredentialFormatEnum.Email ||
+    cred.format === JwtVerifiedCredentialFormatEnum.PhoneNumber;
+const resolveTargetCredential = (credentials, credentialId) => {
+    var _a, _b;
+    if (credentialId) {
+        return ((_a = credentials.find((cred) => cred.id === credentialId)) !== null && _a !== void 0 ? _a : `Credential with id "${credentialId}" not found`);
+    }
+    return ((_b = credentials.find((cred) => cred.signInEnabled && isOtpCapableCredential(cred))) !== null && _b !== void 0 ? _b : 'No sign-in enabled email or SMS credential found for step-up authentication');
+};
+const sendEmailOtp = (credential) => __awaiter(void 0, void 0, void 0, function* () {
+    if (!credential.email) {
+        throw new Error('Email credential is missing email address');
+    }
+    return sendEmailOTP({ email: credential.email });
+});
+const sendSmsOtp = (credential) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const normalizedPhoneCountryCode = (_a = credential.phoneCountryCode) === null || _a === void 0 ? void 0 : _a.replace(/^\+/, '');
+    const matchedCountryCode = Object.keys(supportedCountries).find((key) => supportedCountries[key].code === normalizedPhoneCountryCode);
+    const isoCountryCode = isCountryCode(credential.isoCountryCode)
+        ? credential.isoCountryCode
+        : matchedCountryCode;
+    if (!credential.phoneNumber || !isoCountryCode) {
+        throw new Error('SMS credential is missing phone number or country code');
+    }
+    return sendSmsOTP({ isoCountryCode, phoneNumber: credential.phoneNumber });
+});
+const dispatchOtp = (credential) => __awaiter(void 0, void 0, void 0, function* () {
+    return credential.format === JwtVerifiedCredentialFormatEnum.Email
+        ? sendEmailOtp(credential)
+        : sendSmsOtp(credential);
+});
+const useStepUpOtp = ({ credentialId, stateActions, }) => {
+    const user = useUser();
+    const { setError, setLoading, setSuccess } = stateActions;
+    const otpVerificationRef = useRef(null);
+    const sendOtp = useCallback((params) => __awaiter(void 0, void 0, void 0, function* () {
+        var _a;
+        const credentials = user === null || user === void 0 ? void 0 : user.verifiedCredentials;
+        if (!(credentials === null || credentials === void 0 ? void 0 : credentials.length)) {
+            setError('No verified credentials found for the authenticated user');
+            return null;
+        }
+        const effectiveCredentialId = (_a = params === null || params === void 0 ? void 0 : params.credentialId) !== null && _a !== void 0 ? _a : credentialId;
+        const result = resolveTargetCredential(credentials, effectiveCredentialId);
+        if (typeof result === 'string') {
+            setError(result);
+            return null;
+        }
+        if (!isOtpCapableCredential(result)) {
+            setError(`Credential format "${result.format}" does not support OTP verification. Only email and SMS credentials are supported`);
+            return null;
+        }
+        setLoading();
+        try {
+            const otpVerification = yield dispatchOtp(result);
+            otpVerificationRef.current = otpVerification;
+            setSuccess({ otpVerification });
+            return otpVerification;
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to send OTP';
+            setError(errorMessage);
+            return null;
+        }
+    }), [credentialId, setError, setLoading, setSuccess, user === null || user === void 0 ? void 0 : user.verifiedCredentials]);
+    const verifyOtp = useCallback((_b) => __awaiter(void 0, [_b], void 0, function* ({ requestedScopes, verificationToken, }) {
+        const otpVerification = otpVerificationRef.current;
+        if (!otpVerification) {
+            setError('OTP verification has not been initiated. Call sendOtp() first');
+            return null;
+        }
+        setLoading();
+        try {
+            const response = yield verifyOTP({
+                otpVerification,
+                requestedScopes,
+                verificationToken,
+            });
+            setSuccess();
+            return response;
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to verify OTP';
+            setError(errorMessage);
+            return null;
+        }
+    }), [setError, setLoading, setSuccess]);
+    const resetOtpRef = useCallback(() => {
+        otpVerificationRef.current = null;
+    }, []);
+    return { resetOtpRef, sendOtp, verifyOtp };
+};
+
+export { useStepUpOtp };

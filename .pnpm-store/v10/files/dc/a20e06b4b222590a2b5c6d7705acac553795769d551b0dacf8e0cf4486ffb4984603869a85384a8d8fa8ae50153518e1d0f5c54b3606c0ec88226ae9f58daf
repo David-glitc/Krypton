@@ -1,0 +1,3 @@
+/** @not-instrumented */
+export declare const openDatabase: (dbName: string) => Promise<IDBDatabase>;
+//# sourceMappingURL=openDatabase.d.ts.map

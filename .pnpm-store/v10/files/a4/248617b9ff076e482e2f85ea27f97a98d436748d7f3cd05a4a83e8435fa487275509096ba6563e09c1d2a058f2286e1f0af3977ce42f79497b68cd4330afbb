@@ -1,0 +1,20 @@
+import Foundation
+
+/// Swift implementation of the ReactNativeManifest module.
+/// Returns the SDK manifest (version + any future metadata) baked in at
+/// build time. The SDK version is passed through from the ObjC++ bridge
+/// via the DYNAMIC_SDK_VERSION preprocessor macro.
+@objc public class ReactNativeManifestImpl: NSObject {
+
+  private let sdkVersion: String
+
+  @objc public init(sdkVersion: String) {
+    self.sdkVersion = sdkVersion
+  }
+
+  @objc public func getManifest() -> [String: Any] {
+    return [
+      "sdkVersion": sdkVersion
+    ]
+  }
+}

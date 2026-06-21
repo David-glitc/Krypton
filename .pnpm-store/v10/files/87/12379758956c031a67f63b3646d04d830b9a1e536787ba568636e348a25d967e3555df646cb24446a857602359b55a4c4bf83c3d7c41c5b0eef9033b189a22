@@ -1,0 +1,2 @@
+export { isInsufficientGoogleDriveScopesError } from './isInsufficientGoogleDriveScopesError';
+//# sourceMappingURL=index.d.ts.map

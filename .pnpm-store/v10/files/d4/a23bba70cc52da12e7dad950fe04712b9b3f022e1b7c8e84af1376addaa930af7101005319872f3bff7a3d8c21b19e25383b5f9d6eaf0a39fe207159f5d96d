@@ -1,0 +1,6 @@
+import type { SocialProvider } from '../../social.types';
+export type SignInWithSocialRedirectParams = {
+    provider: SocialProvider;
+    redirectUrl: string;
+};
+//# sourceMappingURL=signInWithSocialRedirect.types.d.ts.map

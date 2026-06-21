@@ -1,0 +1,11 @@
+import type { VerifyWalletParams } from './useStepUpAuthentication.types';
+import type { useStepUpState } from './useStepUpState';
+type StepUpStateActions = ReturnType<typeof useStepUpState>;
+type UseStepUpWalletParams = {
+    credentialId?: string;
+    stateActions: StepUpStateActions;
+};
+export declare const useStepUpWallet: ({ credentialId, stateActions, }: UseStepUpWalletParams) => {
+    verifyWallet: ({ requestedScopes, walletId, }: VerifyWalletParams) => Promise<void>;
+};
+export {};

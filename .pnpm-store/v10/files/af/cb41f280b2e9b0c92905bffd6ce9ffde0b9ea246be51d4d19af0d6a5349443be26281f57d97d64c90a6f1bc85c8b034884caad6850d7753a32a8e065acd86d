@@ -1,0 +1,1 @@
+{"version":3,"file":"setLongTimeout.d.ts","sourceRoot":"","sources":["../../../../../src/modules/auth/initializeAuth/setLongTimeout/setLongTimeout.ts"],"names":[],"mappings":"AAAA,MAAM,MAAM,qBAAqB,GAAG;IAClC,sDAAsD;IACtD,QAAQ,EAAE,MAAM,IAAI,CAAC;IAErB,8DAA8D;IAC9D,KAAK,EAAE,MAAM,CAAC;CACf,CAAC;AAEF;;;GAGG;AACH,eAAO,MAAM,cAAc,yBAGxB,qBAAqB,KAAG,YAyB1B,CAAC"}

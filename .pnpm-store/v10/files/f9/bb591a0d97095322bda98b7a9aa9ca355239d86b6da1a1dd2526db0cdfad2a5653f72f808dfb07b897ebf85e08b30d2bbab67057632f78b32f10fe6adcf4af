@@ -1,0 +1,16 @@
+import type { WalletOption } from '../walletOptionsCatalogue.types';
+type GetPriorityIndexParams = {
+    walletOption: WalletOption;
+};
+/**
+ * Returns the index of a wallet option in `PRIORITY_WALLET_KEYS`, or
+ * `Number.POSITIVE_INFINITY` when the wallet is not in the hand-curated
+ * priority list. Lower index = higher priority.
+ *
+ * @param params.walletOption - The wallet option to inspect.
+ * @returns Numeric priority index — lower is better.
+ * @not-instrumented
+ */
+export declare const getPriorityIndex: ({ walletOption, }: GetPriorityIndexParams) => number;
+export {};
+//# sourceMappingURL=getPriorityIndex.d.ts.map

@@ -1,0 +1,78 @@
+'use client'
+import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
+import { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
+import { StorageService } from '@dynamic-labs/utils';
+import { ReactComponent as SvgNoWalletFound } from '../../assets/no-wallet-found.js';
+import { ErrorContainer } from '../../components/ErrorContainer/ErrorContainer.js';
+import { Search } from '../../components/Search/Search.js';
+import { Skeleton } from '../../components/Skeleton/Skeleton.js';
+import '../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { useErrorContext } from '../../context/ErrorContext/ErrorContext.js';
+import { DefaultFooter } from '../../layout/DynamicAuthLayout/DefaultFooter/DefaultFooter.js';
+import { WALLET_PICKER_SEARCH_KEY, LAST_USED_WALLET } from '../../utils/constants/localStorage.js';
+import '../../utils/constants/colors.js';
+import '../../utils/constants/values.js';
+import { classNames } from '../../utils/functions/classNames/classNames.js';
+import { useEffectOnce } from '../../utils/hooks/useEffectOnce/useEffectOnce.js';
+import { useWalletList } from '../../utils/hooks/useWalletList/useWalletList.js';
+import { SearchNotFoundMessage } from './SearchNotFoundMessage/SearchNotFoundMessage.js';
+import { WalletListGridTabs } from './WalletListGridTabs/WalletListGridTabs.js';
+import { WalletListItem } from './WalletListItem/WalletListItem.js';
+
+const WalletList = ({ isWalletConnectList = false, onSelectWallet, viewWalletsFilter, showDefaultFooter, scrollContainerClassName, }) => {
+    var _a, _b;
+    /**
+     * Clear search key on unmount
+     */
+    useEffectOnce(() => () => StorageService === null || StorageService === void 0 ? void 0 : StorageService.setItem(WALLET_PICKER_SEARCH_KEY, ''));
+    const { walletConnectorOptions, projectSettings, defaultNumberOfWalletsToShow, selectedTabIndex, setSelectedTabIndex, tabsItems, } = useInternalDynamicContext();
+    const { error } = useErrorContext();
+    const [footerBorderIsVisible, setFooterBorderIsVisible] = useState(true);
+    const { t } = useTranslation();
+    const [filterValue, setFilterValue] = useState((_a = StorageService.getItem(WALLET_PICKER_SEARCH_KEY)) !== null && _a !== void 0 ? _a : '');
+    const { numberOfWallets, walletsList, recommendedWallets: effectiveRecommendedWallets, } = useWalletList({
+        isWalletConnectList,
+        lastUsedWalletKey: (_b = StorageService.getItem(LAST_USED_WALLET)) !== null && _b !== void 0 ? _b : undefined,
+        searchFilter: filterValue,
+        viewWalletsFilter,
+    });
+    const isSearchEnabled = Boolean(filterValue) ||
+        (numberOfWallets > defaultNumberOfWalletsToShow &&
+            walletsList.length !== numberOfWallets);
+    const isTabsEnabled = Boolean(tabsItems === null || tabsItems === void 0 ? void 0 : tabsItems.length);
+    const walletListScrollRef = useRef(null);
+    /* istanbul ignore next */
+    const handleScroll = () => {
+        const element = walletListScrollRef.current;
+        if (!element) {
+            return;
+        }
+        if ((element === null || element === void 0 ? void 0 : element.scrollTop) > (element === null || element === void 0 ? void 0 : element.clientHeight) * 1.25) {
+            setFooterBorderIsVisible(false);
+        }
+        else {
+            setFooterBorderIsVisible(true);
+        }
+    };
+    const handleFilterValueChange = (value) => {
+        StorageService.setItem(WALLET_PICKER_SEARCH_KEY, value);
+        setFilterValue(value);
+    };
+    const searchContainer = !projectSettings ? (jsx(Skeleton, { className: 'wallet-list__search-skeleton' })) : (isSearchEnabled && (jsx("div", { className: classNames('wallet-list__search-container', {
+            'wallet-list__search-container--scroll': !error,
+        }), children: jsx(Search, { copykey: 'dyn_wallet_list.search.label', label: t('dyn_wallet_list.search.label', { numberOfWallets }), value: filterValue, onChange: ({ target: { value } }) => handleFilterValueChange(value), onClickClear: () => handleFilterValueChange('') }) })));
+    return (jsxs(Fragment, { children: [isTabsEnabled && (jsx("div", { className: 'wallet-list__tabs-container', children: jsx(WalletListGridTabs
+                // The tabsItems nullable assertion is safe here because isTabsEnabled is true
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                , { 
+                    // The tabsItems nullable assertion is safe here because isTabsEnabled is true
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    items: tabsItems, value: selectedTabIndex || 0, onSelect: setSelectedTabIndex }) })), searchContainer, Boolean(error) && (jsx(ErrorContainer, { className: 'wallet-list__error-container', withIcon: false, children: error })), jsxs("div", { className: classNames('wallet-list__scroll-container', scrollContainerClassName, {
+                    'wallet-list__scroll-container--error': Boolean(error),
+                    'wallet-list__scroll-container--fixed-height': isTabsEnabled,
+                }), "data-testid": 'wallet-list-scroll-container', ref: walletListScrollRef, onScroll: handleScroll, children: [!projectSettings ? (jsx(Skeleton, { count: 10, className: 'wallet-list__tile-skeleton' })) : (jsxs(Fragment, { children: [walletConnectorOptions.length === 0 && (jsx(ErrorContainer, { copykey: 'dyn_wallet_list.configuration_mismatch', children: t('dyn_wallet_list.configuration_mismatch') })), walletConnectorOptions.length && walletsList.length === 0 ? (jsx(SearchNotFoundMessage, { titleKey: 'dyn_wallet_list.search.not_found.title', subtitleKey: 'dyn_wallet_list.search.not_found.description', image: jsx(SvgNoWalletFound, {}) })) : (walletsList.map((wallet, index) => (jsx(WalletListItem, { wallet: wallet, onResetSearchValue: () => handleFilterValueChange(''), recommendedWallets: effectiveRecommendedWallets, onSelectWallet: onSelectWallet }, `${wallet.key}_${index}`))))] })), isSearchEnabled && !filterValue && projectSettings && (jsx(SearchNotFoundMessage, {}))] }), showDefaultFooter && (jsx(DefaultFooter, { hideBorder: !footerBorderIsVisible }))] }));
+};
+
+export { WalletList };

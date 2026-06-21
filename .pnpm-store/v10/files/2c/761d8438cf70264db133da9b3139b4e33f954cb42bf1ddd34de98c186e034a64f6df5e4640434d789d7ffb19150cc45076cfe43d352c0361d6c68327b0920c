@@ -1,0 +1,20 @@
+import type { Chain } from '../../../chain';
+type StripChainSuffixParams = {
+    chain: Chain;
+    normalizedName: string;
+};
+/**
+ * Removes the lowercased chain suffix that `normalizeWalletNameWithChain`
+ * appends. Used by `findWalletOptionKeyForProviderKey` to recover the wallet
+ * book wallet key candidate from a `walletProviderKey`. If the suffix is
+ * not present (some chain extensions already bake the chain into the
+ * display name), the input is returned unchanged.
+ *
+ * @param params.chain - The chain whose suffix should be stripped.
+ * @param params.normalizedName - The normalized wallet-name-with-chain string.
+ * @returns The name with the chain suffix removed, or the input unchanged.
+ * @not-instrumented
+ */
+export declare const stripChainSuffix: ({ chain, normalizedName, }: StripChainSuffixParams) => string;
+export {};
+//# sourceMappingURL=stripChainSuffix.d.ts.map

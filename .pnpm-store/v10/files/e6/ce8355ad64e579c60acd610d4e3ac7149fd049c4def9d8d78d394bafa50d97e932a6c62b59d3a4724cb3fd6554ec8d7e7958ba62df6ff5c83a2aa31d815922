@@ -1,0 +1,18 @@
+import type { ElevatedAccessToken, ParsedElevatedAccessToken } from '../elevatedAccessTokens.types';
+/**
+ * Upserts an elevated access token into the current tokens array.
+ *
+ * Policy: Only one token per normalized scope-set is allowed.
+ * If a token with the same normalized scopes exists, it is replaced.
+ * This ensures we don't accumulate multiple tokens for the same scope combination.
+ *
+ * @param currentTokens - Current array of elevated access tokens
+ * @param newToken - New token to upsert
+ * @returns Updated array of tokens with the new token upserted
+  * @not-instrumented
+ */
+export declare const upsertElevatedAccessToken: ({ currentTokens, newToken, }: {
+    currentTokens: ElevatedAccessToken[];
+    newToken: ParsedElevatedAccessToken;
+}) => ElevatedAccessToken[];
+//# sourceMappingURL=upsertElevatedAccessToken.d.ts.map

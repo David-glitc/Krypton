@@ -1,0 +1,60 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var sdkApiCore = require('@dynamic-labs/sdk-api-core');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var useSmartWallets = require('../useSmartWallets/useSmartWallets.cjs');
+var getUserVerifiedCredentialType = require('../../functions/getUserVerifiedCredentialType/getUserVerifiedCredentialType.cjs');
+
+const useIsTurnkeyWallet = () => {
+    var _a, _b, _c;
+    const { primaryWallet, user } = useInternalDynamicContext.useInternalDynamicContext();
+    const { getEOAWallet } = useSmartWallets.useSmartWallets();
+    const wallet = (_a = (primaryWallet && getEOAWallet(primaryWallet))) !== null && _a !== void 0 ? _a : primaryWallet;
+    const getTurnkeyVerifiedCredential = () => {
+        if (!wallet || !user || !wallet.connector.key.startsWith('turnkey')) {
+            return undefined;
+        }
+        const primaryWalletId = wallet.id;
+        const turnkeyVC = user.verifiedCredentials.find((vc) => vc.id === primaryWalletId);
+        if (!turnkeyVC) {
+            return undefined;
+        }
+        return turnkeyVC;
+    };
+    const getUnclaimedTurnkeyTheSignerOfScw = () => {
+        if (!wallet || !user) {
+            return false;
+        }
+        const unclaimedTurnkeyVc = user.verifiedCredentials.find((vc) => {
+            var _a, _b;
+            return ((_a = vc.walletName) === null || _a === void 0 ? void 0 : _a.startsWith('turnkey')) &&
+                ((_b = vc.walletProperties) === null || _b === void 0 ? void 0 : _b.isAuthenticatorAttached) === false;
+        });
+        const smartContractWalletWithUnclaimedTurnkeySigner = user.verifiedCredentials.find((vc) => unclaimedTurnkeyVc && vc.signerRefId === unclaimedTurnkeyVc.id);
+        return smartContractWalletWithUnclaimedTurnkeySigner;
+    };
+    const turnkeyVerifiedCredential = getTurnkeyVerifiedCredential();
+    const isUnclaimedTurnkeyTheSignerOfScw = Boolean(getUnclaimedTurnkeyTheSignerOfScw());
+    const isTurnkeyWallet = Boolean(turnkeyVerifiedCredential || isUnclaimedTurnkeyTheSignerOfScw);
+    const hasTurnkeyVerifiedCredentialAuthenticator = Boolean((_b = turnkeyVerifiedCredential === null || turnkeyVerifiedCredential === void 0 ? void 0 : turnkeyVerifiedCredential.walletProperties) === null || _b === void 0 ? void 0 : _b.isAuthenticatorAttached);
+    const isTurnkeyWalletWithoutAuthenticator = (isTurnkeyWallet && !hasTurnkeyVerifiedCredentialAuthenticator) ||
+        isUnclaimedTurnkeyTheSignerOfScw;
+    const hasRecoveryEmail = isTurnkeyWallet &&
+        Boolean(getUserVerifiedCredentialType.getUserVerifiedCredentialType(user, sdkApiCore.JwtVerifiedCredentialFormatEnum.Email));
+    const isSessionKeyCompatible = isTurnkeyWallet &&
+        Boolean((_c = turnkeyVerifiedCredential === null || turnkeyVerifiedCredential === void 0 ? void 0 : turnkeyVerifiedCredential.walletProperties) === null || _c === void 0 ? void 0 : _c.isSessionKeyCompatible);
+    return {
+        hasRecoveryEmail,
+        hasTurnkeyVerifiedCredentialAuthenticator,
+        isSessionKeyCompatible,
+        isTurnkeyWallet,
+        isTurnkeyWalletWithoutAuthenticator,
+        turnkeyVerifiedCredential,
+    };
+};
+
+exports.useIsTurnkeyWallet = useIsTurnkeyWallet;

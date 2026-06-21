@@ -1,0 +1,54 @@
+import type { DynamicClient } from '../../../client/types/DynamicClient';
+import type { WalletBookSchema } from '../../legacyWalletBook/legacyWalletBook.types';
+import type { WalletProviderRegistryEntry } from '../../wallets/walletProviderRegistry';
+import type { WithWalletProviderConnectionOption } from '../walletOptionsCatalogue.types';
+/**
+ * Display override sourced from a registered wallet provider's announced
+ * metadata (EIP-6963 / Wallet Standard / vendor SDK). The outer
+ * transformer applies these on top of any wallet book group entry — the
+ * provider knows its own brand best, so `name` + `iconUrl` here win
+ * over the wallet book's values when both exist.
+ */
+export type WithWalletProviderDisplayOverride = {
+    iconUrl: string;
+    name: string;
+};
+/**
+ * One `WithWalletProviderConnectionOption` paired with the wallet option
+ * key it should be bucketed under, plus the provider's self-announced
+ * display metadata. The outer transformer groups by `walletOptionKey` and
+ * uses `displayOverride` to build the wallet option shell, with provider
+ * precedence over the wallet book's display fields.
+ */
+export type WithWalletProviderOptionForWalletOption = {
+    displayOverride: WithWalletProviderDisplayOverride;
+    option: WithWalletProviderConnectionOption;
+    walletOptionKey: string;
+};
+type BuildWithWalletProviderOptionsParams = {
+    entries: WalletProviderRegistryEntry[];
+    walletBook: WalletBookSchema;
+};
+/**
+ * Converts each registered wallet provider entry into a
+ * `WithWalletProviderConnectionOption` paired with its target wallet
+ * option key and the provider's display override. Every classifiable
+ * entry surfaces in the catalogue; the outer transformer uses the
+ * carried `displayOverride` to override any wallet book branding for
+ * that key (provider self-announcement wins over book).
+ *
+ * Entries whose registration priority is not recognised by
+ * `classifyWithWalletProviderSource` are dropped from the catalogue and
+ * an error is logged so Datadog surfaces the unknown registration path —
+ * in production this should never happen, every chain extension is
+ * expected to register with one of the documented priorities.
+ *
+ * @param params.entries - Snapshot of the registry's entries.
+ * @param params.walletBook - The fetched wallet book.
+ * @param client - The Dynamic client (used for logging unclassifiable entries).
+ * @returns An array of tagged options, in input order.
+ * @not-instrumented
+ */
+export declare const buildWithWalletProviderOptions: ({ entries, walletBook }: BuildWithWalletProviderOptionsParams, client: DynamicClient) => WithWalletProviderOptionForWalletOption[];
+export {};
+//# sourceMappingURL=buildWithWalletProviderOptions.d.ts.map

@@ -1,0 +1,38 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var utils = require('@dynamic-labs/utils');
+var sessionStorage = require('../../constants/sessionStorage.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react');
+require('react/jsx-runtime');
+require('../../../context/ViewContext/ViewContext.cjs');
+var logger = require('../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('../../constants/colors.cjs');
+require('../../constants/values.cjs');
+require('@dynamic-labs/sdk-api-core');
+require('../../../shared/consts/index.cjs');
+
+const getClientSessionKeys = () => {
+    const sessionKeysSS = utils.StorageService.getItem(sessionStorage.CLIENT_SESSION_KEYS, sessionStorage.CLIENT_SESSION_KEYS_STORAGE_OPTIONS);
+    const decodedSessionKeys = sessionKeysSS
+        ? JSON.parse(Buffer.from(sessionKeysSS, 'base64').toString())
+        : undefined;
+    return decodedSessionKeys;
+};
+const clearClientSessionKeys = () => {
+    const clientSessionKeys = getClientSessionKeys();
+    logger.logger.instrument('[SessionChaining] Clearing client session keys', {
+        key: 'clearing_client_session_keys',
+        sessionPublicKey: clientSessionKeys === null || clientSessionKeys === void 0 ? void 0 : clientSessionKeys.publicKey,
+        time: 0,
+    });
+    utils.StorageService.removeItem(sessionStorage.CLIENT_SESSION_KEYS, sessionStorage.CLIENT_SESSION_KEYS_STORAGE_OPTIONS);
+};
+
+exports.clearClientSessionKeys = clearClientSessionKeys;
+exports.getClientSessionKeys = getClientSessionKeys;

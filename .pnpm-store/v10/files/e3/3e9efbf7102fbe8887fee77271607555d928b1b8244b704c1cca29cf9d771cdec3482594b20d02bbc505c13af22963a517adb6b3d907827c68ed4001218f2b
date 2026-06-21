@@ -1,0 +1,2 @@
+export { setupCrossTabEventSync } from './setupCrossTabEventSync';
+//# sourceMappingURL=index.d.ts.map

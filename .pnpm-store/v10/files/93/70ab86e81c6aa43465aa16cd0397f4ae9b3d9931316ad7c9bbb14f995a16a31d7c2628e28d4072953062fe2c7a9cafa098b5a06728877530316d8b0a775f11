@@ -1,0 +1,42 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var utils = require('@dynamic-labs/utils');
+var index = require('../../functions/walletFilters/index.cjs');
+var walletListBuilder = require('../../functions/walletListBuilder/walletListBuilder.cjs');
+var getEffectiveRecommendedWallets = require('./utils/getEffectiveRecommendedWallets/getEffectiveRecommendedWallets.cjs');
+var getEffectiveWalletFilter = require('./utils/getEffectiveWalletFilter/getEffectiveWalletFilter.cjs');
+
+const buildWalletsList = ({ bridgeChainsToConnect, defaultNumberOfWalletsToShow, isWalletConnectList, lastUsedWalletKey, multiWallet, recommendedWallets, searchFilter, selectedTabSettings, userWallets, viewWalletsFilter, walletConnectorOptions, walletGroups, walletsFilter, }) => {
+    const getFilteredBridgeChains = (bridgeChainsToConnect === null || bridgeChainsToConnect === void 0 ? void 0 : bridgeChainsToConnect.length) &&
+        index.FilterBridgeChainsName(bridgeChainsToConnect[0].chain);
+    const filteredBridgeChains = getFilteredBridgeChains && getFilteredBridgeChains(walletConnectorOptions);
+    const effectiveRecommendedWallets = getEffectiveRecommendedWallets.getEffectiveRecommendedWallets(selectedTabSettings, recommendedWallets);
+    const effectiveWalletsFilter = getEffectiveWalletFilter.getEffectiveWalletFilter(selectedTabSettings, walletsFilter);
+    const { numberOfWallets, walletsList } = walletListBuilder.walletListBuilder({
+        groupWallets: true,
+        inputList: filteredBridgeChains || walletConnectorOptions,
+        isWalletConnectList,
+        lastUsedWalletKey,
+        multiWallet,
+        numberOfWalletsToShow: defaultNumberOfWalletsToShow,
+        recommendedWallets: effectiveRecommendedWallets,
+        searchFilter,
+        showMoreWalletsWithFilter: true,
+        userWallets,
+        walletGroups,
+        // use both filters if available, else use the viewWalletsFilter or effectiveWalletsFilter
+        walletsFilter: viewWalletsFilter && effectiveWalletsFilter
+            ? utils.pipe(viewWalletsFilter).pipe(effectiveWalletsFilter)
+            : viewWalletsFilter || effectiveWalletsFilter,
+    });
+    return {
+        numberOfWallets,
+        recommendedWallets: effectiveRecommendedWallets,
+        walletsList,
+    };
+};
+
+exports.buildWalletsList = buildWalletsList;

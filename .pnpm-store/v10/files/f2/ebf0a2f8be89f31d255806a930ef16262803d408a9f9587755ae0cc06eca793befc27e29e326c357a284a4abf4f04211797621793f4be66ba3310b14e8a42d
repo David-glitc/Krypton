@@ -1,0 +1,17 @@
+import type { HardwareWalletVendor } from '../hardwareWallet.types';
+type CanConnectWithHardwareWalletParams = {
+    hardwareWalletVendor: HardwareWalletVendor;
+    walletProviderKey: string;
+};
+/**
+ * Checks whether a wallet provider supports connecting with a specific hardware wallet vendor.
+ *
+ * @param params.walletProviderKey - The key of the wallet provider to check.
+ * @param params.hardwareWalletVendor - The hardware wallet vendor to check for.
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns Whether the wallet provider supports the specified hardware wallet vendor.
+  * @not-instrumented
+ */
+export declare const canConnectWithHardwareWallet: ({ walletProviderKey, hardwareWalletVendor, }: CanConnectWithHardwareWalletParams, client?: import("../../../../exports").DynamicClient) => boolean;
+export {};
+//# sourceMappingURL=canConnectWithHardwareWallet.d.ts.map

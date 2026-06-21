@@ -1,0 +1,2 @@
+export { collectInstalledGroupIds } from './collectInstalledGroupIds';
+//# sourceMappingURL=index.d.ts.map

@@ -1,0 +1,68 @@
+'use client'
+import { __awaiter } from '../../../../../../_virtual/_tslib.js';
+import { jsxs, jsx } from 'react/jsx-runtime';
+import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import { DynamicError } from '@dynamic-labs/utils';
+import { ErrorContainer } from '../../../../components/ErrorContainer/ErrorContainer.js';
+import { NeedHelpSection } from '../../../../components/NeedHelpSection/NeedHelpSection.js';
+import { PasskeySuccessEnum } from '../../../../components/PasskeyCreatedSuccessBanner/PasskeyCreatedSuccessBanner.js';
+import { Typography } from '../../../../components/Typography/Typography.js';
+import { TypographyButton } from '../../../../components/TypographyButton/TypographyButton.js';
+import '../../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { dynamicEvents } from '../../../../events/dynamicEvents.js';
+import { getProperErrorMessage } from '../../../../modals/SignMessageConfirmationModal/getProperErrorMessage.js';
+import { ReactComponent as SvgPasskeyIntroIcon } from '../../../../shared/assets/passkey-intro-icon.js';
+import '@dynamic-labs/iconic';
+import '../../../../context/ViewContext/ViewContext.js';
+import { logger } from '../../../../shared/logger.js';
+import { useIsTurnkeyWallet } from '../../../../utils/hooks/useIsTurnkeyWallet/useIsTurnkeyWallet.js';
+import { useMutation } from '../../../../utils/hooks/useMutation/useMutation.js';
+import { useSmartWallets } from '../../../../utils/hooks/useSmartWallets/useSmartWallets.js';
+import { PasskeyDeviceIcon } from '../../PasskeyDeviceIcon/PasskeyDeviceIcon.js';
+import { completePasskeyRecovery } from '../../utils/passkeyRecovery/passkeyRecovery.js';
+
+const PasskeyCompleteRecovery = ({ goBack, }) => {
+    const { primaryWallet, environmentId, user, setPasskeySuccessPopup } = useInternalDynamicContext();
+    const { isTurnkeyWalletWithoutAuthenticator } = useIsTurnkeyWallet();
+    const { getEOAWallet } = useSmartWallets();
+    const { t } = useTranslation();
+    const { mutate: completeRecovery, isLoading, error, } = useMutation(() => __awaiter(void 0, void 0, void 0, function* () {
+        var _a;
+        const wallet = (_a = (primaryWallet && getEOAWallet(primaryWallet))) !== null && _a !== void 0 ? _a : primaryWallet;
+        const updatedUser = yield completePasskeyRecovery({
+            environmentId,
+            user,
+            wallet,
+        });
+        if (!updatedUser) {
+            throw new DynamicError('Error completing passkey recovery');
+        }
+        dynamicEvents.emit('passkeyRecoveryCompleted', primaryWallet);
+        goBack();
+        setPasskeySuccessPopup(PasskeySuccessEnum.CREATED);
+    }), {
+        onFailure: (err) => {
+            logger.error('Failed to init passkey recovery', err);
+            dynamicEvents.emit('passkeyRecoveryFailed', err);
+        },
+    });
+    const errorText = useMemo(() => {
+        if (!error) {
+            return undefined;
+        }
+        if (error instanceof DynamicError) {
+            return error.message;
+        }
+        return getProperErrorMessage(error);
+    }, [error]);
+    const translationKey = isTurnkeyWalletWithoutAuthenticator
+        ? 'dyn_passkey_secure_modal'
+        : 'dyn_passkey_recovery';
+    return (jsxs("div", { className: 'passkey-recovery-view', children: [jsx("div", { className: 'passkey-recovery-view__header', children: jsx(SvgPasskeyIntroIcon, {}) }), jsx(Typography, { variant: 'body_normal', weight: 'regular', color: 'secondary', className: 'passkey-recovery-view__subtitle', children: t(`${translationKey}.complete.description`) }), errorText && jsx(ErrorContainer, { children: errorText }), jsx("div", { className: 'passkey-recovery-view__actions', children: jsx(TypographyButton, { buttonVariant: 'brand-primary', buttonPadding: 'large', dataTestId: 'passkey-recovery-complete-button', onClick: () => completeRecovery(), disabled: isLoading, showInternalLoading: false, typographyProps: {
+                        color: 'inherit',
+                    }, children: jsxs("div", { className: 'passkey-recovery-view__inline-button', children: [jsx(PasskeyDeviceIcon, { size: 'small' }), jsx(Typography, { copykey: `${translationKey}.complete.complete_button`, children: t(`${translationKey}.complete.complete_button`) })] }) }) }), jsx(NeedHelpSection, { isRecoveryFlow: true })] }));
+};
+
+export { PasskeyCompleteRecovery };

@@ -1,0 +1,2 @@
+import { createDeviceSignatureHeadersMiddleware as createDeviceSignatureHeadersMiddlewareCore } from '@dynamic-labs-sdk/client/core';
+export declare const createDeviceSignatureHeadersMiddleware: () => ReturnType<typeof createDeviceSignatureHeadersMiddlewareCore>;

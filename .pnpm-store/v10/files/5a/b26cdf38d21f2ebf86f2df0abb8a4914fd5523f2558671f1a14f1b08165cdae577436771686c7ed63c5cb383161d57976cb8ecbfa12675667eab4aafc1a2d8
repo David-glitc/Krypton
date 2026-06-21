@@ -1,0 +1,261 @@
+'use client'
+import { __awaiter } from '../../../../../../../_virtual/_tslib.js';
+import { jsxs, jsx } from 'react/jsx-runtime';
+import { useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import { TokenScope, MFAAction, WaasBackupOptionsEnum } from '@dynamic-labs/sdk-api-core';
+import { isSessionKeyCompatibleWallet } from '@dynamic-labs/wallet-connector-core';
+import { Badge } from '../../../../../components/Badge/Badge.js';
+import { Typography } from '../../../../../components/Typography/Typography.js';
+import { TypographyButton } from '../../../../../components/TypographyButton/TypographyButton.js';
+import '../../../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { useViewContext } from '../../../../../context/ViewContext/ViewContext.js';
+import { ReactComponent as SvgBackupArrow } from '../../../../../shared/assets/backupArrow.js';
+import { ReactComponent as SvgChevronLeft } from '../../../../../shared/assets/chevron-left.js';
+import { ReactComponent as SvgExportPrivateKey } from '../../../../../shared/assets/export-private-key.js';
+import { ReactComponent as SvgExportRecoveryPhrase } from '../../../../../shared/assets/export-recovery-phrase.js';
+import { ReactComponent as SvgLock } from '../../../../../shared/assets/lock.js';
+import '@dynamic-labs/iconic';
+import { logger } from '../../../../../shared/logger.js';
+import '../../../../../events/dynamicEvents.js';
+import '@dynamic-labs/utils';
+import '../../../../../context/CaptchaContext/CaptchaContext.js';
+import '../../../../../context/ErrorContext/ErrorContext.js';
+import '@dynamic-labs/wallet-book';
+import '../../../../../utils/constants/colors.js';
+import '../../../../../utils/constants/values.js';
+import '../../../../../shared/consts/index.js';
+import '@dynamic-labs/multi-wallet';
+import 'react-international-phone';
+import '../../../../../store/state/nonce/nonce.js';
+import '@dynamic-labs-sdk/client/core';
+import 'eventemitter3';
+import '@dynamic-labs-sdk/client';
+import '../../../../../config/ApiEndpoint.js';
+import '@dynamic-labs/locale';
+import '../../../../../store/state/dynamicContextProps/dynamicContextProps.js';
+import '../../../../../store/state/primaryWalletId/primaryWalletId.js';
+import '../../../../../store/state/connectedWalletsInfo/connectedWalletsInfo.js';
+import '../../../../../utils/functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.js';
+import '../../../../../context/AccessDeniedContext/AccessDeniedContext.js';
+import '../../../../../context/AccountExistsContext/AccountExistsContext.js';
+import '../../../../../context/UserWalletsContext/UserWalletsContext.js';
+import '../../../../../store/state/authMode/authMode.js';
+import '../../../../../store/state/loadingAndLifecycle/loadingAndLifecycle.js';
+import '../../../../../context/VerificationContext/VerificationContext.js';
+import 'react-dom';
+import '../../../../../utils/functions/compareChains/compareChains.js';
+import '../../../../../views/Passkey/utils/findPrimaryEmbeddedChain/findPrimaryEmbeddedChain.js';
+import '../../../../../context/ThemeContext/ThemeContext.js';
+import { useSmartWallets } from '../../../../../utils/hooks/useSmartWallets/useSmartWallets.js';
+import '../../../../../utils/hooks/useUserUpdateRequest/useUpdateUser/userFieldsSchema.js';
+import { usePasskeyRecovery } from '../../../../../utils/hooks/usePasskeyRecovery/usePasskeyRecovery.js';
+import 'bs58';
+import '@dynamic-labs/types';
+import '../../../../../context/SocialRedirectContext/SocialRedirectContext.js';
+import '../../../../../context/LoadingContext/LoadingContext.js';
+import '../../../../../context/WalletContext/WalletContext.js';
+import '../../../../../utils/hooks/useEmbeddedWallet/useSecureEnclaveEmbeddedWallet/constants.js';
+import 'yup';
+import '../../../../../context/MockContext/MockContext.js';
+import '../../../../../views/CollectUserDataView/useFields.js';
+import '../../../../../context/FieldsStateContext/FieldsStateContext.js';
+import '../../../../../context/UserFieldEditorContext/UserFieldEditorContext.js';
+import '@dynamic-labs/rpc-providers';
+import '../../../../../store/state/walletOptions/walletOptions.js';
+import '../../../../../components/Accordion/components/AccordionItem/AccordionItem.js';
+import '../../../../../components/Alert/Alert.js';
+import '../../../../../components/ShadowDOM/ShadowDOM.js';
+import '../../../../../components/IconButton/IconButton.js';
+import '../../../../../components/InlineWidget/InlineWidget.js';
+import '../../../../../components/Input/Input.js';
+import '../../../../../components/IsBrowser/IsBrowser.js';
+import '../../../../../components/MenuList/Dropdown/Dropdown.js';
+import '../../../../../components/OverlayCard/OverlayCard.js';
+import '../../../../../components/Transition/ZoomTransition/ZoomTransition.js';
+import '../../../../../components/Transition/SlideInUpTransition/SlideInUpTransition.js';
+import '../../../../../components/Transition/OpacityTransition/OpacityTransition.js';
+import '../../../../../components/PasskeyCreatedSuccessBanner/PasskeyCreatedSuccessBanner.js';
+import '../../../../../components/Popper/Popper/Popper.js';
+import '../../../../../components/Popper/PopperContext/PopperContext.js';
+import 'react-focus-lock';
+import 'qrcode';
+import 'formik';
+import '../../../../../utils/hooks/useSubdomainCheck/useSubdomainCheck.js';
+import '../../../../../context/WalletGroupContext/WalletGroupContext.js';
+import { useWidgetContext } from '../../../context/DynamicWidgetContext.js';
+import '../../../../../utils/hooks/useGetMfaToken/useGetMfaToken.js';
+import { useWalletBackup } from '../../../../../utils/hooks/useWalletBackup/useWalletBackup.js';
+import '../../../../../utils/hooks/useWalletBackup/BackupError.js';
+import '../../../../../utils/hooks/useWalletBackup/types.js';
+import '../../../../../utils/hooks/useWalletBackup/cloudProviders.js';
+import { useStepUpAuthentication } from '../../../../../utils/hooks/useStepUpAuthentication/useStepUpAuthentication.js';
+import '../../../../../context/IpConfigurationContext/IpConfigurationContext.js';
+import '../../../../../context/ConnectWithOtpContext/ConnectWithOtpContext.js';
+import '../../../../DynamicBridgeWidget/views/WalletsView/components/SecondaryWallets/SecondaryWallets.js';
+import '@hcaptcha/react-hcaptcha';
+import '../../../helpers/convertExchangeKeyAndProviderEnum.js';
+import '../../../../../views/ExchangeWhitelistWarning/ExchangeWhitelistWarning.js';
+import '../../../../../context/ErrorContext/hooks/useErrorText/useErrorText.js';
+import '../../../../../context/FooterAnimationContext/index.js';
+import '../../../../../views/MfaChooseDeviceView/useGetMfaOptions/useGetMfaOptions.js';
+import '../../../../../context/PasskeyContext/PasskeyContext.js';
+import { useWalletPassword } from '../../../../../utils/hooks/useWalletPassword/useWalletPassword.js';
+import '../../../../../context/OnrampContext/OnrampContext.js';
+import '../../../../../utils/hooks/useWalletDelegation/DelegationError.js';
+import '../../../../../store/state/sendBalances.js';
+import '../../../../../store/state/connectorsInitializing/connectorsInitializing.js';
+import '../../../../../components/OverlayCardBase/OverlayCardTarget/OverlayCardTarget.js';
+import '../../../components/DynamicWidgetHeader/DynamicWidgetHeader.js';
+import '../../../../../views/TransactionConfirmationView/TransactionConfirmationView.js';
+import '../../../components/PasskeyCard/PasskeyCard.js';
+import { useEmbeddedReveal } from '../../../../../utils/hooks/useEmbeddedReveal/useEmbeddedReveal.js';
+import { useIsPasswordEncrypted } from '../../../../../utils/hooks/useIsPasswordEncrypted/useIsPasswordEncrypted.js';
+import '../../CryptoComOnramp/CryptoComOnramp.js';
+import '../../../../../../index.js';
+import '../../ManagePasskeysMfaWidgetView/ManagePasskeysMfaWidgetView.js';
+import '../../ManageTotpMfaWidgetView/ManageTotpMfaWidgetView.js';
+import '../../ReceiveWalletFunds/ReceiveWalletFunds.js';
+import '../../../../../store/state/tokenBalances.js';
+import '../../../../../store/state/multichainBalances.js';
+import '@dynamic-labs/store';
+import '../../../../../shared/utils/functions/getInitialUrl/getInitialUrl.js';
+import { useIsMfaRequiredForAction } from '../../../../../utils/hooks/useIsMfaRequiredForAction/useIsMfaRequiredForAction.js';
+
+const EmbeddedWalletExportSection = () => {
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
+    const { t } = useTranslation();
+    const { setDynamicWidgetView } = useWidgetContext();
+    const { primaryWallet, user, projectSettings, setShowAuthFlow } = useInternalDynamicContext();
+    const { pushView } = useViewContext();
+    const { getEOAWallet } = useSmartWallets();
+    const { setPassword } = useWalletPassword();
+    const isPasswordEncrypted = useIsPasswordEncrypted();
+    const { initPasskeyRecoveryProcess, shouldInitRecovery } = usePasskeyRecovery();
+    const { initExportProcess } = useEmbeddedReveal();
+    const { isStepUpRequired, promptMfa, promptStepUpAuth } = useStepUpAuthentication();
+    const isMfaRequiredForAction = useIsMfaRequiredForAction();
+    const eoaWallet = primaryWallet && getEOAWallet(primaryWallet);
+    const wallet = eoaWallet !== null && eoaWallet !== void 0 ? eoaWallet : primaryWallet;
+    const isEmbeddedWallet = Boolean(wallet &&
+        (((_b = (_a = wallet === null || wallet === void 0 ? void 0 : wallet.connector) === null || _a === void 0 ? void 0 : _a.key) === null || _b === void 0 ? void 0 : _b.startsWith('turnkey')) ||
+            ((_d = (_c = wallet === null || wallet === void 0 ? void 0 : wallet.connector) === null || _c === void 0 ? void 0 : _c.key) === null || _d === void 0 ? void 0 : _d.startsWith('dynamicwaas'))));
+    const turnkeyWalletProperties = (_f = (_e = user === null || user === void 0 ? void 0 : user.verifiedCredentials) === null || _e === void 0 ? void 0 : _e.find(({ walletName, id }) => (walletName === null || walletName === void 0 ? void 0 : walletName.startsWith('turnkey')) &&
+        ((primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.id) ? id === (primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.id) : true))) === null || _f === void 0 ? void 0 : _f.walletProperties;
+    const isTurnkeyHDWallet = Boolean(turnkeyWalletProperties === null || turnkeyWalletProperties === void 0 ? void 0 : turnkeyWalletProperties.turnkeyHDWalletId);
+    const isSessionKeyCompatible = (primaryWallet && isSessionKeyCompatibleWallet(primaryWallet)) ||
+        (eoaWallet && isSessionKeyCompatibleWallet(eoaWallet));
+    const isV3WaasWallet = Boolean(wallet && ((_h = (_g = wallet === null || wallet === void 0 ? void 0 : wallet.connector) === null || _g === void 0 ? void 0 : _g.key) === null || _h === void 0 ? void 0 : _h.startsWith('dynamicwaas')));
+    const shouldShowPasswordSetup = isV3WaasWallet;
+    const handlePasscodeClick = useCallback(() => {
+        setDynamicWidgetView('setup-password', {
+            onComplete: (password) => __awaiter(void 0, void 0, void 0, function* () {
+                if (!(wallet === null || wallet === void 0 ? void 0 : wallet.address) || !(wallet === null || wallet === void 0 ? void 0 : wallet.chain)) {
+                    logger.error('No wallet address or chain available for password setup');
+                    return;
+                }
+                yield setPassword({
+                    accountAddress: wallet.address,
+                    chainName: wallet.chain,
+                    newPassword: password,
+                });
+            }),
+        });
+    }, [setDynamicWidgetView, wallet, setPassword]);
+    const handleResetPasswordClick = useCallback(() => {
+        setShowAuthFlow(true, {
+            ignoreIfIsEmbeddedWidget: false,
+            performMultiWalletChecks: false,
+        });
+        pushView('reset-password-flow');
+    }, [setShowAuthFlow, pushView]);
+    const handleExportClick = useCallback((recoveryPhrase) => __awaiter(void 0, void 0, void 0, function* () {
+        var _l;
+        logger.info('Starting embedded wallet export process', {
+            userId: user === null || user === void 0 ? void 0 : user.userId,
+            walletId: wallet === null || wallet === void 0 ? void 0 : wallet.id,
+            walletName: (_l = wallet === null || wallet === void 0 ? void 0 : wallet.connector) === null || _l === void 0 ? void 0 : _l.name,
+        });
+        const stepUpRequired = yield isStepUpRequired({
+            scope: TokenScope.Walletexport,
+        });
+        if (stepUpRequired) {
+            try {
+                yield promptStepUpAuth({
+                    requestedScopes: [TokenScope.Walletexport],
+                });
+            }
+            catch (_m) {
+                return;
+            }
+        }
+        else {
+            const isMfaRequired = yield isMfaRequiredForAction({
+                mfaAction: MFAAction.WalletWaasExport,
+            });
+            if (isMfaRequired) {
+                try {
+                    yield promptMfa({ createMfaToken: true });
+                }
+                catch (_o) {
+                    return;
+                }
+            }
+        }
+        if (!isSessionKeyCompatible) {
+            if (yield shouldInitRecovery()) {
+                yield initPasskeyRecoveryProcess(undefined, {
+                    type: 'reveal',
+                });
+            }
+        }
+        return initExportProcess(recoveryPhrase);
+    }), [
+        isStepUpRequired,
+        promptStepUpAuth,
+        isMfaRequiredForAction,
+        promptMfa,
+        shouldInitRecovery,
+        initPasskeyRecoveryProcess,
+        initExportProcess,
+        isSessionKeyCompatible,
+    ]);
+    const handleExportButtonClick = useCallback(() => {
+        handleExportClick();
+    }, [handleExportClick]);
+    const handleExportWithPhraseClick = useCallback(() => handleExportClick(true), [handleExportClick]);
+    const exportIconClasses = 'settings-view__body__section__button__icon';
+    const backupOptions = (_k = (_j = projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.sdk) === null || _j === void 0 ? void 0 : _j.waas) === null || _k === void 0 ? void 0 : _k.backupOptions;
+    const isCloudBackupEnabled = Boolean((backupOptions === null || backupOptions === void 0 ? void 0 : backupOptions.includes(WaasBackupOptionsEnum.GoogleDrive)) ||
+        (backupOptions === null || backupOptions === void 0 ? void 0 : backupOptions.includes(WaasBackupOptionsEnum.ICloud)));
+    const shouldShowBackupOption = isV3WaasWallet && isCloudBackupEnabled;
+    const { areAllWalletsBackedUp } = useWalletBackup();
+    const handleBackupClick = useCallback(() => {
+        setShowAuthFlow(true, {
+            ignoreIfIsEmbeddedWidget: false,
+            performMultiWalletChecks: false,
+        });
+        pushView(areAllWalletsBackedUp ? 'waas-backup-download-view' : 'waas-backup-view');
+    }, [setShowAuthFlow, pushView, areAllWalletsBackedUp]);
+    const exportButtonStartSlot = useMemo(() => (jsxs("div", { className: 'settings-view__body__section__button__start-slot', children: [jsx(SvgExportPrivateKey, { className: exportIconClasses }), jsx(Typography, { color: 'primary', weight: 'medium', copykey: isV3WaasWallet
+                    ? 'dyn_settings.export_section.export_button'
+                    : 'dyn_settings.export_section.private_key_button', children: isV3WaasWallet
+                    ? t('dyn_settings.export_section.export_button')
+                    : t('dyn_settings.export_section.private_key_button') })] })), [exportIconClasses, isV3WaasWallet, t]);
+    const recoveryPhraseButtonStartSlot = useMemo(() => (jsxs("div", { className: 'settings-view__body__section__button__start-slot', children: [jsx(SvgExportRecoveryPhrase, { className: exportIconClasses }), jsx(Typography, { color: 'primary', weight: 'medium', copykey: 'dyn_settings.export_section.srp_button', children: t('dyn_settings.export_section.srp_button') })] })), [exportIconClasses, t]);
+    if (!isEmbeddedWallet) {
+        return null;
+    }
+    return (jsxs("div", { className: 'settings-view__body__section', children: [jsx("div", { className: 'settings-view__body__section__title', children: jsx(Typography, { copykey: 'dyn_settings.wallet_security_section.title', color: 'secondary', weight: 'medium', children: t('dyn_settings.wallet_security_section.title') }) }), shouldShowPasswordSetup && (jsx(TypographyButton, { dataTestId: 'password-setup-button', onClick: isPasswordEncrypted ? handleResetPasswordClick : handlePasscodeClick, buttonClassName: 'settings-view__body__section__button', startSlot: 
+                // eslint-disable-next-line react/jsx-wrap-multilines
+                jsxs("div", { className: 'settings-view__body__section__button__start-slot', children: [jsx(SvgLock, { className: 'settings-view__body__section__button__icon' }), jsx(Typography, { color: 'primary', weight: 'medium', copykey: isPasswordEncrypted
+                                ? 'dyn_settings.account_security.password.reset_button'
+                                : 'dyn_settings.account_security.password.set_button', children: isPasswordEncrypted
+                                ? t('dyn_settings.account_security.password.reset_button')
+                                : t('dyn_settings.account_security.password.set_button') })] }), endSlot: jsx(SvgChevronLeft, { className: 'settings-view__body__section__button__icon-secondary--rotate' }), showInternalLoading: false })), jsx(TypographyButton, { dataTestId: 'embedded-reveal-account-button', onClick: handleExportButtonClick, buttonClassName: 'settings-view__body__section__button', startSlot: exportButtonStartSlot, endSlot: jsx(SvgChevronLeft, { className: 'settings-view__body__section__button__icon-secondary--rotate' }), showInternalLoading: false }), isTurnkeyHDWallet && !isV3WaasWallet && (jsx(TypographyButton, { dataTestId: 'embedded-reveal-button', onClick: handleExportWithPhraseClick, buttonClassName: 'settings-view__body__section__button', startSlot: recoveryPhraseButtonStartSlot, endSlot: jsx(SvgChevronLeft, { className: 'settings-view__body__section__button__icon-secondary--rotate' }), showInternalLoading: false })), shouldShowBackupOption && (jsx(TypographyButton, { dataTestId: 'backup-button', onClick: handleBackupClick, buttonClassName: 'settings-view__body__section__button', startSlot: 
+                // eslint-disable-next-line react/jsx-wrap-multilines
+                jsxs("div", { className: 'settings-view__body__section__button__start-slot', children: [jsx(SvgBackupArrow, { className: exportIconClasses }), jsx(Typography, { color: 'primary', weight: 'medium', copykey: 'dyn_settings.export_section.backup_button', children: t('dyn_settings.export_section.backup_button') })] }), endSlot: areAllWalletsBackedUp ? (jsx(Badge, { variant: 'primary', text: t('dyn_waas.backup.backed_up'), copykey: 'dyn_waas.backup.backed_up' })) : (jsx(SvgChevronLeft, { className: 'settings-view__body__section__button__icon-secondary--rotate' })), showInternalLoading: false }))] }));
+};
+
+export { EmbeddedWalletExportSection };

@@ -1,0 +1,13 @@
+/**
+ * Checks if the user has completed all onboarding requirements.
+ *
+ * This function verifies whether a user has fulfilled all necessary requirements
+ * including KYC fields (Know Your Customer information) and MFA setup
+ * (Multi-Factor Authentication including recovery codes acknowledgment).
+ *
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns True if onboarding is complete (no pending requirements), false if there are pending requirements.
+  * @not-instrumented
+ */
+export declare const isUserOnboardingComplete: (client?: import("../../../exports").DynamicClient) => boolean;
+//# sourceMappingURL=isUserOnboardingComplete.d.ts.map

@@ -1,0 +1,5 @@
+import type { DynamicClient } from '../../../../client/types';
+import type { WalletProvider } from '../../walletProvider';
+/** @not-instrumented */
+export declare const getAvailableWalletProvidersFromWalletAccounts: (client: DynamicClient) => WalletProvider[];
+//# sourceMappingURL=getAvailableWalletProvidersFromWalletAccounts.d.ts.map

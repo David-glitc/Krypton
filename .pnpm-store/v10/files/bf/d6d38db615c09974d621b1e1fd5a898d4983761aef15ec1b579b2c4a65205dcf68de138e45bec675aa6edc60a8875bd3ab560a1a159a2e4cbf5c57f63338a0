@@ -1,0 +1,29 @@
+import type { TokenScope } from '@dynamic-labs/sdk-api-core';
+import type { DynamicClient } from '../../../../../client/types';
+import type { User } from '../../../../user/user.types';
+type ProcessSocialCallbackParams = {
+    requestedScopes?: TokenScope[];
+    url: URL;
+};
+/**
+ * Platform-agnostic OAuth callback processor used by both the web redirect
+ * flow (`completeSocialRedirect`) and the native pop-up flow
+ * (`signInWithSocialPopUp`). Intentionally has no `.native.ts` variant — the
+ * logic (parse URL, validate state, call oauthSignIn/oauthVerify, update auth)
+ * works identically on every platform.
+ *
+ * Not exported from the public SDK surface; public callers go through
+ * `completeSocialRedirect` or `signInWithSocialPopUp` instead.
+ *
+ * @param params.url - The callback URL containing OAuth response parameters.
+ * @param [params.requestedScopes] - Optional scopes to request an elevated access token when verifying (linking) a social account.
+ * @param client - The Dynamic client instance.
+ * @returns The authenticated user, or null if the verify response had none.
+ * @throws MissingSocialUrlParamError If required OAuth parameters are missing.
+ * @throws MissingRedirectStorageStateError If no stored redirect state exists.
+ * @throws InvalidRedirectStorageStateError If the stored state doesn't match the URL state.
+ * @instrumented
+ */
+export declare const processSocialCallback: ({ url, requestedScopes }: ProcessSocialCallbackParams, client: DynamicClient) => Promise<User | null>;
+export {};
+//# sourceMappingURL=processSocialCallback.d.ts.map

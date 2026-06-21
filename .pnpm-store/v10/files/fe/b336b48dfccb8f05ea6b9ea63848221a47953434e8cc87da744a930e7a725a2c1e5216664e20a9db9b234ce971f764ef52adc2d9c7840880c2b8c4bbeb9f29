@@ -1,0 +1,22 @@
+import type { Chain } from '../../modules/chain';
+type GetChainFromWalletBookIdentifierParams = {
+    identifier: string;
+};
+/**
+ * Resolves a wallet-book chain identifier (as found in
+ * `injectedConfig[].chain` or as an alias embedded in a wallet key) to a
+ * {@link Chain}. Looks up by `apiChainName` first, then by any
+ * `legacyWalletBookAliases` declared on the corresponding `CHAINS_INFO_MAP`
+ * entry.
+ *
+ * Returns `undefined` when the identifier doesn't match any known chain,
+ * letting the caller pick its own fallback (e.g. defaulting to EVM, or
+ * trying a different lookup strategy).
+ *
+ * Centralised here rather than in `legacyWalletBook` so all chain naming
+ * knowledge stays alongside `CHAINS_INFO_MAP`.
+ * @not-instrumented
+ */
+export declare const getChainFromWalletBookIdentifier: ({ identifier, }: GetChainFromWalletBookIdentifierParams) => Chain | undefined;
+export {};
+//# sourceMappingURL=getChainFromWalletBookIdentifier.d.ts.map

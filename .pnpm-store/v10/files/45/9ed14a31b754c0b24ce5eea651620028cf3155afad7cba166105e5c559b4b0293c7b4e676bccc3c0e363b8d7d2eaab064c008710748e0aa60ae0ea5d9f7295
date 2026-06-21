@@ -1,0 +1,15 @@
+import type { DynamicClient } from '../../../../client/types';
+import '../../events';
+export type SubscribeToCheckoutTransactionParams = {
+    transactionId: string;
+};
+/**
+ * Connects to the realtime service if not already connected and subscribes to
+ * all state transition events for the given checkout transaction.
+ *
+ * Settlement and execution axis events are forwarded as public SDK events.
+ * The subscription is torn down automatically when a terminal event is received.
+ * @not-instrumented
+ */
+export declare const subscribeToCheckoutTransaction: ({ transactionId }: SubscribeToCheckoutTransactionParams, client: DynamicClient) => Promise<void>;
+//# sourceMappingURL=subscribeToCheckoutTransaction.d.ts.map

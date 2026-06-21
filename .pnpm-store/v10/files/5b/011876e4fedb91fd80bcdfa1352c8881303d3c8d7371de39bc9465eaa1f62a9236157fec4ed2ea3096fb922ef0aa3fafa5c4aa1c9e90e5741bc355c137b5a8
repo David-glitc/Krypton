@@ -1,0 +1,22 @@
+import type { WalletSchema } from '../../legacyWalletBook/legacyWalletBook.types';
+type ResolveWalletBookWalletOptionKeyParams = {
+    wallet: WalletSchema;
+    walletKey: string;
+};
+/**
+ * Resolves which wallet option (group) a wallet book entry belongs to. Used
+ * by the catalogue's wallet-book-driven transformers (URI deeplink,
+ * `inAppBrowser`, `installation`) to bucket their emitted options.
+ *
+ * Wallet book entries inconsistently use `group` / `chainGroup` /
+ * `walletGroup` for the same idea. The wallet key itself acts as the wallet
+ * option key when no group field is set.
+ *
+ * @param params.wallet - The wallet entry.
+ * @param params.walletKey - The wallet's key in `walletBook.wallets`.
+ * @returns The wallet option key.
+ * @not-instrumented
+ */
+export declare const resolveWalletBookWalletOptionKey: ({ wallet, walletKey, }: ResolveWalletBookWalletOptionKeyParams) => string;
+export {};
+//# sourceMappingURL=resolveWalletBookWalletOptionKey.d.ts.map

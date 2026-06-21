@@ -1,0 +1,96 @@
+'use client'
+import { __awaiter } from '../../../../../_virtual/_tslib.js';
+import { useCallback } from 'react';
+import { isMfaRequiredForAction, consumeMfaToken } from '@dynamic-labs-sdk/client';
+import { MFAAction, TokenScope } from '@dynamic-labs/sdk-api-core';
+import { DynamicError } from '@dynamic-labs/utils';
+import '@dynamic-labs-sdk/client/core';
+import 'eventemitter3';
+import '../../../config/ApiEndpoint.js';
+import '@dynamic-labs/iconic';
+import '@dynamic-labs/wallet-connector-core';
+import 'react/jsx-runtime';
+import '../../../context/ViewContext/ViewContext.js';
+import { logger } from '../../../shared/logger.js';
+import '@dynamic-labs/wallet-book';
+import '../../constants/colors.js';
+import '../../constants/values.js';
+import '../../../shared/consts/index.js';
+import '@dynamic-labs/multi-wallet';
+import 'react-international-phone';
+import '../../../store/state/nonce/nonce.js';
+import '@dynamic-labs/locale';
+import '../../../store/state/dynamicContextProps/dynamicContextProps.js';
+import '../../../store/state/primaryWalletId/primaryWalletId.js';
+import '../../../store/state/connectedWalletsInfo/connectedWalletsInfo.js';
+import '../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.js';
+import '../../../events/dynamicEvents.js';
+import { hasElevatedAccessToken } from '../../../client/extension/functions/hasElevatedAccessToken/hasElevatedAccessToken.js';
+
+/**
+ * Maps MFA actions to their corresponding elevated auth scope, so that a valid
+ * elevated access token can substitute for a legacy MFA token.
+ */
+const MFA_ACTION_TO_ELEVATED_SCOPE = {
+    [MFAAction.UserUpdate]: TokenScope.Userupdate,
+    [MFAAction.WalletWaasExport]: TokenScope.Walletexport,
+    [MFAAction.WalletWaasRefresh]: TokenScope.Walletdelegate,
+    [MFAAction.WalletWaasReshare]: TokenScope.Walletdelegate,
+    [MFAAction.WalletWaasSign]: TokenScope.Walletsign,
+};
+/**
+ * Get MFA token
+ *
+ * @returns Function to get MFA token
+ *
+ * @example
+ * ```tsx
+ * const App = () => {
+ *   const getMfaToken = useGetMfaToken();
+ *
+ *   return (
+ *     <button
+ *       onClick={() => getMfaToken({ mfaAction: MFAAction.UpdateUser })}
+ *     >
+ *       Get MFA token
+ *     </button>
+ *  );
+ * }
+ */
+const useGetMfaToken = () => {
+    const shouldConsumeMfaToken = useCallback((...args_1) => __awaiter(void 0, [...args_1], void 0, function* ({ mfaAction } = {}) {
+        if (!mfaAction) {
+            return true;
+        }
+        return isMfaRequiredForAction({ mfaAction });
+    }), []);
+    return useCallback((...args_2) => __awaiter(void 0, [...args_2], void 0, function* ({ mfaAction } = {}) {
+        // If an elevated access token covers this action, the backend will accept
+        // it in place of a legacy MFA token — no MFA token needed.
+        const elevatedScope = mfaAction
+            ? MFA_ACTION_TO_ELEVATED_SCOPE[mfaAction]
+            : undefined;
+        if (elevatedScope && hasElevatedAccessToken(elevatedScope)) {
+            return;
+        }
+        const shouldConsume = yield shouldConsumeMfaToken({ mfaAction });
+        if (!shouldConsume) {
+            return;
+        }
+        try {
+            const mfaToken = consumeMfaToken();
+            return mfaToken;
+        }
+        catch (error) {
+            if (!mfaAction) {
+                logger.warn('No MFA token found', error);
+                return;
+            }
+            const errorMessage = `MFA Token required for this action: ${mfaAction}`;
+            logger.error(errorMessage, error);
+            throw new DynamicError(errorMessage);
+        }
+    }), [shouldConsumeMfaToken]);
+};
+
+export { useGetMfaToken };

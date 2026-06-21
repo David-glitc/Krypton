@@ -1,0 +1,51 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../_virtual/_tslib.cjs');
+var logger = require('../utils/logger.cjs');
+
+// Disconnects pairings stored on the SignClient that are not backed by an
+// active session. WalletConnect creates a pairing per connection attempt;
+// if the user closes the QR modal or never completes the handshake, that
+// pairing lingers on the relay until natural expiry. Calling this on
+// SignClient init drains the leftovers from prior page loads.
+const reconcileOrphanedPairings = (signClient) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+    let pairings;
+    try {
+        pairings = signClient.core.pairing.getPairings();
+    }
+    catch (error) {
+        logger.logger.warn('[reconcileOrphanedPairings] failed to read pairings', {
+            errorMessage: error instanceof Error ? error.message : String(error),
+        });
+        return;
+    }
+    if (pairings.length === 0) {
+        return;
+    }
+    yield Promise.all(pairings.map((pairing) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        // Re-check session presence immediately before each disconnect so a
+        // pairing that just got promoted to a session (e.g. user finishing a
+        // QR scan while reconcile is running) isn't torn down.
+        const isBackedByActiveSession = signClient.session
+            .getAll()
+            .some((session) => session.pairingTopic === pairing.topic);
+        if (isBackedByActiveSession) {
+            return;
+        }
+        try {
+            yield signClient.core.pairing.disconnect({ topic: pairing.topic });
+        }
+        catch (error) {
+            // Pairing may already be expired/torn down; log and move on.
+            logger.logger.warn('[reconcileOrphanedPairings] failed to disconnect pairing', {
+                errorMessage: error instanceof Error ? error.message : String(error),
+                topic: pairing.topic,
+            });
+        }
+    })));
+});
+
+exports.reconcileOrphanedPairings = reconcileOrphanedPairings;

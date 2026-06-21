@@ -1,0 +1,43 @@
+'use client'
+import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
+import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Checkbox } from '../../../../components/Checkbox/Checkbox.js';
+import { Icon } from '../../../../components/Icon/Icon.js';
+import { IconButton } from '../../../../components/IconButton/IconButton.js';
+import { ModalHeader } from '../../../../components/ModalHeader/ModalHeader.js';
+import { Typography } from '../../../../components/Typography/Typography.js';
+import { TypographyButton } from '../../../../components/TypographyButton/TypographyButton.js';
+import '../../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { useViewContext } from '../../../../context/ViewContext/ViewContext.js';
+import { ReactComponent as SvgBackupWaas } from '../../../../shared/assets/backup-waas.js';
+import { ReactComponent as SvgChevronLeft } from '../../../../shared/assets/chevron-left.js';
+import { ReactComponent as SvgQuestionMark } from '../../../../shared/assets/question-mark.js';
+import '@dynamic-labs/iconic';
+
+const WaasBackupView = () => {
+    const { setShowAuthFlow } = useInternalDynamicContext();
+    const { pushView } = useViewContext();
+    const { t } = useTranslation();
+    const [isAcknowledged, setIsAcknowledged] = useState(false);
+    const handleBackClick = useCallback(() => {
+        setShowAuthFlow(false);
+    }, [setShowAuthFlow]);
+    const handleInfoClick = useCallback(() => {
+        pushView('waas-backup-info-view');
+    }, [pushView]);
+    const handleContinueClick = useCallback(() => {
+        pushView('waas-backup-cloud-provider-view');
+    }, [pushView]);
+    const handleCheckboxChange = useCallback(() => {
+        setIsAcknowledged((prev) => !prev);
+    }, []);
+    const backButton = (jsx(IconButton, { type: 'button', onClick: handleBackClick, "data-testid": 'back-button', children: jsx(SvgChevronLeft, {}) }));
+    const infoButton = (jsx(IconButton, { type: 'button', onClick: handleInfoClick, "data-testid": 'info-button', children: jsx(SvgQuestionMark, {}) }));
+    return (jsxs(Fragment, { children: [jsx(ModalHeader, { leading: backButton, trailing: infoButton, children: jsx(Typography, { variant: 'title', color: 'primary', copykey: 'dyn_waas.backup.title', children: t('dyn_waas.backup.title') }) }), jsx("div", { className: 'waas-backup-view', children: jsxs("div", { className: 'waas-backup-view__body', children: [jsx("div", { className: 'waas-backup-view__icon-container', children: jsx(Icon, { color: 'brand-primary', children: jsx(SvgBackupWaas, { width: 64, height: 64 }) }) }), jsx(Typography, { variant: 'body_normal', color: 'primary', copykey: 'dyn_waas.backup.subtitle', className: 'waas-backup-view__subtitle', children: t('dyn_waas.backup.subtitle') }), jsx("div", { className: 'waas-backup-view__checkbox-container', children: jsxs("label", { className: 'waas-backup-view__checkbox-label', children: [jsx(Checkbox, { checked: isAcknowledged, onChange: handleCheckboxChange, ariaLabel: t('dyn_waas.backup.checkbox_label') }), jsx(Typography, { variant: 'body_normal', color: 'secondary', copykey: 'dyn_waas.backup.checkbox_label', children: t('dyn_waas.backup.checkbox_label') })] }) }), jsx("div", { className: 'waas-backup-view__actions', children: jsx(TypographyButton, { dataTestId: 'continue-backup-button', onClick: handleContinueClick, disabled: !isAcknowledged, copykey: 'dyn_waas.backup.continue_button', buttonVariant: 'brand-primary', typographyProps: {
+                                    color: 'inherit',
+                                }, expanded: true, children: t('dyn_waas.backup.continue_button') }) })] }) })] }));
+};
+
+export { WaasBackupView };

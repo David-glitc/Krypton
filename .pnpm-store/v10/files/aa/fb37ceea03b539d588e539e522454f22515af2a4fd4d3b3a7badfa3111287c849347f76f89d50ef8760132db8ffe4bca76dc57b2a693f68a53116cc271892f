@@ -1,0 +1,4 @@
+import type { DynamicClient } from '../../../client/types';
+/** @not-instrumented */
+export declare const prefetchNoncesIfNeeded: (client: DynamicClient) => Promise<void>;
+//# sourceMappingURL=prefetchNoncesIfNeeded.d.ts.map

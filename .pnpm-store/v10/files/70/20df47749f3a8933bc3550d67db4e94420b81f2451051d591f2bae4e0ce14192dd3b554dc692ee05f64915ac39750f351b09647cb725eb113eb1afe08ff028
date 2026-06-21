@@ -1,0 +1,4 @@
+export type DetectSocialRedirectUrlParams = {
+    url: URL;
+};
+//# sourceMappingURL=detectSocialRedirectUrl.types.d.ts.map

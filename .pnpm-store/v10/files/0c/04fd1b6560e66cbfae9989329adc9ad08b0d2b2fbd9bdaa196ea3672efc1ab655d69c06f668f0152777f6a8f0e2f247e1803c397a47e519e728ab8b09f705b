@@ -1,0 +1,40 @@
+import { exists } from '../runtime.js';
+
+/* tslint:disable */
+/**
+* @export
+* @enum {string}
+*/
+var InlineObject1NetworkEnum;
+(function (InlineObject1NetworkEnum) {
+    InlineObject1NetworkEnum["Testnet"] = "testnet";
+    InlineObject1NetworkEnum["Mainnet"] = "mainnet";
+})(InlineObject1NetworkEnum || (InlineObject1NetworkEnum = {}));
+function InlineObject1FromJSON(json) {
+    return InlineObject1FromJSONTyped(json);
+}
+function InlineObject1FromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'network': json['network'],
+        'authorization': json['authorization'],
+        'priorityFee': !exists(json, 'priorityFee') ? undefined : json['priorityFee'],
+    };
+}
+function InlineObject1ToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'network': value.network,
+        'authorization': value.authorization,
+        'priorityFee': value.priorityFee,
+    };
+}
+
+export { InlineObject1FromJSON, InlineObject1FromJSONTyped, InlineObject1NetworkEnum, InlineObject1ToJSON };

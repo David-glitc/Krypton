@@ -1,0 +1,96 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var ViewContext = require('../../../context/ViewContext/ViewContext.cjs');
+var dynamicEvents = require('../../../events/dynamicEvents.cjs');
+require('@dynamic-labs/sdk-api-core');
+require('../../constants/values.cjs');
+require('@dynamic-labs/utils');
+var errors = require('../../constants/errors.cjs');
+require('@dynamic-labs/multi-wallet');
+require('../../../shared/logger.cjs');
+require('react-international-phone');
+require('../../constants/colors.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+require('@dynamic-labs/wallet-book');
+require('../../../shared/consts/index.cjs');
+require('../../../store/state/nonce/nonce.cjs');
+var isTurnkeyEnabled = require('../../functions/isTurnkeyEnabled/isTurnkeyEnabled.cjs');
+require('@dynamic-labs-sdk/client/core');
+require('eventemitter3');
+require('@dynamic-labs-sdk/client');
+require('../../../config/ApiEndpoint.cjs');
+require('@dynamic-labs/locale');
+require('../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../store/state/primaryWalletId/primaryWalletId.cjs');
+require('../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+require('../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+var useEmbeddedWallet = require('../useEmbeddedWallet/useEmbeddedWallet.cjs');
+require('../../../context/UserWalletsContext/UserWalletsContext.cjs');
+require('../../../context/WalletContext/WalletContext.cjs');
+require('../../../views/Passkey/utils/findPrimaryEmbeddedChain/findPrimaryEmbeddedChain.cjs');
+var useIsTurnkeyWallet = require('../useIsTurnkeyWallet/useIsTurnkeyWallet.cjs');
+require('../../../context/VerificationContext/VerificationContext.cjs');
+require('../../functions/compareChains/compareChains.cjs');
+require('../useEmbeddedWallet/useSecureEnclaveEmbeddedWallet/constants.cjs');
+
+// Hook exposed to customers and used internally to trigger embedded reveal
+const useEmbeddedReveal = () => {
+    const { primaryWallet, projectSettings, user, setShowAuthFlow } = useInternalDynamicContext.useInternalDynamicContext();
+    const { userHasEmbeddedWallet } = useEmbeddedWallet.useEmbeddedWallet();
+    const { pushView } = ViewContext.useViewContext();
+    const { isTurnkeyWallet } = useIsTurnkeyWallet.useIsTurnkeyWallet();
+    const turnkeyChecks = ({ user, recoveryPhrase, }) => {
+        var _a, _b;
+        if (!isTurnkeyEnabled.isTurnkeyEnabled(projectSettings)) {
+            throw new Error('Dynamic embedded wallet is not enabled. Go to the dashboard and make sure to have both Dynamic Embedded wallet and at least one EVM network enabled. Also, check if EthereumWalletConnectors is in the  DynamicContextProvider > settings > walletConnectors.');
+        }
+        if (!userHasEmbeddedWallet()) {
+            throw new Error('Dynamic embedded wallet not found');
+        }
+        const walletProperties = (_b = (_a = user.verifiedCredentials) === null || _a === void 0 ? void 0 : _a.find(({ walletName }) => walletName === null || walletName === void 0 ? void 0 : walletName.startsWith('turnkey'))) === null || _b === void 0 ? void 0 : _b.walletProperties;
+        const turnkeyHDWalletId = walletProperties === null || walletProperties === void 0 ? void 0 : walletProperties.turnkeyHDWalletId;
+        if (recoveryPhrase && !turnkeyHDWalletId) {
+            throw new Error('Wallet is non-HD and does not have a recovery phrase');
+        }
+    };
+    const initExportProcess = React.useCallback((...args_1) => _tslib.__awaiter(void 0, [...args_1], void 0, function* (recoveryPhrase = false, isPromptForExport = false) {
+        if (!primaryWallet) {
+            throw new Error('No primary wallet');
+        }
+        if (!user) {
+            throw new Error(errors.USER_NOT_LOGGED_IN);
+        }
+        if (isTurnkeyWallet) {
+            turnkeyChecks({ recoveryPhrase, user });
+        }
+        if (!userHasEmbeddedWallet()) {
+            throw new Error('Dynamic embedded wallet not found');
+        }
+        setShowAuthFlow(true, {
+            ignoreIfIsEmbeddedWidget: false,
+            performMultiWalletChecks: false,
+        });
+        pushView('embedded-reveal-view', {
+            exportPrivateKey: !recoveryPhrase,
+            isPromptForExport,
+        });
+        return new Promise((resolve, reject) => {
+            dynamicEvents.dynamicEvents.once('embeddedWalletRevealCompleted', (wallet) => resolve(wallet));
+            dynamicEvents.dynamicEvents.once('embeddedWalletRevealFailed', (error) => reject(error));
+        });
+    }), [primaryWallet, isTurnkeyWallet, setShowAuthFlow, pushView, user]);
+    return {
+        initExportProcess,
+    };
+};
+
+exports.useEmbeddedReveal = useEmbeddedReveal;

@@ -1,0 +1,61 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+require('@dynamic-labs-sdk/client/core');
+require('@dynamic-labs/sdk-api-core');
+require('react');
+require('eventemitter3');
+require('@dynamic-labs/utils');
+require('@dynamic-labs-sdk/client');
+require('../../../../config/ApiEndpoint.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+var ViewContext = require('../../../../context/ViewContext/ViewContext.cjs');
+require('../../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('../../../constants/colors.cjs');
+require('../../../constants/values.cjs');
+var hasPendingMfaAction = require('../../../../shared/utils/functions/hasPendingMfaAction/hasPendingMfaAction.cjs');
+require('../../../../shared/consts/index.cjs');
+require('../../../../../../_virtual/_tslib.cjs');
+require('@dynamic-labs/multi-wallet');
+require('react-international-phone');
+require('../../../../store/state/nonce/nonce.cjs');
+require('@dynamic-labs/locale');
+require('../../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../../store/state/primaryWalletId/primaryWalletId.cjs');
+require('../../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+require('../../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+require('../../../../events/dynamicEvents.cjs');
+var useUser = require('../../../../client/extension/user/useUser/useUser.cjs');
+require('../../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var authViewLayoutChecks = require('../../../constants/authViewLayoutChecks.cjs');
+
+const useAllowClose = () => {
+    const { view } = ViewContext.useViewContext();
+    const user = useUser.useUserProfile();
+    const { showAuthFlow } = useInternalDynamicContext.useInternalDynamicContext();
+    const isMfaPreventingClose = user &&
+        hasPendingMfaAction.hasPendingMfaAction(user) &&
+        authViewLayoutChecks.mfaViewsThatPreventModalClose.includes(view.type);
+    const allowsClosing = !isMfaPreventingClose &&
+        (!showAuthFlow || !authViewLayoutChecks.viewsThatPreventModalClose.includes(view.type));
+    const showCloseButton = allowsClosing && !authViewLayoutChecks.viewsThatHideCloseButton.includes(view.type);
+    return {
+        /**
+         * Whether user can close the current view
+         */
+        allowsClosing,
+        /**
+         * Whether the close button should be shown.
+         * Even if the view allows closing, the close button may still be hidden.
+         */
+        showCloseButton,
+    };
+};
+
+exports.useAllowClose = useAllowClose;

@@ -1,0 +1,21 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var React = require('react');
+var isSSR = require('../isSSR/isSSR.cjs');
+
+const ssrSafeProxy = () => new Proxy({}, { get: () => undefined });
+const createProviderHook = (context, providerName, ssrSafeDefault) => () => {
+    const value = React.useContext(context);
+    if (value === undefined) {
+        if (isSSR.isSSR()) {
+            return ssrSafeDefault !== null && ssrSafeDefault !== void 0 ? ssrSafeDefault : ssrSafeProxy();
+        }
+        throw new Error(`Hook must be used within <${providerName}>.`);
+    }
+    return value;
+};
+
+exports.createProviderHook = createProviderHook;

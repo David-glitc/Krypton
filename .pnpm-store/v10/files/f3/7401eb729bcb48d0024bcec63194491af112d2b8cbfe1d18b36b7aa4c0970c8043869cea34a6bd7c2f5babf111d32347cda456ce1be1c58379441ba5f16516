@@ -1,0 +1,35 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var React = require('react');
+var rpcProviders = require('@dynamic-labs/rpc-providers');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const useRpcProviders = (selector) => {
+    const { networkConfigurations, walletConnectorOptions } = useInternalDynamicContext.useInternalDynamicContext();
+    return React.useMemo(() => {
+        if (!networkConfigurations)
+            return selector(undefined);
+        const providers = rpcProviders.ChainRpcProviders.getProviders(networkConfigurations);
+        return selector(providers);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+        /**
+         * The `walletConnectorOptions.length` is included in the dependency array to ensure that
+         * the providers are re-calculated whenever the WalletConnector's initialization state changes.
+         * This avoids a potential race condition where the `useRpcProviders` hook might return
+         * incomplete or empty providers if it executes before the WalletConnector has been fully initialized.
+         * Since the `ChainRpcProviders` are registered during WalletConnector initialization,
+         * this dependency ensures accurate and up-to-date provider data.
+         */
+        walletConnectorOptions.length,
+        networkConfigurations,
+        selector,
+    ]);
+};
+
+exports.useRpcProviders = useRpcProviders;

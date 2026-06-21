@@ -1,0 +1,30 @@
+'use client'
+import * as React from 'react';
+
+var _path;
+var _excluded = ["title", "titleId"];
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
+function _objectWithoutProperties(e, t) { if (null == e) return {}; var o, r, i = _objectWithoutPropertiesLoose(e, t); if (Object.getOwnPropertySymbols) { var s = Object.getOwnPropertySymbols(e); for (r = 0; r < s.length; r++) o = s[r], t.includes(o) || {}.propertyIsEnumerable.call(e, o) && (i[o] = e[o]); } return i; }
+function _objectWithoutPropertiesLoose(r, e) { if (null == r) return {}; var t = {}; for (var n in r) if ({}.hasOwnProperty.call(r, n)) { if (e.includes(n)) continue; t[n] = r[n]; } return t; }
+var SvgMonitor = function SvgMonitor(_ref) {
+  var title = _ref.title,
+    titleId = _ref.titleId,
+    props = _objectWithoutProperties(_ref, _excluded);
+  return /*#__PURE__*/React.createElement("svg", _extends({
+    width: 20,
+    height: 20,
+    viewBox: "0 0 20 20",
+    fill: "none",
+    xmlns: "http://www.w3.org/2000/svg",
+    "aria-labelledby": titleId
+  }, props), title ? /*#__PURE__*/React.createElement("title", {
+    id: titleId
+  }, title) : null, _path || (_path = /*#__PURE__*/React.createElement("path", {
+    fillRule: "evenodd",
+    clipRule: "evenodd",
+    d: "M1.667 4.167a2.5 2.5 0 0 1 2.5-2.5h11.666a2.5 2.5 0 0 1 2.5 2.5V12.5a2.5 2.5 0 0 1-2.5 2.5h-2.89l.31 1.241.67.67a.833.833 0 0 1-.59 1.423H6.667a.833.833 0 0 1-.59-1.423l.67-.67.31-1.24h-2.89a2.5 2.5 0 0 1-2.5-2.5V4.166Zm1.666 7.5v.833c0 .46.374.834.834.834h11.667c.46 0 .833-.373.833-.834v-.833H3.333ZM16.667 10H3.333V4.167c0-.46.374-.833.834-.833h11.666c.46 0 .834.373.834.833V10Zm-5.443 5H8.776l-.417 1.667h3.282L11.224 15Z",
+    fill: "currentColor"
+  })));
+};
+
+export { SvgMonitor as ReactComponent };

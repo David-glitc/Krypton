@@ -1,0 +1,48 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var React = require('react');
+var buildEmailOtpHandler = require('../../utils/buildEmailOtpHandler/buildEmailOtpHandler.cjs');
+var buildSmsOtpHandler = require('../../utils/buildSmsOtpHandler/buildSmsOtpHandler.cjs');
+var otpVerificationStorage = require('../../utils/otpVerificationStorage/otpVerificationStorage.cjs');
+
+/**
+ * Restores a persisted OTP verification handler from localStorage on mount.
+ * This handles the case where the webview was killed by Android on low-memory
+ * devices and needs to resume an in-progress OTP flow.
+ */
+const useRestoreOtpVerificationState = ({ embeddedWalletSessionKeys, environmentId, handlerRef, }) => {
+    React.useEffect(() => {
+        if (handlerRef.current) {
+            return;
+        }
+        const persisted = otpVerificationStorage.restoreOtpVerificationState();
+        if (!persisted) {
+            return;
+        }
+        if (persisted.type === 'email') {
+            handlerRef.current = buildEmailOtpHandler.buildEmailOtpHandler({
+                captchaToken: persisted.captchaToken,
+                email: persisted.destination,
+                embeddedWalletSessionKeys,
+                environmentId,
+                initialVerificationUUID: persisted.verificationUUID,
+            });
+        }
+        else {
+            handlerRef.current = buildSmsOtpHandler.buildSmsOtpHandler({
+                captchaToken: persisted.captchaToken,
+                embeddedWalletSessionKeys,
+                environmentId,
+                phone: persisted.destination,
+                verificationUUID: persisted.verificationUUID,
+            });
+        }
+        // Only needs to run once on mount
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+};
+
+exports.useRestoreOtpVerificationState = useRestoreOtpVerificationState;

@@ -1,0 +1,2 @@
+export { createDynamicTransport } from './createDynamicTransport';
+//# sourceMappingURL=index.d.ts.map

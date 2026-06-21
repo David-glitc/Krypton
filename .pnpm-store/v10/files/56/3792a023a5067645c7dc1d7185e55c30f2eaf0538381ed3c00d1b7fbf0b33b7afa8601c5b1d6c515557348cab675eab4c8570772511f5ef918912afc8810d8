@@ -1,0 +1,8 @@
+import { type getMfaMethods } from '@dynamic-labs-sdk/client';
+import type { PromptMfaParams } from './useStepUpAuthentication.types';
+type MfaMethodsResult = Awaited<ReturnType<typeof getMfaMethods>>;
+export type PromptMfaFn = (props?: PromptMfaParams, prefetchedMethods?: MfaMethodsResult) => Promise<string | undefined>;
+export declare const useStepUpPromptMfa: () => {
+    promptMfa: PromptMfaFn;
+};
+export {};

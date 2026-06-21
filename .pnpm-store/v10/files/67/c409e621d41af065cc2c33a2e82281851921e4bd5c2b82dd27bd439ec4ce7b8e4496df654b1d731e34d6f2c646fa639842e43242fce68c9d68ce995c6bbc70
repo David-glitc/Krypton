@@ -1,0 +1,28 @@
+/**
+ * Normalises the raw positional arguments of an instrumented function call
+ * into a flat `Record<string, unknown>` suitable for structured logging.
+ *
+ * ## Why this is needed
+ *
+ * Instrumented functions are wrapped with `(...args: unknown[])`, so their
+ * parameters arrive as an array. Logging a raw array loses the semantic names
+ * of each argument. This function recovers a named representation:
+ *
+ * - **No arguments** → `{}`
+ * - **Single plain-object argument** → that object is returned as-is, because
+ *   SDK functions follow the single-object-parameter convention, so the object
+ *   already carries named keys (`{ amount, to }`, etc.).
+ * - **Everything else** (multiple args, a single primitive, a single array) →
+ *   each value is indexed as `arg0`, `arg1`, …
+ *
+ * ## Why arrays are NOT treated as plain objects
+ *
+ * `typeof [] === 'object'` and `[] !== null`, so without the `Array.isArray`
+ * guard a single-array argument would be returned as-is. That would produce
+ * an object with numeric string keys (`{ '0': ..., '1': ... }`), which is
+ * misleading and inconsistent with how multi-arg calls are handled. Instead,
+ * arrays fall through to the indexed `arg0` path.
+  * @not-instrumented
+ */
+export declare const extractParams: (args: unknown[]) => Record<string, unknown>;
+//# sourceMappingURL=extractParams.d.ts.map

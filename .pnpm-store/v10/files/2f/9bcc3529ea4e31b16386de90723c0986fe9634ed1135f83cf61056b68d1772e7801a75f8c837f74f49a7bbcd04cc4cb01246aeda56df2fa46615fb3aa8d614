@@ -1,0 +1,44 @@
+import type { Chain } from '../../chain';
+import type { WalletBookSchema } from '../../legacyWalletBook/legacyWalletBook.types';
+import type { WalletProvider } from '../../wallets/walletProvider/walletProvider.types';
+type FindWalletOptionKeyForProviderKeyParams = {
+    chain: Chain;
+    walletBook: WalletBookSchema;
+    walletProvider: WalletProvider;
+};
+/**
+ * Resolves a registered wallet provider to the wallet option key it should
+ * be bucketed under. Always returns a key — providers with no wallet book
+ * match fall back to their self-announced `metadata.displayName`, so the
+ * catalogue surfaces them as self-described tiles instead of silently
+ * dropping them.
+ *
+ * Resolution order (each step short-circuits on first hit):
+ *
+ * 1. **Direct wallet book lookup with chain suffix** — try
+ *    `walletBook.wallets[normalizedWalletNameWithChain]` as-is. Wallet
+ *    book entries are inconsistent about whether they keep the chain
+ *    suffix (e.g. `metamaskevm`) or strip it (e.g. `metamask`), so try
+ *    the suffixed form first.
+ * 2. **Direct wallet book lookup without chain suffix** — strip the
+ *    suffix and retry.
+ * 3. **Name match heuristic with chain suffix** — scan
+ *    `walletBook.wallets` for an entry whose normalized `name` or
+ *    `shortName` equals the suffixed candidate.
+ * 4. **Name match heuristic without chain suffix** — same scan on the
+ *    stripped candidate.
+ * 5. **Display-name fallback** — derive a stable key from
+ *    `walletProvider.metadata.displayName` via
+ *    {@link normalizeWalletDisplayName}. Multi-chain registrations of the
+ *    same self-described wallet (e.g. Phantom on EVM and Solana) collapse
+ *    onto the same tile because each announces the same display name.
+ *
+ * @param params.chain - The provider's chain (used to strip the suffix).
+ * @param params.walletBook - The fetched wallet book.
+ * @param params.walletProvider - The registered wallet provider.
+ * @returns The wallet option key for this provider.
+ * @not-instrumented
+ */
+export declare const findWalletOptionKeyForProviderKey: ({ chain, walletBook, walletProvider, }: FindWalletOptionKeyForProviderKeyParams) => string;
+export {};
+//# sourceMappingURL=findWalletOptionKeyForProviderKey.d.ts.map

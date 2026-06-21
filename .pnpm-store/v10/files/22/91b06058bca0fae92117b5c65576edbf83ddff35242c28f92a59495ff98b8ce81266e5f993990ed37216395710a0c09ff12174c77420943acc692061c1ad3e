@@ -1,0 +1,33 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+
+/* tslint:disable */
+function RefreshKeySharesRequestFromJSON(json) {
+    return RefreshKeySharesRequestFromJSONTyped(json);
+}
+function RefreshKeySharesRequestFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'shareSetId': !runtime.exists(json, 'shareSetId') ? undefined : json['shareSetId'],
+    };
+}
+function RefreshKeySharesRequestToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'shareSetId': value.shareSetId,
+    };
+}
+
+exports.RefreshKeySharesRequestFromJSON = RefreshKeySharesRequestFromJSON;
+exports.RefreshKeySharesRequestFromJSONTyped = RefreshKeySharesRequestFromJSONTyped;
+exports.RefreshKeySharesRequestToJSON = RefreshKeySharesRequestToJSON;

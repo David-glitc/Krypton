@@ -1,0 +1,56 @@
+'use client'
+import { jsxs, jsx } from 'react/jsx-runtime';
+import { useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Typography } from '../../components/Typography/Typography.js';
+import { IconWithSpinner } from '../../components/IconWithSpinner/IconWithSpinner.js';
+import { useStepUpAuthentication } from '../../utils/hooks/useStepUpAuthentication/useStepUpAuthentication.js';
+import '@dynamic-labs/iconic';
+import '@dynamic-labs/wallet-connector-core';
+import { ReactComponent as SvgWalletOutline } from '../../shared/assets/wallet-outline.js';
+import '../../context/ViewContext/ViewContext.js';
+import '../../shared/logger.js';
+import '@dynamic-labs/wallet-book';
+import '@dynamic-labs/utils';
+import '../../utils/constants/colors.js';
+import '../../utils/constants/values.js';
+import '@dynamic-labs/sdk-api-core';
+import '../../shared/consts/index.js';
+
+const StepUpReauthWalletView = ({ credentialId, requestedScopes, onSuccess, onError, }) => {
+    const { t } = useTranslation();
+    const { verifyWallet, state } = useStepUpAuthentication({
+        credentialId,
+    });
+    const completedRef = useRef(false);
+    const hasBeenLoadingRef = useRef(false);
+    const hasStartedVerifyRef = useRef(false);
+    const { error, isLoading } = state;
+    useEffect(() => {
+        if (hasStartedVerifyRef.current)
+            return;
+        hasStartedVerifyRef.current = true;
+        verifyWallet({ requestedScopes });
+    }, [requestedScopes, verifyWallet]);
+    useEffect(() => {
+        if (isLoading) {
+            hasBeenLoadingRef.current = true;
+        }
+    }, [isLoading]);
+    useEffect(() => {
+        if (completedRef.current)
+            return;
+        if (!hasBeenLoadingRef.current || isLoading)
+            return;
+        if (error) {
+            completedRef.current = true;
+            onError(new Error(error));
+            return;
+        }
+        completedRef.current = true;
+        onSuccess();
+    }, [error, isLoading, onError, onSuccess]);
+    return (jsxs("div", { className: 'otp-verification-view', style: { padding: '24px', textAlign: 'center' }, children: [jsx(IconWithSpinner, { Icon: SvgWalletOutline, iconSize: 96, isSpinning: isLoading, treatAsFunctionComponent: true }), jsx(Typography, { variant: 'body_normal', weight: 'regular', color: 'secondary', style: { marginTop: '16px' }, children: t('dyn_step_up_reauth.wallet.pending', 'Sign with your wallet to continue.') })] }));
+};
+
+export { StepUpReauthWalletView };

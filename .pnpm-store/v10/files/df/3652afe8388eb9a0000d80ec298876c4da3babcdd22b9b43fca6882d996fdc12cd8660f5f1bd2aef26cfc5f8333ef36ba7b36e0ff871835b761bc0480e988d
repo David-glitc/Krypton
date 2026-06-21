@@ -1,0 +1,14 @@
+import type { SocialProvider } from '../../social.types';
+type AuthenticateWithSocialParams = {
+    provider: SocialProvider;
+    redirectUrl: string;
+};
+/**
+ * @deprecated Renamed to {@link signInWithSocialRedirect}. This alias will be
+ * removed in a future major version.
+ *
+ * @instrumented
+ */
+export declare const authenticateWithSocial: (params: AuthenticateWithSocialParams, client?: import("../../../../../exports").DynamicClient) => Promise<void>;
+export {};
+//# sourceMappingURL=authenticateWithSocial.d.ts.map

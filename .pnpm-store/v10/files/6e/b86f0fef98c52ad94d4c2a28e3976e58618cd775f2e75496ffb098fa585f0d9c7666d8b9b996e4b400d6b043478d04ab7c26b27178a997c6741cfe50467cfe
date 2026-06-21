@@ -1,0 +1,42 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+require('../../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+
+const useMultiWalletPromptState = () => {
+    const { accountSwitchState, multiWalletWidgetState, multiWallet, selectedWalletWithAction, } = useInternalDynamicContext.useInternalDynamicContext();
+    if ((selectedWalletWithAction === null || selectedWalletWithAction === void 0 ? void 0 : selectedWalletWithAction.action) === 'unlink') {
+        return 'unlink_wallet';
+    }
+    if (multiWalletWidgetState === 'awaiting_signature') {
+        return 'pending_sign';
+    }
+    if (multiWalletWidgetState === 'awaiting_account_switch') {
+        if (accountSwitchState === 'linking_new_wallet') {
+            return 'linking_new_wallet';
+        }
+        if (accountSwitchState === 'primary_not_connected') {
+            if (multiWallet) {
+                return 'primary_not_connected';
+            }
+            else {
+                return 'pending_account_switch';
+            }
+        }
+        if (accountSwitchState === 'switching_primary') {
+            return 'pending_account_switch';
+        }
+    }
+    if (multiWalletWidgetState === 'awaiting_connection') {
+        return 'awaiting_connection';
+    }
+    if (multiWalletWidgetState === 'detected_new_wallet') {
+        return 'detected_new_wallet';
+    }
+    return 'idle';
+};
+
+exports.useMultiWalletPromptState = useMultiWalletPromptState;

@@ -1,0 +1,44 @@
+import type { WalletAccount } from '../../wallets/walletAccount';
+import type { SwapTransactionSigningPayload } from '../swap.types';
+export type ExecuteSwapTransactionParams = {
+    /**
+     * The callback to invoke when the transaction execution step changes.
+     *
+     * 'approval' - The approval step begins. (only happens for ERC-20 tokens when the allowance is insufficient)
+     * 'transaction' - The transaction step begins.
+     */
+    onStepChange?: (step: 'approval' | 'transaction') => void;
+    /**
+     * The signing payload for the swap transaction.
+     * Usually obtained from a `getSwapQuote` call.
+     */
+    signingPayload: SwapTransactionSigningPayload;
+    /**
+     * Controls whether the swap is routed through Dynamic's gas sponsorship.
+     *
+     * - `'auto'` (default): the swap is sponsored when gas sponsorship is enabled
+     *   for the chain AND the wallet is a Dynamic embedded wallet. Otherwise the
+     *   user pays gas.
+     * - `'off'`: the swap is never sponsored, regardless of project settings or
+     *   wallet capabilities. The user pays gas.
+     *
+     * @default 'auto'
+     */
+    sponsorshipMode?: 'auto' | 'off';
+    /**
+     * The wallet account to execute the swap transaction on.
+     */
+    walletAccount: WalletAccount;
+};
+/**
+ * Executes a swap transaction
+ *
+ * @param params ExecuteSwapTransactionParams - The parameters for the swap transaction.
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns The transaction hash.
+ * @instrumented
+ */
+export declare const executeSwapTransaction: ({ walletAccount, signingPayload, onStepChange, sponsorshipMode, }: ExecuteSwapTransactionParams, client?: import("../../../exports").DynamicClient) => Promise<{
+    transactionHash: string;
+}>;
+//# sourceMappingURL=executeSwapTransaction.d.ts.map

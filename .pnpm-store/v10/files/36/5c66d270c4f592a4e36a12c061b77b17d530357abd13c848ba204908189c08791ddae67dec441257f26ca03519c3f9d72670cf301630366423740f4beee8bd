@@ -1,0 +1,6 @@
+/// <reference types="react" />
+type LegacySafariCssOverridesProps = {
+    nonce?: string;
+};
+export declare const LegacySafariCssOverrides: ({ nonce, }: LegacySafariCssOverridesProps) => JSX.Element;
+export {};

@@ -1,0 +1,34 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var jsxRuntime = require('react/jsx-runtime');
+var React = require('react');
+require('../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var dynamicEvents = require('../../events/dynamicEvents.cjs');
+var SetupPasswordView = require('../../widgets/DynamicWidget/views/SetupPasswordView/SetupPasswordView.cjs');
+
+const SetupPasswordForWalletCreationView = () => {
+    const { setShowAuthFlow } = useInternalDynamicContext.useInternalDynamicContext();
+    const handleCancel = React.useCallback(() => {
+        dynamicEvents.dynamicEvents.emit('embeddedWalletPasswordSetupCancelled');
+        setShowAuthFlow(false);
+    }, [setShowAuthFlow]);
+    const handleComplete = React.useCallback((password) => {
+        dynamicEvents.dynamicEvents.emit('embeddedWalletPasswordSetupCompleted', password);
+        // Return a Promise that resolves when embeddedWalletCreated fires.
+        // This keeps the knowledge check screen in loading state while wallet creation
+        // is in progress, then transitions to the done screen on success.
+        return new Promise((resolve) => {
+            dynamicEvents.dynamicEvents.once('embeddedWalletCreated', () => resolve());
+        });
+    }, []);
+    const handleDone = React.useCallback(() => {
+        setShowAuthFlow(false);
+    }, [setShowAuthFlow]);
+    return (jsxRuntime.jsx(SetupPasswordView.SetupPasswordView, { onComplete: handleComplete, onCancel: handleCancel, onDone: handleDone }));
+};
+
+exports.SetupPasswordForWalletCreationView = SetupPasswordForWalletCreationView;

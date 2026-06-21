@@ -1,0 +1,67 @@
+'use client'
+import { __awaiter } from '../../../../../../_virtual/_tslib.js';
+import { getDefaultClient } from '@dynamic-labs-sdk/client';
+import '@dynamic-labs-sdk/client/core';
+import '@dynamic-labs/sdk-api-core';
+import 'react';
+import 'eventemitter3';
+import '@dynamic-labs/utils';
+import '../../../../config/ApiEndpoint.js';
+import '@dynamic-labs/iconic';
+import '@dynamic-labs/wallet-connector-core';
+import 'react/jsx-runtime';
+import '../../../../context/ViewContext/ViewContext.js';
+import { logger } from '../../../../shared/logger.js';
+import '@dynamic-labs/wallet-book';
+import '../../../constants/colors.js';
+import '../../../constants/values.js';
+import '../../../../shared/consts/index.js';
+import '@dynamic-labs/multi-wallet';
+import 'react-international-phone';
+import '../../../../store/state/nonce/nonce.js';
+import '@dynamic-labs/locale';
+import '../../../../store/state/dynamicContextProps/dynamicContextProps.js';
+import { getPrimaryWalletId } from '../../../../store/state/primaryWalletId/primaryWalletId.js';
+import { getConnectedWalletsInfo } from '../../../../store/state/connectedWalletsInfo/connectedWalletsInfo.js';
+import '../../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.js';
+import '../../../../events/dynamicEvents.js';
+import { getMinAuthToken } from '../../../../client/extension/functions/getMinAuthToken/getMinAuthToken.js';
+import { getExpiresAt } from '../../../../client/extension/functions/getExpiresAt/getExpiresAt.js';
+
+/**
+ * Detects mismatch between wallet info.
+ * If there is primary wallet id, but no user or connected wallets info,
+ * it means it's in a bad state and we should log out.
+ */
+const handleWalletInfoOutOfSync = (_a) => __awaiter(void 0, [_a], void 0, function* ({ logout, }) {
+    const primaryWalletId = getPrimaryWalletId();
+    if (!primaryWalletId) {
+        return;
+    }
+    const { user } = getDefaultClient();
+    const connectedWallets = getConnectedWalletsInfo();
+    const token = getMinAuthToken();
+    const sessionExpiresAt = getExpiresAt();
+    const isTokenExpired = sessionExpiresAt !== null && sessionExpiresAt <= Date.now();
+    logger.debug('[handleWalletInfoOutOfSync] validation check', {
+        connectedWalletsCount: connectedWallets.length,
+        hasClientUser: Boolean(user),
+        hasToken: Boolean(token),
+        isTokenExpired,
+        primaryWalletId,
+        sessionExpiresAt,
+    });
+    if (user || connectedWallets.length > 0) {
+        return;
+    }
+    const reason = token && !isTokenExpired ? 'wallet info is out of sync' : 'session expired';
+    yield logout(reason, {
+        connectedWallets,
+        primaryWalletId,
+        user,
+    }, isTokenExpired
+        ? 'token-expired-validate-session'
+        : 'wallet-info-out-of-sync');
+});
+
+export { handleWalletInfoOutOfSync };

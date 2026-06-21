@@ -1,0 +1,10 @@
+import type * as z from 'zod/mini';
+import type { DynamicClient } from '../../../../client/types';
+import { deviceSigningKeysSchema } from '../deviceSigningKeys.schema';
+/**
+ * On web we want to auto create the device signing keys for each user.
+ * And the user device signing keys should never be deleted.
+  * @not-instrumented
+ */
+export declare const getOrCreateEnvironmentDeviceSigningKeys: (client: DynamicClient) => Promise<z.infer<typeof deviceSigningKeysSchema>>;
+//# sourceMappingURL=getOrCreateEnvironmentDeviceSigningKeys.d.ts.map

@@ -1,0 +1,18 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var nativeTokenKey = require('./nativeTokenKey.cjs');
+
+/**
+ * Per-token idempotency key used by `useAleoAutoShieldSponsoredTokens`
+ * to dedup auto-shield candidates and by consumers (e.g.
+ * `ActiveWalletBalance`) to read back which tokens are currently
+ * mid-broadcast via `currentlyShieldingTokenKeys`. Returns an empty
+ * string when neither an address nor the native flag is set so callers
+ * can treat the token as "no usable key" and skip it.
+ */
+const buildTokenKey = (token) => { var _a; return (_a = token.address) !== null && _a !== void 0 ? _a : (token.isNative ? nativeTokenKey.nativeTokenKey : ''); };
+
+exports.buildTokenKey = buildTokenKey;

@@ -1,0 +1,25 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var injected = require('./injected.cjs');
+
+class FallbackSuiConnector extends injected.Injected {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    constructor(props) {
+        super('Fallback Connector', false, Object.assign(Object.assign({}, props), { overrideKey: 'fallbackconnector', wallet: undefined }));
+        this.name = 'Fallback Connector';
+        this.overrideKey = 'fallbackconnector';
+        this.isAvailable = false;
+    }
+    isInstalledOnBrowser() {
+        return false;
+    }
+}
+Object.defineProperty(FallbackSuiConnector, 'key', {
+    value: 'fallbackconnector',
+    writable: false,
+});
+
+exports.FallbackSuiConnector = FallbackSuiConnector;

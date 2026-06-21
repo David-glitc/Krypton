@@ -1,0 +1,67 @@
+import type * as z from 'zod/mini';
+/**
+ * Defines the storage tier for a key, controlling which storage backend is used.
+ * - `'default'`: Uses the standard storage adapter (e.g., localStorage, AsyncStorage).
+ * - `'secure'`: Uses a secure storage adapter when available (e.g., Keychain, EncryptedSharedPreferences).
+ */
+export type StorageTier = 'default' | 'secure';
+/**
+ * Configuration options for a storage key schema.
+ */
+export type StorageKeySchemaConfig = {
+    /**
+     * Controls which storage backend is used for this key.
+     * Defaults to `'default'` when not specified.
+     */
+    storageTier?: StorageTier;
+};
+/**
+ * The store item definition is used to identify in which key
+ * the value should be stored and the validation schema of the value.
+ */
+export type StorageKeySchema<T> = {
+    config?: StorageKeySchemaConfig;
+    key: string;
+    schema: z.ZodMiniType<T>;
+};
+/**
+ * The Storage service handles the storage layer by using structured keys and schemas to ensure
+ * a consistent and type-safe way to store and retrieve items from the current platform storage.
+ */
+export type Storage = {
+    /**
+     * Gets an item from storage.
+     */
+    getItem: <T>(storageKeySchema: StorageKeySchema<T>) => Promise<T | null>;
+    /**
+     * Removes an item from storage.
+     */
+    removeItem: <T>(storageKeySchema: StorageKeySchema<T>) => Promise<void>;
+    /**
+     * Sets an item in storage.
+     */
+    setItem: <T>(storageKeySchema: StorageKeySchema<T>, value: T) => Promise<void>;
+};
+/**
+ * How values are formatted before being stored.
+ */
+export type StorageFormat<T> = {
+    value: T;
+};
+/**
+ * Options passed to storage adapter methods, informing the adapter
+ * about the storage requirements for the current operation.
+ */
+export type StorageAdapterOptions = {
+    storageTier: StorageTier;
+};
+/**
+ * Interface for a storage adapter.
+ * Allows the implementation and usage of different storage mechanisms like localStorage, AsyncStorage (React Native), etc.
+ */
+export type StorageAdapter = {
+    getItem: (key: string, options: StorageAdapterOptions) => Promise<string | null>;
+    removeItem: (key: string, options: StorageAdapterOptions) => Promise<void>;
+    setItem: (key: string, value: string, options: StorageAdapterOptions) => Promise<void>;
+};
+//# sourceMappingURL=storage.types.d.ts.map

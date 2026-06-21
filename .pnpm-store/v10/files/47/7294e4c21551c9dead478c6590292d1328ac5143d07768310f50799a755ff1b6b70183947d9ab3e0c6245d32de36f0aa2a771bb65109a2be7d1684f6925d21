@@ -1,0 +1,4 @@
+import type { DynamicClient } from '../../../client/types';
+/** @not-instrumented */
+export declare const waitForProjectSettings: (client: DynamicClient) => Promise<import("@dynamic-labs/sdk-api-core").ProjectSettings>;
+//# sourceMappingURL=waitForProjectSettings.d.ts.map

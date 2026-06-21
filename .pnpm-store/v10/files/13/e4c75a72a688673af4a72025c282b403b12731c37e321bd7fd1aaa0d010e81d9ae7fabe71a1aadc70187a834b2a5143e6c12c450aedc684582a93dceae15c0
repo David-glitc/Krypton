@@ -1,0 +1,79 @@
+import { EcdsaValidatorOptions, JwtVerifiedCredential, ProviderEntryPointVersionEnum, ProviderKernelVersionEnum, SmartWalletProperties } from '@dynamic-labs/sdk-api-core';
+import { ISendBalanceWalletConnector } from '../interfaces/ISendBalanceWalletConnector';
+import { WalletConnector, WalletConnectorBase, InternalWalletConnector } from '../WalletConnectorBase';
+/**
+ * EIP-7702 signed authorization payload.
+ * Matches the shape returned by viem's signAuthorization (SignAuthorizationReturnType).
+ * Defined here to avoid a viem dependency in wallet-connector-core.
+ */
+export type Eip7702SignedAuthorization = {
+    address: `0x${string}`;
+    chainId: number;
+    nonce: number;
+    r: `0x${string}`;
+    s: `0x${string}`;
+    v?: bigint;
+    yParity?: number;
+};
+type GetAccountAbstractionProviderProps = {
+    withSponsorship?: boolean;
+};
+export type IZeroDevConnector = IAccountAbstractionWalletConnector & ISendBalanceWalletConnector & {
+    getCurrentUserOperation(transaction: {
+        from?: string;
+        to?: string;
+        value?: bigint;
+        data?: string;
+    }): Promise<{
+        userOperation: any;
+        sponsored: boolean;
+    }>;
+    formatUserOperation(userOperation: unknown): Promise<any>;
+    /**
+     * Signs an EIP-7702 authorization for ZeroDev kernel delegation.
+     * This is the entry point for the pre-auth MFA flow; the returned value
+     * should be passed to setEip7702Auth to inject the authorization into the
+     * kernel client.
+     */
+    signEip7702PreAuth(chainId?: number): Promise<Eip7702SignedAuthorization>;
+    /**
+     * Stores a pre-signed EIP-7702 authorization and recreates the kernel
+     * client to inject it. Use after signing with useSignEip7702Authorization.
+     */
+    setEip7702Auth(auth: Eip7702SignedAuthorization): Promise<void>;
+    registerEoa({ smartWalletAddress, eoaAddress, eoaConnector, shouldSetEoaConnector, ecdsaProviderType, entryPointVersion, kernelVersion, }: {
+        smartWalletAddress: string;
+        eoaAddress: string;
+        eoaConnector: WalletConnectorBase;
+        shouldSetEoaConnector?: boolean;
+        ecdsaProviderType?: EcdsaValidatorOptions;
+        entryPointVersion?: ProviderEntryPointVersionEnum;
+        kernelVersion?: ProviderKernelVersionEnum;
+    }): Promise<void>;
+};
+export interface IAccountAbstractionWalletConnector extends WalletConnectorBase {
+    canSponsorTransactionGas(transaction: {
+        from?: string;
+        to?: string;
+        value?: bigint;
+        data?: string;
+    }): Promise<boolean>;
+    disableGasSponsorshipOnce(): void;
+    eoaAddress: string | undefined;
+    is7702EnabledOnDashboard: boolean;
+    getAccountAbstractionProvider(props?: GetAccountAbstractionProviderProps): any;
+    /**
+     * @deprecated You should get the EOA connector by passing the SCW wallet to getEOAConnector,
+     * from the useSmartWallet hook
+     */
+    getEOAConnector(): WalletConnector | undefined;
+    initialize(params: {
+        smartWalletAddress: string;
+        eoaAddress: string;
+        eoaConnector: InternalWalletConnector;
+        verifiedCredentials: JwtVerifiedCredential[];
+        shouldSetEoaConnector?: boolean;
+        properties?: SmartWalletProperties;
+    }): Promise<void>;
+}
+export {};

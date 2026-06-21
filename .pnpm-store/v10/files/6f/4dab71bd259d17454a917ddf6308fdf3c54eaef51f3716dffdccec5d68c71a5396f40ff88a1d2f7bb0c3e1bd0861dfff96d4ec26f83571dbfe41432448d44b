@@ -1,0 +1,37 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+
+/* tslint:disable */
+function TransactionFeeEstimateRequestFromJSON(json) {
+    return TransactionFeeEstimateRequestFromJSONTyped(json);
+}
+function TransactionFeeEstimateRequestFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'base64RawTransaction': !runtime.exists(json, 'base64RawTransaction') ? undefined : json['base64RawTransaction'],
+        'fromAddress': !runtime.exists(json, 'fromAddress') ? undefined : json['fromAddress'],
+        'rawTransactionData': !runtime.exists(json, 'rawTransactionData') ? undefined : json['rawTransactionData'],
+    };
+}
+function TransactionFeeEstimateRequestToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'base64RawTransaction': value.base64RawTransaction,
+        'fromAddress': value.fromAddress,
+        'rawTransactionData': value.rawTransactionData,
+    };
+}
+
+exports.TransactionFeeEstimateRequestFromJSON = TransactionFeeEstimateRequestFromJSON;
+exports.TransactionFeeEstimateRequestFromJSONTyped = TransactionFeeEstimateRequestFromJSONTyped;
+exports.TransactionFeeEstimateRequestToJSON = TransactionFeeEstimateRequestToJSON;

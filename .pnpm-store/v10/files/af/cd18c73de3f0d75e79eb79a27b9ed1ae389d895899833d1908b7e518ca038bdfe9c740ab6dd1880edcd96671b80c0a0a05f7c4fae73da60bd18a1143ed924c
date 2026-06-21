@@ -1,0 +1,35 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var React = require('react');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+require('../../../ViewContext/ViewContext.cjs');
+require('../../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+var isSSR = require('../../../../shared/utils/functions/isSSR/isSSR.cjs');
+require('@dynamic-labs/utils');
+require('../../../../utils/constants/colors.cjs');
+require('../../../../utils/constants/values.cjs');
+require('@dynamic-labs/sdk-api-core');
+require('../../../../shared/consts/index.cjs');
+var DynamicContext = require('../../DynamicContext.cjs');
+
+const SSR_SAFE_DEFAULT = new Proxy({}, {
+    get: () => undefined,
+});
+// This is internal context hook only for SDK do not expose it to customers
+const useInternalDynamicContext = () => {
+    const context = React.useContext(DynamicContext.DynamicContext);
+    if (context === undefined) {
+        if (isSSR.isSSR())
+            return SSR_SAFE_DEFAULT;
+        throw new Error('Hook must be used within <DynamicContextProvider>.');
+    }
+    return context;
+};
+
+exports.useInternalDynamicContext = useInternalDynamicContext;

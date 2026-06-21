@@ -1,0 +1,2 @@
+export { unlockWallet } from './unlockWallet';
+//# sourceMappingURL=index.d.ts.map

@@ -1,0 +1,27 @@
+import { exists } from '../runtime.js';
+
+/* tslint:disable */
+function RecordBroadcastRequestFromJSON(json) {
+    return RecordBroadcastRequestFromJSONTyped(json);
+}
+function RecordBroadcastRequestFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'txHash': !exists(json, 'txHash') ? undefined : json['txHash'],
+    };
+}
+function RecordBroadcastRequestToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'txHash': value.txHash,
+    };
+}
+
+export { RecordBroadcastRequestFromJSON, RecordBroadcastRequestFromJSONTyped, RecordBroadcastRequestToJSON };

@@ -1,0 +1,20 @@
+import type { User } from '../../../../user/user.types';
+import type { CompleteSocialRedirectParams } from './completeSocialRedirect.types';
+export type { CompleteSocialRedirectParams } from './completeSocialRedirect.types';
+/**
+ * Completes the social authentication flow after the OAuth redirect.
+ *
+ * Processes the OAuth callback URL with the authorization code and finishes
+ * authenticating (or linking) the user with the social provider. This is the
+ * final step after `signInWithSocialRedirect` + `detectSocialRedirectUrl`.
+ *
+ * @param params.url - The callback URL containing OAuth response parameters.
+ * @param [params.requestedScopes] - Optional scopes to request an elevated access token when verifying (linking) a social account.
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns A promise that resolves to the authenticated user or null.
+ * @throws MissingSocialUrlParamError If required OAuth parameters are missing.
+ * @throws InvalidRedirectStorageStateError If the stored state doesn't match.
+ * @instrumented
+ */
+export declare const completeSocialRedirect: ({ url, requestedScopes }: CompleteSocialRedirectParams, client?: import("../../../../../exports").DynamicClient) => Promise<User | null>;
+//# sourceMappingURL=completeSocialRedirect.d.ts.map

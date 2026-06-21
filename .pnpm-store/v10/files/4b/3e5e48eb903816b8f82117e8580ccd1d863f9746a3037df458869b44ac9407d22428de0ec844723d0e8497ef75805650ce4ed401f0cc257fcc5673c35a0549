@@ -1,0 +1,92 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var React = require('react');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var ViewContext = require('../../../context/ViewContext/ViewContext.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+require('../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('@dynamic-labs/utils');
+require('../../constants/colors.cjs');
+require('../../constants/values.cjs');
+require('@dynamic-labs/sdk-api-core');
+var hasPendingMfaAction = require('../../../shared/utils/functions/hasPendingMfaAction/hasPendingMfaAction.cjs');
+require('../../../shared/consts/index.cjs');
+var useDynamicEvents = require('../events/useDynamicEvents/useDynamicEvents.cjs');
+var usePromptMfaAuth = require('../usePromptMfaAuth/usePromptMfaAuth.cjs');
+
+/**
+ * This hook is used to ensure we show the correct MFA view on page refresh
+ */
+const useSyncMfaFlow = ({ handler: headlessHandler, } = {}) => {
+    const { setShowAuthFlow, userWithMissingInfo, sdkHasLoaded } = useInternalDynamicContext.useInternalDynamicContext();
+    const promptMfaAuth = usePromptMfaAuth.usePromptMfaAuth();
+    const { clearStackAndPush } = ViewContext.useViewContext();
+    // this is used to make sure we only trigger the effect once
+    const triggered = React.useRef(false);
+    useDynamicEvents.useInternalDynamicEvents('logout', () => {
+        /**
+         * We need to wait with node tick to wait for react lifecycle to complete
+         * and clear the react state.
+         * Otherwise the useEffect will run on logout with old state and set the
+         * triggered flag to true, which will prevent the effect from running on next login.
+         */
+        setTimeout(() => {
+            triggered.current = false;
+        }, 0);
+    });
+    React.useEffect(() => {
+        var _a;
+        // boilterplate: we don't want to run the sync logic if the sdk hasn't finished loading,
+        // or if the effect has already been triggered
+        if (!sdkHasLoaded || triggered.current) {
+            return;
+        }
+        // this is the case when the user has fully logged in and completed all mfa steps if needed,
+        // like accepting their backup codes after enrolling
+        if (!userWithMissingInfo || !hasPendingMfaAction.hasPendingMfaAction(userWithMissingInfo)) {
+            return;
+        }
+        triggered.current = true;
+        // if a handler is provided, we assume "headless mode"
+        if (headlessHandler) {
+            setShowAuthFlow(false);
+            headlessHandler();
+            return;
+        }
+        /**
+         * There are two scenarios:
+         *   1. The user has not yet completed mfa
+         *   2. The user has completed mfa, but has not yet acknowledged their backup codes
+         *
+         * In scenario 1, the user scope will contain 'requiresAdditionalAuth'. In this case, we need
+         * to show the enrollment view or verification view, depending on whether the user has devices
+         *
+         * In scenario 2, the user scope will not contain 'requiresAdditionalAuth', and the user
+         * mfaBackupCodeAcknowledgement field will be 'pending'. In this case, we need to show the
+         * backup codes view
+         */
+        setShowAuthFlow(true);
+        if ((_a = userWithMissingInfo.scope) === null || _a === void 0 ? void 0 : _a.includes('requiresAdditionalAuth')) {
+            promptMfaAuth();
+        }
+        else {
+            clearStackAndPush('mfa-display-backup-codes');
+        }
+    }, [
+        promptMfaAuth,
+        sdkHasLoaded,
+        setShowAuthFlow,
+        userWithMissingInfo,
+        headlessHandler,
+        clearStackAndPush,
+    ]);
+};
+
+exports.useSyncMfaFlow = useSyncMfaFlow;

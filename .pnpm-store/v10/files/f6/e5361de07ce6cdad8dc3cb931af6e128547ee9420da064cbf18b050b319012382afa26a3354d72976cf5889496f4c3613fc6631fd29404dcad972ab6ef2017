@@ -1,0 +1,31 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var jsxRuntime = require('react/jsx-runtime');
+var reactI18next = require('react-i18next');
+var client = require('@dynamic-labs-sdk/client');
+var OverlayCardBase = require('../../../../../../components/OverlayCardBase/OverlayCardBase.cjs');
+require('../../../../../../components/OverlayCardBase/OverlayCardTarget/OverlayCardTarget.cjs');
+var Typography = require('../../../../../../components/Typography/Typography.cjs');
+var TypographyButton = require('../../../../../../components/TypographyButton/TypographyButton.cjs');
+
+const RemoveDevicePrompt = ({ deviceUserAgent, onConfirm, onCancel, }) => {
+    var _a, _b;
+    const { t } = reactI18next.useTranslation();
+    const deviceName = (_b = (_a = client.parseUserAgent({ userAgent: deviceUserAgent })) === null || _a === void 0 ? void 0 : _a.displayText) !== null && _b !== void 0 ? _b : deviceUserAgent;
+    return (jsxRuntime.jsx(OverlayCardBase.OverlayCardBase, { isOpen: true, onClickOverlay: onCancel, className: 'remove-device-prompt', children: jsxRuntime.jsxs("div", { className: 'remove-device-prompt__container', children: [jsxRuntime.jsx(Typography.Typography, { color: 'primary', className: 'remove-device-prompt__title', variant: 'body_normal', as: 'h6', children: t('dyn_device_management.remove_device_title', {
+                        deviceName,
+                    }) }), jsxRuntime.jsx(Typography.Typography, { className: 'remove-device-prompt__label', variant: 'body_small', color: 'secondary', children: t('dyn_device_management.remove_device_description', {
+                        deviceName,
+                    }) }), jsxRuntime.jsx(TypographyButton.TypographyButton, { buttonPadding: 'small', onClick: onConfirm, buttonClassName: 'remove-device-prompt__button remove-device-prompt__button--shadow', buttonVariant: 'danger', expanded: true, typographyProps: {
+                        variant: 'button_secondary',
+                        weight: 'medium',
+                    }, dataTestId: 'confirm-remove-button', children: t('dyn_device_management.remove_button') }), jsxRuntime.jsx(TypographyButton.TypographyButton, { expanded: true, buttonPadding: 'small', onClick: onCancel, buttonVariant: 'secondary', buttonClassName: 'remove-device-prompt__button', typographyProps: {
+                        variant: 'button_secondary',
+                        weight: 'medium',
+                    }, dataTestId: 'cancel-remove-button', children: t('dyn_device_management.cancel_button') })] }) }));
+};
+
+exports.RemoveDevicePrompt = RemoveDevicePrompt;

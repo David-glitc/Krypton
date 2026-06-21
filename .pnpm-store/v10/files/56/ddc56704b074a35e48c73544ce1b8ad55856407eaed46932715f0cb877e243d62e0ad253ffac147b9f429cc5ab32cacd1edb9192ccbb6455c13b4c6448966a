@@ -1,0 +1,7 @@
+/**
+ * Validates that an externally-sourced image URL is safe to render as an
+ * `<img src>`. Token icon URLs come from the MoonPay currencies API response,
+ * so they are treated as untrusted input: only absolute HTTPS URLs are allowed,
+ * which rules out `javascript:`, `data:`, and other non-network schemes.
+ */
+export declare const isTrustedImageUrl: (url: string | undefined) => url is string;

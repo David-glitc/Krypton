@@ -1,0 +1,38 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var React = require('react');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var rejectPromiseRef = require('../../functions/rejectPromiseRef/rejectPromiseRef.cjs');
+var resolvePromiseRef = require('../../functions/resolvePromiseRef/resolvePromiseRef.cjs');
+
+const useFundingExchangeHelpers = () => {
+    const { setShowAuthFlow } = useInternalDynamicContext.useInternalDynamicContext();
+    const initiatedByWidgetRef = React.useRef(false);
+    const selectExchangeConfig = React.useCallback(({ promiseRef, initiatedByWidget, resultBuilder, }) => ({
+        onSelectExchange: (value) => {
+            if (!promiseRef.current)
+                return;
+            try {
+                initiatedByWidgetRef.current = initiatedByWidget;
+                resolvePromiseRef.resolvePromiseRef(promiseRef, resultBuilder(value));
+            }
+            catch (err) {
+                rejectPromiseRef.rejectPromiseRef(promiseRef, err);
+            }
+            finally {
+                setShowAuthFlow(false);
+            }
+        },
+        showDefaultFooter: true,
+    }), [setShowAuthFlow]);
+    return {
+        initiatedByWidgetRef,
+        selectExchangeConfig,
+    };
+};
+
+exports.useFundingExchangeHelpers = useFundingExchangeHelpers;

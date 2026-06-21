@@ -1,0 +1,36 @@
+'use client'
+import { __awaiter } from '../../_virtual/_tslib.js';
+import SignClient from '@walletconnect/sign-client';
+import { reconcileOrphanedPairings } from './reconcileOrphanedPairings.js';
+
+/**
+ * WalletConnect's SignClient would already internally share its core if we had
+ * multiple instances of it, so instead we will just use a singleton already.
+ *
+ * A SignClient is able to handle multiple sessions and multi chain connections.
+ */
+let signClientSingleton = undefined;
+const getSignClientSingleton = (_a) => __awaiter(void 0, [_a], void 0, function* ({ projectId, appIcon, appName, redirectUrl, }) {
+    if (!signClientSingleton) {
+        const redirect = redirectUrl ? { native: redirectUrl } : undefined;
+        signClientSingleton = yield SignClient.init({
+            customStoragePrefix: `dynamicauth_${projectId}_walletconnect`,
+            metadata: {
+                description: '',
+                icons: [appIcon],
+                name: appName,
+                redirect,
+                url: '',
+            },
+            projectId,
+        });
+        // Drain any pairings left over from a prior page load that never got
+        // cleaned up (closed tabs, crashes, abandoned QR scans). Without this,
+        // those pairings stay alive on the relay until natural expiry and are
+        // counted against this SDK's relay-capacity budget.
+        void reconcileOrphanedPairings(signClientSingleton);
+    }
+    return signClientSingleton;
+});
+
+export { getSignClientSingleton };

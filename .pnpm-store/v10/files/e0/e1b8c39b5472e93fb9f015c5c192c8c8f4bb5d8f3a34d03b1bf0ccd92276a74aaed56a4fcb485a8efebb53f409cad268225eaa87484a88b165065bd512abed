@@ -1,0 +1,52 @@
+import { K as instrumentFunction, at as getCore, it as BaseError, k as createApiClient, tt as getDefaultClient } from "./InvalidParamError-c1J0Vmze.esm.js";
+import { r as updateAuthFromVerifyResponse } from "./getVerifiedCredentialForWalletAccount-DPTHL1pO.esm.js";
+
+//#region src/modules/user/refreshAuth/refreshAuth.ts
+/**
+* Refreshes the current user's data from the server.
+*
+* This function fetches the latest user information and token from the backend
+* updating the local user and token states with any changes.
+*
+* @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+* @returns A promise that resolves to the verify response.
+* @instrumented
+* @redact-params
+*/
+const refreshAuth = async (client = getDefaultClient()) => {
+	const core = getCore(client);
+	const response = await createApiClient({}, client).refreshAuth({ environmentId: core.environmentId });
+	updateAuthFromVerifyResponse({ response }, client);
+	return response;
+};
+const __refreshAuth_impl = refreshAuth;
+const __refreshAuth_wrapped = instrumentFunction({
+	fn: __refreshAuth_impl,
+	functionName: "refreshAuth",
+	getCore: () => {
+		try {
+			return getCore(getDefaultClient());
+		} catch {
+			return;
+		}
+	},
+	redactAll: true
+});
+
+//#endregion
+//#region src/errors/NotWaasWalletAccountError.ts
+var NotWaasWalletAccountError = class extends BaseError {
+	constructor({ walletAddress }) {
+		super({
+			cause: null,
+			code: "not_waas_wallet_account_error",
+			docsUrl: null,
+			name: "NotWaasWalletAccountError",
+			shortMessage: `Wallet account ${walletAddress} is not a Dynamic WaaS wallet account`
+		});
+	}
+};
+
+//#endregion
+export { __refreshAuth_wrapped as n, NotWaasWalletAccountError as t };
+//# sourceMappingURL=NotWaasWalletAccountError-CgwG_c2-.esm.js.map

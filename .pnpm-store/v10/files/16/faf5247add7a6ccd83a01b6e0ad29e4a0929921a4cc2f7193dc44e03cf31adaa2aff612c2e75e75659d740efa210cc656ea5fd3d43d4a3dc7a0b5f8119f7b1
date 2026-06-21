@@ -1,0 +1,11 @@
+import type { CreatePasskeyServiceParams, PasskeyService } from '../passkey.types';
+/**
+ * Create a passkey service that uses the browser's WebAuthn API.
+ *
+ * Metadata is accepted for parity with the native implementation (which uses
+ * `universalLink` to validate the associated domain) but is unused on web —
+ * the browser derives the relying party from `window.location.origin`.
+ * @not-instrumented
+ */
+export declare const createPasskeyService: (_params?: CreatePasskeyServiceParams) => PasskeyService;
+//# sourceMappingURL=createPasskeyService.d.ts.map

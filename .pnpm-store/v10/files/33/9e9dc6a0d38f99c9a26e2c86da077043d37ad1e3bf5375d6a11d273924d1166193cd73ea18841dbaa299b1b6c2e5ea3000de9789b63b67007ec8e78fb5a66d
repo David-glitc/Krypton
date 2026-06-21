@@ -1,0 +1,3 @@
+/** @instrumented */
+export declare const revokeAllRegisteredDevices: (client?: import("../../../exports").DynamicClient) => Promise<void>;
+//# sourceMappingURL=revokeAllRegisteredDevices.d.ts.map

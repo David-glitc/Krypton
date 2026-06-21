@@ -1,0 +1,553 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../_virtual/_tslib.cjs');
+var web3_js = require('@solana/web3.js');
+var embeddedWalletSolana = require('@dynamic-labs/embedded-wallet-solana');
+var sdkApiCore = require('@dynamic-labs/sdk-api-core');
+var solanaCore = require('@dynamic-labs/solana-core');
+var utils = require('@dynamic-labs/utils');
+var waas = require('@dynamic-labs/waas');
+var walletConnectorCore = require('@dynamic-labs/wallet-connector-core');
+var logger = require('../../utils/logger.cjs');
+var DynamicWaasSVMSigner = require('../signer/DynamicWaasSVMSigner.cjs');
+var logger$1 = require('@dynamic-labs/logger');
+
+class DynamicWaasSVMConnector extends waas.withDynamicWaas(solanaCore.SolanaWalletConnector) {
+    connect() {
+        throw new Error('Method not implemented.');
+    }
+    constructor(props) {
+        super(props);
+        this.name = 'Dynamic Waas';
+        this.overrideKey = 'dynamicwaas';
+        this.isEmbeddedWallet = true;
+        this.getSvmGasSponsorshipEnabled = () => false;
+        this.logger = logger.logger;
+        this.walletUiUtils = props.walletUiUtils;
+    }
+    /**
+     * Set a getter that resolves the current SVM gas sponsorship state.
+     * Using a getter avoids stale values from initialization race conditions.
+     */
+    setSvmGasSponsorshipEnabled(getEnabled) {
+        this.getSvmGasSponsorshipEnabled = getEnabled;
+    }
+    /**
+     * Check if a transaction is already signed (has non-zero signatures).
+     */
+    isTxAlreadySigned(transaction) {
+        if ('version' in transaction) {
+            return transaction.signatures.some((sig) => !sig.every((byte) => byte === 0));
+        }
+        return transaction.signatures.some((sig) => sig.signature && !sig.signature.every((byte) => byte === 0));
+    }
+    /**
+     * Sponsor a transaction if gas sponsorship is enabled and the tx is unsigned.
+     * Falls back to original transaction on error.
+     */
+    maybeSponsorTransaction(transaction) {
+        return _tslib.__awaiter(this, void 0, void 0, function* () {
+            if (!this.getSvmGasSponsorshipEnabled()) {
+                return transaction;
+            }
+            if (this.isTxAlreadySigned(transaction)) {
+                logger.logger.debug('[maybeSponsorTransaction] Skipping sponsorship - transaction already signed');
+                return transaction;
+            }
+            if (!this.environmentId) {
+                logger.logger.warn('[maybeSponsorTransaction] Missing environmentId, skipping sponsorship');
+                return transaction;
+            }
+            try {
+                const sponsoredTransaction = yield embeddedWalletSolana.sponsorSolanaTransaction(this.environmentId, transaction);
+                logger.logger.info('[maybeSponsorTransaction] Transaction sponsored successfully');
+                return sponsoredTransaction;
+            }
+            catch (error) {
+                logger.logger.warn('[maybeSponsorTransaction] Failed to sponsor transaction, using original', { error });
+                return transaction;
+            }
+        });
+    }
+    /**
+     * Override setEnvironmentId to ensure it's set on the global logger
+     */
+    setEnvironmentId(environmentId) {
+        super.setEnvironmentId(environmentId);
+        logger$1.Logger.setEnvironmentId(environmentId);
+    }
+    setActiveAccountAddress(accountAddress) {
+        this.activeAccountAddress = accountAddress;
+    }
+    getActiveAccountAddress() {
+        return _tslib.__awaiter(this, void 0, void 0, function* () {
+            return this.activeAccountAddress;
+        });
+    }
+    validateActiveWallet(expectedAddress) {
+        return _tslib.__awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const walletClient = yield this.getWaasWalletClient();
+            const targetWallet = yield walletClient.getWallet({
+                accountAddress: expectedAddress,
+                authToken: (_a = this.getAuthToken) === null || _a === void 0 ? void 0 : _a.call(this),
+                // TODO: This is a hack - validateActiveWallet is a no-op operation that shouldn't require nonce signing
+                signedSessionId: '',
+            });
+            if (!targetWallet) {
+                throw new utils.DynamicError('Account not found');
+            }
+            const isWalletActive = walletConnectorCore.isSameAddress(targetWallet.accountAddress, this.activeAccountAddress || '', this.connectedChain);
+            if (!isWalletActive) {
+                this.activeAccountAddress = targetWallet.accountAddress;
+            }
+        });
+    }
+    internalSignMessage(message_1) {
+        return _tslib.__awaiter(this, arguments, void 0, function* (message, { parentTraceId, startTime, } = {}) {
+            var _a, _b, _c, _d;
+            const traceId = parentTraceId || this.generateTraceId();
+            const effectiveStartTime = startTime || Date.now();
+            const walletClient = yield this.instrumentAsync({
+                context: { chainName: 'SVM', startTime: effectiveStartTime, traceId },
+                fn: () => _tslib.__awaiter(this, void 0, void 0, function* () { return this.getWaasWalletClient(); }),
+                operation: 'internalSignMessage',
+                resource: 'getWaasWalletClient',
+            });
+            if (!this.activeAccountAddress) {
+                throw new Error('Active account address is required');
+            }
+            const signedSessionId = yield ((_a = this.getSignedSessionId) === null || _a === void 0 ? void 0 : _a.call(this));
+            if (!signedSessionId) {
+                throw new utils.DynamicError('Signed session ID is required');
+            }
+            const mfaToken = yield ((_b = this.getMfaToken) === null || _b === void 0 ? void 0 : _b.call(this, {
+                mfaAction: sdkApiCore.MFAAction.WalletWaasSign,
+            }));
+            const elevatedAccessToken = yield ((_c = this.getElevatedAccessToken) === null || _c === void 0 ? void 0 : _c.call(this, {
+                scope: sdkApiCore.TokenScope.Walletsign,
+            }));
+            const password = yield this.getPasswordIfNeeded({
+                accountAddress: this.activeAccountAddress,
+            });
+            const accountAddress = this.activeAccountAddress;
+            const authToken = (_d = this.getAuthToken) === null || _d === void 0 ? void 0 : _d.call(this);
+            const signedMessage = yield this.instrumentAsync({
+                context: { chainName: 'SVM', startTime: effectiveStartTime, traceId },
+                fn: () => _tslib.__awaiter(this, void 0, void 0, function* () {
+                    return walletClient.signMessage({
+                        accountAddress,
+                        authToken,
+                        elevatedAccessToken,
+                        message,
+                        mfaToken,
+                        password,
+                        signedSessionId,
+                        traceContext: {
+                            startTime: effectiveStartTime,
+                            traceId,
+                        },
+                    });
+                }),
+                operation: 'internalSignMessage',
+                resource: 'walletClient.signMessage',
+            });
+            return signedMessage;
+        });
+    }
+    signMessage(message) {
+        return _tslib.__awaiter(this, void 0, void 0, function* () {
+            if (!this.activeAccountAddress) {
+                throw new Error('Active account address is required');
+            }
+            const traceId = this.generateTraceId();
+            const startTime = Date.now();
+            this.instrument('[signMessage] start', {
+                key: 'signMessage-start',
+                startTime,
+                time: 0,
+                traceId,
+            });
+            const signedMessage = yield this.walletUiUtils.signMessage({
+                handler: () => _tslib.__awaiter(this, void 0, void 0, function* () {
+                    return this.internalSignMessage(message, {
+                        parentTraceId: traceId,
+                        startTime,
+                    });
+                }),
+                message,
+                walletConnector: this,
+            });
+            this.instrument('[signMessage] completed', {
+                key: 'signMessage-completed',
+                startTime,
+                time: Date.now() - startTime,
+                traceId,
+            });
+            return signedMessage;
+        });
+    }
+    internalSignTransaction(transaction_1) {
+        return _tslib.__awaiter(this, arguments, void 0, function* (transaction, { parentTraceId, startTime, overrideBlockhash, } = {}) {
+            var _a, _b, _c;
+            const traceId = parentTraceId || this.generateTraceId();
+            const effectiveStartTime = startTime || Date.now();
+            // Attempt to sponsor the transaction before signing
+            const txToSign = yield this.maybeSponsorTransaction(transaction);
+            if (overrideBlockhash) {
+                if (solanaCore.isVersionedTransaction(txToSign)) {
+                    txToSign.message.recentBlockhash = overrideBlockhash.blockhash;
+                }
+                else {
+                    txToSign.recentBlockhash = overrideBlockhash.blockhash;
+                    txToSign.lastValidBlockHeight = overrideBlockhash.lastValidBlockHeight;
+                }
+            }
+            const walletClient = yield this.instrumentAsync({
+                context: { chainName: 'SVM', startTime: effectiveStartTime, traceId },
+                fn: () => _tslib.__awaiter(this, void 0, void 0, function* () { return this.getWaasWalletClient(); }),
+                operation: 'internalSignTransaction',
+                resource: 'getWaasWalletClient',
+            });
+            const signedSessionId = yield ((_a = this.getSignedSessionId) === null || _a === void 0 ? void 0 : _a.call(this));
+            if (!signedSessionId) {
+                throw new utils.DynamicError('Signed session ID is required');
+            }
+            if (!this.activeAccountAddress) {
+                throw new Error('Active account address is required');
+            }
+            const mfaToken = yield ((_b = this.getMfaToken) === null || _b === void 0 ? void 0 : _b.call(this, {
+                mfaAction: sdkApiCore.MFAAction.WalletWaasSign,
+            }));
+            const elevatedAccessToken = yield ((_c = this.getElevatedAccessToken) === null || _c === void 0 ? void 0 : _c.call(this, {
+                scope: sdkApiCore.TokenScope.Walletsign,
+            }));
+            const password = yield this.getPasswordIfNeeded({
+                accountAddress: this.activeAccountAddress,
+            });
+            const isVersionedSolanaTransaction = solanaCore.isVersionedTransaction(txToSign);
+            const messageBytes = isVersionedSolanaTransaction
+                ? txToSign.message.serialize()
+                : txToSign.serializeMessage();
+            const messageToSign = Buffer.from(messageBytes).toString('hex');
+            const chainId = yield this.getNetwork(true);
+            const senderAddress = this.activeAccountAddress;
+            const signature = yield this.instrumentAsync({
+                context: { chainName: 'SVM', startTime: effectiveStartTime, traceId },
+                fn: () => _tslib.__awaiter(this, void 0, void 0, function* () {
+                    var _d;
+                    return walletClient.signTransaction({
+                        authToken: (_d = this.getAuthToken) === null || _d === void 0 ? void 0 : _d.call(this),
+                        chainId,
+                        elevatedAccessToken,
+                        mfaToken,
+                        password,
+                        senderAddress,
+                        signedSessionId,
+                        traceContext: {
+                            startTime: effectiveStartTime,
+                            traceId,
+                        },
+                        transaction: messageToSign,
+                    });
+                }),
+                operation: 'internalSignTransaction',
+                resource: 'signTransaction',
+            });
+            txToSign.addSignature(new web3_js.PublicKey(this.activeAccountAddress), Buffer.from(signature, 'hex'));
+            // Optional signature verification (legacy Transaction only)
+            // VersionedTransaction.serialize() doesn't support signature verification
+            if (!isVersionedSolanaTransaction) {
+                try {
+                    txToSign.serialize({
+                        requireAllSignatures: false,
+                        verifySignatures: true,
+                    });
+                }
+                catch (err) {
+                    logger.logger.warn('[internalSignTransaction] Signature verification failed for legacy Transaction', err);
+                }
+            }
+            return txToSign;
+        });
+    }
+    signTransaction(transaction) {
+        return _tslib.__awaiter(this, void 0, void 0, function* () {
+            if (!this.activeAccountAddress) {
+                throw new Error('Active account address is required');
+            }
+            const traceId = this.generateTraceId();
+            const startTime = Date.now();
+            this.instrument('[signTransaction] start', {
+                key: 'signTransaction-start',
+                startTime,
+                time: 0,
+                traceId,
+            });
+            const uiTransaction = new solanaCore.SolanaUiTransaction({
+                connection: this.getWalletClient(),
+                from: this.activeAccountAddress,
+                multipleTransactions: [transaction],
+                onSubmit: () => _tslib.__awaiter(this, void 0, void 0, function* () {
+                    return this.internalSignTransaction(transaction, {
+                        parentTraceId: traceId,
+                        startTime,
+                    });
+                }),
+            });
+            const signedTransaction = yield this.walletUiUtils.signTransaction(this, uiTransaction);
+            this.instrument('[signTransaction] completed', {
+                key: 'signTransaction-completed',
+                startTime,
+                time: Date.now() - startTime,
+                traceId,
+            });
+            return signedTransaction;
+        });
+    }
+    internalSignAllTransactions(transactions) {
+        return _tslib.__awaiter(this, void 0, void 0, function* () {
+            if (!this.activeAccountAddress) {
+                throw new Error('Active account address is required');
+            }
+            const signedTransactions = [];
+            for (const transaction of transactions) {
+                const signedTx = yield this.internalSignTransaction(transaction);
+                signedTransactions.push(signedTx);
+            }
+            return signedTransactions;
+        });
+    }
+    signAllTransactions(transactions) {
+        return _tslib.__awaiter(this, void 0, void 0, function* () {
+            if (!this.activeAccountAddress) {
+                throw new Error('Active account address is required');
+            }
+            const traceId = this.generateTraceId();
+            const startTime = Date.now();
+            this.instrument('[signAllTransactions] start', {
+                key: 'signAllTransactions-start',
+                startTime,
+                time: 0,
+                traceId,
+            });
+            const uiTransaction = new solanaCore.SolanaUiTransaction({
+                connection: this.getWalletClient(),
+                from: this.activeAccountAddress,
+                multipleTransactions: transactions,
+                onSubmit: () => _tslib.__awaiter(this, void 0, void 0, function* () { return this.internalSignAllTransactions(transactions); }),
+            });
+            const signedTransactions = yield this.walletUiUtils.signTransaction(this, uiTransaction);
+            this.instrument('[signAllTransactions] completed', {
+                key: 'signAllTransactions-completed',
+                startTime,
+                time: Date.now() - startTime,
+                traceId,
+            });
+            return signedTransactions;
+        });
+    }
+    internalSignAndSendTransaction(transaction_1, options_1) {
+        return _tslib.__awaiter(this, arguments, void 0, function* (transaction, options, { parentTraceId, startTime, } = {}) {
+            var _a;
+            const traceId = parentTraceId || this.generateTraceId();
+            const effectiveStartTime = startTime || Date.now();
+            if (!this.activeAccountAddress) {
+                throw new Error('Active account address is required');
+            }
+            const connection = this.getWalletClient();
+            // Refresh the blockhash right before signing so the tx is submitted with
+            // a fresh validity window AND so confirmTransaction's expiration check
+            // operates on the same blockhash that's embedded in the tx.
+            // Use 'finalized' so the blockhash is recognized by every RPC node
+            // (a 'confirmed' blockhash may not yet have propagated to the simulating
+            // node, which surfaces as "Blockhash not found" at sendRawTransaction).
+            const { blockhash, lastValidBlockHeight } = yield connection.getLatestBlockhash('finalized');
+            const signedTransaction = yield this.instrumentAsync({
+                context: { chainName: 'SVM', startTime: effectiveStartTime, traceId },
+                fn: () => _tslib.__awaiter(this, void 0, void 0, function* () {
+                    return this.internalSignTransaction(transaction, {
+                        overrideBlockhash: { blockhash, lastValidBlockHeight },
+                        parentTraceId: traceId,
+                        startTime: effectiveStartTime,
+                    });
+                }),
+                operation: 'internalSignAndSendTransaction',
+                resource: 'internalSignTransaction',
+            });
+            // Serialize the transaction for sending
+            // VersionedTransaction.serialize() doesn't accept options, only legacy Transaction does
+            const isVersionedSolanaTransaction = solanaCore.isVersionedTransaction(signedTransaction);
+            const serializedTransaction = !isVersionedSolanaTransaction
+                ? signedTransaction.serialize({
+                    requireAllSignatures: false,
+                    verifySignatures: true,
+                })
+                : signedTransaction.serialize();
+            const signature = yield this.instrumentAsync({
+                context: {
+                    chainName: 'SVM',
+                    rpcUrl: connection.rpcEndpoint,
+                    startTime: effectiveStartTime,
+                    traceId,
+                },
+                fn: () => _tslib.__awaiter(this, void 0, void 0, function* () { return connection.sendRawTransaction(serializedTransaction, options); }),
+                operation: 'internalSignAndSendTransaction',
+                resource: 'sendRawTransaction',
+            });
+            const confirmationStartTime = Date.now();
+            try {
+                const confirmationResult = yield connection.confirmTransaction({
+                    blockhash,
+                    lastValidBlockHeight,
+                    signature,
+                }, (_a = options === null || options === void 0 ? void 0 : options.preflightCommitment) !== null && _a !== void 0 ? _a : 'confirmed');
+                const confirmationEndTime = Date.now();
+                const confirmationStepElapsed = confirmationEndTime - confirmationStartTime;
+                const confirmationTotalElapsed = confirmationEndTime - effectiveStartTime;
+                if (confirmationResult.value.err) {
+                    logger.logger.error(`[internalSignAndSendTransaction] Transaction failed - total: ${confirmationTotalElapsed}ms, step: ${confirmationStepElapsed}ms`, {
+                        accountAddress: this.activeAccountAddress,
+                        error: confirmationResult.value.err,
+                        key: 'internalSignAndSendTransaction-transactionFailed',
+                        rpcUrl: connection.rpcEndpoint,
+                        stepTime: confirmationStepElapsed,
+                        time: confirmationTotalElapsed,
+                        traceId,
+                    });
+                    throw new utils.TransactionFailedError(confirmationResult.value.err);
+                }
+                this.instrument(`[internalSignAndSendTransaction] Transaction confirmed - total: ${confirmationTotalElapsed}ms, step: ${confirmationStepElapsed}ms`, {
+                    key: 'internalSignAndSendTransaction-transactionSuccess',
+                    rpcUrl: connection.rpcEndpoint,
+                    stepTime: confirmationStepElapsed,
+                    time: confirmationTotalElapsed,
+                    traceId,
+                });
+            }
+            catch (error) {
+                if (error instanceof utils.TransactionFailedError) {
+                    throw error;
+                }
+                const timeoutTotalElapsed = Date.now() - confirmationStartTime;
+                logger.logger.error(`[internalSignAndSendTransaction] Confirmation timed out - total: ${timeoutTotalElapsed}ms`, {
+                    accountAddress: this.activeAccountAddress,
+                    error,
+                    key: 'internalSignAndSendTransaction-confirmationTimedOut',
+                    rpcUrl: connection.rpcEndpoint,
+                    signature,
+                    time: timeoutTotalElapsed,
+                    traceId,
+                });
+                throw new utils.TransactionConfirmationTimeoutError(signature);
+            }
+            return signature;
+        });
+    }
+    signAndSendTransaction(transaction, options) {
+        return _tslib.__awaiter(this, void 0, void 0, function* () {
+            if (!this.activeAccountAddress) {
+                throw new Error('Active account address is required');
+            }
+            const traceId = this.generateTraceId();
+            const startTime = Date.now();
+            this.instrument('[signAndSendTransaction] start', {
+                key: 'signAndSendTransaction-start',
+                options,
+                startTime,
+                time: 0,
+                traceId,
+            });
+            const uiTransaction = new solanaCore.SolanaUiTransaction({
+                connection: this.getWalletClient(),
+                from: this.activeAccountAddress,
+                multipleTransactions: [transaction],
+                onSubmit: () => _tslib.__awaiter(this, void 0, void 0, function* () {
+                    return this.internalSignAndSendTransaction(transaction, options, {
+                        parentTraceId: traceId,
+                        startTime,
+                    });
+                }),
+            });
+            const result = yield this.walletUiUtils.sendTransaction(this, uiTransaction);
+            this.instrument('[signAndSendTransaction] completed', {
+                key: 'signAndSendTransaction-completed',
+                startTime,
+                time: Date.now() - startTime,
+                traceId,
+            });
+            return result;
+        });
+    }
+    getSigner() {
+        return _tslib.__awaiter(this, void 0, void 0, function* () {
+            return new DynamicWaasSVMSigner.DynamicWaasSVMSigner({
+                walletConnector: this,
+            });
+        });
+    }
+    getWalletClientByAddress({ accountAddress, }) {
+        this.setActiveAccountAddress(accountAddress);
+        return this.getWalletClient();
+    }
+    // Chain-specific override for exportClientKeyshares - SVM needs to handle optional account address
+    exportClientKeyshares(_a) {
+        const _super = Object.create(null, {
+            exportClientKeyshares: { get: () => super.exportClientKeyshares }
+        });
+        return _tslib.__awaiter(this, arguments, void 0, function* ({ accountAddress, password, }) {
+            const targetAccountAddress = accountAddress || this.activeAccountAddress;
+            if (!targetAccountAddress) {
+                throw new Error('Account address is required');
+            }
+            const traceId = this.generateTraceId();
+            const startTime = Date.now();
+            this.instrument('[exportClientKeyshares] start', {
+                key: 'exportClientKeyshares-start',
+                startTime,
+                time: 0,
+                traceId,
+            });
+            const result = yield _super.exportClientKeyshares.call(this, {
+                accountAddress: targetAccountAddress,
+                password,
+            });
+            this.instrument('[exportClientKeyshares] completed', {
+                key: 'exportClientKeyshares-completed',
+                startTime,
+                time: Date.now() - startTime,
+                traceId,
+            });
+            return result;
+        });
+    }
+    createUiTransaction(from) {
+        return _tslib.__awaiter(this, void 0, void 0, function* () {
+            yield this.validateActiveWallet(from);
+            const transaction = new solanaCore.SolanaUiTransaction({
+                connection: this.getWalletClient(),
+                from,
+                onSubmit: (transaction) => _tslib.__awaiter(this, void 0, void 0, function* () {
+                    if (!transaction)
+                        return undefined;
+                    return this.internalSignAndSendTransaction(transaction);
+                }),
+            });
+            return transaction;
+        });
+    }
+    signMessageWithContext() {
+        return _tslib.__awaiter(this, void 0, void 0, function* () {
+            throw new Error('Not implemented');
+        });
+    }
+}
+Object.defineProperty(DynamicWaasSVMConnector, 'key', {
+    value: 'dynamicwaas',
+    writable: false,
+});
+
+exports.DynamicWaasSVMConnector = DynamicWaasSVMConnector;

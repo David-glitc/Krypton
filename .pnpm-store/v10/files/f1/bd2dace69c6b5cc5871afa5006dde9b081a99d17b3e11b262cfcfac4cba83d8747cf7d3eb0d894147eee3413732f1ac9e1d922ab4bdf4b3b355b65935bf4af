@@ -1,0 +1,34 @@
+'use client'
+import { AleoIcon, AlgorandIcon, AptosIcon, BitcoinIcon, CosmosIcon, EclipseIcon, EthereumIcon, FlowIcon, MidnightIcon, SolanaIcon, SparkIcon, StarknetIcon, StellarIcon, SuiIcon, TempoIcon, TonIcon, TronIcon } from '@dynamic-labs/iconic';
+import { getChainInfo } from '@dynamic-labs/wallet-connector-core';
+import 'react';
+import { ReactComponent as SvgError } from '../../../assets/error.js';
+import 'react/jsx-runtime';
+import '../../../../context/ViewContext/ViewContext.js';
+
+const chainIconMap = {
+    aleo: AleoIcon,
+    algorand: AlgorandIcon,
+    aptos: AptosIcon,
+    bitcoin: BitcoinIcon,
+    cosmos: CosmosIcon,
+    eclipse: EclipseIcon,
+    evm: EthereumIcon,
+    flow: FlowIcon,
+    midnight: MidnightIcon,
+    solana: SolanaIcon,
+    spark: SparkIcon,
+    starknet: StarknetIcon,
+    stellar: StellarIcon,
+    sui: SuiIcon,
+    tempo: TempoIcon,
+    ton: TonIcon,
+    tron: TronIcon,
+};
+const getChainIcon = (chain) => {
+    var _a, _b, _c;
+    const chainName = (_b = (_a = getChainInfo(chain)) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : '';
+    return (_c = chainIconMap[chainName]) !== null && _c !== void 0 ? _c : SvgError;
+};
+
+export { getChainIcon };

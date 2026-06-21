@@ -1,0 +1,24 @@
+import type { WalletAccount } from '../../wallets/walletAccount';
+import type { CheckoutTransaction } from '../checkout.types';
+import type { PrepareCheckoutTransactionParams } from '../prepareCheckoutTransaction';
+export type SubmitCheckoutTransactionParams = {
+    onStepChange?: (step: 'approval' | 'transaction') => void;
+    transactionId: string;
+    walletAccount: WalletAccount;
+} & PrepareCheckoutTransactionParams;
+/**
+ * Prepares, signs, and broadcasts a checkout transaction in one call.
+ *
+ * Orchestrates the full submission flow:
+ * 1. Calls prepareCheckoutTransaction to advance to signing state and lock the quote
+ * 2. Ensures the wallet is on the correct network for the transaction
+ * 3. Delegates on-chain signing to the wallet provider's executeSwapTransaction method
+ * 4. Calls broadcastCheckoutTransaction with the resulting txHash
+ *
+ * @param params SubmitCheckoutTransactionParams - The transaction ID, wallet account, and optional step callback.
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns The broadcasted checkout transaction
+ * @instrumented
+ */
+export declare const submitCheckoutTransaction: ({ onStepChange, transactionId, walletAccount, assertBalanceForGasCost, assertBalanceForTransferAmount, }: SubmitCheckoutTransactionParams, client?: import("../../../exports").DynamicClient) => Promise<CheckoutTransaction>;
+//# sourceMappingURL=submitCheckoutTransaction.d.ts.map

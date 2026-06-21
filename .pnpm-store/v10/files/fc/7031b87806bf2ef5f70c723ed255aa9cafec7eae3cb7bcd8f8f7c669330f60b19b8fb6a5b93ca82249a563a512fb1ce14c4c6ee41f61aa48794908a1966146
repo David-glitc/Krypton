@@ -1,0 +1,27 @@
+export type JwtPayload = {
+    [key: string]: unknown;
+    exp: number;
+    iat: number;
+    scope: string;
+    singleUse?: boolean;
+    sub: string;
+};
+/**
+ * Decodes a JWT token and returns the full payload.
+ *
+ * This function extracts and returns the complete JWT payload including scopes,
+ * expiration time, and other claims.
+ *
+ * @param jwt - The JWT token string.
+ * @returns The decoded JWT payload object.
+ * @throws InvalidParamError if the token is invalid or cannot be decoded.
+ *
+ * @example
+ * ```typescript
+ * const payload = decodeJwt(jwt);
+ * // Returns: { scopes: ['wallet:export'], exp: 1234567890, ... }
+ * ```
+  * @not-instrumented
+ */
+export declare const decodeJwt: (jwt: string) => JwtPayload;
+//# sourceMappingURL=decodeJwt.d.ts.map

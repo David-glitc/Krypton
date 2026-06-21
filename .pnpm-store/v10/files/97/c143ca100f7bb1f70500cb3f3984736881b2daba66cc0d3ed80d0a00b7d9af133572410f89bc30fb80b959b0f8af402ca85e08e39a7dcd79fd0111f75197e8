@@ -1,0 +1,3 @@
+/** @not-instrumented */
+export declare const removeDynamicOauthParamsFromUrl: (url: string) => string;
+//# sourceMappingURL=removeDynamicOauthParamsFromUrl.d.ts.map

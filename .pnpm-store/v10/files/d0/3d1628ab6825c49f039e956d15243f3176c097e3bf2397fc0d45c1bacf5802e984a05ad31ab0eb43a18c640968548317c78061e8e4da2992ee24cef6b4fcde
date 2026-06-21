@@ -1,0 +1,44 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var jsxRuntime = require('react/jsx-runtime');
+var React = require('react');
+var ViewContext = require('../../../context/ViewContext/ViewContext.cjs');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var WalletListHelpContent = require('./WalletListHelpContent/WalletListHelpContent.cjs');
+var WalletMoreInfoContent = require('./WalletMoreInfoContent/WalletMoreInfoContent.cjs');
+var EmptyHelpContent = require('./EmptyHelpContent/EmptyHelpContent.cjs');
+var HelpHeader = require('./HelpHeader/HelpHeader.cjs');
+var PasskeyInfoHelper = require('./PasskeyInfoHelper/PasskeyInfoHelper.cjs');
+
+const HelpContent = () => (jsxRuntime.jsxs("div", { children: [jsxRuntime.jsx(HelpHeader.HelpHeader, {}), jsxRuntime.jsx(HelpContentSwitch, {})] }));
+const HelpContentSwitch = () => {
+    const { view } = ViewContext.useViewContext();
+    const { projectSettings, newToWeb3WalletChainMap, selectedWalletConnector } = useInternalDynamicContext.useInternalDynamicContext();
+    const isWalletListTypeView = React.useMemo(() => view.type === 'wallet-connect-mobile-wallets-list' ||
+        view.type === 'wallet-list' ||
+        view.type === 'login-with-email-or-wallet-full-wallet-list' ||
+        view.type === 'login-with-wallet-only', [view]);
+    const isPendingSignatureTypeView = React.useMemo(() => view.type === 'pending-signature-without-back-button' ||
+        view.type === 'pending-signature', [view]);
+    const isPendingConnectTypeView = React.useMemo(() => view.type === 'pending-connect' || view.type === 'qr-code', [view]);
+    const isPasskeyIntroView = React.useMemo(() => view.type === 'passkey-intro', [view]);
+    if (isWalletListTypeView) {
+        return (jsxRuntime.jsx(WalletListHelpContent.WalletListHelpContent, { chains: projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.chains, newToWeb3WalletChainMap: newToWeb3WalletChainMap }));
+    }
+    if (isPendingSignatureTypeView) {
+        return (jsxRuntime.jsx(WalletMoreInfoContent.WalletMoreInfoContent, { variant: 'sign', wallet: selectedWalletConnector || undefined }));
+    }
+    if (isPendingConnectTypeView) {
+        return jsxRuntime.jsx(WalletMoreInfoContent.WalletMoreInfoContent, { variant: 'connect' });
+    }
+    if (isPasskeyIntroView) {
+        return jsxRuntime.jsx(PasskeyInfoHelper.PasskeyInfoHelper, {});
+    }
+    return jsxRuntime.jsx(EmptyHelpContent.EmptyHelpContent, {});
+};
+
+exports.HelpContent = HelpContent;

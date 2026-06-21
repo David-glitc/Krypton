@@ -1,0 +1,8 @@
+import { Wallet } from '../../../../shared/types/wallets';
+import { SdkLogoutReason } from '../useHandleLogout';
+export type UseRemoveWalletProps = {
+    secondaryWallets: Wallet[];
+    handleLogOutWithReason: (reason: SdkLogoutReason) => Promise<void>;
+    setPrimaryWallet: (walletId: string) => void;
+};
+export declare const useRemoveWallet: ({ secondaryWallets, handleLogOutWithReason, setPrimaryWallet, }: UseRemoveWalletProps) => (walletId: string, clearStackAndPushInitialView?: () => void) => Promise<void>;

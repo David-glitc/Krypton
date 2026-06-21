@@ -1,0 +1,48 @@
+'use client'
+import { __awaiter } from '../../../../../_virtual/_tslib.js';
+import '../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { useOnrampContext } from '../../../context/OnrampContext/OnrampContext.js';
+import { getOnrampProviders } from '../../../context/OnrampContext/utils/getOnrampProviders.js';
+import { useEnvironmentId } from '../../../store/state/dynamicContextProps/dynamicContextProps.js';
+
+const useOnramp = () => {
+    const { onrampEnabled, enabledOnrampProviders, openOnramp } = useOnrampContext();
+    const { primaryWallet, network } = useInternalDynamicContext();
+    const environmentId = useEnvironmentId();
+    const getMatchingProvider = (params) => __awaiter(void 0, void 0, void 0, function* () {
+        var _a, _b;
+        if (!environmentId)
+            return undefined;
+        const providers = yield getOnrampProviders({
+            address: params.address,
+            chainName: params.chainName,
+            currency: params.currency,
+            environmentId,
+            includeDisabled: true,
+            merchantName: params.merchantName,
+            network: (_b = (_a = params.network) !== null && _a !== void 0 ? _a : network) !== null && _b !== void 0 ? _b : undefined,
+            primaryWallet,
+            token: params.token,
+            tokenAmount: params.tokenAmount,
+        });
+        return providers.find((p) => String(p.provider) === String(params.onrampProvider));
+    });
+    const getOnrampUrl = (params) => __awaiter(void 0, void 0, void 0, function* () {
+        const match = yield getMatchingProvider(params);
+        return match === null || match === void 0 ? void 0 : match.url;
+    });
+    const getOnrampQrCode = (params) => __awaiter(void 0, void 0, void 0, function* () {
+        const match = yield getMatchingProvider(params);
+        return match === null || match === void 0 ? void 0 : match.qrCode;
+    });
+    return {
+        enabled: onrampEnabled,
+        getOnrampQrCode,
+        getOnrampUrl,
+        open: openOnramp,
+        providers: enabledOnrampProviders,
+    };
+};
+
+export { useOnramp };

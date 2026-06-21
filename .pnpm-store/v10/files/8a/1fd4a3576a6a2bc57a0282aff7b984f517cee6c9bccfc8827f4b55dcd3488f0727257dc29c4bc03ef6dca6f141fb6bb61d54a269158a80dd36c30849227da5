@@ -1,0 +1,60 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var utils = require('@dynamic-labs/utils');
+
+const STORAGE_KEY = 'dynamic_otp_verification_state';
+// 5 minutes in milliseconds — matches the backend OTP expiry window.
+const OTP_STATE_TTL_MS = 5 * 60 * 1000;
+/**
+ * Persists OTP verification state to localStorage so it can survive
+ * webview remounts (e.g. Android WebView process kills on low-memory devices).
+ */
+const persistOtpVerificationState = (state) => {
+    try {
+        const payload = Object.assign(Object.assign({}, state), { createdAt: Date.now() });
+        utils.StorageService.setItem(STORAGE_KEY, payload);
+    }
+    catch (_a) {
+        // Storage may not be available in all environments
+    }
+};
+/**
+ * Restores previously persisted OTP verification state, if any.
+ * Returns null when nothing is stored or storage is unavailable.
+ */
+const restoreOtpVerificationState = () => {
+    var _a;
+    try {
+        const parsed = (_a = utils.StorageService.getItem(STORAGE_KEY)) !== null && _a !== void 0 ? _a : null;
+        if (!parsed) {
+            return null;
+        }
+        if (parsed.createdAt && Date.now() - parsed.createdAt > OTP_STATE_TTL_MS) {
+            utils.StorageService.removeItem(STORAGE_KEY);
+            return null;
+        }
+        return parsed;
+    }
+    catch (_b) {
+        return null;
+    }
+};
+/**
+ * Clears any persisted OTP verification state from localStorage.
+ * Called after successful verification or when starting a new OTP flow.
+ */
+const clearOtpVerificationState = () => {
+    try {
+        utils.StorageService.removeItem(STORAGE_KEY);
+    }
+    catch (_a) {
+        // ignore
+    }
+};
+
+exports.clearOtpVerificationState = clearOtpVerificationState;
+exports.persistOtpVerificationState = persistOtpVerificationState;
+exports.restoreOtpVerificationState = restoreOtpVerificationState;

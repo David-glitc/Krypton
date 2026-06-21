@@ -1,0 +1,217 @@
+'use client'
+import { __awaiter } from '../../../../_virtual/_tslib.js';
+import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
+import { useRef, useState, useEffect, useMemo } from 'react';
+import { Formik, Form, Field } from 'formik';
+import { useTranslation } from 'react-i18next';
+import { object, string } from 'yup';
+import '../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { useSendBalanceState, setSendBalanceVariable } from '../../store/state/sendBalances.js';
+import '@dynamic-labs/sdk-api-core';
+import '../../utils/constants/values.js';
+import '@dynamic-labs/utils';
+import '@dynamic-labs/multi-wallet';
+import '../../shared/logger.js';
+import 'react-international-phone';
+import '../../utils/constants/colors.js';
+import { getOrdinalNumber } from '../../utils/functions/getOrdinalNumber/getOrdinalNumber.js';
+import '@dynamic-labs/iconic';
+import '@dynamic-labs/wallet-connector-core';
+import '../../context/ViewContext/ViewContext.js';
+import '@dynamic-labs/wallet-book';
+import '../../shared/consts/index.js';
+import '../../store/state/nonce/nonce.js';
+import '@dynamic-labs-sdk/client/core';
+import 'eventemitter3';
+import '@dynamic-labs-sdk/client';
+import '../../config/ApiEndpoint.js';
+import '../../events/dynamicEvents.js';
+import '@dynamic-labs/locale';
+import '../../store/state/dynamicContextProps/dynamicContextProps.js';
+import '../../store/state/primaryWalletId/primaryWalletId.js';
+import '../../store/state/connectedWalletsInfo/connectedWalletsInfo.js';
+import '../../utils/functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.js';
+import { Alert } from '../Alert/Alert.js';
+import { FormFieldLabel } from '../FormFieldLabel/FormFieldLabel.js';
+import { Input } from '../Input/Input.js';
+import { TokensBalanceDropdown } from '../SendBalancePageLayout/components/TokensBalanceDropdown/TokensBalanceDropdown.js';
+import { getDisplayFiatPrice } from '../TransactionConfirmationPageLayout/utils.js';
+import { Typography } from '../Typography/Typography.js';
+import { TypographyButton } from '../TypographyButton/TypographyButton.js';
+import { FeeTokenSelector } from './FeeTokenSelector/FeeTokenSelector.js';
+import { TransactionModeSegmentedControl } from './TransactionModeSegmentedControl/TransactionModeSegmentedControl.js';
+
+const sendBalanceFormInitialValues = {
+    amount: '',
+    recipient: '',
+};
+const getDisplayErrorMessage = (errors, t, field, decimals) => {
+    var _a;
+    const mapFieldAndErrorToMessage = {
+        amount: {
+            invalidDecimals: t('dyn_send_transaction.validation.amount.invalid_decimals', { decimals }),
+            invalidFormat: t('dyn_send_transaction.validation.amount.invalid_decimals', { decimals }),
+            nonZero: t('dyn_send_transaction.validation.amount.non_zero'),
+            overBalance: t('dyn_send_transaction.validation.amount.over_balance'),
+            required: t('dyn_send_transaction.validation.amount.required'),
+        },
+        recipient: {
+            invalidFormat: t('dyn_send_transaction.validation.recipient.invalid_format'),
+            required: t('dyn_send_transaction.validation.recipient.required'),
+        },
+    };
+    // Form's two fields disagree on the validator set: `amount` adds
+    //  `invalidDecimals` / `nonZero` / `overBalance` on top of the shared
+    //  `invalidFormat` / `required` that `recipient` also uses. Casting
+    //  the resolved sub-map to a string-keyed record sidesteps the union
+    //  narrowing TS would otherwise force on the indexed access (the
+    //  amount-only keys never reach the recipient branch in practice
+    //  because yup labels every recipient violation with `invalidFormat`
+    //  or `required`).
+    const errorType = errors[field];
+    if (errorType) {
+        const fieldMap = mapFieldAndErrorToMessage[field];
+        const errorMessage = (_a = fieldMap[errorType]) !== null && _a !== void 0 ? _a : '';
+        return errorMessage.replace('{decimals}', getOrdinalNumber(decimals !== null && decimals !== void 0 ? decimals : 0));
+    }
+    return '';
+};
+const SendBalanceForm = ({ initialValues, onSubmit, decimals = 18, validateAddress = () => true, validateAmount = () => true, currentToken, transaction, tokenBalances, setCurrentToken, isLoading, supportsFeeTokenSelection = false, feeTokenOptions, currentFeeToken, setCurrentFeeToken, }) => {
+    var _a;
+    const { t } = useTranslation();
+    const { showFiat } = useInternalDynamicContext();
+    const floatingValueRef = useRef(null);
+    const [leftSymbolPadding, setLeftSymbolPadding] = useState(0);
+    const { amount } = useSendBalanceState();
+    // Aleo (and any future chain that opts in) populates `transactionModes`
+    // on its IUITransaction. We render a segmented control between the
+    // recipient field and the submit button. The chain may leave
+    // `selectedTransactionMode` undefined to force the user to explicitly
+    // pick — in that case we keep the form interactive (token list,
+    // amount, recipient all stay editable since they don't depend on the
+    // mode), and only the submit button is gated until a selection lands.
+    // `transaction` is supplied by Send-launching call sites (widget) but
+    // legacy / unit-test consumers may render the form without one. Guard
+    // every property access so the form still renders for those cases —
+    // the segmented-mode UI just stays hidden when transaction is absent.
+    const transactionModes = (_a = transaction === null || transaction === void 0 ? void 0 : transaction.transactionModes) !== null && _a !== void 0 ? _a : [];
+    const hasModes = transactionModes.length > 1;
+    const [selectedModeId, setSelectedModeId] = useState(transaction === null || transaction === void 0 ? void 0 : transaction.selectedTransactionMode);
+    const modeReady = !hasModes || Boolean(selectedModeId);
+    // The merge CTA is re-derived after each form change / mode change so
+    // the banner can appear, disappear, or change copy without a manual
+    // refresh. We snapshot it in state so the banner survives re-renders
+    // while the user clicks the action and the underlying merge runs.
+    const [mergeAction, setMergeAction] = useState(() => { var _a; return (_a = transaction === null || transaction === void 0 ? void 0 : transaction.getRecordMergeAction) === null || _a === void 0 ? void 0 : _a.call(transaction); });
+    const [isMerging, setIsMerging] = useState(false);
+    const refreshMergeAction = () => {
+        var _a;
+        setMergeAction((_a = transaction === null || transaction === void 0 ? void 0 : transaction.getRecordMergeAction) === null || _a === void 0 ? void 0 : _a.call(transaction));
+    };
+    const handleModeChange = (modeId) => {
+        var _a;
+        setSelectedModeId(modeId);
+        (_a = transaction === null || transaction === void 0 ? void 0 : transaction.setTransactionMode) === null || _a === void 0 ? void 0 : _a.call(transaction, modeId);
+        refreshMergeAction();
+    };
+    const handleMergeAction = () => __awaiter(void 0, void 0, void 0, function* () {
+        if (!mergeAction || isMerging)
+            return;
+        setIsMerging(true);
+        try {
+            yield mergeAction.onAction();
+        }
+        finally {
+            setIsMerging(false);
+            refreshMergeAction();
+        }
+    });
+    useEffect(() => {
+        if (floatingValueRef.current) {
+            const floatingDivWidth = floatingValueRef.current.offsetWidth;
+            setLeftSymbolPadding(floatingDivWidth + 15);
+        }
+    }, [currentToken]);
+    const sendBalanceFormValidationSchema = useMemo(() => {
+        const decimalsRegex = new RegExp(`^\\d*(\\.\\d{1,${decimals}})?$`);
+        return object().shape({
+            amount: string()
+                .required('required')
+                .matches(/^\d*(\.\d+)?$/, 'invalidFormat')
+                .matches(decimalsRegex, 'invalidDecimals')
+                // Reject zero (and any all-zero variant: `0`, `0.0`, `00.000`,
+                //  etc.) before we hit the balance check. Without this the
+                //  form would happily submit a 0-value transaction — unusable
+                //  for the user, wasted gas on chains that don't bounce it, and
+                //  on Aleo specifically triggers a `_value_must_be_positive`
+                //  rejection from the prover.
+                .test({
+                message: 'nonZero',
+                test: (value) => {
+                    if (value === undefined)
+                        return true;
+                    return /^0*(?:\.0+)?$/.test(value) === false;
+                },
+            })
+                .test({
+                message: 'overBalance',
+                test: (value) => validateAmount(value),
+            }),
+            recipient: string()
+                .required('required')
+                .test({
+                message: 'invalidFormat',
+                test: (value) => validateAddress(value),
+            }),
+        });
+    }, [decimals, validateAddress, validateAmount]);
+    return (jsx(Formik, { initialValues: initialValues || sendBalanceFormInitialValues, validationSchema: sendBalanceFormValidationSchema, onSubmit: (values) => onSubmit(values), validateOnChange: false, validateOnBlur: false, children: ({ errors, touched, values, handleChange, setFieldValue, setErrors, handleBlur, setFieldTouched, validateField, }) => {
+            var _a;
+            return (jsxs(Form, { className: 'send-balance-form', children: [jsxs("div", { className: 'send-balance-page-layout__balance-container', children: [jsx(FormFieldLabel, { copykey: 'dyn_send_transaction.data.select_token', children: t('dyn_send_transaction.data.select_token') }), jsx(TokensBalanceDropdown, { tokenBalances: tokenBalances !== null && tokenBalances !== void 0 ? tokenBalances : (currentToken && [currentToken]), currentToken: currentToken, setCurrentToken: setCurrentToken, isLoading: isLoading, setFieldValue: setFieldValue, setErrors: setErrors })] }), jsxs("div", { className: 'send-balance-form__amount-container', children: [jsx(Field, { variant: 'regular', className: `send-balance-form__amount-container__field ${showFiat ? 'fiat' : ''}`, name: 'amount', id: 'amount', onChange: (e) => {
+                                    const newValue = e.target.value;
+                                    // Matching 123, 123.45, .45, 123.
+                                    if (newValue !== '' && !/^(?:\d+|\d*\.\d*|)$/.test(newValue)) {
+                                        return;
+                                    }
+                                    setErrors({});
+                                    handleChange(e);
+                                    if (!newValue || Number.isNaN(newValue)) {
+                                        setSendBalanceVariable('amount', 0);
+                                        return;
+                                    }
+                                    setSendBalanceVariable('amount', (currentToken === null || currentToken === void 0 ? void 0 : currentToken.price) ? Number(newValue) : undefined);
+                                }, onBlur: (e) => {
+                                    var _a, _b;
+                                    handleBlur(e);
+                                    setFieldTouched('amount', true);
+                                    validateField('amount');
+                                    // Push the latest amount string to the transaction so any
+                                    // chain-specific derived state (e.g. Aleo's merge CTA) can
+                                    // reflect what the user has entered without waiting for
+                                    // the submit step that would otherwise set transaction.value.
+                                    (_a = transaction === null || transaction === void 0 ? void 0 : transaction.setPendingAmount) === null || _a === void 0 ? void 0 : _a.call(transaction, (_b = e.target.value) !== null && _b !== void 0 ? _b : '');
+                                    refreshMergeAction();
+                                }, placeholder: t('dyn_send_transaction.data.amount.placeholder'), as: Input, error: errors['amount'], copykey: 'dyn_send_transaction.data.amount.label', message: touched['amount'] &&
+                                    getDisplayErrorMessage(errors, t, 'amount', decimals), style: {
+                                    paddingLeft: `${leftSymbolPadding}px`,
+                                } }), jsx("div", { className: 'send-balance-form__amount-container__floating_value', ref: floatingValueRef, children: jsx(Typography, { variant: 'title', weight: 'regular', color: 'secondary', children: currentToken === null || currentToken === void 0 ? void 0 : currentToken.symbol }) }), jsx("div", { className: 'send-balance-form__amount-container__balance', children: showFiat && !Number.isNaN(amount) && (jsxs(Fragment, { children: [jsx(Typography, { variant: 'body_mini', weight: 'bold', color: 'secondary', children: "$" }), jsx(Typography, { variant: 'body_mini', weight: 'regular', color: 'secondary', children: getDisplayFiatPrice(amount, currentToken) })] })) })] }), jsx(Typography, { className: 'send-balance-form__amount_available', variant: 'body_small', weight: 'regular', color: 'secondary', as: 'div', children: jsxs("div", { style: { display: 'flex', gap: '0.225rem' }, children: [jsx(Typography, { className: 'send-balance-form__amount_available__line', variant: 'body_small', weight: 'bold', color: 'primary', as: 'div', children: (_a = currentToken === null || currentToken === void 0 ? void 0 : currentToken.balance) !== null && _a !== void 0 ? _a : 0 }), t('dyn_send_transaction.data.symbol_available', {
+                                    symbol: currentToken === null || currentToken === void 0 ? void 0 : currentToken.symbol,
+                                })] }) }), supportsFeeTokenSelection &&
+                        feeTokenOptions &&
+                        feeTokenOptions.length > 0 &&
+                        setCurrentFeeToken &&
+                        currentFeeToken && (jsx(FeeTokenSelector, { feeTokenOptions: feeTokenOptions, currentFeeToken: currentFeeToken, setCurrentFeeToken: setCurrentFeeToken, label: t('dyn_send_transaction.data.fee_token_label') })), jsx(Typography, { variant: 'body_small', weight: 'regular', color: 'secondary', copykey: 'dyn_send_transaction.data.recipient.label', children: "Recipient Address" }), jsx(Field, { className: 'send-balance-form__field', placeholder: t('dyn_send_transaction.data.recipient.placeholder'), label: t('dyn_send_transaction.data.recipient.label'), id: 'recipient', name: 'recipient', as: Input, error: errors['recipient'], copykey: 'dyn_send_transaction.data.recipient.label', message: touched['recipient'] &&
+                            getDisplayErrorMessage(errors, t, 'recipient'), onBlur: (e) => {
+                            handleBlur(e);
+                            setFieldTouched('recipient', true);
+                            // Re-evaluate the merge CTA once the recipient lands; some
+                            // chains' merge logic may key off both amount and address.
+                            refreshMergeAction();
+                        } }), hasModes && (jsx(TransactionModeSegmentedControl, { options: transactionModes, selectedId: selectedModeId, onChange: handleModeChange, disabled: isMerging })), mergeAction && (jsx("div", { className: 'send-balance-form__inline-action', children: jsx(Alert, { icon: 'error', variant: 'warning', children: jsxs("div", { className: 'send-balance-form__inline-action-content', children: [jsx(Typography, { variant: 'body_small', weight: 'regular', children: mergeAction.message }), jsx(TypographyButton, { dataTestId: 'sendBalanceFormMergeRecordsButton', type: 'button', buttonVariant: 'secondary', buttonPadding: 'small', onClick: handleMergeAction, disabled: isMerging, children: isMerging
+                                            ? t('dyn_send_transaction.merging', 'Merging…')
+                                            : mergeAction.actionLabel })] }) }) })), jsx(TypographyButton, { dataTestId: 'sendBalanceFormSubmitButton', expanded: true, type: 'submit', buttonVariant: 'primary', buttonPadding: 'small', buttonClassName: 'send-balance-form__button', copykey: 'dyn_send_transaction.preview_transaction', disabled: !modeReady || isMerging || Boolean(mergeAction), children: t('dyn_send_transaction.preview_transaction') })] }));
+        } }));
+};
+
+export { SendBalanceForm };

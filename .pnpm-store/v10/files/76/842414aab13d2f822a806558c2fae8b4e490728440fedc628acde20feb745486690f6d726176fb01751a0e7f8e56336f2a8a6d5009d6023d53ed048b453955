@@ -1,0 +1,2 @@
+export { isAnyWalletAccountConnected } from './isAnyWalletAccountConnected';
+//# sourceMappingURL=index.d.ts.map

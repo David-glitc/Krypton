@@ -1,0 +1,17 @@
+/**
+ * On Aleo wallet load, scan the user's owned records and silently fire a
+ * merge ceremony for every program with ≥2 records that the Feemaster
+ * currently sponsors. Programs the Feemaster doesn't cover are skipped —
+ * the user can still trigger a manual merge via the explicit "Merge all
+ * records" CTA, which dispatches with user-paid fees.
+ *
+ * Idempotency is per-session, keyed by `(accountAddress, programId)`. A
+ * page reload re-runs auto-merge once; mid-session balance refreshes do
+ * not re-trigger merges for the same program. On error the program key
+ * is removed from the seen-set so the next refresh can retry.
+ *
+ * Failures are swallowed by design — auto-merge is a background
+ * optimisation, not a user-facing flow. Errors surface only via the
+ * connector's own logger.
+ */
+export declare const useAleoAutoMergeRecords: () => void;

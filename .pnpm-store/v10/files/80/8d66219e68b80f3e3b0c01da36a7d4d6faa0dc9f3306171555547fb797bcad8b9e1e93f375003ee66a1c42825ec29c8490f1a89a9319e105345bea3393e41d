@@ -1,0 +1,160 @@
+function _extends() {
+    _extends = Object.assign || function(target) {
+        for(var i = 1; i < arguments.length; i++){
+            var source = arguments[i];
+            for(var key in source){
+                if (Object.prototype.hasOwnProperty.call(source, key)) {
+                    target[key] = source[key];
+                }
+            }
+        }
+        return target;
+    };
+    return _extends.apply(this, arguments);
+}
+import { eventListenerHandlers, logger } from '@dynamic-labs/wallet-connector-core';
+import { SolanaWalletConnector } from '@dynamic-labs/solana-core';
+import { MetaMaskSolanaSdkClient } from './MetaMaskSolanaSdkClient.js';
+import { createWalletStandardAdapter } from './WalletStandardAdapter.js';
+function uint8ArrayToBase64(bytes) {
+    let binary = '';
+    for (const byte of bytes){
+        binary += String.fromCharCode(byte);
+    }
+    return btoa(binary);
+}
+export class MetaMaskSolanaWalletConnector extends SolanaWalletConnector {
+    isInstalledOnBrowser() {
+        if (typeof window === 'undefined') {
+            return false;
+        }
+        const ethereum = window['ethereum'];
+        return Boolean(ethereum == null ? void 0 : ethereum.isMetaMask);
+    }
+    async init() {
+        this.walletConnectorEventsEmitter.emit('connectorInitStarted', this.overrideKey);
+        try {
+            await MetaMaskSolanaSdkClient.init({
+                dappName: 'Dynamic'
+            });
+        } catch (error) {
+            logger.error('[MetaMaskSolanaWalletConnector] SDK init failed:', error);
+        }
+        this.walletConnectorEventsEmitter.emit('connectorInitCompleted', this.overrideKey);
+    }
+    setupEventListeners() {
+        var _wallet_features_standardevents;
+        const wallet = MetaMaskSolanaSdkClient.getWallet();
+        if (!wallet) {
+            return;
+        }
+        const onFn = (_wallet_features_standardevents = wallet.features['standard:events']) == null ? void 0 : _wallet_features_standardevents['on'];
+        if (!onFn) {
+            return;
+        }
+        const { handleAccountChange } = eventListenerHandlers(this);
+        const unsubscribe = onFn('change', (properties)=>{
+            if (!properties.accounts) {
+                return;
+            }
+            void handleAccountChange(properties.accounts.map((a)=>a.address));
+        });
+        this.teardownEventListeners = ()=>{
+            unsubscribe();
+        };
+    }
+    async connect() {
+        if (!MetaMaskSolanaSdkClient.isInitialized) {
+            await this.init();
+        }
+        await MetaMaskSolanaSdkClient.connect();
+        this.signer = this.buildSigner();
+    }
+    async getSigner() {
+        if (!this.signer) {
+            this.signer = this.buildSigner();
+        }
+        return this.signer;
+    }
+    async signMessage(messageToSign) {
+        const signer = await this.getSigner();
+        if (!signer) return undefined;
+        const encoded = new TextEncoder().encode(messageToSign);
+        const result = await signer.signMessage(encoded);
+        const signature = result == null ? void 0 : result.signature;
+        if (!signature) return undefined;
+        return uint8ArrayToBase64(signature);
+    }
+    async getAddress(opts) {
+        const existing = MetaMaskSolanaSdkClient.getSelectedAccount();
+        if (existing) return existing;
+        if (!MetaMaskSolanaSdkClient.isInitialized) {
+            await this.init();
+        }
+        const unsubscribe = (opts == null ? void 0 : opts.onDisplayUri) ? MetaMaskSolanaSdkClient.onDisplayUri(opts.onDisplayUri) : undefined;
+        try {
+            return await MetaMaskSolanaSdkClient.connect();
+        } finally{
+            unsubscribe == null ? void 0 : unsubscribe();
+        }
+    }
+    async getConnectedAccounts() {
+        if (!MetaMaskSolanaSdkClient.isInitialized) {
+            try {
+                await this.init();
+            } catch (e) {}
+        }
+        const accounts = MetaMaskSolanaSdkClient.getAccounts();
+        if (accounts.length) {
+            return accounts;
+        }
+        const wallet = MetaMaskSolanaSdkClient.getWallet();
+        if (wallet) {
+            try {
+                var _wallet_features_standardconnect;
+                const connectFn = (_wallet_features_standardconnect = wallet.features['standard:connect']) == null ? void 0 : _wallet_features_standardconnect['connect'];
+                if (connectFn) {
+                    const result = await connectFn({
+                        silent: true
+                    });
+                    if (result.accounts.length) {
+                        return result.accounts.map((a)=>a.address);
+                    }
+                }
+            } catch (e) {}
+        }
+        return [];
+    }
+    async endSession() {
+        this.signer = undefined;
+        await MetaMaskSolanaSdkClient.disconnect();
+    }
+    buildSigner() {
+        const wallet = MetaMaskSolanaSdkClient.getWallet();
+        logger.logVerboseTroubleshootingMessage('[MetaMaskSolanaWalletConnector] buildSigner', {
+            wallet
+        });
+        if (!wallet) {
+            return undefined;
+        }
+        return createWalletStandardAdapter(wallet, ()=>{
+            const network = this.getSelectedNetwork();
+            var _network_cluster;
+            return (_network_cluster = network == null ? void 0 : network.cluster) != null ? _network_cluster : 'mainnet';
+        });
+    }
+    constructor(props){
+        super(_extends({}, props, {
+            metadata: {
+                id: 'metamasksol',
+                name: 'MetaMask',
+                icon: 'https://iconic.dynamic-static-assets.com/icons/sprite.svg#metamask',
+                groupKey: 'metamask'
+            }
+        }));
+        this.name = 'MetaMask';
+        this.overrideKey = 'metamasksol';
+        this.canConnectViaQrCode = true;
+        this.canHandleMultipleConnections = false;
+    }
+}

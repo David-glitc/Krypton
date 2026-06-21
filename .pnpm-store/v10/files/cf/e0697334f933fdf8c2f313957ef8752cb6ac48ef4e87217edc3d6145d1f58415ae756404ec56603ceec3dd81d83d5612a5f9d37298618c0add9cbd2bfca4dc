@@ -1,0 +1,12 @@
+import type { Chain } from '../../../chain';
+export type IsSameAddressOptions = {
+    /** The chain used to normalize both addresses before comparison. */
+    chain: Chain;
+    /** The first address to compare. */
+    left: string;
+    /** The second address to compare. */
+    right: string;
+};
+/** @not-instrumented */
+export declare const isSameAddress: ({ chain, left, right }: IsSameAddressOptions) => boolean;
+//# sourceMappingURL=isSameAddress.d.ts.map

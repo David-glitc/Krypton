@@ -1,0 +1,21 @@
+'use client'
+import { Injected } from './injected.js';
+
+class FallbackSuiConnector extends Injected {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    constructor(props) {
+        super('Fallback Connector', false, Object.assign(Object.assign({}, props), { overrideKey: 'fallbackconnector', wallet: undefined }));
+        this.name = 'Fallback Connector';
+        this.overrideKey = 'fallbackconnector';
+        this.isAvailable = false;
+    }
+    isInstalledOnBrowser() {
+        return false;
+    }
+}
+Object.defineProperty(FallbackSuiConnector, 'key', {
+    value: 'fallbackconnector',
+    writable: false,
+});
+
+export { FallbackSuiConnector };

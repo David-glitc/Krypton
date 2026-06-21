@@ -1,0 +1,86 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+var sdkApiCore = require('@dynamic-labs/sdk-api-core');
+var utils = require('@dynamic-labs/utils');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+require('@dynamic-labs-sdk/client');
+require('@dynamic-labs-sdk/client/core');
+require('eventemitter3');
+require('../../../config/ApiEndpoint.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+require('../../../context/ViewContext/ViewContext.cjs');
+require('../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('../../constants/colors.cjs');
+require('../../constants/values.cjs');
+require('../../../shared/consts/index.cjs');
+require('@dynamic-labs/multi-wallet');
+require('react-international-phone');
+require('../../../store/state/nonce/nonce.cjs');
+var dynamicContextProps = require('../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../store/state/primaryWalletId/primaryWalletId.cjs');
+require('../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+require('../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+require('../../../events/dynamicEvents.cjs');
+var exchangeAccounts = require('../../../data/api/exchangeAccounts/exchangeAccounts.cjs');
+require('@dynamic-labs/locale');
+
+const useExchangeAccounts = () => {
+    const environmentId = dynamicContextProps.getEnvironmentId();
+    const { primaryWallet, network } = useInternalDynamicContext.useInternalDynamicContext();
+    const getExchangeUserAccounts = React.useCallback((_a) => _tslib.__awaiter(void 0, [_a], void 0, function* ({ exchange, networkId, chainName, includeChainName = true, }) {
+        const networkToUse = networkId !== null && networkId !== void 0 ? networkId : network;
+        const payload = {
+            environmentId,
+            exchangeKey: exchange,
+            networkId: networkToUse,
+        };
+        if (includeChainName) {
+            payload.chainName =
+                chainName !== null && chainName !== void 0 ? chainName : primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.connector.connectedChain;
+        }
+        return exchangeAccounts.getUserExchangeAccounts(payload);
+    }), [network, environmentId, primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.connector.connectedChain]);
+    const getExchangeTransactions = React.useCallback((_b) => _tslib.__awaiter(void 0, [_b], void 0, function* ({ exchange, accountId, }) {
+        return exchangeAccounts.getExchangeAccountTransactions({
+            accountId,
+            environmentId,
+            exchangeKey: exchange,
+        });
+    }), [environmentId]);
+    const getExchangeWhitelistedDestinations = React.useCallback((_c) => _tslib.__awaiter(void 0, [_c], void 0, function* ({ exchange }) {
+        return exchangeAccounts.getExchangeTransferDestinations({
+            environmentId,
+            exchangeKey: exchange,
+        });
+    }), [environmentId]);
+    const exchangeTransfer = React.useCallback((_d) => _tslib.__awaiter(void 0, [_d], void 0, function* ({ exchange, transferRequest, }) {
+        const accounts = yield getExchangeUserAccounts({ exchange });
+        const accountOfCorrectCurrency = accounts.find(({ balances }) => balances.some(({ currency }) => currency.toLowerCase() === transferRequest.currency.toLowerCase()));
+        if (!accountOfCorrectCurrency) {
+            throw new utils.DynamicError(`No ${transferRequest.currency}-denominated account found for exchange “${exchange}”.`, sdkApiCore.UnprocessableEntityErrorCode.InvalidTransferCurrency);
+        }
+        return exchangeAccounts.createExchangeAccountTransfer({
+            accountId: accountOfCorrectCurrency.id,
+            environmentId,
+            exchangeKey: exchange,
+            transfer: transferRequest,
+        });
+    }), [getExchangeUserAccounts, environmentId]);
+    return {
+        exchangeTransfer,
+        getExchangeTransactions,
+        getExchangeUserAccounts,
+        getExchangeWhitelistedDestinations,
+    };
+};
+
+exports.useExchangeAccounts = useExchangeAccounts;

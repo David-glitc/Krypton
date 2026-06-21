@@ -1,0 +1,56 @@
+'use client'
+import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
+import { useMemo } from 'react';
+import { Formik, Form } from 'formik';
+import { useUserDataForm } from '../../utils/hooks/useUserDataForm/useUserDataForm.js';
+import '../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { classNames } from '../../utils/functions/classNames/classNames.js';
+import { UserDataFields } from '../../views/CollectUserDataView/UserDataFields/UserDataFields.js';
+import { DynamicWidgetFooter } from '../../widgets/DynamicWidget/components/DynamicWidgetFooter/DynamicWidgetFooter.js';
+import { TypographyButton } from '../TypographyButton/TypographyButton.js';
+import '@dynamic-labs/iconic';
+import '@dynamic-labs/wallet-connector-core';
+import { ReactComponent as SvgCheck } from '../../shared/assets/check.js';
+import '../../context/ViewContext/ViewContext.js';
+import '../../shared/logger.js';
+import '@dynamic-labs/wallet-book';
+import '@dynamic-labs/utils';
+import '../../utils/constants/colors.js';
+import '../../utils/constants/values.js';
+import { NAME_SERVICE_FIELD_NAME } from '../../utils/constants/fields.js';
+import '@dynamic-labs/sdk-api-core';
+import '../../shared/consts/index.js';
+import { getUserProfileFields } from '../../utils/functions/getUserProfileFields/getUserProfileFields.js';
+import { SubdomainField } from '../../views/SubdomainField/SubdomainField.js';
+
+const UserProfileForm = ({ filterFields, formClassName, fieldsContainerStyle, onEditProfileSubmit, onEditProfileCancel, options = {
+    buttonsAsFooter: true,
+    cancelText: 'Cancel',
+    shouldEnforcePolicies: false,
+    submitText: 'Save',
+}, }) => {
+    const { projectSettings, user, primaryWallet } = useInternalDynamicContext();
+    const targetFields = useMemo(() => {
+        const allUserFields = getUserProfileFields({
+            customFields: projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.customFields,
+            projectSettingsKyc: projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.kyc,
+            user,
+        });
+        if (!filterFields)
+            return allUserFields;
+        return allUserFields.filter(({ name }) => filterFields.includes(name));
+    }, [filterFields, projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.customFields, projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.kyc, user]);
+    const { fetch, formikInitialValues, formikValidationSchema, onFormSubmit } = useUserDataForm({
+        fields: targetFields,
+        onSubmit: onEditProfileSubmit,
+        shouldEnforcePolicies: options.shouldEnforcePolicies,
+        userProfile: user,
+    });
+    const showNameServiceField = useMemo(() => targetFields.some((field) => field.name === NAME_SERVICE_FIELD_NAME) &&
+        (primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.connector.isEmbeddedWallet), [targetFields, primaryWallet]);
+    const makeButtonsContent = (isSubmitting, isValid, dirty) => (jsxs(Fragment, { children: [!options.hideCancelButton && (jsx(TypographyButton, Object.assign({ disabled: fetch, expanded: true, buttonPadding: 'medium', buttonVariant: 'secondary', type: 'button', typographyProps: { variant: 'button_secondary' }, onClick: onEditProfileCancel, dataTestId: 'cancel-button' }, options.cancelButtonProps, { children: options.cancelText }))), jsx(TypographyButton, Object.assign({ buttonClassName: 'dynamic-widget-footer__button', disabled: fetch || !isValid || !dirty, expanded: true, type: 'submit', buttonPadding: 'medium', typographyProps: { variant: 'button_secondary' }, loading: isSubmitting, startSlot: jsx(SvgCheck, {}), dataTestId: 'submit-button' }, options.submitButtonProps, { children: options.submitText }))] }));
+    return (jsx(Formik, { onSubmit: onFormSubmit, initialValues: formikInitialValues, validationSchema: formikValidationSchema, validateOnChange: true, children: ({ errors, touched, isSubmitting, isValid, dirty, values }) => (jsxs(Form, { className: classNames('dynamic-widget-edit-profile-view', formClassName), "data-testid": 'editUserProfileForm', children: [jsxs("div", { className: 'dynamic-widget-edit-profile-view__fields', style: fieldsContainerStyle, children: [showNameServiceField && jsx(SubdomainField, {}), jsx(UserDataFields, { errors: errors, fields: targetFields, touched: touched, currentValues: values, initialValues: formikInitialValues, disableEditingMultipleFieldsWithVerification: true })] }), options.buttonsAsFooter ? (jsx(DynamicWidgetFooter, { children: makeButtonsContent(isSubmitting, isValid, dirty) })) : (makeButtonsContent(isSubmitting, isValid, dirty))] })) }));
+};
+
+export { UserProfileForm };

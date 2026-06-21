@@ -1,0 +1,3 @@
+export { shouldFilterWallet } from './shouldFilterWallet';
+export type { ShouldFilterWalletParams } from './shouldFilterWallet';
+//# sourceMappingURL=index.d.ts.map

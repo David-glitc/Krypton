@@ -1,0 +1,31 @@
+import { exists } from '../runtime.js';
+
+/* tslint:disable */
+function TransactionFeeEstimateRequestFromJSON(json) {
+    return TransactionFeeEstimateRequestFromJSONTyped(json);
+}
+function TransactionFeeEstimateRequestFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'base64RawTransaction': !exists(json, 'base64RawTransaction') ? undefined : json['base64RawTransaction'],
+        'fromAddress': !exists(json, 'fromAddress') ? undefined : json['fromAddress'],
+        'rawTransactionData': !exists(json, 'rawTransactionData') ? undefined : json['rawTransactionData'],
+    };
+}
+function TransactionFeeEstimateRequestToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'base64RawTransaction': value.base64RawTransaction,
+        'fromAddress': value.fromAddress,
+        'rawTransactionData': value.rawTransactionData,
+    };
+}
+
+export { TransactionFeeEstimateRequestFromJSON, TransactionFeeEstimateRequestFromJSONTyped, TransactionFeeEstimateRequestToJSON };

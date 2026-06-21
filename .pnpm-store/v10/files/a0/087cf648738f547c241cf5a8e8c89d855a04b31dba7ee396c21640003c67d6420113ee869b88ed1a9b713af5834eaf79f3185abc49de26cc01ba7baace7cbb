@@ -1,0 +1,145 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+var utils = require('@dynamic-labs/utils');
+var client = require('../../../client/client.cjs');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var LoadingContext = require('../../../context/LoadingContext/LoadingContext.cjs');
+var WalletContext = require('../../../context/WalletContext/WalletContext.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+require('../../../context/ViewContext/ViewContext.cjs');
+var logger = require('../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('../../constants/colors.cjs');
+require('../../constants/values.cjs');
+require('@dynamic-labs/sdk-api-core');
+var useLocalStorage = require('../../../shared/utils/hooks/useLocalStorage/useLocalStorage.cjs');
+require('../../../shared/consts/index.cjs');
+var findEmbeddedWalletFromVerifiedCredentials = require('../../functions/findEmbeddedWalletFromVerifiedCredentials/findEmbeddedWalletFromVerifiedCredentials.cjs');
+require('@dynamic-labs/multi-wallet');
+require('react-international-phone');
+require('../../../store/state/nonce/nonce.cjs');
+require('@dynamic-labs-sdk/client/core');
+require('@dynamic-labs-sdk/client');
+require('../../../config/ApiEndpoint.cjs');
+require('../../../events/dynamicEvents.cjs');
+require('@dynamic-labs/locale');
+require('../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../store/state/primaryWalletId/primaryWalletId.cjs');
+require('../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+require('../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+var useDynamicEvents = require('../events/useDynamicEvents/useDynamicEvents.cjs');
+var useEmbeddedReveal = require('../useEmbeddedReveal/useEmbeddedReveal.cjs');
+var useEmbeddedWallet = require('../useEmbeddedWallet/useEmbeddedWallet.cjs');
+require('../../../context/UserWalletsContext/UserWalletsContext.cjs');
+require('../../../views/Passkey/utils/findPrimaryEmbeddedChain/findPrimaryEmbeddedChain.cjs');
+require('../../functions/compareChains/compareChains.cjs');
+require('../../../context/VerificationContext/VerificationContext.cjs');
+require('../useEmbeddedWallet/useSecureEnclaveEmbeddedWallet/constants.cjs');
+
+let acknowledgedExportPrompt = false;
+const useSyncEmbeddedWalletFlow = () => {
+    const { projectSettings, user: contextUser, primaryWalletId, walletConnectorOptions, primaryWallet, setShowAuthFlow, } = useInternalDynamicContext.useInternalDynamicContext();
+    const { isLoadingEmbeddedWallet } = WalletContext.useWalletContext();
+    const { loading: globalLoading } = LoadingContext.useLoadingContext();
+    const { initExportProcess } = useEmbeddedReveal.useEmbeddedReveal();
+    const [wasShownExportPrompt, setWasShownExportPrompt] = useLocalStorage.useLocalStorage(`dynamic_export_prompt-${contextUser === null || contextUser === void 0 ? void 0 : contextUser.userId}`, false, (data) => Boolean(data));
+    const { createEmbeddedWallet, shouldAutoCreateEmbeddedWallet, shouldPromptForKeyExport, } = useEmbeddedWallet.useEmbeddedWallet();
+    const triggeredCreate = React.useRef(false);
+    const handleAcknowledgeExportPrompt = React.useCallback((value = true) => {
+        acknowledgedExportPrompt = value;
+        setWasShownExportPrompt(value);
+    }, [setWasShownExportPrompt]);
+    useDynamicEvents.useInternalDynamicEvents('logout', () => {
+        triggeredCreate.current = false;
+        acknowledgedExportPrompt = false;
+    });
+    // this is used to trigger createEmbeddedWallet
+    // when user didn't create a passkey after login,
+    // we force them to created it before they can use the app
+    // ** It must be an useEffect because some of the dependencies are async
+    React.useEffect(() => {
+        // Explanation: if the user just logged out, the user from the hook might still be set
+        // but the client will be null.
+        // And if the user is not onboarding complete yet, the hook won't be set even though the client.user is set.
+        // This is why we check for the user AND the client.user.
+        const user = contextUser && client.getDynamicClient().user;
+        const syncEmbeddedWallet = () => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+            const isNewUser = user === null || user === void 0 ? void 0 : user.newUser;
+            if (shouldSyncCreateWallet) {
+                triggeredCreate.current = true;
+                try {
+                    yield createEmbeddedWallet();
+                }
+                catch (error) {
+                    if (error instanceof utils.EmbeddedWalletException) {
+                        logger.logger.debug('[useSyncEmbeddedWalletFlow][EmbeddedWalletException] Error creating embedded wallet', error);
+                    }
+                    else {
+                        logger.logger.error('[useSyncEmbeddedWalletFlow] Error creating embedded wallet', error);
+                    }
+                    setShowAuthFlow(false);
+                }
+            }
+            if (shouldSyncPromptKeyExport &&
+                isNewUser &&
+                findEmbeddedWalletFromVerifiedCredentials.findEmbeddedWalletFromVerifiedCredentials(user) &&
+                primaryWallet) {
+                try {
+                    setShowAuthFlow(true);
+                    yield initExportProcess(true, true);
+                }
+                catch (error) {
+                    logger.logger.error('Error initializing embedded wallet export', error);
+                    setShowAuthFlow(false);
+                }
+            }
+        });
+        const shouldCreateWallet = shouldAutoCreateEmbeddedWallet();
+        const shouldSyncCreateWallet = shouldCreateWallet && !triggeredCreate.current;
+        if (wasShownExportPrompt && !acknowledgedExportPrompt)
+            acknowledgedExportPrompt = true;
+        const shouldPromptKeyExport = shouldPromptForKeyExport();
+        const shouldSyncPromptKeyExport = shouldPromptKeyExport && !acknowledgedExportPrompt;
+        const shouldSyncEmbeddedWallet = shouldSyncCreateWallet || shouldSyncPromptKeyExport;
+        if (!shouldSyncEmbeddedWallet ||
+            !user ||
+            !projectSettings ||
+            !walletConnectorOptions.length || // no connectors to use for the embedded wallet
+            isLoadingEmbeddedWallet || // already has a wallet
+            globalLoading // this will be true if auth is in progress
+        ) {
+            return;
+        }
+        syncEmbeddedWallet();
+    }, [
+        contextUser,
+        projectSettings,
+        primaryWalletId,
+        createEmbeddedWallet,
+        isLoadingEmbeddedWallet,
+        walletConnectorOptions,
+        globalLoading,
+        shouldAutoCreateEmbeddedWallet,
+        setShowAuthFlow,
+        initExportProcess,
+        primaryWallet,
+        shouldPromptForKeyExport,
+        setWasShownExportPrompt,
+        handleAcknowledgeExportPrompt,
+        wasShownExportPrompt,
+    ]);
+    return {
+        acknowledgedExportPrompt,
+        handleAcknowledgeExportPrompt,
+    };
+};
+
+exports.useSyncEmbeddedWalletFlow = useSyncEmbeddedWalletFlow;

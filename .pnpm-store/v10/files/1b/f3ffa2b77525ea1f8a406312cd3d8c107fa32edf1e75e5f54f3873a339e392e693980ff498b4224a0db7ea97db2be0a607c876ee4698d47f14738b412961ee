@@ -1,0 +1,33 @@
+{
+  "name": "@dynamic-labs-wallet/primitives",
+  "version": "1.0.16",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "nx": {
+    "sourceRoot": "packages/primitives/src",
+    "projectType": "library",
+    "name": "primitives",
+    "targets": {
+      "build": {}
+    }
+  },
+  "main": "./index.cjs",
+  "module": "./index.esm.js",
+  "types": "./index.esm.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./index.esm.d.ts",
+      "import": "./index.esm.js",
+      "require": "./index.cjs"
+    }
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  }
+}

@@ -1,0 +1,19 @@
+/**
+ * OAuth scopes that must be granted on the user's Google account in order
+ * for the keyshare backup upload to Google Drive to succeed.
+ *
+ * Exported so host apps can pre-flight check or display these in their own
+ * UX. Kept as a `readonly` tuple to discourage mutation.
+ */
+export declare const GOOGLE_DRIVE_BACKUP_REQUIRED_SCOPES: readonly ["https://www.googleapis.com/auth/drive.appdata", "https://www.googleapis.com/auth/drive.file"];
+/**
+ * Stable phrase the WaaS layer includes in Google Drive 401 / scope-insufficient
+ * upload failure messages. Match by `.includes(...)` rather than equality
+ * because the iframe message-handler fallback path rewraps the original error
+ * as `new Error(String(response.error))`, which prefixes the message with
+ * "Error: ". The phrase remains unique to the auth/scope case across all the
+ * Drive failure reasons (rate-limit, storage-full, 5xx, network all use
+ * distinct prefixes), so message-only matching is sufficient to discriminate.
+ */
+export declare const ACCESS_DENIED_PHRASE = "Google Drive access denied";
+//# sourceMappingURL=constants.d.ts.map

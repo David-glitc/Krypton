@@ -1,0 +1,4 @@
+import * as anchor from '@coral-xyz/anchor';
+import { Buffer } from 'buffer';
+export declare function buildSecp256r1VerifyIx(message: Uint8Array, pubkey: number[], signature: Buffer<ArrayBuffer>): anchor.web3.TransactionInstruction;
+//# sourceMappingURL=secp256r1.d.ts.map

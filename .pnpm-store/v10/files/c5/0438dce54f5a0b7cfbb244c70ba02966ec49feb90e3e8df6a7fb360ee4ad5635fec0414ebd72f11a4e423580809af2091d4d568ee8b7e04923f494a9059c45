@@ -1,0 +1,45 @@
+import { exists } from '../runtime.js';
+import { SwapFeeFromJSON, SwapFeeToJSON } from './SwapFee.js';
+import { SwapQuoteResponseSideFromJSON, SwapQuoteResponseSideToJSON } from './SwapQuoteResponseSide.js';
+import { SwapSigningPayloadFromJSON, SwapSigningPayloadToJSON } from './SwapSigningPayload.js';
+import { SwapStepFromJSON, SwapStepToJSON } from './SwapStep.js';
+
+/* tslint:disable */
+function SwapQuoteResponseFromJSON(json) {
+    return SwapQuoteResponseFromJSONTyped(json);
+}
+function SwapQuoteResponseFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'approvalAddress': !exists(json, 'approvalAddress') ? undefined : json['approvalAddress'],
+        'feeCosts': !exists(json, 'feeCosts') ? undefined : (json['feeCosts'].map(SwapFeeFromJSON)),
+        'from': SwapQuoteResponseSideFromJSON(json['from']),
+        'gasCostUSD': !exists(json, 'gasCostUSD') ? undefined : json['gasCostUSD'],
+        'id': json['id'],
+        'signingPayload': !exists(json, 'signingPayload') ? undefined : SwapSigningPayloadFromJSON(json['signingPayload']),
+        'steps': (json['steps'].map(SwapStepFromJSON)),
+        'to': SwapQuoteResponseSideFromJSON(json['to']),
+    };
+}
+function SwapQuoteResponseToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'approvalAddress': value.approvalAddress,
+        'feeCosts': value.feeCosts === undefined ? undefined : (value.feeCosts.map(SwapFeeToJSON)),
+        'from': SwapQuoteResponseSideToJSON(value.from),
+        'gasCostUSD': value.gasCostUSD,
+        'id': value.id,
+        'signingPayload': SwapSigningPayloadToJSON(value.signingPayload),
+        'steps': (value.steps.map(SwapStepToJSON)),
+        'to': SwapQuoteResponseSideToJSON(value.to),
+    };
+}
+
+export { SwapQuoteResponseFromJSON, SwapQuoteResponseFromJSONTyped, SwapQuoteResponseToJSON };

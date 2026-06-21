@@ -1,0 +1,23 @@
+/**
+ * Normalizes a wallet's self-announced `displayName` into a stable wallet
+ * option key. Used by `findWalletOptionKeyForProviderKey` as the off-book
+ * fallback — registered providers whose `walletProviderKey` does not
+ * resolve to any wallet book entry still surface in the catalogue under a
+ * key derived from the name they ship in their metadata.
+ *
+ * The normalization (lowercase + whitespace-strip) intentionally matches
+ * how the legacy wallet book composes its `wallets.<key>` keys, so a
+ * self-described provider's option will merge cleanly with its book entry
+ * if one ever lands later.
+ *
+ * Multi-chain registrations of the same wallet (e.g. Phantom announced via
+ * EIP-6963 on EVM and via Wallet Standard on Solana) collapse onto the
+ * same wallet option through this normalization, since each registration
+ * announces the same `displayName`.
+ *
+ * @param displayName - The provider's `metadata.displayName`.
+ * @returns The normalized wallet option key (lowercased, no whitespace).
+ * @not-instrumented
+ */
+export declare const normalizeWalletDisplayName: (displayName: string) => string;
+//# sourceMappingURL=normalizeWalletDisplayName.d.ts.map

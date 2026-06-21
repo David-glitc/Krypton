@@ -1,0 +1,16 @@
+'use client'
+import { jsx } from 'react/jsx-runtime';
+import { createContext, useRef } from 'react';
+import { createProviderHook } from '../../../shared/utils/functions/createProviderHook/createProviderHook.js';
+
+const popperContext = createContext(undefined);
+const PopperProvider = ({ children, className, style, }) => {
+    const { Provider } = popperContext;
+    const containerRef = useRef(null);
+    return (jsx(Provider, { value: {
+            containerRef,
+        }, children: jsx("div", { ref: containerRef, style: Object.assign({ position: 'relative' }, style), className: className, children: children }) }));
+};
+const usePopper = createProviderHook(popperContext, 'PopperProvider');
+
+export { PopperProvider, popperContext, usePopper };

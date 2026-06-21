@@ -1,0 +1,2 @@
+export { appendConnectionUriToDeeplink } from './appendConnectionUriToDeeplink';
+//# sourceMappingURL=index.d.ts.map

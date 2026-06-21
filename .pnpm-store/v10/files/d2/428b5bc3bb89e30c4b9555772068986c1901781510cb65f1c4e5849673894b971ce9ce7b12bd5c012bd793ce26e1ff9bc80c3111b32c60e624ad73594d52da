@@ -1,0 +1,13 @@
+'use client'
+import { jsx } from 'react/jsx-runtime';
+import { createContext, useRef } from 'react';
+import { createProviderHook } from '../../shared/utils/functions/createProviderHook/createProviderHook.js';
+
+const FieldsStateContext = createContext(undefined);
+const FieldsStateProvider = ({ children }) => {
+    const selectedPhoneCountry = useRef();
+    return (jsx(FieldsStateContext.Provider, { value: { selectedPhoneCountry }, children: children }));
+};
+const useFieldsState = createProviderHook(FieldsStateContext, 'FieldsStateProvider');
+
+export { FieldsStateContext, FieldsStateProvider, useFieldsState };

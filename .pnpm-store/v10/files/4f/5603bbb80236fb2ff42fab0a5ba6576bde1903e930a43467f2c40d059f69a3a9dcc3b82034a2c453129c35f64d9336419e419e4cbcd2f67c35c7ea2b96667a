@@ -1,0 +1,1 @@
+{"version":3,"file":"signInWithSocialPopUp.types.d.ts","sourceRoot":"","sources":["../../../../../../src/modules/auth/social/oauth/signInWithSocialPopUp/signInWithSocialPopUp.types.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,cAAc,EAAE,MAAM,oBAAoB,CAAC;AAEzD,MAAM,MAAM,2BAA2B,GAAG;IACxC,QAAQ,EAAE,cAAc,CAAC;CAC1B,CAAC"}

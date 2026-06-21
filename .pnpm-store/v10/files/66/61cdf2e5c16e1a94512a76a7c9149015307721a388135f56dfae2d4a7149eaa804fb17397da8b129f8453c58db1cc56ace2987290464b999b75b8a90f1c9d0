@@ -1,0 +1,26 @@
+import type { WalletBookSchema } from '../../legacyWalletBook/legacyWalletBook.types';
+import type { ConnectionOptionForWalletOption } from '../groupOptionsByWalletOption/groupOptionsByWalletOption';
+type BuildWalletConnectOptionsParams = {
+    walletBook: WalletBookSchema;
+};
+/**
+ * Builds the `walletConnect`-discriminator catalogue options from a fetched
+ * wallet book. Applies the WalletConnect-specific eligibility filter
+ * (`shouldFilterWalletForWalletConnect`) so embedded wallets and entries
+ * without `sign_v2` support are excluded — same surface as
+ * `getWalletConnectCatalog`.
+ *
+ * Skips the MetaMask wallet entry: MetaMask is steered to its own URI
+ * connection extension via `buildMetaMaskSdkUriOptions`. Keeping the two
+ * builders separate means each protocol owns its own eligibility rules
+ * (WC needs `sign_v2`; MM SDK URI does not), so excluding one
+ * discriminator via `excludedConnectionOptionTypes` doesn't accidentally
+ * gate the other.
+ *
+ * @param params.walletBook - The fetched wallet book.
+ * @returns Tagged `walletConnect` options paired with their wallet option keys.
+ * @not-instrumented
+ */
+export declare const buildWalletConnectOptions: ({ walletBook, }: BuildWalletConnectOptionsParams) => ConnectionOptionForWalletOption[];
+export {};
+//# sourceMappingURL=buildWalletConnectOptions.d.ts.map

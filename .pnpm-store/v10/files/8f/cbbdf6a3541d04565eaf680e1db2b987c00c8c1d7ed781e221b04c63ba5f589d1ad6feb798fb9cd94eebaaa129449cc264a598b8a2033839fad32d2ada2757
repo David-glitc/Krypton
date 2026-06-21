@@ -1,0 +1,65 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+var client = require('@dynamic-labs-sdk/client');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+require('@dynamic-labs-sdk/client/core');
+require('@dynamic-labs/sdk-api-core');
+require('eventemitter3');
+require('@dynamic-labs/utils');
+require('../../../config/ApiEndpoint.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+require('../../../context/ViewContext/ViewContext.cjs');
+require('../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('../../constants/colors.cjs');
+require('../../constants/values.cjs');
+require('../../../shared/consts/index.cjs');
+require('@dynamic-labs/multi-wallet');
+require('react-international-phone');
+require('../../../store/state/nonce/nonce.cjs');
+require('@dynamic-labs/locale');
+require('../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../store/state/primaryWalletId/primaryWalletId.cjs');
+require('../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+require('../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+require('../../../events/dynamicEvents.cjs');
+var generateSessionKeys = require('../../../client/extension/functions/generateSessionKeys/generateSessionKeys.cjs');
+
+/**
+ * Sign in with passkey
+ *
+ * @returns Function to sign in with a passkey, returns a VerifyResponse
+ *
+ * @example
+ * ```tsx
+ * const App = () => {
+ *   const signInWithPasskey = useSignInWithPasskey();
+ *
+ *   return (
+ *     <button
+ *       onClick={() => signInWithPasskey()}
+ *     >
+ *       Sign in with passkey
+ *     </button>
+ *  );
+ * }
+ */
+const useSignInWithPasskey = ({ relatedOriginRpId, } = {}) => {
+    const { setCallback } = useInternalDynamicContext.useInternalDynamicContext();
+    return React.useCallback(() => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        yield generateSessionKeys.generateSessionKeys();
+        const response = yield client.signInWithPasskey({ relatedOriginRpId });
+        setCallback('authSuccess');
+        return response;
+    }), [relatedOriginRpId, setCallback]);
+};
+
+exports.useSignInWithPasskey = useSignInWithPasskey;

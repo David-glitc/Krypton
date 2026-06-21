@@ -1,0 +1,14 @@
+import { FC } from 'react';
+export type CryptoToken = {
+    code: string;
+    icon?: string;
+    name: string;
+};
+type CryptoTokenSelectScreenProps = {
+    onClose: () => void;
+    onSelectToken: (tokenCode: string) => void;
+    tokens: CryptoToken[];
+    currentToken: string;
+};
+export declare const CryptoTokenSelectScreen: FC<CryptoTokenSelectScreenProps>;
+export {};

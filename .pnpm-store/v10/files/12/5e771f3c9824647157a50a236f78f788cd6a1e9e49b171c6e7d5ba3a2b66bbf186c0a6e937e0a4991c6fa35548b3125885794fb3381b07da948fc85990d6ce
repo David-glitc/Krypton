@@ -1,0 +1,40 @@
+'use client'
+import { jsx, jsxs } from 'react/jsx-runtime';
+import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import { IconButton } from '../../../../components/IconButton/IconButton.js';
+import { ModalHeader } from '../../../../components/ModalHeader/ModalHeader.js';
+import { Typography } from '../../../../components/Typography/Typography.js';
+import '../../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { useViewContext } from '../../../../context/ViewContext/ViewContext.js';
+import { ReactComponent as SvgChevronLeft } from '../../../../shared/assets/chevron-left.js';
+import '@dynamic-labs/iconic';
+import { useWidgetContext } from '../../context/DynamicWidgetContext.js';
+import { EmbeddedWalletExportSection } from './EmbeddedWalletExportSection/EmbeddedWalletExportSection.js';
+import { EmbeddedWalletRecoveryEmailSection } from './EmbeddedWalletRecoveryEmailSection/EmbeddedWalletRecoveryEmailSection.js';
+import { MfaSection } from './MfaSection/MfaSection.js';
+import { TrustedDevicesSection } from './TrustedDevicesSection/TrustedDevicesSection.js';
+import { WalletSecuritySection } from './WalletSecuritySection/WalletSecuritySection.js';
+import { ZKSyncSessionsSection } from './ZKSyncSessionsSection/ZKSyncSessionsSection.js';
+
+const AccountAndSecuritySettingsView = () => {
+    const { t } = useTranslation();
+    const { clearStackAndPush } = useViewContext();
+    const { setDynamicWidgetView } = useWidgetContext();
+    const { setShowAuthFlow } = useInternalDynamicContext();
+    const [isLoading, setIsLoading] = useState(false);
+    const handleBackClick = useCallback(() => setDynamicWidgetView('settings'), [setDynamicWidgetView]);
+    const handleDeleteAccountClick = useCallback(() => {
+        clearStackAndPush('user-delete-account', {}, {
+            onBackClick: () => {
+                setShowAuthFlow(false);
+            },
+        });
+        setShowAuthFlow(true);
+    }, [clearStackAndPush, setShowAuthFlow]);
+    const backButton = (jsx(IconButton, { type: 'button', onClick: handleBackClick, "data-testid": 'back-button', children: jsx(SvgChevronLeft, {}) }));
+    return (jsxs("div", { className: 'account-and-security-settings-view', children: [jsx(ModalHeader, { leading: backButton, children: jsx("div", { className: 'send-balance-page-layout__header-content', children: jsx(Typography, { variant: 'title', color: 'primary', copykey: 'dyn_settings.account_security.title', children: t('dyn_settings.account_security.title') }) }) }), jsx("div", { className: 'account-wrap', children: jsxs("div", { className: 'settings-view__body', children: [jsx(MfaSection, { isLoading: isLoading }), jsx(TrustedDevicesSection, {}), jsx(ZKSyncSessionsSection, { isLoading: isLoading }), jsx(EmbeddedWalletRecoveryEmailSection, {}), jsx(EmbeddedWalletExportSection, {}), jsx(WalletSecuritySection, { isLoading: isLoading, setIsLoading: setIsLoading })] }) }), jsx("div", { className: 'account-and-security-settings-view__delete-account-container', children: jsx(Typography, { onClick: handleDeleteAccountClick, "data-testid": 'delete-account-button', color: 'error-1', variant: 'body_small', weight: 'medium', className: 'account-and-security-settings-view__delete-account-container__delete-button', copykey: 'dyn_settings.delete_account.title', children: t('dyn_settings.delete_account.title') }) })] }));
+};
+
+export { AccountAndSecuritySettingsView };

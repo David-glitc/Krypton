@@ -1,0 +1,15 @@
+import type { WalletConnectionOption } from '../walletOptionsCatalogue.types';
+type GetConnectionOptionPriorityParams = {
+    option: WalletConnectionOption;
+};
+/**
+ * Returns the numeric priority of a `WalletConnectionOption` for sorting.
+ * Lower numbers rank first.
+ *
+ * @param params.option - The connection option to inspect.
+ * @returns The numeric priority — lower is better.
+ * @not-instrumented
+ */
+export declare const getConnectionOptionPriority: ({ option, }: GetConnectionOptionPriorityParams) => number;
+export {};
+//# sourceMappingURL=getConnectionOptionPriority.d.ts.map

@@ -1,0 +1,158 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var React = require('react');
+var sdkApiCore = require('@dynamic-labs/sdk-api-core');
+var utils = require('@dynamic-labs/utils');
+var client = require('../../../client/client.cjs');
+require('../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var WalletContext = require('../../../context/WalletContext/WalletContext.cjs');
+var primaryWalletId = require('../../../store/state/primaryWalletId/primaryWalletId.cjs');
+var errors = require('../../constants/errors.cjs');
+require('../../constants/values.cjs');
+require('@dynamic-labs/multi-wallet');
+require('../../../shared/logger.cjs');
+require('react-international-phone');
+require('../../constants/colors.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+require('../../../context/ViewContext/ViewContext.cjs');
+require('@dynamic-labs/wallet-book');
+require('../../../shared/consts/index.cjs');
+require('../../../store/state/nonce/nonce.cjs');
+var isTurnkeyEnabled = require('../../functions/isTurnkeyEnabled/isTurnkeyEnabled.cjs');
+var hasEmbeddedWallet = require('../../functions/hasEmbeddedWallet/hasEmbeddedWallet.cjs');
+var updatePrimaryWalletId = require('../../functions/updatePrimaryWalletId/updatePrimaryWalletId.cjs');
+require('../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+require('../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('@dynamic-labs-sdk/client');
+require('@dynamic-labs-sdk/client/core');
+require('../../../config/ApiEndpoint.cjs');
+require('../../../events/dynamicEvents.cjs');
+require('@dynamic-labs/locale');
+require('../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+var useIsTurnkeyWallet = require('../useIsTurnkeyWallet/useIsTurnkeyWallet.cjs');
+var findPrimaryWalletVCForUser = require('../../functions/findPrimaryWalletVCForUser/findPrimaryWalletVCForUser.cjs');
+var useSecureEnclaveEmbeddedWallet = require('./useSecureEnclaveEmbeddedWallet/useSecureEnclaveEmbeddedWallet.cjs');
+require('../../../views/Passkey/utils/findPrimaryEmbeddedChain/findPrimaryEmbeddedChain.cjs');
+require('../../functions/compareChains/compareChains.cjs');
+require('./useSecureEnclaveEmbeddedWallet/constants.cjs');
+
+// Hook exposed to customers and used internally to trigger embedded wallet creation
+/**
+ * @deprecated This hook is deprecated and will be removed in a future release. Use `useDynamicWaas` instead.
+ * @returns {
+ *  createEmbeddedWallet, - creates Dynamic embedded wallet according to the settings
+ *  createOrRestoreSession, - creates or restores session for the embedded wallet
+ *  createPasskey, - creates passkey for the embedded wallet
+ *  getPasskeys, - gets passkeys for the embedded wallet
+ *  isLoadingEmbeddedWallet, - loading state of the embedded wallet
+ *  isSessionActive, - checks if the session is active for the embedded wallet
+ *  revealWalletKey, - reveals the private key or recovery phrase for the embedded wallet
+ *  sendOneTimeCode, - sends one time code for the embedded wallet
+ *  userHasEmbeddedWallet, - checks if the user has an embedded wallet
+ * }
+ */
+const useEmbeddedWallet = () => {
+    const { user, projectSettings } = useInternalDynamicContext.useInternalDynamicContext();
+    const { isTurnkeyWallet } = useIsTurnkeyWallet.useIsTurnkeyWallet();
+    const { createEmbeddedWallet: createTurnkeyEmbeddedWallet, createEmbeddedWalletAccount, createOrRestoreSession, createPasskey, revealEmbeddedWalletKey: revealTurnkeyEmbeddedWalletKey, getPasskeys, isSessionActive, sendOneTimeCode, getWalletVersion: getTurnkeyWalletVersion, } = useSecureEnclaveEmbeddedWallet.useSecureEnclaveEmbeddedWallet();
+    const { isLoadingEmbeddedWallet } = WalletContext.useWalletContext();
+    const userHasEmbeddedWallet = React.useCallback(() => hasEmbeddedWallet.hasEmbeddedWallet(user), [user]);
+    const getWalletVersion = React.useCallback(() => {
+        if (!user) {
+            throw new utils.DynamicError(errors.USER_NOT_LOGGED_IN);
+        }
+        if (!userHasEmbeddedWallet()) {
+            throw new utils.DynamicError('Embedded wallet not found');
+        }
+        if (isTurnkeyWallet) {
+            return getTurnkeyWalletVersion();
+        }
+        return undefined;
+    }, [getTurnkeyWalletVersion, isTurnkeyWallet, user, userHasEmbeddedWallet]);
+    /**
+     * Creates Dynamic embedded wallet according to the settings
+     * @param chains - array of chains to create the wallet for
+     * @param options - options for the wallet creation
+     * @returns Promise<Wallet | undefined> - created wallet object
+     */
+    const createEmbeddedWallet = React.useCallback((chains, options) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        const wallet = yield createTurnkeyEmbeddedWallet(chains, options);
+        return wallet;
+    }), [createTurnkeyEmbeddedWallet]);
+    /**
+     * Reveals the private key or recovery phrase for the embedded wallet
+     * @param options - options for revealing the wallet key
+     * @returns Promise<boolean> - true if the key was revealed successfully
+     */
+    const revealWalletKey = (options) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        if (!user) {
+            throw new utils.DynamicError(errors.USER_NOT_LOGGED_IN);
+        }
+        if (!userHasEmbeddedWallet()) {
+            throw new utils.DynamicError('Embedded wallet not found');
+        }
+        return revealTurnkeyEmbeddedWalletKey(options);
+    });
+    const shouldPromptForKeyExport = React.useCallback(() => { var _a; return Boolean((_a = projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.sdk.embeddedWallets) === null || _a === void 0 ? void 0 : _a.promptForKeyExport); }, [projectSettings]);
+    const embeddedWalletSettingVersion = React.useCallback(() => { var _a; return (_a = projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.sdk.embeddedWallets) === null || _a === void 0 ? void 0 : _a.defaultWalletVersion; }, [projectSettings]);
+    const findPrimaryWalletVCForUserCallback = React.useCallback((user) => findPrimaryWalletVCForUser.findPrimaryWalletVCForUser(user, projectSettings, true), [projectSettings]);
+    const shouldAutoCreateEmbeddedWallet = React.useCallback(() => {
+        var _a, _b;
+        const hasEmbeddedWalletProviderEnabled = isTurnkeyEnabled.isTurnkeyEnabled(projectSettings);
+        const { user } = client.getDynamicClient();
+        const hasPrimaryWallet = primaryWalletId.getPrimaryWalletId();
+        // If V3 wallets are enabled, never create V1/V2 wallets - they should be handled by WAAS flow
+        if (embeddedWalletSettingVersion() === sdkApiCore.EmbeddedWalletVersionEnum.V3) {
+            const primaryWalletVC = findPrimaryWalletVCForUserCallback(user);
+            if (primaryWalletVC && !hasPrimaryWallet) {
+                updatePrimaryWalletId.updatePrimaryWalletId(primaryWalletVC.id);
+            }
+            return false;
+        }
+        if (!hasEmbeddedWalletProviderEnabled || hasPrimaryWallet) {
+            return false;
+        }
+        // Turnkey and WAAS specific rules
+        if (user) {
+            const primaryWalletVC = findPrimaryWalletVCForUserCallback(user);
+            if (primaryWalletVC) {
+                updatePrimaryWalletId.updatePrimaryWalletId(primaryWalletVC.id);
+                return false;
+            }
+        }
+        if (isTurnkeyEnabled.isTurnkeyEnabled(projectSettings) &&
+            !((_b = (_a = projectSettings === null || projectSettings === void 0 ? void 0 : projectSettings.sdk) === null || _a === void 0 ? void 0 : _a.embeddedWallets) === null || _b === void 0 ? void 0 : _b.automaticEmbeddedWalletCreation)) {
+            return false;
+        }
+        return true;
+    }, [
+        projectSettings,
+        embeddedWalletSettingVersion,
+        findPrimaryWalletVCForUserCallback,
+    ]);
+    return {
+        createEmbeddedWallet,
+        createEmbeddedWalletAccount,
+        createOrRestoreSession,
+        createPasskey,
+        embeddedWalletSettingVersion,
+        getPasskeys,
+        getWalletVersion,
+        isLoadingEmbeddedWallet,
+        isSessionActive,
+        revealWalletKey,
+        sendOneTimeCode,
+        shouldAutoCreateEmbeddedWallet,
+        shouldPromptForKeyExport,
+        userHasEmbeddedWallet,
+    };
+};
+
+exports.useEmbeddedWallet = useEmbeddedWallet;

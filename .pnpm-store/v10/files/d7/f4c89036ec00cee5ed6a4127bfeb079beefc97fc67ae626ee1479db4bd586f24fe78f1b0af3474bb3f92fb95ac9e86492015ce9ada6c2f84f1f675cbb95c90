@@ -1,0 +1,20 @@
+import type { WalletConnectionOption } from '../walletOptionsCatalogue.types';
+type SortConnectionOptionsParams = {
+    options: WalletConnectionOption[];
+};
+/**
+ * Sorts a wallet option's `connectionOptions` so the most preferred option lands at
+ * index 0. Primary sort is by option-type priority
+ * (`withWalletProvider` > URI deeplink > `inAppBrowser`);
+ * within a type, ties break alphabetically by `chain` for deterministic
+ * output across calls.
+ *
+ * Returns a new array — the input is not mutated.
+ *
+ * @param params.options - The options to sort.
+ * @returns A new array in priority order.
+ * @not-instrumented
+ */
+export declare const sortConnectionOptions: ({ options, }: SortConnectionOptionsParams) => WalletConnectionOption[];
+export {};
+//# sourceMappingURL=sortConnectionOptions.d.ts.map

@@ -1,0 +1,22 @@
+import type { WalletBookSchema } from '../../legacyWalletBook/legacyWalletBook.types';
+import type { ConnectionOptionForWalletOption } from '../groupOptionsByWalletOption/groupOptionsByWalletOption';
+type BuildInAppBrowserOptionsParams = {
+    walletBook: WalletBookSchema;
+};
+/**
+ * Builds the `inAppBrowser` catalogue options from the wallet book. A wallet
+ * qualifies when it exposes a mobile in-app-browser URL — typically a
+ * `cb_url={{encodedDappURI}}`-style template the customer fills in with the
+ * current page URL before opening.
+ *
+ * Reuses the generic `shouldFilterWallet` rules — embedded sign-in methods
+ * and injected-only wallets are dropped — so the catalogue's notion of
+ * "external wallet" stays consistent across option types.
+ *
+ * @param params.walletBook - The fetched wallet book.
+ * @returns Tagged `inAppBrowser` options paired with their wallet option keys.
+ * @not-instrumented
+ */
+export declare const buildInAppBrowserOptions: ({ walletBook, }: BuildInAppBrowserOptionsParams) => ConnectionOptionForWalletOption[];
+export {};
+//# sourceMappingURL=buildInAppBrowserOptions.d.ts.map

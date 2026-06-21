@@ -1,0 +1,59 @@
+'use client'
+import { walletConnectorEvents } from '@dynamic-labs/wallet-connector-core';
+import { getEnabledProviders } from '../getEnabledProviders/getEnabledProviders.js';
+import { getApiProviders } from '../getApiProviders/getApiProviders.js';
+import { defaultWalletUiUtils } from '../../const.js';
+
+const getWalletConnectorConstructorOptions = ({ appLogoUrl, appName, authMode, coinbaseWalletPreference, chainRpcProviders, deepLinkPreference, flowNetwork, mobileExperience, networkConfigurations, redirectUrl, settings, walletConnectProjectId, walletUiUtils, walletBook, walletConnectPreferredChains, useMetamaskSdk = false, }) => {
+    const aleoNetworkConfigs = (networkConfigurations === null || networkConfigurations === void 0 ? void 0 : networkConfigurations.aleo) || [];
+    const eclipseNetworkConfigs = (networkConfigurations === null || networkConfigurations === void 0 ? void 0 : networkConfigurations.eclipse) || [];
+    const evmNetworkConfigs = (networkConfigurations === null || networkConfigurations === void 0 ? void 0 : networkConfigurations.evm) || [];
+    const solanaNetworkConfigs = (networkConfigurations === null || networkConfigurations === void 0 ? void 0 : networkConfigurations.solana) || [];
+    const cosmosNetworkConfigs = (networkConfigurations === null || networkConfigurations === void 0 ? void 0 : networkConfigurations.cosmos) || [];
+    const midnightNetworkConfigs = (networkConfigurations === null || networkConfigurations === void 0 ? void 0 : networkConfigurations.midnight) || [];
+    const starknetNetworkConfigs = (networkConfigurations === null || networkConfigurations === void 0 ? void 0 : networkConfigurations.starknet) || [];
+    const stellarNetworkConfigs = (networkConfigurations === null || networkConfigurations === void 0 ? void 0 : networkConfigurations.stellar) || [];
+    const suiNetworkConfigs = (networkConfigurations === null || networkConfigurations === void 0 ? void 0 : networkConfigurations.sui) || [];
+    const tronNetworkConfigs = (networkConfigurations === null || networkConfigurations === void 0 ? void 0 : networkConfigurations.tron) || [];
+    const aptosNetworkConfigs = (networkConfigurations === null || networkConfigurations === void 0 ? void 0 : networkConfigurations.aptos) || [];
+    const tonNetworkConfigs = (networkConfigurations === null || networkConfigurations === void 0 ? void 0 : networkConfigurations.ton) || [];
+    const bitcoinNetworkConfigs = (networkConfigurations === null || networkConfigurations === void 0 ? void 0 : networkConfigurations.bitcoin) || [];
+    const tempoNetworkConfigs = (networkConfigurations === null || networkConfigurations === void 0 ? void 0 : networkConfigurations.tempo) || [];
+    const apiProviders = getApiProviders(getEnabledProviders(settings.providers));
+    const opts = {
+        aleoNetworks: aleoNetworkConfigs,
+        apiProviders,
+        appLogoUrl,
+        appName,
+        aptosNetworks: aptosNetworkConfigs,
+        authMode,
+        bitcoinNetworks: bitcoinNetworkConfigs,
+        chainRpcProviders,
+        coinbaseWalletPreference,
+        cosmosNetworks: cosmosNetworkConfigs,
+        deepLinkPreference,
+        eclipseNetworks: eclipseNetworkConfigs,
+        evmNetworks: evmNetworkConfigs,
+        flowNetwork,
+        midnightNetworks: midnightNetworkConfigs,
+        mobileExperience,
+        projectId: walletConnectProjectId,
+        redirectUrl,
+        settings,
+        solNetworks: solanaNetworkConfigs,
+        starknetNetworks: starknetNetworkConfigs,
+        stellarNetworks: stellarNetworkConfigs,
+        suiNetworks: suiNetworkConfigs,
+        tempoNetworks: tempoNetworkConfigs,
+        tonNetworks: tonNetworkConfigs,
+        tronNetworks: tronNetworkConfigs,
+        useMetamaskSdk,
+        walletBook,
+        walletConnectPreferredChains,
+        walletConnectorEventsEmitter: walletConnectorEvents,
+        walletUiUtils: walletUiUtils || defaultWalletUiUtils,
+    };
+    return opts;
+};
+
+export { getWalletConnectorConstructorOptions };

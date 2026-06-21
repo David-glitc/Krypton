@@ -1,0 +1,6 @@
+export declare const DEFAULTS: {
+    readonly PORTAL_URL: "https://portal.lazor.sh";
+    readonly PAYMASTER_URL: "https://lazorkit-paymaster.onrender.com";
+    readonly RPC_ENDPOINT: "https://api.devnet.solana.com";
+};
+//# sourceMappingURL=defaults.d.ts.map

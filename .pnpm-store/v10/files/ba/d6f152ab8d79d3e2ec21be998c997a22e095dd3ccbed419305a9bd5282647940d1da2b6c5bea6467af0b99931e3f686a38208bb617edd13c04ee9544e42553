@@ -1,0 +1,5 @@
+/**
+ * Checks whether a valid elevated access token exists for the given scope.
+ * Delegates to the JS SDK's getElevatedAccessToken without consuming the token.
+ */
+export declare const hasElevatedAccessToken: (scope: string) => boolean;

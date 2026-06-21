@@ -1,0 +1,7 @@
+type RevokeRegisteredDeviceParams = {
+    deviceRegistrationId: string;
+};
+/** @instrumented */
+export declare const revokeRegisteredDevice: ({ deviceRegistrationId }: RevokeRegisteredDeviceParams, client?: import("../../../exports").DynamicClient) => Promise<void>;
+export {};
+//# sourceMappingURL=revokeRegisteredDevice.d.ts.map

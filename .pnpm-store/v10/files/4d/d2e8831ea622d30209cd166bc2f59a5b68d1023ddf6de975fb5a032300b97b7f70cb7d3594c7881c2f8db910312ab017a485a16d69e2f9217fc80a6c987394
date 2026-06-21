@@ -1,0 +1,13 @@
+import { Wallet } from '../../Wallet';
+export type MidnightFormattedBalances = {
+    dustBalance: {
+        balance: string;
+        cap: string;
+    } | undefined;
+    shieldedBalance: string | undefined;
+    unshieldedBalance: string | undefined;
+};
+export type IMidnightWallet = Wallet & {
+    getFormattedBalances: () => Promise<MidnightFormattedBalances>;
+};
+export declare const isMidnightWallet: (wallet: Wallet) => wallet is IMidnightWallet;

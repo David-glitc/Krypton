@@ -1,0 +1,6 @@
+export type Platform = 'web' | 'mobile' | 'desktop';
+export declare function detectPlatform(): Platform;
+export declare function isSafari(): boolean;
+export declare function isIOS(): boolean;
+export declare function isAndroid(): boolean;
+//# sourceMappingURL=platform.d.ts.map

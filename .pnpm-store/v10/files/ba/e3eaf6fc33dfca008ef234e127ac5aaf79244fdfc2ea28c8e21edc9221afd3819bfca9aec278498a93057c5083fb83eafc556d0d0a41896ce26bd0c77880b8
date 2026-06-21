@@ -1,0 +1,7 @@
+'use client'
+import { getDefaultClient } from '@dynamic-labs-sdk/client';
+import { generateSessionKeys as generateSessionKeys$1 } from '@dynamic-labs-sdk/client/core';
+
+const generateSessionKeys = () => generateSessionKeys$1(getDefaultClient());
+
+export { generateSessionKeys };

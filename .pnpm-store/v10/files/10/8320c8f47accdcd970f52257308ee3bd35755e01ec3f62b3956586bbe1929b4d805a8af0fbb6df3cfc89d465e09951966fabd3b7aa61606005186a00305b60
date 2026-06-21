@@ -1,0 +1,4 @@
+export type DeviceRegistrationEvents = {
+    deviceRegistrationCompleted: () => void;
+    deviceRegistrationCompletedInAnotherTab: () => void;
+};

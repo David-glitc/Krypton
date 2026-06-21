@@ -1,0 +1,24 @@
+import { WalletInfo } from '../storage';
+import { WalletState, ConnectOptions, DisconnectOptions, SignAndSendTransactionPayload } from '../types';
+/**
+ * Connect wallet action
+ */
+export declare const connectAction: (get: () => WalletState, set: (state: Partial<WalletState>) => void, options?: ConnectOptions & {
+    feeMode?: "paymaster" | "user";
+}) => Promise<WalletInfo>;
+/**
+ * Disconnect wallet action
+ */
+export declare const disconnectAction: (set: (state: Partial<WalletState>) => void, options?: DisconnectOptions) => Promise<void>;
+/**
+ * Sign and send transaction action
+ */
+export declare const signAndSendTransactionAction: (get: () => WalletState, set: (state: Partial<WalletState>) => void, payload: SignAndSendTransactionPayload) => Promise<string>;
+/**
+ * Sign message action
+ */
+export declare const signMessageAction: (get: () => WalletState, set: (state: Partial<WalletState>) => void, message: string) => Promise<{
+    signature: string;
+    signedPayload: string;
+}>;
+//# sourceMappingURL=actions.d.ts.map

@@ -1,0 +1,7 @@
+export declare enum SigningAlgorithm {
+    ECDSA = "ECDSA",
+    ED25519 = "ED25519",
+    BIP340 = "BIP340",
+    EDBLS12_377 = "EDBLS12_377"
+}
+//# sourceMappingURL=algorithms.d.ts.map

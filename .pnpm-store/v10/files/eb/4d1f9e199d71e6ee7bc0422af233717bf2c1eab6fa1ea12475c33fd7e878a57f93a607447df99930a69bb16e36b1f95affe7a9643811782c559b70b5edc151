@@ -1,0 +1,4 @@
+import type { Chain } from '../../modules/chain';
+/** @not-instrumented */
+export declare const getChainFromVerifiedCredentialChain: (verifiedCredentialChain: string) => Chain;
+//# sourceMappingURL=getChainFromVerifiedCredentialChain.d.ts.map

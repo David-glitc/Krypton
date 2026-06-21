@@ -1,0 +1,10 @@
+import * as anchor from '@coral-xyz/anchor';
+import * as types from './types';
+import { LazorkitClient } from './client/lazorkit';
+export declare function instructionToAccountMetas(ix: anchor.web3.TransactionInstruction, signers?: readonly anchor.web3.PublicKey[]): anchor.web3.AccountMeta[];
+export declare function getRandomBytes(len: number): Uint8Array;
+export declare function byteArrayEquals(a: number[], b: number[]): boolean;
+export declare function credentialHashFromBase64(credentialIdBase64: string): types.CredentialHash;
+export declare function getBlockchainTimestamp(connection: anchor.web3.Connection): Promise<anchor.BN>;
+export declare function ensureChunkExist(connection: anchor.web3.Connection, client: LazorkitClient, smartWalletPubkey: anchor.web3.PublicKey): Promise<void>;
+//# sourceMappingURL=utils.d.ts.map

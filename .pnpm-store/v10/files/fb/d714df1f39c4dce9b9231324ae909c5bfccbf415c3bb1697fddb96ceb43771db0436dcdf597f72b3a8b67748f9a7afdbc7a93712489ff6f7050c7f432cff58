@@ -1,0 +1,67 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../../_virtual/_tslib.cjs');
+require('@dynamic-labs-sdk/client/core');
+require('@dynamic-labs/sdk-api-core');
+require('react');
+require('eventemitter3');
+require('@dynamic-labs/utils');
+require('@dynamic-labs-sdk/client');
+require('../../../../config/ApiEndpoint.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+require('../../../ViewContext/ViewContext.cjs');
+require('../../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('../../../../utils/constants/colors.cjs');
+require('../../../../utils/constants/values.cjs');
+require('../../../../shared/consts/index.cjs');
+require('@dynamic-labs/multi-wallet');
+require('react-international-phone');
+require('../../../../store/state/nonce/nonce.cjs');
+var sms = require('../../../../data/api/sms/sms.cjs');
+require('../../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../../store/state/primaryWalletId/primaryWalletId.cjs');
+require('../../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+require('../../../../utils/functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+require('../../../../events/dynamicEvents.cjs');
+var storeTokenAndUser = require('../../../../client/extension/storeTokenAndUser/storeTokenAndUser.cjs');
+var generateSessionKeys = require('../../../../client/extension/functions/generateSessionKeys/generateSessionKeys.cjs');
+
+/**
+ * Builds a ProviderVerificationHandler for SMS OTP from the given parameters.
+ * Used both after creating a new SMS verification and when restoring a
+ * persisted verification state after a webview remount.
+ */
+const buildSmsOtpHandler = ({ captchaToken, embeddedWalletSessionKeys: { shouldRegisterSessionKeysOnSignin, generateSessionKey, }, environmentId, phone, verificationUUID, }) => ({
+    type: 'sms',
+    verify: (oneTimePassword, options) => _tslib.__awaiter(void 0, void 0, void 0, function* () {
+        let sessionPublicKey = undefined;
+        if (shouldRegisterSessionKeysOnSignin()) {
+            const keypair = yield generateSessionKey();
+            sessionPublicKey = keypair.publicKey;
+        }
+        yield generateSessionKeys.generateSessionKeys();
+        const response = yield sms.signInWithSmsVerification({
+            captchaToken,
+            environmentId,
+            sessionPublicKey,
+            verificationToken: oneTimePassword,
+            verificationUUID,
+        });
+        if (!(options === null || options === void 0 ? void 0 : options.skipSetUserAndAuthToken)) {
+            storeTokenAndUser.storeTokenAndUser(response);
+        }
+        return {
+            destination: phone,
+            response: response,
+            verified: true,
+        };
+    }),
+});
+
+exports.buildSmsOtpHandler = buildSmsOtpHandler;

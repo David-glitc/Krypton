@@ -1,0 +1,27 @@
+require "json"
+
+package = JSON.parse(File.read(File.join(__dir__, "package.json")))
+
+Pod::Spec.new do |s|
+  s.name         = "dynamic-labs-sdk-client"
+  s.version      = package["version"]
+  s.summary      = "Dynamic Labs SDK native manifest module"
+  s.homepage     = "https://dynamic.xyz"
+  s.license      = "MIT"
+  s.authors      = "Dynamic Labs"
+
+  s.platforms    = { :ios => "15.1" }
+  s.source       = { :git => "https://github.com/dynamic-labs/dynamic-sdk.git", :tag => "v#{s.version}" }
+  s.swift_version = "5.4"
+
+  s.source_files = "ios/**/*.{h,m,mm,cpp,swift}"
+  s.private_header_files = "ios/**/*.h"
+
+  # Inject the SDK version as a preprocessor macro at compile time.
+  # The ObjC++ module forwards this to the Swift implementation via init.
+  s.pod_target_xcconfig = {
+    "GCC_PREPROCESSOR_DEFINITIONS" => "DYNAMIC_SDK_VERSION=@\\\"#{package['version']}\\\""
+  }
+
+  install_modules_dependencies(s)
+end

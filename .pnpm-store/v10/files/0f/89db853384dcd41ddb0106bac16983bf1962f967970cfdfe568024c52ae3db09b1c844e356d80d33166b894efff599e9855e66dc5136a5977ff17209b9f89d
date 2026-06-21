@@ -1,0 +1,91 @@
+'use client'
+import { __awaiter } from '../../../../../_virtual/_tslib.js';
+import { useCallback } from 'react';
+import '../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { useViewContext } from '../../../context/ViewContext/ViewContext.js';
+import { useWidgetContext } from '../../../widgets/DynamicWidget/context/DynamicWidgetContext.js';
+import { useIsMfaEnabled } from '../useIsMfaEnabled/useIsMfaEnabled.js';
+import { useIsTotpMfaEnabled } from '../useIsTotpMfaEnabled/useIsTotpMfaEnabled.js';
+
+const useMfaModals = () => {
+    const { setShowAuthFlow, setShowDynamicUserProfile } = useInternalDynamicContext();
+    const { setDynamicWidgetView } = useWidgetContext();
+    const { clearStackAndPush } = useViewContext();
+    const isMfaEnabled = useIsMfaEnabled();
+    const isTotpMfaEnabled = useIsTotpMfaEnabled();
+    const setShowTotpMfaManage = useCallback((value) => {
+        if (value) {
+            if (!isTotpMfaEnabled) {
+                return;
+            }
+            setDynamicWidgetView('manage-totp-mfa-no-footer');
+        }
+        setShowDynamicUserProfile(value);
+    }, [isTotpMfaEnabled, setShowDynamicUserProfile, setDynamicWidgetView]);
+    const setShowMfaChooseType = useCallback((value) => {
+        if (value) {
+            if (!isMfaEnabled) {
+                return;
+            }
+            clearStackAndPush('mfa-choose-device');
+        }
+        setShowAuthFlow(value, { emitCancelAuth: true });
+    }, [isMfaEnabled, setShowAuthFlow, clearStackAndPush]);
+    const setShowMfaQRCode = useCallback((value) => __awaiter(void 0, void 0, void 0, function* () {
+        if (value) {
+            if (!isTotpMfaEnabled) {
+                return;
+            }
+            clearStackAndPush('mfa-secure-device', { isInitialSetup: true });
+        }
+        setShowAuthFlow(value, { emitCancelAuth: true });
+    }), [isTotpMfaEnabled, setShowAuthFlow, clearStackAndPush]);
+    const setShowOTPVerification = useCallback((value) => {
+        if (value) {
+            if (!isTotpMfaEnabled) {
+                return;
+            }
+            // creating the mfa token in case the customer is using
+            // otp verification to delete the device
+            // this is mainly for backwards compatibility with the
+            // suggested flow before passkeys were introduced
+            clearStackAndPush('mfa-verification', {
+                createMfaToken: true,
+            });
+        }
+        setShowAuthFlow(value, { emitCancelAuth: true });
+    }, [isTotpMfaEnabled, setShowAuthFlow, clearStackAndPush]);
+    const setShowMfaViewBackupCodes = useCallback((value) => {
+        if (value) {
+            if (!isMfaEnabled) {
+                return;
+            }
+            clearStackAndPush('mfa-display-backup-codes');
+        }
+        setShowAuthFlow(value, { emitCancelAuth: true });
+    }, [isMfaEnabled, setShowAuthFlow, clearStackAndPush]);
+    const setShowMfaEnterBackupCodes = useCallback((value) => {
+        if (value) {
+            if (!isMfaEnabled) {
+                return;
+            }
+            clearStackAndPush('mfa-recovery');
+        }
+        setShowAuthFlow(value, { emitCancelAuth: true });
+    }, [isMfaEnabled, setShowAuthFlow, clearStackAndPush]);
+    return {
+        /**
+         * @deprecated use setShowTotpMfaManage instead
+         */
+        setShowMFAManage: setShowTotpMfaManage,
+        setShowMfaChooseType,
+        setShowMfaEnterBackupCodes,
+        setShowMfaQRCode,
+        setShowMfaViewBackupCodes,
+        setShowOTPVerification,
+        setShowTotpMfaManage,
+    };
+};
+
+export { useMfaModals };

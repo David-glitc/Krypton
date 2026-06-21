@@ -1,0 +1,47 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var runtime = require('../runtime.cjs');
+
+/* tslint:disable */
+function SwapEvmTransactionDataFromJSON(json) {
+    return SwapEvmTransactionDataFromJSONTyped(json);
+}
+function SwapEvmTransactionDataFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'to': json['to'],
+        'data': json['data'],
+        'value': json['value'],
+        'gasLimit': !runtime.exists(json, 'gasLimit') ? undefined : json['gasLimit'],
+        'gasPrice': !runtime.exists(json, 'gasPrice') ? undefined : json['gasPrice'],
+        'maxFeePerGas': !runtime.exists(json, 'maxFeePerGas') ? undefined : json['maxFeePerGas'],
+        'maxPriorityFeePerGas': !runtime.exists(json, 'maxPriorityFeePerGas') ? undefined : json['maxPriorityFeePerGas'],
+        'nonce': !runtime.exists(json, 'nonce') ? undefined : json['nonce'],
+    };
+}
+function SwapEvmTransactionDataToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'to': value.to,
+        'data': value.data,
+        'value': value.value,
+        'gasLimit': value.gasLimit,
+        'gasPrice': value.gasPrice,
+        'maxFeePerGas': value.maxFeePerGas,
+        'maxPriorityFeePerGas': value.maxPriorityFeePerGas,
+        'nonce': value.nonce,
+    };
+}
+
+exports.SwapEvmTransactionDataFromJSON = SwapEvmTransactionDataFromJSON;
+exports.SwapEvmTransactionDataFromJSONTyped = SwapEvmTransactionDataFromJSONTyped;
+exports.SwapEvmTransactionDataToJSON = SwapEvmTransactionDataToJSON;

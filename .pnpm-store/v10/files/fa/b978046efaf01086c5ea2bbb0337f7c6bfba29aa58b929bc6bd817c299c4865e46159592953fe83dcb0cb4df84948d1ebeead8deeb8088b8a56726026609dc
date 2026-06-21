@@ -1,0 +1,2 @@
+export { buildInAppBrowserOptions } from './buildInAppBrowserOptions';
+//# sourceMappingURL=index.d.ts.map

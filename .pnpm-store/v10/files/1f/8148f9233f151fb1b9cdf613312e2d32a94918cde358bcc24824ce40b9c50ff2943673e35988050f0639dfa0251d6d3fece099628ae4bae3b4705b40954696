@@ -1,0 +1,6 @@
+import { TokenScope } from '@dynamic-labs/sdk-api-core';
+type UseGetElevatedAccessToken = (params: {
+    scope: TokenScope;
+}) => Promise<string | undefined>;
+export declare const useGetElevatedAccessToken: () => UseGetElevatedAccessToken;
+export {};

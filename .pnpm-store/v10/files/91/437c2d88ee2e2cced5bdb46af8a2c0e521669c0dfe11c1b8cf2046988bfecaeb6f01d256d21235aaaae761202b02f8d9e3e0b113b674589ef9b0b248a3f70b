@@ -1,0 +1,1 @@
+{"version":3,"file":"InvalidDERSignatureError.d.ts","sourceRoot":"","sources":["../../../src/utils/derToP1363/InvalidDERSignatureError.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,SAAS,EAAE,MAAM,mBAAmB,CAAC;AAE9C,qBAAa,wBAAyB,SAAQ,SAAS;gBAEzC,OAAO,EAAE,MAAM;CAS5B"}

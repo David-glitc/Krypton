@@ -1,0 +1,188 @@
+'use client'
+import { __awaiter } from '../../../../../_virtual/_tslib.js';
+import { useMemo, useCallback } from 'react';
+import { JwtVerifiedCredentialFormatEnum } from '@dynamic-labs/sdk-api-core';
+import { DeferredPromise } from '@dynamic-labs/utils';
+import '@dynamic-labs-sdk/client/core';
+import 'eventemitter3';
+import '@dynamic-labs-sdk/client';
+import '../../../config/ApiEndpoint.js';
+import '@dynamic-labs/iconic';
+import '@dynamic-labs/wallet-connector-core';
+import 'react/jsx-runtime';
+import { useViewContext } from '../../../context/ViewContext/ViewContext.js';
+import '../../../shared/logger.js';
+import '@dynamic-labs/wallet-book';
+import '../../constants/colors.js';
+import '../../constants/values.js';
+import '../../../shared/consts/index.js';
+import '@dynamic-labs/multi-wallet';
+import 'react-international-phone';
+import '../../../store/state/nonce/nonce.js';
+import '@dynamic-labs/locale';
+import '../../../store/state/dynamicContextProps/dynamicContextProps.js';
+import '../../../store/state/primaryWalletId/primaryWalletId.js';
+import '../../../store/state/connectedWalletsInfo/connectedWalletsInfo.js';
+import '../../functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.js';
+import { dynamicEvents } from '../../../events/dynamicEvents.js';
+import { useUser } from '../../../client/extension/user/useUser/useUser.js';
+import { getSignInCredentialIdFromMinToken } from '../../../client/extension/functions/getSignInCredentialIdFromMinToken/getSignInCredentialIdFromMinToken.js';
+import '../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { useInternalUserWallets } from '../../../context/UserWalletsContext/UserWalletsContext.js';
+import { shortenWalletAddress } from '../../../shared/utils/functions/shortenWalletAddress/shortenWalletAddress.js';
+
+const WALLET_KEYS_EXCLUDED_FROM_STEP_UP_REAUTH = [
+    'zerodev', // smart contract / account abstraction
+    'dynamicwaas', // embedded wallet (WaaS)
+    'turnkey', // Turnkey embedded keys
+    'turnkeyhd', // Turnkey HD embedded keys
+];
+const isWalletExcludedFromStepUpReauth = (wallet) => {
+    var _a;
+    const key = (_a = wallet.connector) === null || _a === void 0 ? void 0 : _a.key;
+    if (key &&
+        WALLET_KEYS_EXCLUDED_FROM_STEP_UP_REAUTH.includes(key)) {
+        return true;
+    }
+    const connector = wallet.connector;
+    return (connector === null || connector === void 0 ? void 0 : connector.isEmbeddedWallet) === true;
+};
+const isOtpCredential = (cred) => cred.format === JwtVerifiedCredentialFormatEnum.Email ||
+    cred.format === JwtVerifiedCredentialFormatEnum.PhoneNumber;
+const formatPhoneLabel = (cred) => [cred.phoneCountryCode, cred.phoneNumber].filter(Boolean).join(' ') || '';
+const useStepUpPromptReauth = () => {
+    const { setShowAuthFlow } = useInternalDynamicContext();
+    const { pushView } = useViewContext();
+    const user = useUser();
+    const { userWallets } = useInternalUserWallets();
+    const options = useMemo(() => {
+        var _a;
+        const opts = [];
+        const credentials = (_a = user === null || user === void 0 ? void 0 : user.verifiedCredentials) !== null && _a !== void 0 ? _a : [];
+        credentials
+            .filter((cred) => cred.signInEnabled === true && isOtpCredential(cred))
+            .forEach((cred) => {
+            var _a;
+            const type = cred.format === JwtVerifiedCredentialFormatEnum.Email
+                ? 'email'
+                : 'sms';
+            const label = type === 'email'
+                ? (_a = cred.email) !== null && _a !== void 0 ? _a : ''
+                : formatPhoneLabel(cred);
+            if (label) {
+                opts.push({ credentialId: cred.id, label, type });
+            }
+        });
+        userWallets
+            .filter((wallet) => !isWalletExcludedFromStepUpReauth(wallet))
+            .filter((wallet) => {
+            const verifiedCredential = credentials.find((cred) => cred.id === wallet.id);
+            return (verifiedCredential === null || verifiedCredential === void 0 ? void 0 : verifiedCredential.signInEnabled) === true;
+        })
+            .forEach((wallet) => {
+            var _a;
+            const label = ((_a = wallet.connector) === null || _a === void 0 ? void 0 : _a.name) && wallet.address
+                ? `${wallet.connector.name} (${shortenWalletAddress(wallet.address)})`
+                : shortenWalletAddress(wallet.address) || wallet.id;
+            opts.push({
+                credentialId: wallet.id,
+                label,
+                type: 'wallet',
+            });
+        });
+        credentials
+            .filter((cred) => cred.format === JwtVerifiedCredentialFormatEnum.Oauth &&
+            cred.oauthProvider !== null &&
+            cred.oauthProvider !== undefined &&
+            cred.signInEnabled === true)
+            .forEach((cred) => {
+            var _a;
+            const label = (_a = cred.oauthDisplayName) !== null && _a !== void 0 ? _a : String(cred.oauthProvider);
+            opts.push({
+                credentialId: cred.id,
+                label,
+                oauthProvider: cred.oauthProvider,
+                type: 'oauth',
+            });
+        });
+        return opts;
+    }, [user === null || user === void 0 ? void 0 : user.verifiedCredentials, userWallets]);
+    const promptReauthenticate = useCallback((props) => __awaiter(void 0, void 0, void 0, function* () {
+        if (options.length === 0) {
+            return Promise.reject(new Error('No reauthentication methods available. Add email, SMS, wallet, or a social account to your account.'));
+        }
+        const deferred = new DeferredPromise();
+        let authFlowCleanedUp = false;
+        const cleanupAuthFlowListener = () => {
+            if (authFlowCleanedUp)
+                return;
+            authFlowCleanedUp = true;
+            dynamicEvents.off('authFlowClose', onAuthFlowClose);
+        };
+        const onAuthFlowClose = () => {
+            cleanupAuthFlowListener();
+            deferred.reject(new Error('Reauthentication flow closed'));
+        };
+        const onSuccess = () => {
+            cleanupAuthFlowListener();
+            deferred.resolve(undefined);
+        };
+        const onError = (error) => {
+            cleanupAuthFlowListener();
+            deferred.reject(error);
+        };
+        setShowAuthFlow(true);
+        if (options.length === 1) {
+            const [onlyOption] = options;
+            if (onlyOption.type === 'email' || onlyOption.type === 'sms') {
+                pushView('step-up-reauth-otp', {
+                    credentialId: onlyOption.credentialId,
+                    displayLabel: onlyOption.label,
+                    onError,
+                    onSuccess,
+                    requestedScopes: props === null || props === void 0 ? void 0 : props.requestedScopes,
+                    type: onlyOption.type,
+                });
+            }
+            else if (onlyOption.type === 'oauth' && onlyOption.oauthProvider) {
+                pushView('step-up-reauth-social', {
+                    onError,
+                    onSuccess,
+                    provider: onlyOption.oauthProvider,
+                    requestedScopes: props === null || props === void 0 ? void 0 : props.requestedScopes,
+                });
+            }
+            else {
+                pushView('step-up-reauth-wallet', {
+                    credentialId: onlyOption.credentialId,
+                    onError,
+                    onSuccess,
+                    requestedScopes: props === null || props === void 0 ? void 0 : props.requestedScopes,
+                });
+            }
+        }
+        else {
+            const signInCredentialId = getSignInCredentialIdFromMinToken();
+            const primaryOption = options.find((o) => o.credentialId === signInCredentialId);
+            const otherOptions = primaryOption
+                ? options.filter((o) => o.credentialId !== signInCredentialId)
+                : options;
+            pushView('step-up-reauth-choose', {
+                onError,
+                onSuccess,
+                otherOptions,
+                primaryOption,
+                requestedScopes: props === null || props === void 0 ? void 0 : props.requestedScopes,
+            });
+        }
+        dynamicEvents.on('authFlowClose', onAuthFlowClose);
+        return deferred.promise.then((result) => {
+            setShowAuthFlow(false);
+            return result;
+        });
+    }), [options, pushView, setShowAuthFlow]);
+    return { promptReauthenticate };
+};
+
+export { useStepUpPromptReauth };

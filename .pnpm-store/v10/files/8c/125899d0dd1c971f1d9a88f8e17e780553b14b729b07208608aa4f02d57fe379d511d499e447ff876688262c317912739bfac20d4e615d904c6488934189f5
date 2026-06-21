@@ -1,0 +1,22 @@
+import type { DynamicClient } from '../../../../client/types';
+export type ClearCheckoutSessionTokenParams = {
+    transactionId: string;
+};
+/**
+ * Removes the locally stored checkout session token for the given transaction.
+ *
+ * The checkout session token is the anonymous credential that authorizes
+ * mutations to a single in-flight checkout transaction. Once the transaction
+ * has reached a terminal state (cancelled, expired, failed, completed) it can
+ * no longer be advanced, and the token is dead weight that should not be
+ * persisted in browser storage — leaving it around lets a later XSS payload
+ * exfiltrate a credential with no further use, and it can also confuse the
+ * SDK on subsequent loads into believing an active session exists.
+ *
+ * The server-side revocation lives in dashboard-api; this is the SDK-side
+ * defense-in-depth.
+ *
+ * @not-instrumented
+ */
+export declare const clearCheckoutSessionToken: ({ transactionId }: ClearCheckoutSessionTokenParams, client: DynamicClient) => Promise<void>;
+//# sourceMappingURL=clearCheckoutSessionToken.d.ts.map

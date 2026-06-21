@@ -1,0 +1,23 @@
+'use client'
+import { jsx } from 'react/jsx-runtime';
+import { createContext, useState, useMemo } from 'react';
+import { createProviderHook } from '../../shared/utils/functions/createProviderHook/createProviderHook.js';
+
+const AccessDeniedContext = createContext(undefined);
+const AccessDeniedContextProvider = ({ children, }) => {
+    const [deniedOauthUsername, setDeniedOauthUsername] = useState('');
+    const [deniedAddress, setDeniedAddress] = useState('');
+    const [deniedOauthProvider, setDeniedOauthProvider] = useState(undefined);
+    const value = useMemo(() => ({
+        deniedAddress,
+        deniedOauthProvider,
+        deniedOauthUsername,
+        setDeniedAddress,
+        setDeniedOauthProvider,
+        setDeniedOauthUsername,
+    }), [deniedAddress, deniedOauthProvider, deniedOauthUsername]);
+    return (jsx(AccessDeniedContext.Provider, { value: value, children: children }));
+};
+const useAccessDeniedContext = createProviderHook(AccessDeniedContext, 'AccessDeniedContextProvider');
+
+export { AccessDeniedContext, AccessDeniedContextProvider, useAccessDeniedContext };

@@ -1,0 +1,251 @@
+import type { TokenBalance } from '@dynamic-labs/sdk-api-core';
+/**
+ * Generic type for a transaction to navigate through the different chains
+ * for sending transaction with dynamic's UI
+ */
+export interface IUITransaction {
+    /**
+     * The address of the recipient.
+     *
+     * This can start out as undefined because it will be set by the user from the UI.
+     */
+    to: string | undefined;
+    /**
+     * The address of the sender.
+     *
+     * This field normally needs to be automatically set from the wallet connector implementing
+     * [createUiTransaction].
+     */
+    from: string;
+    /**
+     * The value of the transaction in atomic units (MIST for SUI, Lamports for SOL, etc.)
+     *
+     * This can start out as undefined because it will be set by the user from the UI.
+     */
+    value: bigint | undefined;
+    /**
+     * The value of the transaction in non-native atomic units.
+     *
+     * [parseNonNativeToken] will determine how many decimals this is.
+     */
+    nonNativeValue?: bigint;
+    /**
+     * The address of the recipient that won't be validated by [validateAddressFormat].
+     */
+    nonNativeAddress?: string;
+    /**
+     * The number of decimals for the non-native token.
+     */
+    nonNativeDecimal?: number;
+    /**
+     * The address of the token to use for paying transaction fees.
+     * Used by chains like Tempo that have no native token and pay fees in stablecoins.
+     */
+    feeTokenAddress?: string;
+    /**
+     * The symbol of the token used for paying transaction fees (e.g., "PathUSD").
+     * Used by chains like Tempo for display purposes.
+     */
+    feeTokenSymbol?: string;
+    /**
+     * The chain of the transaction, e.g. "ETH", "SOL", "SUI", etc.
+     */
+    chain: string;
+    /**
+     * The data of the transaction.
+     *
+     * New implementations of [createUiTransaction] can start with this undefined.
+     */
+    data: string | undefined;
+    /**
+     * The native price of the transaction, fetched programmatically.
+     *
+     * This should start out as undefined because it will typically be set from the UI.
+     */
+    nativePrice?: number;
+    /**
+     * Multiple transactions to be executed in the same call.
+     *
+     * Check out [SolanaUiTransactions] for an example of how to implement this.
+     */
+    multipleTransactions?: any[];
+    /**
+     * The fee of the transaction in atomic units.
+     *
+     * This should start out as undefined and then be set by [fetchFee]. It will be
+     * rendered in the UI as the "Network Fee" field.
+     */
+    fee: {
+        gas: bigint | undefined;
+    };
+    /**
+     * Parses the input string from the UI into a value in atomic units.
+     */
+    parse: (input: string) => bigint;
+    /**
+     * Parses the input string from the UI into a value in atomic units for non-native tokens.
+     */
+    parseNonNativeToken?: (input: string, decimals: number) => bigint;
+    /**
+     * Formats the value into a string for the UI.
+     */
+    format: (value: bigint, options?: IUITransactionFormatOptions) => string;
+    /**
+     * Formats the value into a string for the UI for non-native tokens.
+     */
+    formatNonNativeToken?: (value: bigint, decimals: number) => string;
+    /**
+     * The receipt of the transaction.
+     *
+     * @deprecated This is currently not used anywhere.
+     */
+    receipt: string | undefined;
+    /**
+     * Creates and runs the transaction.
+     *
+     * Currently, we implement this by generating a transaction and calling an onSubmit
+     * callback passed in the constructor.
+     */
+    submit: () => Promise<any>;
+    /**
+     * Fetches the balance of the sender in atomic units.
+     *
+     * This value is shown under the "Enter amount" field.
+     */
+    getBalance: () => Promise<bigint>;
+    /**
+     * Fetches the fee for the transaction.
+     *
+     * This function should set fee.gas
+     */
+    fetchFee: () => Promise<void>;
+    /**
+     * Additional helper to determine the recipient if it's not just the "to" field.
+     *
+     * Currently only used in [ViemUiTransaction].
+     */
+    getTransactionRecipient?: () => string | undefined;
+    /**
+     * Validates the address format.
+     */
+    validateAddressFormat: (address: string) => boolean;
+    /**
+     * Whether the transaction is gas sponsored.
+     */
+    isGasSponsored?: () => boolean;
+    /**
+     * Checks if the destination account exists on the network.
+     * For chains like Stellar where accounts must be funded before receiving.
+     * Returns true if account exists, false if it needs activation.
+     */
+    checkDestinationAccount?: () => Promise<boolean>;
+    /**
+     * Returns any pre-submit validation error.
+     * Used to display errors on the confirmation screen and disable the confirm button.
+     * For example, Stellar returns an error if sending < 1 XLM to an unfunded account.
+     */
+    getPreSubmitValidationError?: () => string | undefined;
+    /**
+     * Optional set of chain-specific transaction modes (e.g. Aleo's
+     * Individual / Exchange = private vs. public transfer). When provided,
+     * the widget's send form renders a segmented control below the recipient
+     * field; the user's selection is delivered back via [setTransactionMode].
+     *
+     * Other chains leave this undefined and the widget renders no toggle
+     * (current behaviour preserved).
+     */
+    transactionModes?: TransactionModeOption[];
+    /**
+     * The currently selected transaction mode id. The form reads this to
+     * highlight the active segment of the toggle. Mirror of [setTransactionMode]
+     * — the widget is the source of truth for selection, the transaction
+     * is the source of truth for behaviour at submit time.
+     */
+    selectedTransactionMode?: string;
+    /**
+     * Called by the widget when the user picks a mode in the segmented
+     * control. Implementations should update `selectedTransactionMode` and
+     * mutate any internal state that affects [submit] / [getRecordMergeAction].
+     */
+    setTransactionMode?: (modeId: string) => void;
+    /**
+     * Optional inline call-to-action surfaced on the form when the current
+     * (mode, amount, balance) state requires user remediation that the form
+     * itself can trigger — e.g. Aleo's "no single private record covers the
+     * amount; merge records first". Returning `undefined` hides the banner.
+     *
+     * The widget renders an alert showing `message` plus a button that
+     * invokes `onAction`; while the action is in-flight the form disables
+     * the submit button.
+     */
+    getRecordMergeAction?: () => RecordMergeAction | undefined;
+    /**
+     * Optional. Called by the send form whenever the amount input changes
+     * (on blur) so the transaction can keep any derived state — chiefly
+     * [getRecordMergeAction] — current with what the user has typed.
+     * Implementations should never throw on invalid input; they should
+     * either no-op or clear the derived state. The form already handles
+     * Yup validation separately.
+     */
+    setPendingAmount?: (amountInput: string) => void;
+    /**
+     * Optional. When provided, the SendBalanceView uses this list as the
+     * token picker's source AND for the "Available" balance display,
+     * instead of the default `useTokenBalances` (redcoast-backed) fetch.
+     *
+     * Useful for chains where the SPENDABLE balance differs from a public
+     * balance lookup. For example, Aleo always spends from private records
+     * during a Send, so the picker should reflect the user's shielded
+     * balance — not the public mapping value redcoast returns.
+     *
+     * Implementations should return `TokenBalance` entries shaped like
+     * what `useTokenBalances` would return (so the rest of the form
+     * renders unchanged): `address`, `name`, `symbol`, `decimals`,
+     * `balance` (display units, number), `rawBalance` (atomic units,
+     * number — lossy above 2^53) and `rawBalanceString` (atomic units,
+     * decimal-encoded string — precision-safe) at minimum, plus optional
+     * `logoURI`, `isNative`, `price`.
+     *
+     * Resolves to `undefined` (or absent) → form falls back to the
+     * default fetcher and behaves as today for every other chain.
+     */
+    getSendableTokenBalances?: () => Promise<TokenBalance[] | undefined>;
+    /**
+     * Optional. Called by the send form whenever the user picks a different
+     * token in the picker, with the token's `address` (`contractAddress`).
+     * Implementations should update any per-token state that affects
+     * [submit], [getBalance], [getRecordMergeAction], or [parse]/[format]
+     * decimals. Used by chains where the picker entries map to materially
+     * different submit paths (e.g. Aleo: credits vs. stablecoin vs. ARC-21,
+     * each with its own program id and transition signature).
+     *
+     * Other chains leave this undefined; the form does not call it.
+     */
+    setSelectedToken?: (contractAddress: string) => void;
+}
+/** A single option rendered in the send form's transaction-mode toggle. */
+export interface TransactionModeOption {
+    /** Stable id, returned by `setTransactionMode`. */
+    id: string;
+    /** User-facing label (e.g. "Individual"). */
+    label: string;
+    icon?: 'individual' | 'exchange';
+    /** When true, the segment renders disabled and is non-interactive. */
+    disabled?: boolean;
+    /** Optional tooltip explaining the disabled state. */
+    disabledReason?: string;
+}
+export interface RecordMergeAction {
+    /** Plain-text explanation of what's wrong. */
+    message: string;
+    /** Label for the action button (e.g. "Merge records"). */
+    actionLabel: string;
+    onAction: () => Promise<void>;
+}
+export interface IUITransactionFormatOptions {
+    precision?: number;
+}
+export type TransactionReceipt<status = 'success' | 'reverted'> = {
+    /** `success` if this transaction was successful or `reverted` if it failed */
+    status: status;
+};

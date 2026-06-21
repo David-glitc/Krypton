@@ -1,0 +1,4 @@
+import EventEmitter from 'eventemitter3';
+/** @not-instrumented */
+export declare const createEventEmitter: () => EventEmitter<string | symbol, any>;
+//# sourceMappingURL=createEventEmitter.d.ts.map

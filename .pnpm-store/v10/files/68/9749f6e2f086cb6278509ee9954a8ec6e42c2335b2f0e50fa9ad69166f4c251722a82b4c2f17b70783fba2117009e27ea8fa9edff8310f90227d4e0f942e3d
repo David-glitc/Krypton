@@ -1,0 +1,64 @@
+import type * as z from 'zod/mini';
+import type { DynamicClient } from '../../client/types';
+/**
+ * Connection states for the realtime service.
+ *
+ * - `idle`: Created but `connect()` not yet called.
+ * - `connecting`: Establishing connection.
+ * - `connected`: Connection active and ready.
+ * - `disconnected`: Temporary disconnection; the service auto-retries.
+ * - `suspended`: 2+ min offline; retries at a slower rate.
+ * - `closing`: Connection is being closed.
+ * - `closed`: Connection closed intentionally.
+ * - `failed`: Unrecoverable error (e.g. bad auth).
+ */
+export type RealtimeConnectionState = 'idle' | 'connecting' | 'connected' | 'disconnected' | 'suspended' | 'closing' | 'closed' | 'failed';
+export type RealtimeEventMap = {
+    connectionStateChange: (state: RealtimeConnectionState) => void;
+};
+/**
+ * Defines a realtime channel with its name and a Zod schema
+ * for validating published/received message data.
+ *
+ * Mirrors StorageKeySchema from the storage service.
+ */
+export type RealtimeChannelSchema<T> = {
+    channel: string;
+    schema: z.ZodMiniType<T>;
+};
+/**
+ * Service for real-time pub/sub messaging.
+ *
+ * Note: The underlying transport supports an optional `name` field for
+ * event-type routing within a channel (e.g. subscribe to only "created" events).
+ * This is intentionally omitted for now to keep the API simple.
+ * If needed in the future, `publish` can accept an optional `name`
+ * and `subscribe` can accept an optional `eventName` filter.
+ */
+export type RealtimeService = {
+    connect: (params: {
+        client: DynamicClient;
+        headers?: Record<string, string>;
+    }) => Promise<void>;
+    disconnect: () => void;
+    getConnectionState: () => RealtimeConnectionState;
+    off: <E extends keyof RealtimeEventMap>(event: E, callback: RealtimeEventMap[E]) => void;
+    on: <E extends keyof RealtimeEventMap>(event: E, callback: RealtimeEventMap[E]) => void;
+    publish: <T>(params: {
+        channelSchema: RealtimeChannelSchema<T>;
+        data: T;
+    }) => Promise<void>;
+    subscribe: <T>(params: {
+        callback: (message: {
+            data: T;
+        }) => void;
+        channelSchema: RealtimeChannelSchema<T>;
+    }) => Promise<void>;
+    unsubscribe: <T>(params: {
+        callback: (message: {
+            data: T;
+        }) => void;
+        channelSchema: RealtimeChannelSchema<T>;
+    }) => void;
+};
+//# sourceMappingURL=realtime.types.d.ts.map

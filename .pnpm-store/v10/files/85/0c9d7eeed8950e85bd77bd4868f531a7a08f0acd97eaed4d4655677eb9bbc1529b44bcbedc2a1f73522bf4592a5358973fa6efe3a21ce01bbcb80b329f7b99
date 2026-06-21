@@ -1,0 +1,163 @@
+import type { Chain } from '../chain';
+/**
+ * Identifies where a registered wallet provider came from. Used as the
+ * `source` discriminator on `WithWalletProviderConnectionOption` so customer
+ * UIs can label "browser extension" vs "wallet SDK" without having to inspect
+ * the registered provider's metadata.
+ *
+ * - `selfAnnounced`: announced via an in-page self-announcement standard
+ *   (EIP-6963 on EVM, Wallet Standard on Solana / Sui / …).
+ * - `windowInjected`: legacy `window.*` injection (e.g. `window.ethereum`).
+ * - `sdk`: registered by a chain extension that wraps a vendor SDK
+ *   (Base Account via `@base-org/account`, MetaMask Connect, etc.).
+ */
+export type WithWalletProviderSource = 'selfAnnounced' | 'windowInjected' | 'sdk';
+/**
+ * A wallet that the customer can connect to directly through a registered
+ * wallet provider. The customer resolves the live provider via
+ * `getWalletProviderByKey({ key: walletProviderKey })`, then calls
+ * `.connect()` / `.signMessage()` / etc. on it.
+ *
+ * `walletProviderKey` follows the standard format produced by
+ * `formatWalletProviderKey`:
+ * `<normalizedWalletNameWithChain>:<walletProviderType>[:<suffix>]`.
+ */
+export type WithWalletProviderConnectionOption = {
+    chain: Chain;
+    source: WithWalletProviderSource;
+    type: 'withWalletProvider';
+    walletProviderKey: string;
+};
+/**
+ * A wallet reachable through a URI deeplink. Carries deeplinks only;
+ * the customer drives the connection themselves by minting the
+ * appropriate URI and appending it onto one of the deeplinks via
+ * `appendConnectionUriToDeeplink`.
+ *
+ * The `type` discriminator picks the connection driver:
+ *
+ * - `'walletConnect'`: drive via WalletConnect — mint the URI with
+ *   `connectWithWalletConnect<Chain>`.
+ * - `'metamaskSdkUri'`: drive via MetaMask's own URI connection
+ *   extension — mint the URI with `connectWithMetaMaskUriEvm` or
+ *   `connectWithMetaMaskUriSolana`. Emitted only for the MetaMask
+ *   wallet entry.
+ */
+export type UriDeeplinkConnectionOption = {
+    chain: Chain;
+    deeplinks: {
+        /** Native deeplink scheme (e.g. `trust://`). */
+        native?: string;
+        /** Universal link (e.g. `https://link.trustwallet.com`). */
+        universal?: string;
+    };
+    type: 'walletConnect' | 'metamaskSdkUri';
+};
+/**
+ * A mobile wallet that exposes an in-app browser entry URL. The URL is a
+ * template (e.g. `https://go.base.app/dapp?cb_url={{encodedDappURI}}`) — the
+ * customer substitutes `{{encodedDappURI}}` with the encoded current dapp URL
+ * before opening it.
+ */
+export type InAppBrowserConnectionOption = {
+    chain: Chain;
+    type: 'inAppBrowser';
+    url: string;
+};
+/**
+ * Install / download links for a wallet option whose product can be
+ * installed by the user on this device. Surfaced on `WalletOption` when
+ * `includeMobileOptions: true` is passed to `getWalletOptionsCatalogue`.
+ *
+ * Installation is intentionally not a `WalletConnectionOption` — the user
+ * cannot "connect" with an install link, and rendering it inline with
+ * real connection actions misleads them. Each platform's URL is optional
+ * and only present when the wallet book carries the corresponding store
+ * ID.
+ */
+export type InstallationUrls = {
+    android?: string;
+    chrome?: string;
+    edge?: string;
+    firefox?: string;
+    ios?: string;
+    native?: string;
+    opera?: string;
+    safari?: string;
+};
+/**
+ * One option for connecting to a wallet option. Each `WalletOption`
+ * carries an ordered array of these; the first element is always "the
+ * best available connection" by the priority documented on
+ * `getWalletOptionsCatalogue`.
+ */
+export type WalletConnectionOption = WithWalletProviderConnectionOption | UriDeeplinkConnectionOption | InAppBrowserConnectionOption;
+/**
+ * A wallet option surfaced by `getWalletOptionsCatalogue` — one wallet the
+ * user can sign in with (MetaMask, Coinbase, Phantom, …). A wallet option
+ * surfaces when it has at least one `connectionOption` OR a populated
+ * `installationUrls` bag — install-only wallets (no connection available
+ * but the user can install the product) are surfaced with empty
+ * `connectionOptions` so the customer UI can render the install links
+ * distinctly.
+ */
+export type WalletOption = {
+    /**
+     * Ordered connection options for this wallet. Sorted by option-type
+     * priority (`withWalletProvider` > URI deeplink > `inAppBrowser`),
+     * then by chain for stability. May be empty when only
+     * `installationUrls` are available.
+     */
+    connectionOptions: WalletConnectionOption[];
+    /** Full URL to the wallet's icon. */
+    iconUrl: string;
+    /**
+     * Install / download links for this wallet. Present when
+     * `includeMobileOptions: true` is passed to `getWalletOptionsCatalogue`
+     * and the wallet book carries at least one store ID / desktop URL for
+     * the wallet. The customer UI should render these as install actions,
+     * distinct from `connectionOptions`.
+     */
+    installationUrls?: InstallationUrls;
+    /** Stable key from the wallet book (e.g. `"metamask"`). */
+    key: string;
+    /** Display name for the wallet. */
+    name: string;
+    /** Brand color in hex (e.g. `"#f6851b"`). */
+    primaryColor?: string;
+};
+/**
+ * Controls how wallet options are ordered in the returned catalogue.
+ *
+ * - `'relevance'` (default): Dynamic's recommended order.
+ * - `'alphabetical'`: case-insensitive by wallet option `name`.
+ */
+export type WalletOptionOrdering = 'relevance' | 'alphabetical';
+/** Parameters for `getWalletOptionsCatalogue`. */
+export type GetWalletOptionsCatalogueParams = {
+    /**
+     * Connection option types to drop from the catalogue before sorting and
+     * bucketing. Use this to opt a surface out of the catalogue without
+     * relying on caller-side filters — e.g. dropping `'inAppBrowser'` on
+     * desktop so wallets whose only connection was an in-app-browser entry
+     * fall through to the install-only tier instead of appearing in the
+     * connectable bucket with no effective connect path.
+     *
+     * Defaults to `[]` (include every type).
+     */
+    excludedConnectionOptionTypes?: WalletConnectionOption['type'][];
+    /**
+     * Defaults to `false`. When `true`, additionally includes
+     * WalletConnect, in-app-browser, and install link surfaces. Adds
+     * network latency.
+     */
+    includeMobileOptions?: boolean;
+    /** Defaults to `'relevance'`. See {@link WalletOptionOrdering}. */
+    walletOptionOrdering?: WalletOptionOrdering;
+};
+/**
+ * Return type of `getWalletOptionsCatalogue` — an ordered array of wallet
+ * options. See {@link WalletOptionOrdering} for ordering details.
+ */
+export type WalletOptionsCatalogue = WalletOption[];
+//# sourceMappingURL=walletOptionsCatalogue.types.d.ts.map

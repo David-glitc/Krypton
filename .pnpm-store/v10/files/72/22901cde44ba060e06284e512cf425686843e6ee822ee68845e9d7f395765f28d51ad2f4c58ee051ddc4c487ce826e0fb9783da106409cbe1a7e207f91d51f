@@ -1,0 +1,18 @@
+import type { ProjectSettings } from '@dynamic-labs/sdk-api-core';
+import type { NetworksOverrides } from '../../../context/DynamicContext';
+type UseNetworkConfigurationsFromProjectSettingsProps = {
+    projectSettings: ProjectSettings | undefined;
+    aleoNetworksOverrides?: NetworksOverrides;
+    evmNetworksOverrides?: NetworksOverrides;
+    cosmosNetworkOverrides?: NetworksOverrides;
+    solanaNetworksOverrides?: NetworksOverrides;
+    tronNetworksOverrides?: NetworksOverrides;
+    aptosNetworksOverrides?: NetworksOverrides;
+    stellarNetworksOverrides?: NetworksOverrides;
+    tempoNetworksOverrides?: NetworksOverrides;
+    tonNetworksOverrides?: NetworksOverrides;
+    bitcoinNetworksOverrides?: NetworksOverrides;
+    midnightNetworksOverrides?: NetworksOverrides;
+};
+export declare const useNetworkConfigurationsFromProjectSettings: ({ projectSettings, aleoNetworksOverrides, cosmosNetworkOverrides, evmNetworksOverrides, solanaNetworksOverrides, tronNetworksOverrides, aptosNetworksOverrides, stellarNetworksOverrides, tempoNetworksOverrides, tonNetworksOverrides, bitcoinNetworksOverrides, midnightNetworksOverrides, }: UseNetworkConfigurationsFromProjectSettingsProps) => {};
+export {};

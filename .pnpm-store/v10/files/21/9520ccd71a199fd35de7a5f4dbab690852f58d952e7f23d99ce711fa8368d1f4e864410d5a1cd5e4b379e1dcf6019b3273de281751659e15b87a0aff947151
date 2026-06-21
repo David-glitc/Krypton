@@ -1,0 +1,2 @@
+export { ensureCorrectActiveNetwork } from './ensureCorrectActiveNetwork';
+//# sourceMappingURL=index.d.ts.map

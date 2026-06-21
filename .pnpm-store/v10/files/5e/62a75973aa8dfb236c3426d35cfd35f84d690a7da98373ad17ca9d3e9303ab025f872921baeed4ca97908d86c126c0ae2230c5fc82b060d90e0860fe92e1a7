@@ -1,0 +1,40 @@
+'use client'
+import { useMemo } from 'react';
+import '../../../../../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { useExchangeRatesForFunding } from '../useExchangeRatesForFunding/useExchangeRatesForFunding.js';
+
+const useExchangeTokensForFunding = ({ accounts, }) => {
+    var _a;
+    const { primaryWallet, network } = useInternalDynamicContext();
+    const enabledNetworks = primaryWallet === null || primaryWallet === void 0 ? void 0 : primaryWallet.connector.getEnabledNetworks();
+    const logoURI = (_a = enabledNetworks === null || enabledNetworks === void 0 ? void 0 : enabledNetworks.find(({ chainId }) => chainId === network)) === null || _a === void 0 ? void 0 : _a.iconUrls[0];
+    const fundingTokens = accounts.flatMap((account) => account.balances.map((balance) => {
+        var _a;
+        return ({
+            balance: balance.balance,
+            fiatBalance: undefined,
+            logoURI: (_a = balance.logoURI) !== null && _a !== void 0 ? _a : logoURI,
+            name: balance.currency,
+            symbol: balance.currency,
+            token: 'native', // INFORMATION WILL BE ADDED FROM BACKEND
+        });
+    }));
+    const exchangeRates = useExchangeRatesForFunding({
+        onFetch: () => { },
+        tokenBalances: fundingTokens,
+    });
+    const updatedFundingTokens = useMemo(() => {
+        if (!exchangeRates)
+            return fundingTokens;
+        return fundingTokens.map((t) => {
+            const price = exchangeRates[t.symbol];
+            return Object.assign(Object.assign({}, t), { fiatBalance: price !== undefined ? t.balance * price : undefined });
+        });
+    }, [fundingTokens, exchangeRates]);
+    return {
+        tokens: updatedFundingTokens,
+    };
+};
+
+export { useExchangeTokensForFunding };

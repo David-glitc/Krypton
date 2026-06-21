@@ -1,0 +1,5 @@
+import type { Checkout } from '@dynamic-labs/sdk-api-core';
+import type { DynamicClient } from '../../../client/types';
+/** @not-instrumented */
+export declare const getCheckouts: (client: DynamicClient) => Promise<Checkout[]>;
+//# sourceMappingURL=getCheckouts.d.ts.map

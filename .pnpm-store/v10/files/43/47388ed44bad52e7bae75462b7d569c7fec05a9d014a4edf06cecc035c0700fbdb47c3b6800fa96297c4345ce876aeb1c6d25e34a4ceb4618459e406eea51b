@@ -1,0 +1,5 @@
+import { BaseError } from '../../../../errors/base';
+export declare class MoonPayProviderNotAvailableError extends BaseError {
+    constructor();
+}
+//# sourceMappingURL=MoonPayProviderNotAvailableError.d.ts.map

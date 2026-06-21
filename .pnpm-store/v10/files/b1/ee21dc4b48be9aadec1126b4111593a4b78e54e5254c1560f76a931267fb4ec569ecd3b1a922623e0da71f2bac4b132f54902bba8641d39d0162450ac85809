@@ -1,0 +1,28 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var jsxRuntime = require('react/jsx-runtime');
+var React = require('react');
+var createProviderHook = require('../../shared/utils/functions/createProviderHook/createProviderHook.cjs');
+var ViewContext = require('../ViewContext/ViewContext.cjs');
+
+const FooterAnimationContext = React.createContext(undefined);
+const FooterAnimationContextProvider = ({ children, }) => {
+    const { view } = ViewContext.useViewContext();
+    const [isFooterExpanded, setIsFooterExpanded] = React.useState(false);
+    React.useEffect(() => {
+        setIsFooterExpanded(false);
+    }, [view]);
+    const value = React.useMemo(() => ({
+        isFooterExpanded,
+        setIsFooterExpanded,
+    }), [isFooterExpanded]);
+    return (jsxRuntime.jsx(FooterAnimationContext.Provider, { value: value, children: jsxRuntime.jsx("div", { children: children }) }));
+};
+const useFooterAnimationContext = createProviderHook.createProviderHook(FooterAnimationContext, 'FooterAnimationContextProvider');
+
+exports.FooterAnimationContext = FooterAnimationContext;
+exports.FooterAnimationContextProvider = FooterAnimationContextProvider;
+exports.useFooterAnimationContext = useFooterAnimationContext;

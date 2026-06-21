@@ -1,0 +1,25 @@
+import type { CreateMfaToken, TokenScope } from '@dynamic-labs/sdk-api-core';
+type AuthenticateTotpMfaDeviceParams = {
+    code: string;
+    /** @deprecated Use `requestedScopes` instead. */
+    createMfaTokenOptions?: CreateMfaToken;
+    deviceId?: string;
+    requestedScopes?: TokenScope[];
+};
+/**
+ * Authenticates using a TOTP (Time-based One-Time Password) MFA device.
+ *
+ * This function validates a TOTP code from an authenticator app and returns
+ * an MFA token upon successful authentication.
+ *
+ * @param params.code - The 6-digit TOTP code from the authenticator app.
+ * @param [params.deviceId] - The ID of the specific TOTP device to authenticate with.
+ * @param [params.createMfaTokenOptions] - **Deprecated**: use `requestedScopes` instead. Optional configuration for MFA token creation.
+ * @param [params.requestedScopes] - Optional scopes to request an elevated access token instead of an MFA token.
+ * @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+ * @returns A promise that resolves to the MFA authentication response.
+ * @not-instrumented
+ */
+export declare const authenticateTotpMfaDevice: ({ deviceId, code, createMfaTokenOptions, requestedScopes }: AuthenticateTotpMfaDeviceParams, client?: import("../../../exports").DynamicClient) => Promise<import("@dynamic-labs/sdk-api-core").VerifyResponse>;
+export {};
+//# sourceMappingURL=authenticateTotpMfaDevice.d.ts.map

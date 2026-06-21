@@ -1,0 +1,32 @@
+import { exists } from '../runtime.js';
+import { BackupKeySharesToLocationsRequestLocationsFromJSON, BackupKeySharesToLocationsRequestLocationsToJSON } from './BackupKeySharesToLocationsRequestLocations.js';
+
+/* tslint:disable */
+function BackupKeySharesToLocationsRequestFromJSON(json) {
+    return BackupKeySharesToLocationsRequestFromJSONTyped(json);
+}
+function BackupKeySharesToLocationsRequestFromJSONTyped(json, ignoreDiscriminator) {
+    if ((json === undefined) || (json === null)) {
+        return json;
+    }
+    return {
+        'passwordUpdateBatchId': !exists(json, 'passwordUpdateBatchId') ? undefined : json['passwordUpdateBatchId'],
+        'shareSetId': !exists(json, 'shareSetId') ? undefined : json['shareSetId'],
+        'locations': (json['locations'].map(BackupKeySharesToLocationsRequestLocationsFromJSON)),
+    };
+}
+function BackupKeySharesToLocationsRequestToJSON(value) {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return null;
+    }
+    return {
+        'passwordUpdateBatchId': value.passwordUpdateBatchId,
+        'shareSetId': value.shareSetId,
+        'locations': (value.locations.map(BackupKeySharesToLocationsRequestLocationsToJSON)),
+    };
+}
+
+export { BackupKeySharesToLocationsRequestFromJSON, BackupKeySharesToLocationsRequestFromJSONTyped, BackupKeySharesToLocationsRequestToJSON };

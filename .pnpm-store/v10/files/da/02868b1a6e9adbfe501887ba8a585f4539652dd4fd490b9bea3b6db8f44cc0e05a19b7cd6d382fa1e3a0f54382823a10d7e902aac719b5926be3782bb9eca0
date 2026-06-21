@@ -1,0 +1,518 @@
+package xyz.dynamic.client.webview
+
+import android.annotation.SuppressLint
+import android.content.pm.ApplicationInfo
+import android.net.Uri
+import android.os.Message
+import android.view.View
+import android.view.ViewGroup
+import android.webkit.WebChromeClient
+import android.webkit.WebSettings
+import android.webkit.WebView
+import androidx.webkit.JavaScriptReplyProxy
+import androidx.webkit.ProfileStore
+import androidx.webkit.WebViewCompat
+import androidx.webkit.WebViewFeature
+import com.facebook.react.bridge.Arguments
+import com.facebook.react.bridge.Promise
+import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.bridge.ReadableMap
+import com.facebook.react.bridge.WritableArray
+import com.facebook.react.bridge.WritableMap
+import org.json.JSONArray
+import org.json.JSONObject
+
+// Glue injected into the hosted page before its own scripts run. The page is
+// written for the browser iframe transport: it calls window.parent.postMessage
+// to reach the SDK host and listens via window.addEventListener('message', ...).
+// In a top-level WebView there is no real parent, so we:
+//   1. Override window.postMessage to forward the page's outbound payload to
+//      native through window.dynamicBridge.postMessage — the JS object injected
+//      by androidx.webkit's WebMessageListener (origin-scoped, string-only).
+//   2. Wire window.dynamicBridge.onmessage (fired by JavaScriptReplyProxy on the
+//      native side) to re-dispatch a synthetic MessageEvent so the page's
+//      existing 'message' listener fires exactly as in a browser iframe.
+// Mirrors bridgeUserScript in ios/DynamicWebViewImpl.swift.
+internal const val BRIDGE_USER_SCRIPT = """
+(function () {
+  if (window.__dynamicBridgeInstalled) { return; }
+  window.__dynamicBridgeInstalled = true;
+
+  var post = function (data) {
+    try {
+      var json = typeof data === 'string' ? data : JSON.stringify(data);
+      // Injected by the native WebMessageListener for the pinned origin; present
+      // by the time the page posts.
+      window.dynamicBridge.postMessage(json);
+    } catch (e) {}
+  };
+
+  try {
+    Object.defineProperty(window, 'postMessage', {
+      configurable: true,
+      writable: true,
+      value: function (data, targetOrigin, transfer) { post(data); }
+    });
+  } catch (e) {
+    try { window.postMessage = function (d) { post(d); }; } catch (_) {}
+  }
+
+  var deliver = function (event) {
+    try {
+      var payload = JSON.parse(event.data);
+      window.dispatchEvent(new MessageEvent('message', {
+        data: payload,
+        origin: window.location.origin,
+        source: window
+      }));
+    } catch (e) {}
+  };
+
+  // window.dynamicBridge is normally present at document start; retry briefly if
+  // the listener object has not been injected yet.
+  var wire = function () {
+    if (!window.dynamicBridge) { return false; }
+    window.dynamicBridge.onmessage = deliver;
+    return true;
+  };
+  if (!wire()) {
+    var tries = 0;
+    var timer = setInterval(function () {
+      if (wire() || ++tries > 50) { clearInterval(timer); }
+    }, 10);
+  }
+})();
+"""
+
+private const val BRIDGE_INTERFACE_NAME = "dynamicBridge"
+
+// Prefix for the per-instance androidx.webkit profile that gives each WebView an
+// isolated, ephemeral cookie/storage store (deleted on teardown).
+private const val PROFILE_NAME_PREFIX = "dynamic-waas-"
+
+// userInfo keys on the Promise rejection — JS reads these via
+// `rejection.userInfo.DynamicWebViewStatusCode` / `DynamicWebViewUnderlying`
+// in createWaasSDKContainer.native.ts. Must stay in sync with the
+// equivalent constants in ios/DynamicWebViewImpl.swift.
+private const val USER_INFO_STATUS_CODE_KEY = "DynamicWebViewStatusCode"
+private const val USER_INFO_UNDERLYING_KEY = "DynamicWebViewUnderlying"
+
+internal class DynamicWebViewHost(
+    private val reactContext: ReactApplicationContext,
+    private val instanceId: String,
+    private val onMessage: (Any?) -> Unit,
+    private val onRelease: () -> Unit,
+) {
+    private var webView: WebView? = null
+    private var pendingPromise: Promise? = null
+
+    // The https origin (scheme://host[:port]) of the URL passed to open(). The
+    // WebView is pinned to it: the JS bridge is scoped to it and navigation off
+    // it is blocked. Null until open() validates the URL. Read by
+    // DynamicWebViewClient for the navigation pin.
+    internal var expectedOrigin: String? = null
+        private set
+
+    // The native -> page reply channel, captured from the first WebMessageListener
+    // callback (the page posts the iframe-ready handshake before the host sends).
+    @Volatile
+    private var replyProxy: JavaScriptReplyProxy? = null
+
+    // Guards replyProxy capture + pendingOutbound so a host->page send racing the
+    // channel-open callback is either buffered or sent, never lost.
+    private val outboundLock = Any()
+
+    // Host->page messages sent before the reply channel opened. The page normally
+    // posts first (the iframe-ready handshake) so this stays empty, but if the
+    // host ever sends first the messages are buffered here and flushed in order
+    // once replyProxy arrives — mirroring the iOS .mm pre-listener buffer.
+    private val pendingOutbound = mutableListOf<String>()
+
+    // Name of this instance's ephemeral profile, if MULTI_PROFILE was available.
+    private var profileName: String? = null
+
+    // Touched from the main thread today; @Volatile documents the
+    // main-thread-only invariant and guards the off-thread bridge callback.
+    @Volatile
+    private var released = false
+
+    // String-safe, origin-scoped JS->native channel. allowedOriginRules (set at
+    // registration) restricts the source origin; isMainFrame is belt-and-suspenders
+    // (the WaaS page has no subframes). The string crosses verbatim — no JS-source
+    // interpolation, so none of the escaping pitfalls of evaluateJavascript.
+    private val webMessageListener =
+        WebViewCompat.WebMessageListener { _, message, _, isMainFrame, proxy ->
+            if (!isMainFrame) return@WebMessageListener
+            // Capture the reply channel and drain anything the host queued before
+            // it opened, in order, before delivering this inbound message.
+            val toFlush: List<String>
+            synchronized(outboundLock) {
+                replyProxy = proxy
+                toFlush = pendingOutbound.toList()
+                pendingOutbound.clear()
+            }
+            toFlush.forEach { proxy.postMessage(it) }
+            message.data?.let { onBridgeMessage(it) }
+        }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    fun open(url: String, promise: Promise) {
+        val activity = reactContext.currentActivity
+        if (activity == null) {
+            rejectHostMissing(promise)
+            release()
+            return
+        }
+
+        // Reject non-https schemes (file://, javascript:, content://, http://,
+        // about:, etc.) and a missing host. The WebView hosts WaaS/MPC content
+        // and its bridge grants the page reach into the SDK, so it must never
+        // load attacker-controlled local files or pseudo-URL handlers. Mirrors
+        // the iOS guard in DynamicWebViewImpl.swift.
+        val parsed = runCatching { Uri.parse(url) }.getOrNull()
+        if (parsed == null ||
+            !"https".equals(parsed.scheme, ignoreCase = true) ||
+            parsed.host.isNullOrEmpty()
+        ) {
+            rejectInvalidUrl(promise, url)
+            release()
+            return
+        }
+        // Pin this instance to the validated origin (navigation + bridge scope).
+        val origin = originOf(parsed)
+        expectedOrigin = origin
+
+        // The bridge requires androidx.webkit's WebMessageListener (a string-safe,
+        // origin-scoped JS<->native channel). Fail closed on a System WebView too
+        // old to support it rather than fall back to a weaker, unscoped bridge —
+        // an MPC ceremony should not run on such a WebView.
+        if (!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
+            rejectUnsupported(promise)
+            release()
+            return
+        }
+
+        // Enables Chrome DevTools inspection in debuggable builds. Inspect at
+        // chrome://inspect/#devices on a connected host. Mirrors iOS's
+        // `webView.isInspectable` DEBUG branch.
+        if ((activity.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+            WebView.setWebContentsDebuggingEnabled(true)
+        }
+
+        val web = WebView(activity)
+
+        // Per-instance ephemeral storage where supported (matches iOS's
+        // .nonPersistent() store). Must be set before the WebView is used, and is
+        // concurrency-safe: each instance gets its own named profile (deleted on
+        // teardown), so clearing one never disturbs a sibling ceremony. On older
+        // WebView (no MULTI_PROFILE) this is skipped and the shared default store
+        // is used — documented, best-effort.
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.MULTI_PROFILE)) {
+            runCatching {
+                val name = "$PROFILE_NAME_PREFIX$instanceId"
+                ProfileStore.getInstance().getOrCreateProfile(name)
+                WebViewCompat.setProfile(web, name)
+                profileName = name
+            }
+        }
+
+        web.apply {
+            settings.javaScriptEnabled = true
+            settings.domStorageEnabled = true
+            // Secure-by-default parity with react-native-webview: the MPC page
+            // needs none of local-file / content:// / mixed-content access and
+            // must not be able to spawn windows. Shrinks the bridge's blast radius.
+            settings.allowFileAccess = false
+            settings.allowContentAccess = false
+            @Suppress("DEPRECATION")
+            settings.allowFileAccessFromFileURLs = false
+            @Suppress("DEPRECATION")
+            settings.allowUniversalAccessFromFileURLs = false
+            settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+            settings.javaScriptCanOpenWindowsAutomatically = false
+            // Counter-intuitively, multi-window support is ENABLED so that the
+            // onCreateWindow override below is actually invoked (it never fires
+            // when multiple-windows is off). This matches react-native-webview's
+            // mitigation for CVE-2020-6506: with multi-window off, a window
+            // request from a sandboxed iframe navigates the TOP frame instead of
+            // being contained, allowing a sandbox escape. We enable it and then
+            // deny every window request, which both contains iframes and blocks
+            // popups / target=_blank / window.open.
+            settings.setSupportMultipleWindows(true)
+            visibility = View.INVISIBLE
+            isEnabled = false
+            webViewClient = DynamicWebViewClient(host = this@DynamicWebViewHost)
+            // Deny window creation (target=_blank / window.open) outright.
+            webChromeClient = object : WebChromeClient() {
+                override fun onCreateWindow(
+                    view: WebView?,
+                    isDialog: Boolean,
+                    isUserGesture: Boolean,
+                    resultMsg: Message?,
+                ): Boolean = false
+            }
+        }
+
+        // Origin-scoped, main-frame-aware bridge. Replaces addJavascriptInterface
+        // (exposed to every frame, blind to the caller). allowedOriginRules pins
+        // the channel to the WaaS origin.
+        WebViewCompat.addWebMessageListener(
+            web,
+            BRIDGE_INTERFACE_NAME,
+            setOf(origin),
+            webMessageListener,
+        )
+
+        // Install the postMessage-override + onmessage glue before any page script
+        // runs, scoped to the pinned origin. Falls back to onPageStarted injection
+        // (DynamicWebViewClient) on WebView too old for document-start scripts.
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+            WebViewCompat.addDocumentStartJavaScript(
+                web,
+                BRIDGE_USER_SCRIPT,
+                setOf(origin),
+            )
+        }
+
+        val container = activity.window.decorView as ViewGroup
+        // 1x1 with INVISIBLE to keep the WebContent renderer scheduled while
+        // remaining unrendered. View.GONE skips layout and can starve the
+        // renderer process during long-running MPC ceremonies.
+        container.addView(web, ViewGroup.LayoutParams(1, 1))
+
+        webView = web
+        pendingPromise = promise
+
+        web.loadUrl(url)
+    }
+
+    fun sendMessage(data: ReadableMap) {
+        // The page normally opens the reply channel by posting first (the
+        // iframe-ready handshake), so replyProxy is usually set before the host
+        // sends transport messages. If the host sends first, buffer the message
+        // until the channel opens rather than dropping it (which would stall the
+        // ceremony to the 20s handshake timeout). JavaScriptReplyProxy.postMessage
+        // takes the string verbatim — no JS-source interpolation, so none of the
+        // escaping pitfalls (U+2028/U+2029, quote/backslash breakouts) of
+        // evaluateJavascript.
+        val json = readableMapToJsonString(data)
+        synchronized(outboundLock) {
+            val proxy = replyProxy
+            if (proxy == null) {
+                pendingOutbound.add(json)
+                return
+            }
+            proxy.postMessage(json)
+        }
+    }
+
+    fun close() {
+        // A close while `open` is pending means the caller intentionally
+        // aborted the load. Reject with `cancelled` so the awaiter doesn't
+        // hang. The JS wrapper swallows `cancelled` in onError since it is
+        // caused by our own teardown.
+        pendingPromise?.let {
+            pendingPromise = null
+            rejectCancelled(it)
+        }
+        teardown()
+    }
+
+    internal fun onCommitVisible() {
+        // Defer the resolve one UI-queue turn: on a 4xx/5xx the WebView fires both
+        // onPageCommitVisible (this) and onReceivedHttpError with no guaranteed
+        // order. Deferring lets a same-pass onHttpError claim the pending promise
+        // first, so an error page is reported as http_error instead of a spurious
+        // success. The 20s WaaS handshake timeout backstops any residual edge.
+        reactContext.runOnUiQueueThread {
+            pendingPromise?.let {
+                pendingPromise = null
+                it.resolve(null)
+            }
+        }
+    }
+
+    internal fun onNavigationFailed(description: String?) {
+        val pending = pendingPromise ?: return
+        pendingPromise = null
+        pending.reject(
+            "webview_navigation_failed",
+            description ?: "Navigation failed.",
+            makeUserInfo(underlying = description),
+        )
+    }
+
+    internal fun onHttpError(statusCode: Int) {
+        val pending = pendingPromise ?: return
+        pendingPromise = null
+        webView?.stopLoading()
+        pending.reject(
+            "webview_http_error",
+            "HTTP $statusCode",
+            makeUserInfo(statusCode = statusCode),
+        )
+    }
+
+    internal fun onRenderProcessGone() {
+        pendingPromise?.let {
+            pendingPromise = null
+            it.reject(
+                "webview_content_process_terminated",
+                "WebView render process terminated.",
+                makeUserInfo(),
+            )
+        }
+        teardown()
+    }
+
+    // Called from the WebMessageListener (UI thread); marshals to the RN UI queue
+    // so message delivery is ordered the same as on iOS.
+    internal fun onBridgeMessage(payload: String) {
+        reactContext.runOnUiQueueThread {
+            onMessage(parseBridgePayload(payload))
+        }
+    }
+
+    private fun teardown() {
+        if (released) return
+        released = true
+        synchronized(outboundLock) {
+            replyProxy = null
+            pendingOutbound.clear()
+        }
+        val web = webView
+        webView = null
+        if (web != null) {
+            web.stopLoading()
+            (web.parent as? ViewGroup)?.removeView(web)
+            web.destroy()
+        }
+        // Delete this instance's ephemeral profile after the WebView is destroyed
+        // (an in-use profile cannot be deleted). Scoped per-instance, so it never
+        // touches a sibling's session. Best-effort.
+        profileName?.let { name ->
+            profileName = null
+            if (WebViewFeature.isFeatureSupported(WebViewFeature.MULTI_PROFILE)) {
+                runCatching { ProfileStore.getInstance().deleteProfile(name) }
+            }
+        }
+        onRelease()
+    }
+
+    private fun release() {
+        teardown()
+    }
+
+    private fun rejectInvalidUrl(promise: Promise, url: String) {
+        promise.reject("webview_invalid_url", "Invalid URL: $url", makeUserInfo())
+    }
+
+    private fun rejectHostMissing(promise: Promise) {
+        promise.reject(
+            "webview_no_host_view",
+            "No foreground activity available to attach WebView.",
+            makeUserInfo(),
+        )
+    }
+
+    private fun rejectUnsupported(promise: Promise) {
+        promise.reject(
+            "webview_unsupported",
+            "Android System WebView is too old to support the secure WaaS bridge. " +
+                "Please update Android System WebView.",
+            makeUserInfo(),
+        )
+    }
+
+    private fun rejectCancelled(promise: Promise) {
+        promise.reject(
+            "webview_cancelled",
+            "WebView was closed before the load settled.",
+            makeUserInfo(),
+        )
+    }
+
+    private fun makeUserInfo(
+        statusCode: Int? = null,
+        underlying: String? = null,
+    ): WritableMap {
+        val map = Arguments.createMap()
+        if (statusCode != null) map.putInt(USER_INFO_STATUS_CODE_KEY, statusCode)
+        if (underlying != null) map.putString(USER_INFO_UNDERLYING_KEY, underlying)
+        return map
+    }
+}
+
+// scheme://host[:port] for a validated https URL — the unit the WebView pins to.
+// The scheme-default port (443 for https) is omitted so the origin matches both
+// the page's normalized origin and WebMessageListener's allowedOriginRules.
+internal fun originOf(uri: Uri): String {
+    val scheme = uri.scheme?.lowercase()
+    val port = uri.port
+    val isDefaultPort = port == -1 || (scheme == "https" && port == 443)
+    val authority = if (isDefaultPort) uri.host else "${uri.host}:$port"
+    return "$scheme://$authority"
+}
+
+// The hosted iframe always posts object data, so `{...}` is the common case.
+// `[...]` and primitive string fallthrough are kept for completeness.
+private fun parseBridgePayload(payload: String): Any? =
+    runCatching {
+        val trimmed = payload.trim()
+        when {
+            trimmed.startsWith("{") -> jsonObjectToWritableMap(JSONObject(trimmed))
+            trimmed.startsWith("[") -> jsonArrayToWritableArray(JSONArray(trimmed))
+            else -> payload
+        }
+    }.getOrDefault(payload)
+
+private fun readableMapToJsonString(map: ReadableMap): String =
+    (mapToJson(map.toHashMap()) as JSONObject).toString()
+
+private fun mapToJson(value: Any?): Any =
+    when (value) {
+        null -> JSONObject.NULL
+        is Map<*, *> -> JSONObject().also { obj ->
+            for ((k, v) in value) obj.put(k.toString(), mapToJson(v))
+        }
+        is List<*> -> JSONArray().also { arr ->
+            for (v in value) arr.put(mapToJson(v))
+        }
+        else -> value
+    }
+
+private fun jsonObjectToWritableMap(obj: JSONObject): WritableMap {
+    val out = Arguments.createMap()
+    val keys = obj.keys()
+    while (keys.hasNext()) {
+        val key = keys.next()
+        when (val value = obj.opt(key)) {
+            null, JSONObject.NULL -> out.putNull(key)
+            is Boolean -> out.putBoolean(key, value)
+            is Int -> out.putInt(key, value)
+            is Long -> out.putDouble(key, value.toDouble())
+            is Double -> out.putDouble(key, value)
+            is String -> out.putString(key, value)
+            is JSONObject -> out.putMap(key, jsonObjectToWritableMap(value))
+            is JSONArray -> out.putArray(key, jsonArrayToWritableArray(value))
+        }
+    }
+    return out
+}
+
+private fun jsonArrayToWritableArray(arr: JSONArray): WritableArray {
+    val out = Arguments.createArray()
+    for (i in 0 until arr.length()) {
+        when (val value = arr.opt(i)) {
+            null, JSONObject.NULL -> out.pushNull()
+            is Boolean -> out.pushBoolean(value)
+            is Int -> out.pushInt(value)
+            is Long -> out.pushDouble(value.toDouble())
+            is Double -> out.pushDouble(value)
+            is String -> out.pushString(value)
+            is JSONObject -> out.pushMap(jsonObjectToWritableMap(value))
+            is JSONArray -> out.pushArray(jsonArrayToWritableArray(value))
+        }
+    }
+    return out
+}

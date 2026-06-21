@@ -1,0 +1,36 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var jsxRuntime = require('react/jsx-runtime');
+var reactI18next = require('react-i18next');
+var walletConnectorCore = require('@dynamic-labs/wallet-connector-core');
+require('../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var PasskeyContext = require('../../context/PasskeyContext/PasskeyContext.cjs');
+require('react');
+var close = require('../../shared/assets/close.cjs');
+require('@dynamic-labs/iconic');
+require('../../context/ViewContext/ViewContext.cjs');
+var classNames = require('../../utils/functions/classNames/classNames.cjs');
+var usePasskeyRecovery = require('../../utils/hooks/usePasskeyRecovery/usePasskeyRecovery.cjs');
+var useSmartWallets = require('../../utils/hooks/useSmartWallets/useSmartWallets.cjs');
+var IconButton = require('../IconButton/IconButton.cjs');
+var Typography = require('../Typography/Typography.cjs');
+
+const SecureEmbeddedWalletCard = ({ className }) => {
+    const { t } = reactI18next.useTranslation();
+    const { primaryWallet } = useInternalDynamicContext.useInternalDynamicContext();
+    const { initPasskeyRecoveryProcess } = usePasskeyRecovery.usePasskeyRecovery();
+    const { showSecureAccountBanner, setShowSecureAccountBanner } = PasskeyContext.usePasskeyContext();
+    const { getEOAWallet } = useSmartWallets.useSmartWallets();
+    const eoaWallet = primaryWallet && getEOAWallet(primaryWallet);
+    const isSessionKeyCompatible = (primaryWallet && walletConnectorCore.isSessionKeyCompatibleWallet(primaryWallet)) ||
+        (eoaWallet && walletConnectorCore.isSessionKeyCompatibleWallet(eoaWallet));
+    if (!showSecureAccountBanner || isSessionKeyCompatible)
+        return null;
+    return (jsxRuntime.jsxs("div", { className: classNames.classNames('secure-embedded-wallet-card', className), children: [jsxRuntime.jsxs("div", { className: 'secure-embedded-wallet-card__text-content', "data-testid": 'secure-wallet-button', onClick: () => initPasskeyRecoveryProcess(), children: [jsxRuntime.jsx(Typography.Typography, { variant: 'body_small', color: 'primary', copykey: 'dyn_secure_pregenerated_wallet.description', children: t('dyn_secure_pregenerated_wallet.description') }), jsxRuntime.jsx(Typography.Typography, { variant: 'body_small', weight: 'bold', color: 'brand-primary', copykey: 'dyn_secure_pregenerated_wallet.action', className: 'secure-embedded-wallet-card__link', children: t('dyn_secure_pregenerated_wallet.action') })] }), jsxRuntime.jsx("div", { children: jsxRuntime.jsx(IconButton.IconButton, { color: 'text-secondary', onClick: () => setShowSecureAccountBanner(false), children: jsxRuntime.jsx(close.ReactComponent, { width: 16, height: 16 }) }) })] }));
+};
+
+exports.SecureEmbeddedWalletCard = SecureEmbeddedWalletCard;

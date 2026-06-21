@@ -1,0 +1,347 @@
+const require_isMfaRequiredForAction = require('./isMfaRequiredForAction-BNipdNF5.cjs');
+const require_InvalidParamError = require('./InvalidParamError-CmwKWCyr.cjs');
+let _dynamic_labs_sdk_api_core = require("@dynamic-labs/sdk-api-core");
+
+//#region src/modules/wallets/emitWalletAccountsChangedEvent/emitWalletAccountsChangedEvent.ts
+/**
+* Emits the `walletAccountsChanged` event.
+* @not-instrumented
+*/
+const emitWalletAccountsChangedEvent = (client) => {
+	require_InvalidParamError.emitEvent({
+		args: { walletAccounts: require_InvalidParamError.getWalletAccounts(client) },
+		event: "walletAccountsChanged"
+	}, client);
+};
+
+//#endregion
+//#region src/modules/auth/updateAuthFromVerifyResponse/checkAndRaiseWalletAccountsChangedEvent/checkAndRaiseWalletAccountsChangedEvent.ts
+/** @not-instrumented */
+const checkAndRaiseWalletAccountsChangedEvent = ({ previousState }, client) => {
+	const core = require_InvalidParamError.getCore(client);
+	if (getWalletAccountsHash(previousState, client) !== getWalletAccountsHash(core.state.get(), client)) emitWalletAccountsChangedEvent(client);
+};
+const getWalletAccountsHash = (state, client) => require_InvalidParamError.getWalletAccountsFromState(state, client).map((walletAccount) => JSON.stringify(walletAccount)).sort().join("-");
+
+//#endregion
+//#region src/modules/mfa/isUserMissingMfaAuth/isUserMissingMfaAuth.ts
+/**
+* Checks if the user requires additional MFA authentication.
+*
+* This function determines if the current user session requires
+* additional multi-factor authentication to access certain features.
+*
+* @param [client] - The Dynamic client instance. Only required when using multiple Dynamic clients.
+* @returns True if the user needs additional MFA authentication, false otherwise.
+* @not-instrumented
+*/
+const isUserMissingMfaAuth = (client = require_InvalidParamError.getDefaultClient()) => {
+	const user = client.user;
+	require_InvalidParamError.assertDefined(user, "User not logged in");
+	return Boolean(user.scope?.includes("requiresAdditionalAuth"));
+};
+
+//#endregion
+//#region src/modules/wallets/getWalletProviders/getWalletProviders.ts
+/**
+* Get all available wallet providers to interact with internally.
+* @not-instrumented
+*/
+const getWalletProviders = (client) => {
+	return require_InvalidParamError.getWalletProviderRegistry(client).listProviders();
+};
+
+//#endregion
+//#region src/modules/waas/isWaasWalletProvider/isWaasWalletProvider.ts
+/** @not-instrumented */
+const isWaasWalletProvider = (walletProvider) => {
+	return walletProvider.key.includes(require_InvalidParamError.DYNAMIC_WAAS_METADATA.normalizedWalletName);
+};
+
+//#endregion
+//#region src/modules/waas/findWaasWalletProviderByChain/findWaasWalletProviderByChain.ts
+/** @not-instrumented */
+const findWaasWalletProviderByChain = ({ chain }, client) => {
+	const providers = getWalletProviders(client);
+	const waasProviderKey = require_InvalidParamError.formatWalletProviderKey({
+		chain,
+		displayName: require_InvalidParamError.DYNAMIC_WAAS_METADATA.displayName,
+		walletProviderType: _dynamic_labs_sdk_api_core.WalletProviderEnum.EmbeddedWallet
+	});
+	const waasProvider = providers.find((provider) => provider.key === waasProviderKey && provider.chain === chain);
+	if (!waasProvider || !isWaasWalletProvider(waasProvider)) return null;
+	return waasProvider;
+};
+
+//#endregion
+//#region src/modules/waas/isWaasWalletAccount/isWaasWalletAccount.ts
+/**
+* This function determines whether the provided wallet account is a Dynamic
+* WaaS wallet account.
+*
+* @param params.walletAccount - The wallet account to check.
+* @returns True if the wallet account is a WaaS wallet account, false otherwise.
+* @not-instrumented
+*/
+const isWaasWalletAccount = ({ walletAccount }) => {
+	return walletAccount.walletProviderKey.includes(require_InvalidParamError.DYNAMIC_WAAS_METADATA.normalizedWalletName);
+};
+
+//#endregion
+//#region src/modules/waas/restoreUserSharesForAllWalletAccounts/restoreUserSharesForAllWalletAccounts.ts
+/** @not-instrumented */
+const restoreUserSharesForAllWalletAccounts = async (client) => {
+	/**
+	* Restoring the user shares will fails if the user is missing the MFA auth.
+	* This early return prevents the attempt to restore the user shares to fail
+	* when we know it will fails and just add noise to the logs.
+	*/
+	if (isUserMissingMfaAuth(client)) return;
+	const waasWalletAccounts = require_InvalidParamError.getWalletAccounts(client).filter((walletAccount) => isWaasWalletAccount({ walletAccount }));
+	await Promise.all(waasWalletAccounts.map(async (walletAccount) => {
+		const provider = findWaasWalletProviderByChain({ chain: walletAccount.chain }, client);
+		/**
+		* The environment might not have the embedded wallet extensions installed.
+		* In that case there is no provider for the chain and we can skip restoring the user share.
+		*/
+		if (!provider) return;
+		return provider.restoreUserShareForWalletAccount({ walletAccount });
+	}));
+};
+
+//#endregion
+//#region src/modules/auth/decodeJwt/decodeJwt.ts
+/**
+* Decodes a JWT token and returns the full payload.
+*
+* This function extracts and returns the complete JWT payload including scopes,
+* expiration time, and other claims.
+*
+* @param jwt - The JWT token string.
+* @returns The decoded JWT payload object.
+* @throws InvalidParamError if the token is invalid or cannot be decoded.
+*
+* @example
+* ```typescript
+* const payload = decodeJwt(jwt);
+* // Returns: { scopes: ['wallet:export'], exp: 1234567890, ... }
+* ```
+* @not-instrumented
+*/
+const decodeJwt = (jwt) => {
+	try {
+		const parts = jwt.split(".");
+		if (parts.length !== 3) throw new require_InvalidParamError.InvalidParamError("Invalid JWT format");
+		const base64Payload = parts[1].replaceAll("-", "+").replaceAll("_", "/");
+		const paddedPayload = base64Payload + "=".repeat((4 - base64Payload.length % 4) % 4);
+		const decodedPayload = atob(paddedPayload);
+		return JSON.parse(decodedPayload);
+	} catch (error) {
+		if (error instanceof require_InvalidParamError.InvalidParamError) throw error;
+		throw new require_InvalidParamError.InvalidParamError(`Failed to decode JWT: ${error instanceof Error ? error.message : String(error)}`);
+	}
+};
+
+//#endregion
+//#region src/modules/auth/updateAuthFromVerifyResponse/elevatedAccessTokens/normalizeScopes/normalizeScopes.ts
+/**
+* Normalizes scopes by deduplicating and sorting them.
+* This creates a canonical representation for comparison.
+*
+* @param scopes - Array of scope strings (may contain duplicates)
+* @returns Normalized, sorted array of unique scopes
+* @not-instrumented
+*/
+const normalizeScopes = (scopes) => {
+	return [...new Set(scopes)].sort((a, b) => a.localeCompare(b));
+};
+
+//#endregion
+//#region src/modules/auth/updateAuthFromVerifyResponse/elevatedAccessTokens/parseElevatedAccessToken/parseElevatedAccessToken.ts
+/**
+* Validates and parses an elevated access token from a JWT string.
+* Extracts scopes, expiration, and validates the token structure.
+*
+* Policy decisions:
+* - Tokens without scopes are rejected (returns null)
+* - Tokens with empty scopes array are rejected (returns null)
+* - Tokens without exp field are rejected (returns null)
+* - Expired tokens are rejected (returns null)
+*
+* @returns Parsed token data or null if token is invalid/expired
+* @not-instrumented
+*/
+const parseElevatedAccessToken = ({ token }) => {
+	const payload = decodeJwt(token);
+	const filteredScopes = ((payload?.scope)?.split(" ") ?? []).filter((s) => s.length > 0);
+	const singleUse = payload.singleUse ?? false;
+	if (!filteredScopes || filteredScopes.length === 0) return null;
+	if (!payload.exp) return null;
+	const expiresAt = /* @__PURE__ */ new Date(payload.exp * 1e3);
+	if (expiresAt <= /* @__PURE__ */ new Date()) return null;
+	return {
+		expiresAt,
+		normalizedScopes: normalizeScopes(filteredScopes),
+		scopes: filteredScopes,
+		singleUse,
+		token
+	};
+};
+
+//#endregion
+//#region src/modules/auth/updateAuthFromVerifyResponse/elevatedAccessTokens/upsertElevatedAccessToken/upsertElevatedAccessToken.ts
+/**
+* Upserts an elevated access token into the current tokens array.
+*
+* Policy: Only one token per normalized scope-set is allowed.
+* If a token with the same normalized scopes exists, it is replaced.
+* This ensures we don't accumulate multiple tokens for the same scope combination.
+*
+* @param currentTokens - Current array of elevated access tokens
+* @param newToken - New token to upsert
+* @returns Updated array of tokens with the new token upserted
+* @not-instrumented
+*/
+const upsertElevatedAccessToken = ({ currentTokens, newToken }) => {
+	const newScopeKey = normalizeScopes(newToken.scopes).join(" ");
+	return [...currentTokens.filter((existingToken) => {
+		return normalizeScopes(existingToken.scopes).join(" ") !== newScopeKey;
+	}), {
+		expiresAt: newToken.expiresAt,
+		scopes: newToken.scopes,
+		singleUse: newToken.singleUse,
+		token: newToken.token
+	}];
+};
+
+//#endregion
+//#region src/modules/auth/updateAuthFromVerifyResponse/updateAuthFromVerifyResponse.ts
+/** @not-instrumented */
+const updateAuthFromVerifyResponse = ({ response }, client) => {
+	const core = require_InvalidParamError.getCore(client);
+	const previousState = { ...core.state.get() };
+	const { user, minifiedJwt, jwt, expiresAt, mfaToken, elevatedAccessToken } = response;
+	const sessionExpiresAt = /* @__PURE__ */ new Date(expiresAt * 1e3);
+	const newState = {
+		legacyToken: jwt ?? null,
+		sessionExpiresAt,
+		token: minifiedJwt ?? null,
+		user
+	};
+	if (mfaToken) newState.mfaToken = mfaToken;
+	const currentTokens = core.state.get().elevatedAccessTokens || [];
+	newState.elevatedAccessTokens = currentTokens;
+	if (elevatedAccessToken) {
+		const parsedToken = parseElevatedAccessToken({ token: elevatedAccessToken });
+		if (parsedToken) newState.elevatedAccessTokens = upsertElevatedAccessToken({
+			currentTokens,
+			newToken: parsedToken
+		});
+	}
+	core.state.set(newState);
+	/**
+	* For customers using a sandbox environment with cookies enabled, we need to set the cookie
+	* programmatically because Redcoast won't set the cookie via headers. We set the cookie programmatically
+	* so customers can access the cookie from document.cookie consistently between sandbox and live environments.
+	*/
+	if (minifiedJwt && require_InvalidParamError.isCookieEnabled(client)) require_InvalidParamError.setCookie(`${require_InvalidParamError.DYNAMIC_AUTH_COOKIE_NAME}=${minifiedJwt}; expires=${sessionExpiresAt.toUTCString()}; path=/; SameSite=Lax`);
+	checkAndRaiseWalletAccountsChangedEvent({ previousState }, client);
+	if (!previousState.user && Boolean(newState.user)) restoreUserSharesForAllWalletAccounts(client);
+};
+
+//#endregion
+//#region src/modules/wallets/getWalletProviderByKey/getWalletProviderByKey.ts
+/** @not-instrumented */
+const getWalletProviderByKey = ({ walletProviderKey }, client) => {
+	const walletProvider = getWalletProviders(client).find((walletProvider$1) => walletProvider$1.key === walletProviderKey);
+	if (!walletProvider) throw new require_InvalidParamError.NoWalletProviderFoundError({ walletProviderKey });
+	return walletProvider;
+};
+
+//#endregion
+//#region src/modules/wallets/utils/getVerifiedCredentialForWalletAccount/getVerifiedCredentialForWalletAccount.ts
+/** @not-instrumented */
+const getVerifiedCredentialForWalletAccount = ({ walletAccount }, client) => {
+	return client.user?.verifiedCredentials.find((vc) => vc.id === walletAccount.verifiedCredentialId);
+};
+
+//#endregion
+Object.defineProperty(exports, 'checkAndRaiseWalletAccountsChangedEvent', {
+  enumerable: true,
+  get: function () {
+    return checkAndRaiseWalletAccountsChangedEvent;
+  }
+});
+Object.defineProperty(exports, 'emitWalletAccountsChangedEvent', {
+  enumerable: true,
+  get: function () {
+    return emitWalletAccountsChangedEvent;
+  }
+});
+Object.defineProperty(exports, 'findWaasWalletProviderByChain', {
+  enumerable: true,
+  get: function () {
+    return findWaasWalletProviderByChain;
+  }
+});
+Object.defineProperty(exports, 'getVerifiedCredentialForWalletAccount', {
+  enumerable: true,
+  get: function () {
+    return getVerifiedCredentialForWalletAccount;
+  }
+});
+Object.defineProperty(exports, 'getWalletProviderByKey', {
+  enumerable: true,
+  get: function () {
+    return getWalletProviderByKey;
+  }
+});
+Object.defineProperty(exports, 'getWalletProviders', {
+  enumerable: true,
+  get: function () {
+    return getWalletProviders;
+  }
+});
+Object.defineProperty(exports, 'isUserMissingMfaAuth', {
+  enumerable: true,
+  get: function () {
+    return isUserMissingMfaAuth;
+  }
+});
+Object.defineProperty(exports, 'isWaasWalletAccount', {
+  enumerable: true,
+  get: function () {
+    return isWaasWalletAccount;
+  }
+});
+Object.defineProperty(exports, 'isWaasWalletProvider', {
+  enumerable: true,
+  get: function () {
+    return isWaasWalletProvider;
+  }
+});
+Object.defineProperty(exports, 'parseElevatedAccessToken', {
+  enumerable: true,
+  get: function () {
+    return parseElevatedAccessToken;
+  }
+});
+Object.defineProperty(exports, 'restoreUserSharesForAllWalletAccounts', {
+  enumerable: true,
+  get: function () {
+    return restoreUserSharesForAllWalletAccounts;
+  }
+});
+Object.defineProperty(exports, 'updateAuthFromVerifyResponse', {
+  enumerable: true,
+  get: function () {
+    return updateAuthFromVerifyResponse;
+  }
+});
+Object.defineProperty(exports, 'upsertElevatedAccessToken', {
+  enumerable: true,
+  get: function () {
+    return upsertElevatedAccessToken;
+  }
+});
+//# sourceMappingURL=getVerifiedCredentialForWalletAccount-DidFNLGP.cjs.map

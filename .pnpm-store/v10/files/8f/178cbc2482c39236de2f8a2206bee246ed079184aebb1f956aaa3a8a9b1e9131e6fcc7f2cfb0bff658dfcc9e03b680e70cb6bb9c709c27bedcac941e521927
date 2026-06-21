@@ -1,0 +1,14 @@
+'use client'
+import { DynamicError } from './DynamicError.js';
+import { RATE_LIMIT_ERROR_CODE } from './errorCodes.js';
+
+class RateLimitError extends DynamicError {
+    constructor(message, requestId, cfRay) {
+        super(message, RATE_LIMIT_ERROR_CODE);
+        this.name = 'RateLimitError';
+        this.requestId = requestId;
+        this.cfRay = cfRay;
+    }
+}
+
+export { RateLimitError };

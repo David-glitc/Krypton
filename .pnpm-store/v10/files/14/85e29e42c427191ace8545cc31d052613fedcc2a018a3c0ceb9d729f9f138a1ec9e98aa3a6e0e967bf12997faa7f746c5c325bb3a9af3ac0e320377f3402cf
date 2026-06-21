@@ -1,0 +1,82 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var jsxRuntime = require('react/jsx-runtime');
+var React = require('react');
+var reactI18next = require('react-i18next');
+var utils = require('@dynamic-labs/utils');
+var noWalletFound = require('../../assets/no-wallet-found.cjs');
+var ErrorContainer = require('../../components/ErrorContainer/ErrorContainer.cjs');
+var Search = require('../../components/Search/Search.cjs');
+var Skeleton = require('../../components/Skeleton/Skeleton.cjs');
+require('../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var ErrorContext = require('../../context/ErrorContext/ErrorContext.cjs');
+var DefaultFooter = require('../../layout/DynamicAuthLayout/DefaultFooter/DefaultFooter.cjs');
+var localStorage = require('../../utils/constants/localStorage.cjs');
+require('../../utils/constants/colors.cjs');
+require('../../utils/constants/values.cjs');
+var classNames = require('../../utils/functions/classNames/classNames.cjs');
+var useEffectOnce = require('../../utils/hooks/useEffectOnce/useEffectOnce.cjs');
+var useWalletList = require('../../utils/hooks/useWalletList/useWalletList.cjs');
+var SearchNotFoundMessage = require('./SearchNotFoundMessage/SearchNotFoundMessage.cjs');
+var WalletListGridTabs = require('./WalletListGridTabs/WalletListGridTabs.cjs');
+var WalletListItem = require('./WalletListItem/WalletListItem.cjs');
+
+const WalletList = ({ isWalletConnectList = false, onSelectWallet, viewWalletsFilter, showDefaultFooter, scrollContainerClassName, }) => {
+    var _a, _b;
+    /**
+     * Clear search key on unmount
+     */
+    useEffectOnce.useEffectOnce(() => () => utils.StorageService === null || utils.StorageService === void 0 ? void 0 : utils.StorageService.setItem(localStorage.WALLET_PICKER_SEARCH_KEY, ''));
+    const { walletConnectorOptions, projectSettings, defaultNumberOfWalletsToShow, selectedTabIndex, setSelectedTabIndex, tabsItems, } = useInternalDynamicContext.useInternalDynamicContext();
+    const { error } = ErrorContext.useErrorContext();
+    const [footerBorderIsVisible, setFooterBorderIsVisible] = React.useState(true);
+    const { t } = reactI18next.useTranslation();
+    const [filterValue, setFilterValue] = React.useState((_a = utils.StorageService.getItem(localStorage.WALLET_PICKER_SEARCH_KEY)) !== null && _a !== void 0 ? _a : '');
+    const { numberOfWallets, walletsList, recommendedWallets: effectiveRecommendedWallets, } = useWalletList.useWalletList({
+        isWalletConnectList,
+        lastUsedWalletKey: (_b = utils.StorageService.getItem(localStorage.LAST_USED_WALLET)) !== null && _b !== void 0 ? _b : undefined,
+        searchFilter: filterValue,
+        viewWalletsFilter,
+    });
+    const isSearchEnabled = Boolean(filterValue) ||
+        (numberOfWallets > defaultNumberOfWalletsToShow &&
+            walletsList.length !== numberOfWallets);
+    const isTabsEnabled = Boolean(tabsItems === null || tabsItems === void 0 ? void 0 : tabsItems.length);
+    const walletListScrollRef = React.useRef(null);
+    /* istanbul ignore next */
+    const handleScroll = () => {
+        const element = walletListScrollRef.current;
+        if (!element) {
+            return;
+        }
+        if ((element === null || element === void 0 ? void 0 : element.scrollTop) > (element === null || element === void 0 ? void 0 : element.clientHeight) * 1.25) {
+            setFooterBorderIsVisible(false);
+        }
+        else {
+            setFooterBorderIsVisible(true);
+        }
+    };
+    const handleFilterValueChange = (value) => {
+        utils.StorageService.setItem(localStorage.WALLET_PICKER_SEARCH_KEY, value);
+        setFilterValue(value);
+    };
+    const searchContainer = !projectSettings ? (jsxRuntime.jsx(Skeleton.Skeleton, { className: 'wallet-list__search-skeleton' })) : (isSearchEnabled && (jsxRuntime.jsx("div", { className: classNames.classNames('wallet-list__search-container', {
+            'wallet-list__search-container--scroll': !error,
+        }), children: jsxRuntime.jsx(Search.Search, { copykey: 'dyn_wallet_list.search.label', label: t('dyn_wallet_list.search.label', { numberOfWallets }), value: filterValue, onChange: ({ target: { value } }) => handleFilterValueChange(value), onClickClear: () => handleFilterValueChange('') }) })));
+    return (jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [isTabsEnabled && (jsxRuntime.jsx("div", { className: 'wallet-list__tabs-container', children: jsxRuntime.jsx(WalletListGridTabs.WalletListGridTabs
+                // The tabsItems nullable assertion is safe here because isTabsEnabled is true
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                , { 
+                    // The tabsItems nullable assertion is safe here because isTabsEnabled is true
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    items: tabsItems, value: selectedTabIndex || 0, onSelect: setSelectedTabIndex }) })), searchContainer, Boolean(error) && (jsxRuntime.jsx(ErrorContainer.ErrorContainer, { className: 'wallet-list__error-container', withIcon: false, children: error })), jsxRuntime.jsxs("div", { className: classNames.classNames('wallet-list__scroll-container', scrollContainerClassName, {
+                    'wallet-list__scroll-container--error': Boolean(error),
+                    'wallet-list__scroll-container--fixed-height': isTabsEnabled,
+                }), "data-testid": 'wallet-list-scroll-container', ref: walletListScrollRef, onScroll: handleScroll, children: [!projectSettings ? (jsxRuntime.jsx(Skeleton.Skeleton, { count: 10, className: 'wallet-list__tile-skeleton' })) : (jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [walletConnectorOptions.length === 0 && (jsxRuntime.jsx(ErrorContainer.ErrorContainer, { copykey: 'dyn_wallet_list.configuration_mismatch', children: t('dyn_wallet_list.configuration_mismatch') })), walletConnectorOptions.length && walletsList.length === 0 ? (jsxRuntime.jsx(SearchNotFoundMessage.SearchNotFoundMessage, { titleKey: 'dyn_wallet_list.search.not_found.title', subtitleKey: 'dyn_wallet_list.search.not_found.description', image: jsxRuntime.jsx(noWalletFound.ReactComponent, {}) })) : (walletsList.map((wallet, index) => (jsxRuntime.jsx(WalletListItem.WalletListItem, { wallet: wallet, onResetSearchValue: () => handleFilterValueChange(''), recommendedWallets: effectiveRecommendedWallets, onSelectWallet: onSelectWallet }, `${wallet.key}_${index}`))))] })), isSearchEnabled && !filterValue && projectSettings && (jsxRuntime.jsx(SearchNotFoundMessage.SearchNotFoundMessage, {}))] }), showDefaultFooter && (jsxRuntime.jsx(DefaultFooter.DefaultFooter, { hideBorder: !footerBorderIsVisible }))] }));
+};
+
+exports.WalletList = WalletList;

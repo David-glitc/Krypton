@@ -1,0 +1,12 @@
+'use client'
+import { hasPendingMfaAction } from '../hasPendingMfaAction/hasPendingMfaAction.js';
+import { hasPendingDeviceRegistration } from '../hasPendingDeviceRegistration/hasPendingDeviceRegistration.js';
+
+const hasPendingRequirements = (user) => {
+    var _a;
+    return Boolean((_a = user.missingFields) === null || _a === void 0 ? void 0 : _a.length) ||
+        hasPendingMfaAction(user) ||
+        hasPendingDeviceRegistration(user);
+};
+
+export { hasPendingRequirements };

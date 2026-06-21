@@ -1,0 +1,301 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var _tslib = require('../../../../../_virtual/_tslib.cjs');
+var client = require('@dynamic-labs-sdk/client');
+var sdkApiCore = require('@dynamic-labs/sdk-api-core');
+var utils$1 = require('@dynamic-labs/utils');
+require('@dynamic-labs-sdk/client/core');
+require('react');
+require('eventemitter3');
+require('../../../config/ApiEndpoint.cjs');
+require('@dynamic-labs/iconic');
+require('@dynamic-labs/wallet-connector-core');
+require('react/jsx-runtime');
+require('../../../context/ViewContext/ViewContext.cjs');
+require('../../../shared/logger.cjs');
+require('@dynamic-labs/wallet-book');
+require('../../../utils/constants/colors.cjs');
+require('../../../utils/constants/values.cjs');
+require('../../../shared/consts/index.cjs');
+require('@dynamic-labs/multi-wallet');
+require('react-international-phone');
+require('../../../store/state/nonce/nonce.cjs');
+var api = require('../api.cjs');
+var constants = require('../constants.cjs');
+var utils = require('../utils.cjs');
+require('@dynamic-labs/locale');
+require('../../../store/state/dynamicContextProps/dynamicContextProps.cjs');
+require('../../../store/state/primaryWalletId/primaryWalletId.cjs');
+require('../../../store/state/connectedWalletsInfo/connectedWalletsInfo.cjs');
+require('../../../utils/functions/getWaasAddressTypeLabel/getWaasAddressTypeLabel.cjs');
+require('../../../events/dynamicEvents.cjs');
+var storeTokenAndUser = require('../../../client/extension/storeTokenAndUser/storeTokenAndUser.cjs');
+
+const storeSelectedWallet = (_a) => _tslib.__awaiter(void 0, [_a], void 0, function* ({ environmentId, walletId, }) {
+    try {
+        const response = yield api.sdkApi().selectUserWallet({
+            environmentId,
+            userWalletSelectionRequest: {
+                walletId,
+            },
+        });
+        return storeTokenAndUser.storeTokenAndUser(response);
+    }
+    catch (e) {
+        const data = yield utils.logResponseError(e, 'Error transfering wallet');
+        throw new utils$1.DynamicError(data.error);
+    }
+});
+const linkWallet = (environmentId_1, _b) => _tslib.__awaiter(void 0, [environmentId_1, _b], void 0, function* (environmentId, { messageToSign, network, signedMessage, publicWalletAddress, chain, walletName, walletProvider, additionalWalletAddresses, backup, }) {
+    var _c;
+    const verifyRequest = sdkApiCore.VerifyRequestFromJSON({
+        additionalWalletAddresses,
+        backup,
+        chain,
+        messageToSign,
+        network,
+        publicWalletAddress,
+        signedMessage,
+        walletName,
+        walletProvider,
+    });
+    try {
+        const elevatedToken = client.getElevatedAccessToken({
+            scope: sdkApiCore.TokenScope.Credentiallink,
+        });
+        const response = yield api.sdkApi({
+            customHeaders: elevatedToken
+                ? { [constants.ELEVATED_ACCESS_TOKEN_HEADER]: elevatedToken }
+                : undefined,
+        }).verifyLink({
+            environmentId,
+            verifyRequest,
+        });
+        storeTokenAndUser.storeTokenAndUser(response);
+        return response;
+    }
+    catch (e) {
+        const data = yield utils.logResponseError(e, 'Error linkWallet');
+        if (data.code === 'embedded_wallet_address_already_linked') {
+            throw new utils$1.EmbeddedWalletExistsError(data.code);
+        }
+        if (data.code === 'reassign_wallet_confirm' ||
+            data.code === 'reassign_wallet_error') {
+            throw new utils$1.WalletUsedError(data.code);
+        }
+        if (data.code === 'merge_accounts_confirmation') {
+            throw new utils$1.MergeAccountsConfirmationError({
+                code: data.code,
+                mergeConflicts: data.payload.mergeConflicts,
+                walletAddress: publicWalletAddress,
+            });
+        }
+        if (((_c = data.error) === null || _c === void 0 ? void 0 : _c.code) === 'sandbox_maximum_threshold_reached') {
+            throw new utils$1.SandboxMaximumThresholdReachedError(data.error.message);
+        }
+        throw new utils$1.DynamicError(data.error);
+    }
+});
+const unlinkWallet = (_d) => _tslib.__awaiter(void 0, [_d], void 0, function* ({ environmentId, primaryWalletId, walletId, onSuccess, }) {
+    // 7702 wallets have a -zerodev suffix because it's a credential created on the fly
+    const normalizedPrimaryWalletId = primaryWalletId === null || primaryWalletId === void 0 ? void 0 : primaryWalletId.replace('-zerodev', '');
+    try {
+        const elevatedToken = client.getElevatedAccessToken({
+            scope: sdkApiCore.TokenScope.Credentialunlink,
+        });
+        const response = yield api.sdkApi({
+            customHeaders: elevatedToken
+                ? { [constants.ELEVATED_ACCESS_TOKEN_HEADER]: elevatedToken }
+                : undefined,
+        }).verifyUnlink({
+            environmentId,
+            verifyUnlinkRequest: {
+                primaryWalletId: normalizedPrimaryWalletId,
+                walletId,
+            },
+        });
+        onSuccess === null || onSuccess === void 0 ? void 0 : onSuccess();
+        const user = storeTokenAndUser.storeTokenAndUser(response);
+        return user;
+    }
+    catch (e) {
+        const data = yield utils.logResponseError(e, 'Error transfering wallet');
+        throw new utils$1.DynamicError(data.error);
+    }
+});
+const transferWallet = (environmentId_2, _e) => _tslib.__awaiter(void 0, [environmentId_2, _e], void 0, function* (environmentId, { network, messageToSign, signedMessage, publicWalletAddress, chain, walletName, walletProvider, skipEmptyAccountCheck = false, }) {
+    // We should find a better way to do this than force type casting
+    const verifyRequest = {
+        chain,
+        messageToSign,
+        network,
+        publicWalletAddress,
+        signedMessage,
+        skipEmptyAccountCheck,
+        walletName,
+        walletProvider,
+    };
+    try {
+        const response = yield api.sdkApi().verifyTransfer({
+            environmentId,
+            verifyRequest,
+        });
+        const user = storeTokenAndUser.storeTokenAndUser(response);
+        return user;
+    }
+    catch (e) {
+        const data = yield utils.logResponseError(e, 'Error transfering wallet');
+        throw new utils$1.DynamicError(data.error);
+    }
+});
+const verifyWallet = (environmentId_3, _f) => _tslib.__awaiter(void 0, [environmentId_3, _f], void 0, function* (environmentId, { messageToSign, signedMessage, publicWalletAddress, chain, walletName, walletProvider, captchaToken, network, oauth, additionalWalletAddresses, sessionPublicKey, }) {
+    var _g, _h, _j, _k;
+    const verifyRequest = sdkApiCore.VerifyRequestFromJSON({
+        additionalWalletAddresses,
+        captchaToken,
+        chain,
+        messageToSign,
+        network,
+        oauth,
+        publicWalletAddress,
+        sessionPublicKey,
+        signedMessage,
+        walletName,
+        walletProvider,
+    });
+    try {
+        const response = yield api.sdkApi().verify({
+            environmentId,
+            verifyRequest,
+        });
+        return response;
+    }
+    catch (e) {
+        const data = yield utils.logResponseError(e, 'Error verifyWallet');
+        if (data.code === 'wallet_not_deployed') {
+            throw new utils$1.WalletNotDeployedError();
+        }
+        if (((_g = data.error) === null || _g === void 0 ? void 0 : _g.code) === 'chainalysis_blocked_wallet') {
+            throw new utils$1.ChainalysisError(data.payload.walletPublicKey);
+        }
+        if (((_h = data.error) === null || _h === void 0 ? void 0 : _h.code) === 'gate_blocked') {
+            throw new utils$1.GateBlockedError(data.payload.walletPublicKey);
+        }
+        if (((_j = data.error) === null || _j === void 0 ? void 0 : _j.code) === 'missing_from_list') {
+            throw new utils$1.NoAccessError({
+                walletPublicKey: data.payload.walletPublicKey,
+            });
+        }
+        if (data.code === 'credential_not_enabled_for_sign_in') {
+            throw new utils$1.DynamicError(data.error, utils$1.ErrorCode.CREDENTIAL_NOT_ENABLED_FOR_SIGN_IN);
+        }
+        if (data.code === 'email_associated_with_different_provider') {
+            throw new utils$1.AccountExistsError(data.error, data.payload);
+        }
+        if (((_k = data.error) === null || _k === void 0 ? void 0 : _k.code) === 'sandbox_maximum_threshold_reached') {
+            throw new utils$1.SandboxMaximumThresholdReachedError(data.error.message);
+        }
+        throw new utils$1.DynamicError(data.error);
+    }
+});
+const walletsVerify = (environmentId_4, _l) => _tslib.__awaiter(void 0, [environmentId_4, _l], void 0, function* (environmentId, { messageToSign, signedMessage, publicWalletAddress, chain, walletName, walletProvider, captchaToken, network, oauth, requestedScopes, additionalWalletAddresses, sessionPublicKey, }) {
+    var _m, _o, _p, _q;
+    const verifyRequest = sdkApiCore.VerifyRequestFromJSON({
+        additionalWalletAddresses,
+        captchaToken,
+        chain,
+        messageToSign,
+        network,
+        oauth,
+        publicWalletAddress,
+        requestedScopes,
+        sessionPublicKey,
+        signedMessage,
+        walletName,
+        walletProvider,
+    });
+    try {
+        const response = yield api.sdkApi().walletsVerify({
+            environmentId,
+            verifyRequest,
+        });
+        return response;
+    }
+    catch (e) {
+        const data = yield utils.logResponseError(e, 'Error walletsVerify');
+        if (data.code === 'wallet_not_deployed') {
+            throw new utils$1.WalletNotDeployedError();
+        }
+        if (((_m = data.error) === null || _m === void 0 ? void 0 : _m.code) === 'chainalysis_blocked_wallet') {
+            throw new utils$1.ChainalysisError(data.payload.walletPublicKey);
+        }
+        if (((_o = data.error) === null || _o === void 0 ? void 0 : _o.code) === 'gate_blocked') {
+            throw new utils$1.GateBlockedError(data.payload.walletPublicKey);
+        }
+        if (((_p = data.error) === null || _p === void 0 ? void 0 : _p.code) === 'missing_from_list') {
+            throw new utils$1.NoAccessError({
+                walletPublicKey: data.payload.walletPublicKey,
+            });
+        }
+        if (data.code === 'credential_not_enabled_for_sign_in') {
+            throw new utils$1.DynamicError(data.error, utils$1.ErrorCode.CREDENTIAL_NOT_ENABLED_FOR_SIGN_IN);
+        }
+        if (data.code === 'email_associated_with_different_provider') {
+            throw new utils$1.AccountExistsError(data.error, data.payload);
+        }
+        if (((_q = data.error) === null || _q === void 0 ? void 0 : _q.code) === 'sandbox_maximum_threshold_reached') {
+            throw new utils$1.SandboxMaximumThresholdReachedError(data.error.message);
+        }
+        throw new utils$1.DynamicError(data.error);
+    }
+});
+const upgradeEmbeddedWalletToV2 = (_r) => _tslib.__awaiter(void 0, [_r], void 0, function* ({ environmentId, sessionPublicKey, }) {
+    try {
+        const response = yield api.sdkApi().upgradeEmbeddedWalletToV2({
+            environmentId,
+            upgradeEmbeddedWalletToV2Request: { sessionPublicKey },
+        });
+        return response;
+    }
+    catch (e) {
+        const data = yield utils.logResponseError(e, 'Error upgradeEmbeddedWalletToV2');
+        throw new utils$1.DynamicError(data.error);
+    }
+});
+const softDeleteEmbeddedWallet = (_s) => _tslib.__awaiter(void 0, [_s], void 0, function* ({ environmentId, walletId, }) {
+    try {
+        yield api.sdkApi().softDeleteEmbeddedWallet({
+            environmentId,
+            walletId,
+        });
+    }
+    catch (e) {
+        const data = yield utils.logResponseError(e, `Error softDeleteEmbeddedWallet for ${walletId} in ${environmentId}`);
+        throw new utils$1.DynamicError(data.error);
+    }
+});
+const restoreEmbeddedWallet = (_t) => _tslib.__awaiter(void 0, [_t], void 0, function* ({ environmentId, walletId, }) {
+    try {
+        yield api.sdkApi().restoreEmbeddedWallet({
+            environmentId,
+            walletId,
+        });
+    }
+    catch (e) {
+        const data = yield utils.logResponseError(e, `Error restoreEmbeddedWallet for ${walletId} in ${environmentId}`);
+        throw new utils$1.DynamicError(data.error);
+    }
+});
+
+exports.linkWallet = linkWallet;
+exports.restoreEmbeddedWallet = restoreEmbeddedWallet;
+exports.softDeleteEmbeddedWallet = softDeleteEmbeddedWallet;
+exports.storeSelectedWallet = storeSelectedWallet;
+exports.transferWallet = transferWallet;
+exports.unlinkWallet = unlinkWallet;
+exports.upgradeEmbeddedWalletToV2 = upgradeEmbeddedWalletToV2;
+exports.verifyWallet = verifyWallet;
+exports.walletsVerify = walletsVerify;

@@ -1,0 +1,26 @@
+import type { ChainEnum } from '@dynamic-labs/sdk-api-core';
+export type DelegationWalletRef = {
+    chainName: ChainEnum;
+    accountAddress: string;
+};
+export type DelegationOperation = 'delegate' | 'revoke';
+type DelegationErrorOptions = {
+    operation: DelegationOperation;
+    successfulWallets: DelegationWalletRef[];
+    failedWallets: {
+        wallet: DelegationWalletRef;
+        cause: unknown;
+    }[];
+};
+export declare class DelegationError extends AggregateError {
+    readonly operation: DelegationOperation;
+    readonly successfulWallets: DelegationWalletRef[];
+    readonly failedWallets: {
+        wallet: DelegationWalletRef;
+        cause: unknown;
+    }[];
+    constructor({ operation, successfulWallets, failedWallets, }: DelegationErrorOptions);
+    get successCount(): number;
+    get failureCount(): number;
+}
+export {};

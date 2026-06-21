@@ -1,0 +1,3 @@
+/** @not-instrumented */
+export declare const isCaptchaRequired: (client?: import("../../../exports").DynamicClient) => boolean;
+//# sourceMappingURL=isCaptchaRequired.d.ts.map

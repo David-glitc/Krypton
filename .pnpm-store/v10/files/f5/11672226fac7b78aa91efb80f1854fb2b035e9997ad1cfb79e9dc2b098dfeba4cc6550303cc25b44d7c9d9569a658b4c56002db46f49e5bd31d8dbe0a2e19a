@@ -1,0 +1,47 @@
+'use client'
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var jsxRuntime = require('react/jsx-runtime');
+var React = require('react');
+var reactI18next = require('react-i18next');
+var Checkbox = require('../../../../components/Checkbox/Checkbox.cjs');
+var Icon = require('../../../../components/Icon/Icon.cjs');
+var IconButton = require('../../../../components/IconButton/IconButton.cjs');
+var ModalHeader = require('../../../../components/ModalHeader/ModalHeader.cjs');
+var Typography = require('../../../../components/Typography/Typography.cjs');
+var TypographyButton = require('../../../../components/TypographyButton/TypographyButton.cjs');
+require('../../../../context/DynamicContext/useDynamicContext/useDynamicContext.cjs');
+var useInternalDynamicContext = require('../../../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.cjs');
+var ViewContext = require('../../../../context/ViewContext/ViewContext.cjs');
+var backupWaas = require('../../../../shared/assets/backup-waas.cjs');
+var chevronLeft = require('../../../../shared/assets/chevron-left.cjs');
+var questionMark = require('../../../../shared/assets/question-mark.cjs');
+require('@dynamic-labs/iconic');
+
+const WaasBackupView = () => {
+    const { setShowAuthFlow } = useInternalDynamicContext.useInternalDynamicContext();
+    const { pushView } = ViewContext.useViewContext();
+    const { t } = reactI18next.useTranslation();
+    const [isAcknowledged, setIsAcknowledged] = React.useState(false);
+    const handleBackClick = React.useCallback(() => {
+        setShowAuthFlow(false);
+    }, [setShowAuthFlow]);
+    const handleInfoClick = React.useCallback(() => {
+        pushView('waas-backup-info-view');
+    }, [pushView]);
+    const handleContinueClick = React.useCallback(() => {
+        pushView('waas-backup-cloud-provider-view');
+    }, [pushView]);
+    const handleCheckboxChange = React.useCallback(() => {
+        setIsAcknowledged((prev) => !prev);
+    }, []);
+    const backButton = (jsxRuntime.jsx(IconButton.IconButton, { type: 'button', onClick: handleBackClick, "data-testid": 'back-button', children: jsxRuntime.jsx(chevronLeft.ReactComponent, {}) }));
+    const infoButton = (jsxRuntime.jsx(IconButton.IconButton, { type: 'button', onClick: handleInfoClick, "data-testid": 'info-button', children: jsxRuntime.jsx(questionMark.ReactComponent, {}) }));
+    return (jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [jsxRuntime.jsx(ModalHeader.ModalHeader, { leading: backButton, trailing: infoButton, children: jsxRuntime.jsx(Typography.Typography, { variant: 'title', color: 'primary', copykey: 'dyn_waas.backup.title', children: t('dyn_waas.backup.title') }) }), jsxRuntime.jsx("div", { className: 'waas-backup-view', children: jsxRuntime.jsxs("div", { className: 'waas-backup-view__body', children: [jsxRuntime.jsx("div", { className: 'waas-backup-view__icon-container', children: jsxRuntime.jsx(Icon.Icon, { color: 'brand-primary', children: jsxRuntime.jsx(backupWaas.ReactComponent, { width: 64, height: 64 }) }) }), jsxRuntime.jsx(Typography.Typography, { variant: 'body_normal', color: 'primary', copykey: 'dyn_waas.backup.subtitle', className: 'waas-backup-view__subtitle', children: t('dyn_waas.backup.subtitle') }), jsxRuntime.jsx("div", { className: 'waas-backup-view__checkbox-container', children: jsxRuntime.jsxs("label", { className: 'waas-backup-view__checkbox-label', children: [jsxRuntime.jsx(Checkbox.Checkbox, { checked: isAcknowledged, onChange: handleCheckboxChange, ariaLabel: t('dyn_waas.backup.checkbox_label') }), jsxRuntime.jsx(Typography.Typography, { variant: 'body_normal', color: 'secondary', copykey: 'dyn_waas.backup.checkbox_label', children: t('dyn_waas.backup.checkbox_label') })] }) }), jsxRuntime.jsx("div", { className: 'waas-backup-view__actions', children: jsxRuntime.jsx(TypographyButton.TypographyButton, { dataTestId: 'continue-backup-button', onClick: handleContinueClick, disabled: !isAcknowledged, copykey: 'dyn_waas.backup.continue_button', buttonVariant: 'brand-primary', typographyProps: {
+                                    color: 'inherit',
+                                }, expanded: true, children: t('dyn_waas.backup.continue_button') }) })] }) })] }));
+};
+
+exports.WaasBackupView = WaasBackupView;

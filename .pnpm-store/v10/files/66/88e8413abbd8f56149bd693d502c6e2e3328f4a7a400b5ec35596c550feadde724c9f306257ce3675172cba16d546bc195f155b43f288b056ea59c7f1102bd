@@ -1,0 +1,4 @@
+import type { DynamicClient } from '../../../client/types';
+/** @not-instrumented */
+export declare const getHeadersForNonceSignedByDeviceSigners: (client: DynamicClient) => Promise<Record<string, string>>;
+//# sourceMappingURL=getHeadersForNonceSignedByDeviceSigners.d.ts.map

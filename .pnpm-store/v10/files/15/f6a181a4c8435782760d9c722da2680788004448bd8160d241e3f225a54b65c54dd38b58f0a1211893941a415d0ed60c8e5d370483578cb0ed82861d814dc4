@@ -1,0 +1,8 @@
+/**
+ * Converts a DER/X9.62 encoded ECDSA signature to IEEE P1363 format (r || s).
+ * Native secure enclaves produce DER-encoded signatures; the server expects P1363.
+ *
+ * @not-instrumented
+ */
+export declare const derToP1363: (der: Uint8Array) => Uint8Array;
+//# sourceMappingURL=derToP1363.d.ts.map

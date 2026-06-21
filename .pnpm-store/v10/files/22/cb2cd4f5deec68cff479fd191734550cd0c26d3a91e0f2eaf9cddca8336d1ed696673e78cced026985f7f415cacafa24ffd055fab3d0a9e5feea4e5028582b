@@ -1,0 +1,94 @@
+'use client'
+import { useCallback, useRef, useContext } from 'react';
+import '@dynamic-labs/iconic';
+import '@dynamic-labs/wallet-connector-core';
+import 'react/jsx-runtime';
+import '../../ViewContext/ViewContext.js';
+import '../../../shared/logger.js';
+import '@dynamic-labs/wallet-book';
+import { isSSR } from '../../../shared/utils/functions/isSSR/isSSR.js';
+import '@dynamic-labs/utils';
+import '../../../utils/constants/colors.js';
+import '../../../utils/constants/values.js';
+import '@dynamic-labs/sdk-api-core';
+import '../../../shared/consts/index.js';
+import { useLoadingAndLifecycle } from '../../../store/state/loadingAndLifecycle/loadingAndLifecycle.js';
+import { DynamicContext } from '../DynamicContext.js';
+import { useOverrides } from './useOverrides/useOverrides.js';
+
+const SSR_SAFE_DYNAMIC_CONTEXT = new Proxy({}, {
+    get: () => undefined,
+});
+const useDynamicContextValue = () => {
+    const context = useContext(DynamicContext);
+    if (context === undefined) {
+        if (isSSR())
+            return SSR_SAFE_DYNAMIC_CONTEXT;
+        throw new Error('Hook must be used within <DynamicContextProvider>.');
+    }
+    return context;
+};
+// This is external context hook which is exposed to customers
+const useDynamicContext = () => {
+    const context = useDynamicContextValue();
+    const { accountSwitchState, awaitingSignatureState, getNameService, handleLogOut, removeWallet, loadingNetwork, locale, loginWithEmail, multiWalletWidgetState, network, networkConfigurations, qrcodeUri, refetchProjectSettings, sdkHasLoaded, setLogInWithEmail, setMultiWalletWidgetState, setShowAuthFlow, setShowDynamicUserProfile, setShowQrcodeModal, shadowDOMEnabled, // NOSONAR — deprecated property re-exposed via public API
+    showAuthFlow, showQrcodeModal, user, // NOSONAR — deprecated property re-exposed via public API
+    userWithMissingInfo, bridgeChains, // NOSONAR — deprecated property re-exposed via public API
+    bridgeChainsToConnect, primaryWallet, setShowBridgeWidget, sendWagmiSettings, showDynamicUserProfile, selectedTabIndex, setSelectedTabIndex, } = context;
+    const { authMode, setAuthMode } = useOverrides(context);
+    const externalSetShowAuthFlow = useCallback((value) => {
+        setShowAuthFlow(value, {
+            clearErrors: true,
+            emitCancelAuth: true,
+            ignoreIfIsEmbeddedWidget: true,
+            initializeWalletConnect: true,
+            performMultiWalletChecks: true,
+        });
+    }, [setShowAuthFlow]);
+    const { initialWalletVerificationInProgress } = useLoadingAndLifecycle();
+    // This ref ensures we don't return a value for primary wallet until useConnectAndSign has completely finished running
+    // Read UserWalletsContext.tsx explanation for more context
+    const verifiedPrimaryWallet = useRef(null);
+    if (!initialWalletVerificationInProgress || !primaryWallet) {
+        verifiedPrimaryWallet.current = primaryWallet;
+    }
+    return {
+        accountSwitchState,
+        authMode,
+        awaitingSignatureState,
+        bridgeChains,
+        bridgeChainsToConnect,
+        getNameService,
+        handleLogOut,
+        handleUnlinkWallet: removeWallet,
+        loadingNetwork,
+        locale,
+        loginWithEmail,
+        multiWalletWidgetState,
+        network,
+        networkConfigurations,
+        primaryWallet: verifiedPrimaryWallet.current,
+        qrcodeUri,
+        refetchProjectSettings,
+        removeWallet,
+        sdkHasLoaded,
+        selectedTabIndex,
+        sendWagmiSettings,
+        setAuthMode,
+        setLogInWithEmail,
+        setMultiWalletWidgetState,
+        setSelectedTabIndex,
+        setShowAuthFlow: externalSetShowAuthFlow,
+        setShowBridgeWidget,
+        setShowDynamicUserProfile,
+        setShowQrcodeModal,
+        shadowDOMEnabled,
+        showAuthFlow,
+        showDynamicUserProfile,
+        showQrcodeModal,
+        user,
+        userWithMissingInfo,
+    };
+};
+
+export { useDynamicContext };

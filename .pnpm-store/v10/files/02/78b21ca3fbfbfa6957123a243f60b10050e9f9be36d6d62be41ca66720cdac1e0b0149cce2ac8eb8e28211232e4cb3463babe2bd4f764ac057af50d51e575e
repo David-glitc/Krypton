@@ -1,0 +1,65 @@
+'use client'
+import { useEffect } from 'react';
+import { getWalletConnectorOptions, mergeWalletConnectorOptions } from '../../../store/state/walletOptions/walletOptions.js';
+
+// The wallet list's installed state is snapshotted once (in
+// useCreateWalletConnectorOptions) and is otherwise only updated by
+// providerReady events. On a typed/address-bar navigation a wallet extension
+// (e.g. Backpack, Solflare) can inject its window provider just after that
+// snapshot runs, so the connector is frozen as "not installed" with no event
+// to recover it and only appears after a reload (DYNT-1074). Re-check the
+// already-instantiated connectors for a short window after load and upgrade any
+// that have since become installed.
+const INSTALLED_WALLET_RECONCILE_INTERVAL_MS = 300;
+const INSTALLED_WALLET_RECONCILE_DURATION_MS = 5000;
+/**
+ * Polls the existing wallet connector options for a bounded window and upgrades
+ * any whose connector has become installed since the initial snapshot. This is
+ * upgrade-only (never downgrades), so a provider that momentarily fails to
+ * resolve cannot remove an already-installed wallet from the list.
+ */
+const useReconcileInstalledWallets = (enabled) => {
+    useEffect(() => {
+        if (!enabled) {
+            return undefined;
+        }
+        const reconcileInstalledWallets = () => {
+            const options = getWalletConnectorOptions();
+            if (!options) {
+                return;
+            }
+            const upgradedOptions = options
+                .filter((option) => {
+                if (option.isInstalledOnBrowser) {
+                    return false;
+                }
+                try {
+                    // isInstalledOnBrowser reads the window/registry fresh on each call,
+                    // so this reflects providers injected after the initial snapshot.
+                    return option.walletConnector.isInstalledOnBrowser();
+                }
+                catch (_a) {
+                    // Third-party provider code may throw; treat as not installed.
+                    return false;
+                }
+            })
+                .map((option) => (Object.assign(Object.assign({}, option), { isInstalledOnBrowser: true })));
+            if (upgradedOptions.length > 0) {
+                // mergeWalletConnectorOptions merges by key, so passing only the
+                // upgraded options is safe alongside concurrent providerReady updates.
+                mergeWalletConnectorOptions(upgradedOptions);
+            }
+        };
+        reconcileInstalledWallets();
+        const intervalId = setInterval(reconcileInstalledWallets, INSTALLED_WALLET_RECONCILE_INTERVAL_MS);
+        const timeoutId = setTimeout(() => {
+            clearInterval(intervalId);
+        }, INSTALLED_WALLET_RECONCILE_DURATION_MS);
+        return () => {
+            clearInterval(intervalId);
+            clearTimeout(timeoutId);
+        };
+    }, [enabled]);
+};
+
+export { useReconcileInstalledWallets };

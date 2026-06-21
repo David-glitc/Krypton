@@ -1,0 +1,8 @@
+import type { WalletAccount } from '../../wallets/walletAccount';
+type GetOwnerWalletAccountForSmartWalletAccountParams = {
+    smartWalletAccount: WalletAccount;
+};
+/** @not-instrumented */
+export declare const getOwnerWalletAccountForSmartWalletAccount: ({ smartWalletAccount }: GetOwnerWalletAccountForSmartWalletAccountParams, client?: import("../../../exports").DynamicClient) => WalletAccount | undefined;
+export {};
+//# sourceMappingURL=getOwnerWalletAccountForSmartWalletAccount.d.ts.map

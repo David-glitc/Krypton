@@ -1,0 +1,13 @@
+import type { CreateMfaToken, TokenScope } from '@dynamic-labs/sdk-api-core';
+import type { AuthenticationResponseJSON } from '@simplewebauthn/browser';
+import type { DynamicClient } from '../../../../client/types';
+type ServerAuthenticatePasskeyParams = {
+    authentication: AuthenticationResponseJSON;
+    /** @deprecated Use `requestedScopes` instead. */
+    createMfaToken?: CreateMfaToken;
+    requestedScopes?: TokenScope[];
+};
+/** @not-instrumented */
+export declare const serverAuthenticatePasskey: ({ authentication, createMfaToken, requestedScopes }: ServerAuthenticatePasskeyParams, client: DynamicClient) => Promise<import("@dynamic-labs/sdk-api-core").VerifyResponse>;
+export {};
+//# sourceMappingURL=serverAuthenticatePasskey.d.ts.map

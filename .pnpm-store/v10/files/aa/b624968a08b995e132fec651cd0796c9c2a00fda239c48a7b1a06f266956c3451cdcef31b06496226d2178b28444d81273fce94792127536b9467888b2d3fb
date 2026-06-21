@@ -1,0 +1,35 @@
+'use client'
+import { jsx } from 'react/jsx-runtime';
+import { getChainInfoWithOverrides } from '@dynamic-labs/wallet-connector-core';
+import { DynamicError } from '@dynamic-labs/utils';
+import { useViewContext } from '../../context/ViewContext/ViewContext.js';
+import { BridgeNextWalletToConnectLayout } from '../../layouts/BridgeNextWalletToConnectLayout/BridgeNextWalletToConnectLayout.js';
+import '../../context/DynamicContext/useDynamicContext/useDynamicContext.js';
+import { useInternalDynamicContext } from '../../context/DynamicContext/useDynamicContext/useInternalDynamicContext/useInternalDynamicContext.js';
+import { getChainIcon } from '../../shared/utils/functions/chain/getChainIcon.js';
+import '../../shared/logger.js';
+import '@dynamic-labs/wallet-book';
+import '../../utils/constants/colors.js';
+import '../../utils/constants/values.js';
+import '@dynamic-labs/sdk-api-core';
+import 'react';
+import '@dynamic-labs/iconic';
+import '../../shared/consts/index.js';
+
+const BridgeNextWalletConnectionView = () => {
+    const { setShowAuthFlow, bridgeChainsToConnect } = useInternalDynamicContext();
+    const { pushView } = useViewContext();
+    if (!(bridgeChainsToConnect === null || bridgeChainsToConnect === void 0 ? void 0 : bridgeChainsToConnect.length)) {
+        throw new DynamicError('No wallets to connect');
+    }
+    const [nextWalletToConnect] = bridgeChainsToConnect;
+    const { chain } = nextWalletToConnect;
+    const chainInfo = getChainInfoWithOverrides(chain);
+    const ChainIcon = getChainIcon(chain);
+    if (!chainInfo) {
+        throw new DynamicError('No chain info found for chain', chain);
+    }
+    return (jsx(BridgeNextWalletToConnectLayout, { chainName: chainInfo.blockchainName, chainIcon: jsx(ChainIcon, {}), onClickAction: () => pushView('wallet-list'), onClickClose: () => setShowAuthFlow(false, { emitCancelAuth: true }) }));
+};
+
+export { BridgeNextWalletConnectionView };

@@ -1,0 +1,78 @@
+import { IZeroDevConnector, Wallet } from '@dynamic-labs/wallet-connector-core';
+export type Eip7702Authorization = Awaited<ReturnType<IZeroDevConnector['signEip7702PreAuth']>>;
+export type SignEip7702AuthorizationParams = {
+    /**
+     * The wallet to sign the EIP-7702 authorization with.
+     * If not provided, uses the primary wallet.
+     */
+    wallet?: Wallet;
+    /**
+     * The chain ID to sign the authorization for.
+     * If not provided, uses the wallet's current network chain ID.
+     */
+    chainId?: number;
+};
+export type UseSignEip7702AuthorizationReturn = {
+    /**
+     * Signs an EIP-7702 authorization for ZeroDev kernel delegation.
+     *
+     * This creates a signed authorization that allows a wallet to delegate
+     * its execution to the ZeroDev kernel contract. The signed authorization can then
+     * be passed to kernel account client creation functions.
+     *
+     * @param params - Optional parameters for signing the authorization
+     * @returns A promise that resolves to the signed EIP-7702 authorization
+     * @throws {DynamicError} If the wallet connector is not a ZeroDev connector
+     * @throws {DynamicError} If no wallet is available
+     * @throws {DynamicError} If the connector does not support EIP-7702 authorization
+     *
+     * @example
+     * ```tsx
+     * const { signEip7702Authorization } = useSignEip7702Authorization();
+     *
+     * // Sign with primary wallet and current network
+     * const auth = await signEip7702Authorization();
+     *
+     * // Sign with specific wallet and chain ID
+     * const auth = await signEip7702Authorization({
+     *   wallet: myWallet,
+     *   chainId: 1, // Ethereum mainnet
+     * });
+     * ```
+     */
+    signEip7702Authorization: (params?: SignEip7702AuthorizationParams) => Promise<Eip7702Authorization>;
+};
+/**
+ * Hook for signing EIP-7702 authorizations for ZeroDev kernel delegation.
+ *
+ * This hook provides a way to sign EIP-7702 authorizations that enable
+ * single-use MFA flows where the authorization signing step is separated
+ * from the transaction execution step.
+ *
+ * The signed authorization can be passed to kernel account client creation
+ * functions like `createEcdsaKernelAccountClientWith7702`.
+ *
+ * @returns An object containing the `signEip7702Authorization` function
+ *
+ * @example
+ * ```tsx
+ * import { useSignEip7702Authorization } from '@dynamic-labs/sdk-react-core';
+ *
+ * function MyComponent() {
+ *   const { signEip7702Authorization } = useSignEip7702Authorization();
+ *
+ *   const handleSign = async () => {
+ *     try {
+ *       const auth = await signEip7702Authorization();
+ *       console.log('Signed authorization:', auth);
+ *       // Use auth with kernel client creation
+ *     } catch (error) {
+ *       console.error('Failed to sign authorization:', error);
+ *     }
+ *   };
+ *
+ *   return <button onClick={handleSign}>Sign Authorization</button>;
+ * }
+ * ```
+ */
+export declare const useSignEip7702Authorization: () => UseSignEip7702AuthorizationReturn;

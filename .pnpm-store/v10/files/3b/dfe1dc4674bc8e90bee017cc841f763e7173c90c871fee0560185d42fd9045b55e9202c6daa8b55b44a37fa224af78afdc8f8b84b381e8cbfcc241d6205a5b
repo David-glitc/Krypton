@@ -1,0 +1,191 @@
+import Foundation
+import Security
+import CryptoKit
+
+/// Secure Enclave key manager providing P-256 key generation, signing, and management.
+/// All public keys are returned in uncompressed SEC1 format (65 bytes: 04 || x || y).
+/// All binary data uses base64url encoding (RFC 4648 §5, no padding).
+@objc public class SecureEnclaveKeyManager: NSObject {
+
+  private let api: SecKeyAPI
+
+  // Designated init used by the ObjC++ bridge — wires in the real
+  // Security/CryptoKit calls via LiveSecKeyAPI.
+  @objc public override init() {
+    self.api = LiveSecKeyAPI()
+    super.init()
+  }
+
+  // Designated init used by unit tests to inject a fake SecKeyAPI.
+  // Not @objc-exposed because the protocol is Swift-only.
+  init(api: SecKeyAPI) {
+    self.api = api
+    super.init()
+  }
+
+  @objc public func isAvailable() -> Bool {
+    return api.isSecureEnclaveAvailable()
+  }
+
+  @objc public func hasKey(_ tag: String) -> Bool {
+    let query = baseQuery(for: tag, returning: true)
+    let result = api.itemCopyMatching(query: query as CFDictionary)
+    return result.status == errSecSuccess
+  }
+
+  @objc public func generateKeyPair(_ tag: String) throws -> String {
+    let tagData = tag.data(using: .utf8)!
+
+    let access = api.createAccessControl(
+      protection: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
+      flags: .privateKeyUsage
+    )!
+
+    let attributes: [String: Any] = [
+      kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
+      kSecAttrKeySizeInBits as String: 256,
+      kSecAttrTokenID as String: kSecAttrTokenIDSecureEnclave,
+      kSecPrivateKeyAttrs as String: [
+        kSecAttrIsPermanent as String: true,
+        kSecAttrApplicationTag as String: tagData,
+        kSecAttrAccessControl as String: access,
+      ] as [String: Any],
+    ]
+
+    let privateKey: SecKey
+    do {
+      privateKey = try api.createRandomKey(attributes: attributes as CFDictionary)
+    } catch {
+      throw NSError(
+        domain: "SecureEnclaveKeyManager",
+        code: 1,
+        userInfo: [NSLocalizedDescriptionKey: (error as NSError).localizedDescription]
+      )
+    }
+
+    guard let publicKey = api.copyPublicKey(privateKey) else {
+      throw NSError(
+        domain: "SecureEnclaveKeyManager",
+        code: 2,
+        userInfo: [NSLocalizedDescriptionKey: "Failed to extract public key"]
+      )
+    }
+
+    let publicKeyData = try exportPublicKey(publicKey)
+    return base64urlEncode(publicKeyData)
+  }
+
+  /// Returns the base64url-encoded public key, or an empty string if the key does not exist.
+  /// The ObjC++ bridge maps empty string to null.
+  @objc public func getPublicKey(_ tag: String) throws -> String {
+    let query = baseQuery(for: tag, returning: true)
+    let result = api.itemCopyMatching(query: query as CFDictionary)
+
+    guard result.status == errSecSuccess, let ref = result.item else {
+      // Key not found — return empty string so the bridge can resolve null
+      return ""
+    }
+
+    let privateKey = ref as! SecKey
+    guard let publicKey = api.copyPublicKey(privateKey) else {
+      throw NSError(
+        domain: "SecureEnclaveKeyManager",
+        code: 2,
+        userInfo: [NSLocalizedDescriptionKey: "Failed to extract public key"]
+      )
+    }
+
+    let publicKeyData = try exportPublicKey(publicKey)
+    return base64urlEncode(publicKeyData)
+  }
+
+  @objc public func sign(_ tag: String, payload: String) throws -> String {
+    let query = baseQuery(for: tag, returning: true)
+    let result = api.itemCopyMatching(query: query as CFDictionary)
+
+    guard result.status == errSecSuccess, let ref = result.item else {
+      throw NSError(
+        domain: "SecureEnclaveKeyManager",
+        code: 3,
+        userInfo: [NSLocalizedDescriptionKey: "Key not found for tag: \(tag)"]
+      )
+    }
+
+    let privateKey = ref as! SecKey
+
+    guard let payloadData = base64urlDecode(payload) else {
+      throw NSError(
+        domain: "SecureEnclaveKeyManager",
+        code: 4,
+        userInfo: [NSLocalizedDescriptionKey: "Invalid base64url payload"]
+      )
+    }
+
+    let signature: Data
+    do {
+      signature = try api.createSignature(
+        key: privateKey,
+        algorithm: .ecdsaSignatureMessageX962SHA256,
+        data: payloadData as CFData
+      )
+    } catch {
+      throw NSError(
+        domain: "SecureEnclaveKeyManager",
+        code: 5,
+        userInfo: [NSLocalizedDescriptionKey: (error as NSError).localizedDescription]
+      )
+    }
+
+    return base64urlEncode(signature)
+  }
+
+  @objc public func deleteKey(_ tag: String) {
+    let query = baseQuery(for: tag, returning: false)
+    _ = api.itemDelete(query: query as CFDictionary)
+  }
+
+  // MARK: - Private helpers
+
+  private func baseQuery(for tag: String, returning returnRef: Bool) -> [String: Any] {
+    var query: [String: Any] = [
+      kSecClass as String: kSecClassKey,
+      kSecAttrApplicationTag as String: tag.data(using: .utf8)!,
+      kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
+    ]
+    if returnRef {
+      query[kSecReturnRef as String] = true
+    }
+    return query
+  }
+
+  private func exportPublicKey(_ publicKey: SecKey) throws -> Data {
+    do {
+      // SecKeyCopyExternalRepresentation returns uncompressed SEC1 (04 || x || y)
+      return try api.copyExternalRepresentation(publicKey)
+    } catch {
+      throw NSError(
+        domain: "SecureEnclaveKeyManager",
+        code: 2,
+        userInfo: [NSLocalizedDescriptionKey: (error as NSError).localizedDescription]
+      )
+    }
+  }
+
+  private func base64urlEncode(_ data: Data) -> String {
+    data.base64EncodedString()
+      .replacingOccurrences(of: "+", with: "-")
+      .replacingOccurrences(of: "/", with: "_")
+      .replacingOccurrences(of: "=", with: "")
+  }
+
+  private func base64urlDecode(_ string: String) -> Data? {
+    var base64 = string
+      .replacingOccurrences(of: "-", with: "+")
+      .replacingOccurrences(of: "_", with: "/")
+    let remainder = base64.count % 4
+    if remainder > 0 {
+      base64 += String(repeating: "=", count: 4 - remainder)
+    }
+    return Data(base64Encoded: base64)
+  }
+}
