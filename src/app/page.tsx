@@ -1,5 +1,5 @@
 import Link from "next/link"
-
+import { WalletButton } from "@/components/wallet-button"
 export default function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-bg-base">
@@ -24,12 +24,7 @@ export default function Home() {
           >
             Docs
           </Link>
-          <Link
-            href="/app"
-            className="inline-flex items-center justify-center bg-accent text-white px-4 py-2 font-mono text-[10px] font-medium uppercase tracking-wider hover:bg-accent-hover transition-colors rounded"
-          >
-            Open app →
-          </Link>
+          <WalletButton />
         </div>
       </header>
 

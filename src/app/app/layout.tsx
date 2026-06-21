@@ -3,7 +3,7 @@
 import { ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-
+import { WalletButton } from '@/components/wallet-button'
 const NAV_LINKS = [
   { href: '/app', label: 'Vaults', icon: '◻' },
   { href: '/app/create', label: 'Create vault', icon: '+' },
@@ -48,10 +48,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="mt-auto px-3 py-3 border-t border-border">
-          <div className="flex items-center gap-2 px-2 py-1.5">
-            <div className="h-2 w-2 rounded-full bg-accent-positive" />
-            <span className="font-mono text-[10px] text-text-muted">devnet</span>
-          </div>
+          <WalletButton />
         </div>
       </aside>
 
