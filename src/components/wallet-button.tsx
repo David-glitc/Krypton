@@ -1,9 +1,10 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core"
 
-export function WalletButton() {
-  const { setShowAuthFlow, primaryWallet, user } = useDynamicContext()
+function WalletButtonInner() {
+  const { setShowAuthFlow, primaryWallet } = useDynamicContext()
 
   if (primaryWallet) {
     const address = primaryWallet.address
@@ -24,4 +25,22 @@ export function WalletButton() {
       Connect wallet
     </button>
   )
+}
+
+export function WalletButton() {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return (
+      <div className="inline-flex items-center justify-center bg-accent/50 text-white/50 px-4 py-2 font-mono text-[10px] font-medium uppercase tracking-wider rounded">
+        Connect wallet
+      </div>
+    )
+  }
+
+  return <WalletButtonInner />
 }
