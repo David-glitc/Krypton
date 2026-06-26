@@ -1,11 +1,19 @@
 import type { Metadata } from 'next'
-import { IBM_Plex_Sans, IBM_Plex_Mono, Space_Grotesk } from 'next/font/google'
+import { Hanken_Grotesk, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import { DynamicProvider } from '@/lib/dynamic-provider'
 
-const sans = IBM_Plex_Sans({ subsets: ['latin'], weight: ['400', '500', '600'] })
-const mono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400', '500', '600'] })
-const display = Space_Grotesk({ subsets: ['latin'], weight: ['500', '600', '700'] })
+const hanken = Hanken_Grotesk({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-hanken',
+})
+
+const jetbrains = JetBrains_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-jetbrains',
+})
 
 export const metadata: Metadata = {
   title: 'Krypton — Programmable Capital Policy Engine for Solana',
@@ -14,8 +22,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${sans.className} ${mono.className} ${display.className}`}>
-      <body className="bg-bg-base text-text-primary antialiased">
+    <html lang="en" className={`dark ${hanken.variable} ${jetbrains.variable}`}>
+      <body className="bg-bg-base text-text-primary antialiased font-[family-name:var(--font-hanken)]">
         <DynamicProvider>{children}</DynamicProvider>
       </body>
     </html>

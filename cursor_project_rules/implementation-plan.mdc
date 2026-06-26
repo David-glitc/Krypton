@@ -19,3 +19,19 @@ Monorepo scaffold: pnpm workspace, programs/krypton_core Anchor stub, packages (
 
 ### Phase 3 — Done (2026-06-15)
 TanStack Start app: landing, /docs, invite-gated /app, policy builder wizard, vault dashboard + NAV chart, Level 2 activity UI, policy detail route; style guide tokens applied.
+
+### Agent session storage — Done (2026-06-24)
+SQLite layer at `.data/krypton.db` with schema for sessions, cycles, vault registry, activity, and pending actions.
+Service modules: session (24h TTL, 3/wallet cap), cycle (lease mutex), vault registry, activity events.
+
+### Orchestrator package bootstrap — Done (2026-06-25)
+Created `services/orchestrator` worker package with TypeScript build, root `pnpm orchestrator` entrypoint, and polling worker loop.
+Implemented cycle FSM stages, stub-agent JSON outputs, and DB persistence for cycle runs, agent invocations, and permission-gated pending actions.
+
+### Phase 2 — Done (2026-06-24)
+Created `services/orchestrator` with a worker CLI that polls shared SQLite cycle jobs, leases one vault cycle at a time, and records cycle runs plus agent invocations.
+Implemented the FSM through `PERMISSION_GATE`, default stub agents with structured JSON output, and Level 2 pending action creation for manual approval flow.
+
+### Beta vertical slice — Done (2026-06-25)
+Built multi-tenant API/service path from policy compile to vault creation/finalization, plus cycle queue and activity endpoints backed by SQLite.
+Wired `/app/create`, `/app`, and `/app/vault/[id]` to real service handlers and on-chain transaction bundle flow, and validated with a passing production build.

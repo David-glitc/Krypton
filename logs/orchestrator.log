@@ -1,0 +1,15 @@
+
+> krypton@0.1.0 orchestrator /home/david/Krypton
+> pnpm --dir services/orchestrator start
+
+
+> @krypton/orchestrator@0.0.1 start /home/david/Krypton/services/orchestrator
+> pnpm run build && node dist/index.js worker
+
+
+> @krypton/orchestrator@0.0.1 build /home/david/Krypton/services/orchestrator
+> tsc
+
+[worker] starting id=worker-3207346-277736 stub_agents=true db=../../.data/krypton.db
+ ELIFECYCLE  Command failed.
+ ELIFECYCLE  Command failed.

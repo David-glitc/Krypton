@@ -1,0 +1,15 @@
+[Unit]
+Description=Krypton cycle orchestrator worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/david/Krypton/services/orchestrator
+EnvironmentFile=/home/david/Krypton/.env.orchestrator
+ExecStart=/home/david/.local/share/fnm/aliases/default/bin/node /home/david/Krypton/services/orchestrator/dist/index.js worker
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

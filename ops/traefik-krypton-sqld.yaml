@@ -1,0 +1,28 @@
+http:
+  middlewares:
+    krypton-sqld-gzip:
+      compress: true
+  routers:
+    krypton-sqld-http:
+      middlewares:
+        - redirect-to-https@file
+      entryPoints:
+        - http
+      service: krypton-sqld
+      rule: Host(`krypton-db.chessonchain.online`)
+      priority: 100
+    krypton-sqld-https:
+      middlewares:
+        - krypton-sqld-gzip
+      entryPoints:
+        - https
+      service: krypton-sqld
+      rule: Host(`krypton-db.chessonchain.online`)
+      priority: 100
+      tls:
+        certresolver: letsencrypt
+  services:
+    krypton-sqld:
+      loadBalancer:
+        servers:
+          - url: "http://krypton-sqld:8080"
