@@ -27,8 +27,8 @@ import {
 } from './idl'
 
 function encodeCreateVaultArgs(args: CreateVaultArgs): Buffer {
-  // 5 x u64 + 1 x [u8;32] + 1 x u8 + 1 x u8 + 1 x u32 + 1 x u8 + 1 x [u8;32] = 111 bytes + 8 discriminator
-  const buf = Buffer.alloc(8 + 111)
+  // 6 x u64 + 1 x [u8;32] + 1 x u8 + 1 x u8 + 1 x u32 + 1 x u8 + 1 x [u8;32] = 119 bytes + 8 discriminator
+  const buf = Buffer.alloc(8 + 119)
   IX_DISCRIMINATORS.createVault.copy(buf, 0)
   let offset = 8
   offset = writeU64(buf, offset, args.maxDrawdownBps)
