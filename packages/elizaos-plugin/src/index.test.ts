@@ -1,12 +1,15 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import {
   createConstraintCheckAction,
   createVaultStateProvider,
   createSimulationAction,
   createCycleEvaluator,
+  createOpenRouterLlmCall,
   formatVaultState,
   CYCLE_STAGES,
+  runCycle,
+  type CycleEvaluatorResult,
 } from './index.js'
 
 import type { ConstraintCheckParams, ConstraintCheckResult, VaultState, SimulationResult } from './types.js'
@@ -248,7 +251,7 @@ describe('createCycleEvaluator', () => {
       permissionLevel: 1,
     })
     expect(result.success).toBe(true)
-    const cycleResult = result.data!.result
+    const cycleResult = result.data!.result as CycleEvaluatorResult
     expect(cycleResult.finalStage).toBe('MONITORING')
     expect(cycleResult.outputs).toHaveLength(6)
     expect(cycleResult.outputs.map((o) => o.stage)).toEqual([
@@ -267,7 +270,7 @@ describe('createCycleEvaluator', () => {
       vaultPubkey: 'vault123',
       cycleId: 1,
     })
-    const research = result.data!.result.outputs.find((o) => o.stage === 'RESEARCHING')
+    const research = (result.data!.result as CycleEvaluatorResult).outputs.find((o) => o.stage === 'RESEARCHING')
     expect(research?.rationale).toContain('loaded')
   })
 
@@ -278,7 +281,7 @@ describe('createCycleEvaluator', () => {
       cycleId: 1,
       permissionLevel: 3,
     })
-    const perm = result.data!.result.outputs.find((o) => o.stage === 'PERMISSION_GATE')
+    const perm = (result.data!.result as CycleEvaluatorResult).outputs.find((o) => o.stage === 'PERMISSION_GATE')
     expect(perm?.decision).toBe('requires_approval')
   })
 
@@ -289,7 +292,7 @@ describe('createCycleEvaluator', () => {
       cycleId: 1,
       permissionLevel: 1,
     })
-    const perm = result.data!.result.outputs.find((o) => o.stage === 'PERMISSION_GATE')
+    const perm = (result.data!.result as CycleEvaluatorResult).outputs.find((o) => o.stage === 'PERMISSION_GATE')
     expect(perm?.decision).toBe('auto_execute')
   })
 
@@ -299,7 +302,7 @@ describe('createCycleEvaluator', () => {
       vaultPubkey: 'vault123',
       cycleId: 1,
     })
-    const sim = result.data!.result.outputs.find((o) => o.stage === 'SIMULATING')
+    const sim = (result.data!.result as CycleEvaluatorResult).outputs.find((o) => o.stage === 'SIMULATING')
     expect(sim?.rationale).toContain('720')
     expect(sim?.riskScore).toBe(0.72)
   })
@@ -320,5 +323,161 @@ describe('createCycleEvaluator', () => {
     const evaluator = createCycleEvaluator(makeChecker(), makeProvider(), makeSim())
     const valid = await evaluator.validate({ vaultPubkey: 'abc', cycleId: 1 })
     expect(valid).toBe(true)
+  })
+})
+
+describe('createOpenRouterLlmCall', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn())
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('returns a function', () => {
+    const llmCall = createOpenRouterLlmCall('sk-test-key')
+    expect(typeof llmCall).toBe('function')
+  })
+
+  it('sends POST to OpenRouter with correct headers', async () => {
+    const mockFetch = vi.fn<typeof fetch>().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        choices: [{ message: { content: '{"rationale":"test"}' } }],
+        usage: { prompt_tokens: 10, completion_tokens: 5 },
+      }),
+      text: () => Promise.resolve(''),
+    } as unknown as Response)
+    vi.stubGlobal('fetch', mockFetch)
+
+    const llmCall = createOpenRouterLlmCall('sk-test-key')
+    await llmCall('RESEARCHING', 'vault context')
+
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    const [url, opts] = mockFetch.mock.calls[0]!
+    expect(url).toBe('https://openrouter.ai/api/v1/chat/completions')
+    expect((opts as RequestInit).headers).toMatchObject({
+      Authorization: 'Bearer sk-test-key',
+      'Content-Type': 'application/json',
+    })
+  })
+
+  it('returns content from LLM response', async () => {
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        choices: [{ message: { content: '{"rationale":"good","riskScore":0.5}' } }],
+        usage: { prompt_tokens: 10, completion_tokens: 5 },
+      }),
+      text: () => Promise.resolve(''),
+    } as unknown as Response))
+
+    const llmCall = createOpenRouterLlmCall('sk-test-key')
+    const result = await llmCall('RESEARCHING', 'context')
+    expect(result.content).toBe('{"rationale":"good","riskScore":0.5}')
+    expect(result.model).toBe('google/gemini-2.0-flash-exp:free')
+    expect(result.costUsd).toBe(0)
+    expect(result.latencyMs).toBeGreaterThanOrEqual(0)
+  })
+
+  it('uses free model for all stages', async () => {
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        choices: [{ message: { content: '{}' } }],
+        usage: { prompt_tokens: 10, completion_tokens: 5 },
+      }),
+      text: () => Promise.resolve(''),
+    } as unknown as Response))
+
+    const llmCall = createOpenRouterLlmCall('sk-key')
+    for (const stage of ['RESEARCHING', 'STRATEGIZING', 'RISK_REVIEW', 'SIMULATING', 'PERMISSION_GATE', 'MONITORING']) {
+      const result = await llmCall(stage, 'ctx')
+      expect(result.model).toBe('google/gemini-2.0-flash-exp:free')
+    }
+  })
+
+  it('throws on non-200 response with body text', async () => {
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue({
+      ok: false,
+      status: 401,
+      statusText: 'Unauthorized',
+      text: () => Promise.resolve('Unauthorized'),
+    } as unknown as Response))
+
+    const llmCall = createOpenRouterLlmCall('bad-key')
+    await expect(llmCall('RESEARCHING', 'ctx')).rejects.toThrow('OpenRouter 401: Unauthorized')
+  })
+})
+
+describe('runCycle', () => {
+  it('runs all 6 stages and returns outputs', async () => {
+    const result = await runCycle('vault123', 1, 1, {
+      constraintCheckAction: createConstraintCheckAction(async () => ({ passed: true })),
+      vaultStateProvider: createVaultStateProvider(async () => ({
+        vaultPubkey: 'vault123',
+        navUsd: 1_000_000,
+        paused: false,
+        constraints: {
+          maxLeverageBps: 2000,
+          maxDrawdownBps: 1000,
+          maxPositionBps: 3500,
+          currentLeverageBps: 500,
+          currentDrawdownBps: 200,
+          currentConcentrationBps: 1500,
+          lastOracleUpdate: Date.now() / 1000,
+        },
+      })),
+      simulationAction: createSimulationAction(async () => ({
+        candidateId: 'sim-1',
+        expectedReturnBps: 150,
+        expectedDrawdownBps: 80,
+        var95Bps: 120,
+        compositeScore: 720,
+        narrative: 'Good score',
+      })),
+    })
+
+    expect(result.finalStage).toBe('MONITORING')
+    expect(result.outputs).toHaveLength(6)
+    expect(result.outputs.map((o) => o.stage)).toEqual(CYCLE_STAGES)
+  })
+
+  it('includes cycle cost tracking in outputs when LLM is configured', async () => {
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        choices: [{ message: { content: '{"rationale":"llm research"}' } }],
+        usage: { prompt_tokens: 100, completion_tokens: 50 },
+      }),
+      text: () => Promise.resolve(''),
+    } as unknown as Response))
+
+    const llmCall = createOpenRouterLlmCall('sk-key')
+    const evaluator = createCycleEvaluator(
+      createConstraintCheckAction(async () => ({ passed: true })),
+      createVaultStateProvider(async () => ({
+        vaultPubkey: 'vault123',
+        navUsd: 1_000_000,
+        paused: false,
+        constraints: {
+          maxLeverageBps: 2000, maxDrawdownBps: 1000, maxPositionBps: 3500,
+          currentLeverageBps: 500, currentDrawdownBps: 200, currentConcentrationBps: 1500,
+          lastOracleUpdate: Date.now() / 1000,
+        },
+      })),
+      createSimulationAction(async () => ({
+        candidateId: 'sim-1', expectedReturnBps: 150, expectedDrawdownBps: 80,
+        var95Bps: 120, compositeScore: 720, narrative: 'Good',
+      })),
+      llmCall,
+    )
+
+    const result = await evaluator.handler({ vaultPubkey: 'vault123', cycleId: 1, stage: 'RESEARCHING' })
+    const output = (result.data!.result as CycleEvaluatorResult).outputs[0]!
+    expect(output.llmCostUsd).toBe(0)
+    expect(output.llmLatencyMs).toBeGreaterThanOrEqual(0)
+    expect(output.llmModel).toBe('google/gemini-2.0-flash-exp:free')
   })
 })

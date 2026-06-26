@@ -94,6 +94,9 @@ export interface CycleOutput {
   actions?: string[]
   riskScore?: number
   alerts?: string[]
+  llmCostUsd?: number
+  llmLatencyMs?: number
+  llmModel?: string
 }
 
 export interface CycleEvaluatorResult {

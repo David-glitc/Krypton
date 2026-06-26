@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
+import { Keypair, TransactionInstruction } from '@solana/web3.js'
 import { generateCharacterFromPolicy, generatePresetCharacter } from './character/generator.js'
 import type { CapitalPolicy } from './character/types.js'
+import { ExecutionClient } from './execution-client.js'
+import { CYCLE_STAGES } from './cycle-fsm.js'
 
 describe('generateCharacterFromPolicy', () => {
   const lowRiskPolicy: CapitalPolicy = {
@@ -152,5 +155,109 @@ describe('generatePresetCharacter', () => {
 
   it('throws for unknown preset', () => {
     expect(() => generatePresetCharacter('unknown-preset')).toThrow('Unknown preset')
+  })
+})
+
+describe('CYCLE_STAGES', () => {
+  it('has 6 stages in correct order', () => {
+    expect(CYCLE_STAGES).toEqual([
+      'RESEARCHING',
+      'STRATEGIZING',
+      'RISK_REVIEW',
+      'SIMULATING',
+      'PERMISSION_GATE',
+      'MONITORING',
+    ])
+  })
+})
+
+describe('parseActionType', () => {
+  it('returns 0 for swap actions', async () => {
+    const { parseActionType } = await import('./worker.js')
+    expect(parseActionType('swap 5% USDC to SOL')).toBe(0)
+    expect(parseActionType('swap')).toBe(0)
+    expect(parseActionType('noop')).toBe(0)
+  })
+
+  it('returns 1 for stake actions', async () => {
+    const { parseActionType } = await import('./worker.js')
+    expect(parseActionType('stake 10 SOL')).toBe(1)
+    expect(parseActionType('unstake')).toBe(1)
+  })
+
+  it('returns 2 for lend/borrow', async () => {
+    const { parseActionType } = await import('./worker.js')
+    expect(parseActionType('lend USDC on kamino')).toBe(2)
+    expect(parseActionType('borrow SOL')).toBe(2)
+  })
+
+  it('returns 3 for liquidity actions', async () => {
+    const { parseActionType } = await import('./worker.js')
+    expect(parseActionType('provide liquidity')).toBe(3)
+    expect(parseActionType('liquidity pool')).toBe(3)
+  })
+
+  it('returns 4 for open_perp', async () => {
+    const { parseActionType } = await import('./worker.js')
+    expect(parseActionType('open perp position')).toBe(4)
+    expect(parseActionType('perp')).toBe(4)
+  })
+
+  it('returns 5 for close_perp', async () => {
+    const { parseActionType } = await import('./worker.js')
+    expect(parseActionType('close_perp')).toBe(5)
+    expect(parseActionType('close position')).toBe(5)
+  })
+})
+
+describe('ExecutionClient', () => {
+  const mockConnection = {} as any
+  const client = new ExecutionClient({ connection: mockConnection })
+
+  it('buildExecuteActionInstruction returns a TransactionInstruction', () => {
+    const authority = Keypair.generate()
+    const ix = client.buildExecuteActionInstruction({
+      vaultPubkey: Keypair.generate().publicKey,
+      vaultOwner: Keypair.generate().publicKey,
+      actionType: 1,
+      postLeverageBps: 1000,
+      postConcentrationBps: 2000,
+      postDrawdownBps: 500,
+      postCorrelatedBps: 1000,
+      compositeScore: 750,
+      targetProtocolId: 0,
+      isDeRisk: false,
+      requiredLevel: 1,
+      typedActionData: Buffer.from('stake SOL'),
+      authority,
+    })
+
+    expect(ix).toBeInstanceOf(TransactionInstruction)
+    expect(ix.keys.length).toBe(8)
+    expect(ix.data.length).toBeGreaterThan(8)
+    // First 8 bytes are the discriminator
+    expect(ix.data.subarray(0, 8)).toEqual(Buffer.from([0xf6, 0x89, 0x69, 0x71, 0xf7, 0x06, 0xdf, 0xae]))
+    // Byte 8 is actionType
+    expect(ix.data[8]).toBe(1)
+    // Last bytes are the typed action data
+    const dataBuf = Buffer.from('stake SOL')
+    expect(ix.data.subarray(ix.data.length - dataBuf.length)).toEqual(dataBuf)
+  })
+
+  it('includes authority as signer in keys', () => {
+    const authority = Keypair.generate()
+    const ix = client.buildExecuteActionInstruction({
+      vaultPubkey: Keypair.generate().publicKey,
+      vaultOwner: Keypair.generate().publicKey,
+      actionType: 0,
+      postLeverageBps: 0, postConcentrationBps: 0, postDrawdownBps: 0, postCorrelatedBps: 0,
+      compositeScore: 0, targetProtocolId: 0, isDeRisk: false, requiredLevel: 0,
+      typedActionData: Buffer.from('test'),
+      authority,
+    })
+
+    const signerKey = ix.keys.find((k) => k.isSigner)
+    expect(signerKey).toBeDefined()
+    expect(signerKey!.pubkey.toString()).toBe(authority.publicKey.toString())
   })
 })

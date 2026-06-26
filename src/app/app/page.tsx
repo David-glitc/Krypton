@@ -89,13 +89,13 @@ export default function VaultsPage() {
     : VAULT_DEPLOYMENTS
 
   return (
-    <div className="mx-auto max-w-6xl space-y-12 p-6 lg:p-8">
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+    <div className="mx-auto max-w-6xl space-y-8 p-4 sm:p-6 md:space-y-12 lg:p-8">
+      <div className="flex flex-col gap-4 sm:gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-xl">
-          <h1 className="font-[family-name:var(--font-hanken)] text-5xl font-bold tracking-tight text-text-primary lg:text-7xl">
+          <h1 className="font-[family-name:var(--font-hanken)] text-4xl font-bold tracking-tight text-text-primary sm:text-5xl lg:text-7xl">
             Your vaults
           </h1>
-          <p className="mt-4 text-lg leading-relaxed text-text-secondary">
+          <p className="mt-3 text-base leading-relaxed text-text-secondary sm:text-lg">
             High-performance capital deployment managed by clinical AI agents.
             deterministic policies, real-time risk mitigation.
           </p>
@@ -110,26 +110,26 @@ export default function VaultsPage() {
         <MetricCard label="Uptime / Health" value={liveMetrics?.uptime ?? GLOBAL_METRICS.uptime} accent />
       </div>
 
-      <section className="space-y-6">
+      <section className="space-y-4 sm:space-y-6">
         <SectionHeading title="Active Deployments" />
 
         <div className="space-y-4">
           {renderedVaults.map((vault) => (
-            <article key={vault.id} className="panel p-6">
-              <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
-                <div className="flex gap-4">
+            <article key={vault.id} className="panel p-4 sm:p-6">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between lg:gap-6">
+                <div className="flex gap-3 sm:gap-4">
                   <VaultIcon type={vault.icon} />
-                  <div>
-                    <h3 className="font-[family-name:var(--font-hanken)] text-xl font-medium text-text-primary">
+                  <div className="min-w-0">
+                    <h3 className="truncate font-[family-name:var(--font-hanken)] text-base font-medium text-text-primary sm:text-xl">
                       {vault.name}
                     </h3>
-                    <p className="mt-1 font-[family-name:var(--font-jetbrains)] text-[13px] tracking-wide text-text-secondary">
+                    <p className="mt-0.5 font-[family-name:var(--font-jetbrains)] text-[12px] tracking-wide text-text-secondary sm:text-[13px]">
                       Policy ID: {vault.policyId}
                     </p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-6">
                   {[
                     { label: 'TVL', value: vault.tvl, accent: false },
                     { label: 'Net APY', value: vault.netApy, accent: true },
@@ -142,11 +142,11 @@ export default function VaultsPage() {
                     { label: 'Status', value: vault.status, accent: true, status: true },
                   ].map((stat) => (
                     <div key={stat.label}>
-                      <p className="font-[family-name:var(--font-jetbrains)] text-[13px] uppercase tracking-wide text-[#a9e2ef]">
+                      <p className="font-[family-name:var(--font-jetbrains)] text-[11px] uppercase tracking-wide text-[#a9e2ef] sm:text-[13px]">
                         {stat.label}
                       </p>
                       <p
-                        className={`mt-1 font-[family-name:var(--font-jetbrains)] text-lg ${
+                        className={`mt-0.5 font-[family-name:var(--font-jetbrains)] text-base sm:text-lg ${
                           stat.risk
                             ? 'text-accent-risk'
                             : stat.accent
@@ -163,7 +163,7 @@ export default function VaultsPage() {
                 <OutlineButton href={`/app/vault/${vault.id}`}>Analyze</OutlineButton>
               </div>
 
-              <div className="mt-8 flex flex-wrap items-center gap-3 border-t border-border/50 pt-6">
+              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/50 pt-4 sm:mt-6 sm:gap-3 sm:pt-6">
                 {vault.tags.map((tag) => (
                   <StatusPill key={tag} label={tag} />
                 ))}
@@ -174,20 +174,20 @@ export default function VaultsPage() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <div className="panel p-8">
-          <h3 className="font-[family-name:var(--font-hanken)] text-xl font-medium text-text-primary">
+        <div className="panel p-4 sm:p-6 lg:p-8">
+          <h3 className="font-[family-name:var(--font-hanken)] text-base font-medium text-text-primary sm:text-xl">
             Neural Constraint Monitor
           </h3>
-          <div className="mt-6 space-y-4">
+          <div className="mt-4 space-y-3 sm:mt-6 sm:space-y-4">
             {CONSTRAINT_MONITOR.map((row) => (
-              <div key={row.label} className="flex items-center justify-between border-b border-border/60 pb-4 last:border-0 last:pb-0">
-                <div>
+              <div key={row.label} className="flex items-center justify-between border-b border-border/60 pb-3 last:border-0 last:pb-0 sm:pb-4">
+                <div className="min-w-0">
                   <p className="text-sm text-text-primary">{row.label}</p>
                   <p className="mt-1 font-[family-name:var(--font-jetbrains)] text-xs text-text-secondary">
                     {row.value}
                   </p>
                 </div>
-                <span className="font-[family-name:var(--font-jetbrains)] text-[13px] uppercase text-accent">
+                <span className="shrink-0 font-[family-name:var(--font-jetbrains)] text-[12px] uppercase text-accent sm:text-[13px]">
                   {row.status}
                 </span>
               </div>
@@ -195,16 +195,16 @@ export default function VaultsPage() {
           </div>
         </div>
 
-        <div className="panel p-8">
-          <h3 className="font-[family-name:var(--font-hanken)] text-xl font-medium text-text-primary">
+        <div className="panel p-4 sm:p-6 lg:p-8">
+          <h3 className="font-[family-name:var(--font-hanken)] text-base font-medium text-text-primary sm:text-xl">
             Strategy Evolution
           </h3>
-          <p className="mt-4 text-sm leading-relaxed text-text-secondary">
+          <p className="mt-3 text-sm leading-relaxed text-text-secondary sm:mt-4">
             The AI is currently suggesting a shift towards Jito-MEV strategies based on the last 4 hours of network congestion data.
           </p>
           <Link
             href="/app/create"
-            className="mt-6 inline-flex items-center gap-2 font-[family-name:var(--font-jetbrains)] text-[13px] uppercase tracking-wide text-accent hover:text-accent-hover"
+            className="mt-4 inline-flex items-center gap-2 font-[family-name:var(--font-jetbrains)] text-[12px] uppercase tracking-wide text-accent hover:text-accent-hover sm:mt-6 sm:text-[13px]"
           >
             View Proposed Update
             <ExternalLink className="h-3 w-3" />

@@ -1,7 +1,8 @@
 export { createConstraintCheckAction } from './constraint-action.js'
 export { createVaultStateProvider, formatVaultState } from './vault-provider.js'
 export { createSimulationAction } from './sim-action.js'
-export { createCycleEvaluator, runCycle } from './cycle-evaluator.js'
+export { createCycleEvaluator, runCycle, createOpenRouterLlmCall } from './cycle-evaluator.js'
+export type { LlmCallFn } from './cycle-evaluator.js'
 export type {
   Action,
   ActionResult,
