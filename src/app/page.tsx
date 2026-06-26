@@ -1,7 +1,9 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useContext, useEffect, useState, useRef, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { DynamicContext } from "@dynamic-labs/sdk-react-core"
 import {
   Search,
   Brain,
@@ -176,8 +178,18 @@ function KryptonLogo() {
 }
 
 export default function Home() {
+  const router = useRouter()
+  const dynamicContext = useContext(DynamicContext)
   const [generatedPolicy, setGeneratedPolicy] = useState<GeneratedPolicy | null>(null)
+  const [checkedAuth, setCheckedAuth] = useState(false)
   void generatedPolicy
+
+  useEffect(() => {
+    if (!checkedAuth && dynamicContext?.primaryWallet) {
+      router.replace('/app')
+    }
+    if (!checkedAuth) setCheckedAuth(true)
+  }, [dynamicContext?.primaryWallet, checkedAuth, router])
 
   return (
     <div className="flex min-h-screen flex-col bg-bg-base">
@@ -192,7 +204,7 @@ export default function Home() {
 
           <nav className="hidden items-center gap-8 md:flex">
             <Link href="/app" className="border-b-2 border-accent pb-1 text-lg text-accent">
-              Vaults
+              Dashboard
             </Link>
             <Link href="#simulation" className="text-lg text-text-secondary transition-colors hover:text-text-primary">
               Research
@@ -216,15 +228,15 @@ export default function Home() {
           </div>
 
           <h1 className="max-w-4xl text-center font-[family-name:var(--font-hanken)] text-5xl font-bold leading-[1.1] tracking-tight text-text-primary lg:text-7xl">
-            Describe your strategy.
+            DeFi vaults managed by
             <br />
-            <span className="text-accent">We generate the policy.</span>
+            <span className="text-accent">AI agents, bound by policy.</span>
           </h1>
 
           <p className="mt-6 max-w-2xl text-center text-lg leading-relaxed text-text-secondary">
-            A multi-agent AI pipeline that researches, simulates, and executes on-chain —
-            constrained by your rules. Every decision is logged on-chain with full agent reasoning.
-            No custodian. No black box.
+            You set the rules. A pipeline of six AI agents researches, strategizes, risk-checks, simulates,
+            and executes on Solana — every action constrained by on-chain policy.
+            No custody. No black box. Every decision logged.
           </p>
 
           <div className="mt-10 w-full max-w-3xl rounded-lg border border-border bg-bg-panel p-8 shadow-[0_0_40px_rgba(5,250,83,0.05)]">
@@ -235,7 +247,7 @@ export default function Home() {
         <section className="border-y border-border">
           <div className="mx-auto grid max-w-6xl grid-cols-1 divide-y divide-border md:grid-cols-3 md:divide-x md:divide-y-0">
             {[
-              { value: '8', label: 'ON-CHAIN CHECKS/ACTION' },
+              { value: '8', label: 'ON-CHAIN CHECKS PER ACTION' },
               { value: '6', label: 'AI AGENTS IN PIPELINE' },
               { value: '$4-20', label: 'ONE-TIME VAULT FEE' },
             ].map((stat) => (
@@ -259,7 +271,8 @@ export default function Home() {
                 Six agents. One enforcement layer.
               </h2>
               <p className="mx-auto mt-4 max-w-2xl text-lg text-text-secondary">
-                The model recommends. The chain disposes. Every action passes through 8 on-chain constraint checks before execution.
+                Each stage sharpens the signal. The smart contract enforces the final decision.
+                A hallucinating LLM cannot exceed your policy limits.
               </p>
             </div>
 
@@ -287,15 +300,15 @@ export default function Home() {
               {[
                 {
                   tag: 'Research → Strategy',
-                  body: 'Research Agent synthesizes market data, on-chain flows, and governance signals into ranked hypotheses. Strategy Agent converts top hypotheses into candidate allocations within your policy universe.',
+                  body: 'Research Agent analyzes market data, on-chain flows, and governance signals. Strategy Agent converts the best hypotheses into candidate allocations that fit your policy universe.',
                 },
                 {
                   tag: 'Risk → Simulation',
-                  body: 'Risk Agent rejects candidates violating policy or protocol-wide constraints. Simulation Agent scores survivors via backtests, Monte Carlo, and stress scenarios.',
+                  body: 'Risk Agent rejects candidates that violate policy constraints. Simulation Agent scores survivors with backtests, Monte Carlo, and stress scenarios.',
                 },
                 {
                   tag: 'Execute → Monitor',
-                  body: 'Execution Agent routes via Jupiter/Titan with constrained tool calls. Monitoring Agent runs continuous post-execution checks on every block.',
+                  body: 'Execution Agent routes swaps through Jupiter with tool-call precision. Monitoring Agent runs post-execution checks on every block.',
                 },
               ].map((card) => (
                 <div key={card.tag} className="panel p-6">
@@ -322,8 +335,9 @@ export default function Home() {
               8 checks. On-chain. Every action.
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-text-secondary">
-              The agent pipeline is advisory. The smart contract is the final enforcer.
-              A compromised or hallucinating LLM cannot exceed policy limits.
+              The agents propose. The contract disposes.
+              Every transaction passes through eight on-chain constraint checks before execution.
+              A compromised LLM cannot exceed policy limits.
             </p>
 
             <div className="mt-12 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -345,14 +359,14 @@ export default function Home() {
         <section className="border-t border-border px-6 py-24">
           <div className="mx-auto max-w-3xl text-center">
             <h2 className="font-[family-name:var(--font-hanken)] text-3xl font-semibold text-text-primary lg:text-5xl">
-              Stop trusting a strategy.
+              You set the policy.
               <br />
-              <span className="text-accent">Start enforcing a policy.</span>
+              <span className="text-accent">Agents execute within it.</span>
             </h2>
             <p className="mt-6 text-lg text-text-secondary">
-              No custodian. No black box. Every action logged on-chain with agent reasoning visible.
+              No custodian. No black box. Every action logged on-chain with full agent reasoning.
               <br />
-              One-time vault fee from $4 to $20 based on risk profile.
+              One-time vault fee from $4 to $20.
             </p>
             <Link href="/app/create" className="btn-primary mt-10 inline-flex items-center gap-2 !px-8 !py-4 !text-sm">
               Create a vault

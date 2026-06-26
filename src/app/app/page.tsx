@@ -96,8 +96,8 @@ export default function VaultsPage() {
             Your vaults
           </h1>
           <p className="mt-3 text-base leading-relaxed text-text-secondary sm:text-lg">
-            High-performance capital deployment managed by clinical AI agents.
-            deterministic policies, real-time risk mitigation.
+            AI-managed vaults constrained by on-chain policy. Create a vault,
+            deploy capital, and let the agent pipeline handle the rest.
           </p>
         </div>
         <PrimaryCta href="/app/create">New Vault</PrimaryCta>

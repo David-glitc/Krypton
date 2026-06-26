@@ -147,7 +147,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   href="/app"
                   className={`text-base md:text-lg ${pathname.startsWith('/app') ? 'border-b-2 border-accent text-accent pb-0.5' : 'text-text-secondary hover:text-text-primary'}`}
                 >
-                  Vaults
+                  Dashboard
                 </Link>
                 <Link href="/#simulation" className="text-base text-text-secondary hover:text-text-primary md:text-lg">
                   Research
@@ -244,7 +244,7 @@ export function MetricCard({
       <p className="font-[family-name:var(--font-jetbrains)] text-[11px] uppercase tracking-wide text-[#a9e2ef] sm:text-[13px]">
         {label}
       </p>
-      <p className={`font-[family-name:var(--font-jetbrains)] text-2xl font-semibold sm:text-3xl md:text-4xl ${accent ? 'text-accent' : 'text-text-primary}`}>
+      <p className={'font-[family-name:var(--font-jetbrains)] text-2xl font-semibold sm:text-3xl md:text-4xl ' + (accent ? 'text-accent' : 'text-text-primary')}>
         {value}
       </p>
     </div>
