@@ -126,13 +126,18 @@ export default function CreateVaultPage() {
 
       const prepared = (await prepareRes.json()) as {
         error?: string
-        vaultPda: string
+        vaultPda?: string
+        existingVaultPda?: string
         creationFeeUsd?: number
         feeSol?: number
-        transactionBundle: { transactionBase64: string }
+        transactionBundle?: { transactionBase64: string }
       }
 
       if (!prepareRes.ok) {
+        if (prepared.existingVaultPda) {
+          router.push(`/app/vault/${prepared.existingVaultPda}`)
+          return
+        }
         throw new Error(prepared.error ?? 'Failed to prepare vault transactions')
       }
 
@@ -140,9 +145,12 @@ export default function CreateVaultPage() {
         setFeeQuote({ usd: prepared.creationFeeUsd, sol: prepared.feeSol })
       }
 
+      const txBundle = prepared.transactionBundle
+      if (!txBundle) throw new Error('No transaction bundle returned')
+
       const createSignature = await signAndSendSolanaTransactionBase64(
         dynamicContext?.primaryWallet,
-        prepared.transactionBundle.transactionBase64,
+        txBundle.transactionBase64,
       )
 
       const finalizeRes = await fetch('/api/vaults/finalize', {

@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 import { PublicKey } from '@solana/web3.js'
 
 import { withRpcFallback } from '@/lib/solana/rpc-fallback'
+import { deriveVaultPda } from '@/lib/solana/accounts'
 import { pctToBps, leverageToBps } from '@/lib/solana/bps'
 import { clampCreationFeeUsd, formatSolAmount, quoteCreationFee, riskToCreationFeeUsd } from '@/lib/solana/fees'
 import { buildVaultCreationTxBundle } from '@/lib/solana/transactions'
@@ -64,6 +65,20 @@ export async function POST(request: Request) {
 
   try {
     const owner = new PublicKey(ownerWallet)
+    const programId = getProgramId()
+    const { address: vaultPda } = deriveVaultPda(owner, programId)
+
+    // Check if vault already exists for this owner
+    const existing = await withRpcFallback((connection) =>
+      connection.getAccountInfo(vaultPda),
+    )
+    if (existing) {
+      return NextResponse.json({
+        error: 'You already have a vault for this wallet. Each wallet can only create one vault.',
+        existingVaultPda: vaultPda.toBase58(),
+      }, { status: 409 })
+    }
+
     const { blockhash } = await withRpcFallback((connection) =>
       connection.getLatestBlockhash('confirmed'),
     )
