@@ -229,7 +229,7 @@ export default function CreateVaultPage() {
           <PipelinePreview data={pipelineData} />
 
           <CreateVaultWizard
-            step={WIZARD_STEPS.length - 1}
+            step={step}
             form={form}
             isAggressive={isAggressive}
             constraintChecks={constraintChecks}
@@ -243,14 +243,22 @@ export default function CreateVaultPage() {
             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between sm:items-center">
               <OutlineButton
                 className="w-full sm:w-auto"
-                onClick={() => setWizardOpen(false)}
+                onClick={() => {
+                  if (step === 0) setWizardOpen(false)
+                  else setStep((s) => s - 1)
+                }}
               >
-                Edit intent
+                {step === 0 ? 'Edit intent' : 'Back'}
               </OutlineButton>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                <span className="text-xs text-text-muted hidden sm:inline">
-                  ~{formatSolAmount(estimatedFeeSol)} SOL fee
-                </span>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                {step < WIZARD_STEPS.length - 1 && (
+                  <PrimaryCta
+                    className="w-full sm:w-auto"
+                    onClick={() => setStep((s) => Math.min(WIZARD_STEPS.length - 1, s + 1))}
+                  >
+                    Review
+                  </PrimaryCta>
+                )}
                 <PrimaryCta
                   onClick={() => {
                     if (!submitting && allConstraintsPass) submit()
@@ -259,7 +267,7 @@ export default function CreateVaultPage() {
                 >
                   {submitting
                     ? 'Signing transaction…'
-                    : `Sign & Create — $${creationFeeUsd.toFixed(2)}`}
+                    : `Sign & Create — $${creationFeeUsd.toFixed(2)} (~${formatSolAmount(estimatedFeeSol)} SOL)`}
                 </PrimaryCta>
               </div>
             </div>
