@@ -117,11 +117,11 @@ export function decodeVaultAccount(address: PublicKey, data: Buffer): OnChainVau
 
   // Pending fields added in the two-phase commit upgrade.
   // Vaults created before the upgrade are too short — default to 0.
-  let pendingActionId = 0n
-  let pendingLeverageBps = 0n
-  let pendingConcentrationBps = 0n
-  let pendingDrawdownBps = 0n
-  let pendingCorrelatedBps = 0n
+  let pendingActionId = BigInt(0)
+  let pendingLeverageBps = BigInt(0)
+  let pendingConcentrationBps = BigInt(0)
+  let pendingDrawdownBps = BigInt(0)
+  let pendingCorrelatedBps = BigInt(0)
 
   if (offset + 40 <= data.length) {
     ;[pendingActionId, offset] = readU64(data, offset)
