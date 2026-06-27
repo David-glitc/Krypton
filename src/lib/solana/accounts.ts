@@ -39,8 +39,22 @@ export interface ExecutionLogPda {
   bump: number
 }
 
-/** Derive vault PDA: seeds `[b"vault", owner]`. */
+/** Derive vault PDA: seeds `[b"vault", owner, nonce]`. */
 export function deriveVaultPda(
+  owner: PublicKey,
+  programId: PublicKey = getProgramId(),
+  nonce: number = 0,
+): VaultPda {
+  const [address, bump] = PublicKey.findProgramAddressSync(
+    [VAULT_SEED, owner.toBuffer(), Buffer.from([nonce])],
+    programId,
+  )
+  return { address, bump }
+}
+
+/** Legacy vault PDA derivation (pre-nonce seed: `[b"vault", owner]`).
+ *  Used as migration fallback for vaults created before the nonce change. */
+export function deriveVaultPdaLegacy(
   owner: PublicKey,
   programId: PublicKey = getProgramId(),
 ): VaultPda {

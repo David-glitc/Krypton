@@ -27,10 +27,11 @@ import {
 } from './idl'
 
 function encodeCreateVaultArgs(args: CreateVaultArgs): Buffer {
-  // 6 x u64 + 1 x [u8;32] + 1 x u8 + 1 x u8 + 1 x u32 + 1 x u8 + 1 x [u8;32] = 119 bytes + 8 discriminator
-  const buf = Buffer.alloc(8 + 119)
+  // 1 x u8 + 6 x u64 + 1 x [u8;32] + 1 x u8 + 1 x u8 + 1 x u32 + 1 x u8 + 1 x [u8;32] = 120 bytes + 8 discriminator
+  const buf = Buffer.alloc(8 + 120)
   IX_DISCRIMINATORS.createVault.copy(buf, 0)
   let offset = 8
+  offset = writeU8(buf, offset, args.nonce)
   offset = writeU64(buf, offset, args.maxDrawdownBps)
   offset = writeU64(buf, offset, args.maxLeverageBps)
   offset = writeU64(buf, offset, args.maxPositionBps)
@@ -62,9 +63,8 @@ function encodeSubmitPolicyArgs(args: SubmitPolicyArgs): Buffer {
 }
 
 function encodeExecuteActionArgs(args: ExecuteActionArgs): Buffer {
-  // 4 x u64 + 1 x u32 + 2 x u8 + 1 x bool + 1 x vec_prefixed = variable
-  const dataLen = args.typedActionData.length
-  const buf = Buffer.alloc(8 + 8 + 8 + 8 + 8 + 4 + 1 + 1 + 1 + 4 + dataLen)
+  // 4 x u64 + 1 x u32 + 2 x u8 + 1 x bool + 1 x u8 = 46 bytes + 8 discriminator
+  const buf = Buffer.alloc(8 + 46)
   IX_DISCRIMINATORS.executeAction.copy(buf, 0)
   let offset = 8
   offset = writeU8(buf, offset, args.actionType)
@@ -75,9 +75,7 @@ function encodeExecuteActionArgs(args: ExecuteActionArgs): Buffer {
   offset = writeU32(buf, offset, args.compositeScore)
   offset = writeU8(buf, offset, args.targetProtocolId)
   offset = writeBool(buf, offset, args.isDeRisk)
-  offset = writeU8(buf, offset, args.requiredLevel)
-  offset = writeU32(buf, offset, dataLen)
-  writeFixedBytes(buf, offset, args.typedActionData)
+  writeU8(buf, offset, args.requiredLevel)
   return buf
 }
 
@@ -95,13 +93,12 @@ function encodeStoreEncryptedStateArgs(args: StoreEncryptedStateArgs): Buffer {
 
 export function buildCreateVaultInstruction(
   signer: PublicKey,
-  voltrVault: PublicKey,
   agentSigner: PublicKey,
   guardianMultisig: PublicKey,
   args: CreateVaultArgs,
   programId: PublicKey = getProgramId(),
 ): { instruction: TransactionInstruction; vaultPda: PublicKey; permissionPda: PublicKey; vaultGoalPda: PublicKey; executionLogPda: PublicKey } {
-  const { address: vaultPda } = deriveVaultPda(signer, programId)
+  const { address: vaultPda } = deriveVaultPda(signer, programId, args.nonce)
   const { address: permissionPda } = derivePermissionPda(vaultPda, programId)
   const { address: vaultGoalPda } = deriveVaultGoalPda(vaultPda, programId)
   const { address: executionLogPda } = deriveExecutionLogPda(vaultPda, programId)
@@ -112,7 +109,6 @@ export function buildCreateVaultInstruction(
       { pubkey: signer, isSigner: true, isWritable: true },
       { pubkey: vaultPda, isSigner: false, isWritable: true },
       { pubkey: permissionPda, isSigner: false, isWritable: true },
-      { pubkey: voltrVault, isSigner: false, isWritable: false },
       { pubkey: agentSigner, isSigner: false, isWritable: false },
       { pubkey: guardianMultisig, isSigner: false, isWritable: false },
       { pubkey: vaultGoalPda, isSigner: false, isWritable: true },
@@ -130,12 +126,13 @@ export function buildSubmitPolicyInstruction(
   vaultOwner: PublicKey,
   args: SubmitPolicyArgs,
   programId: PublicKey = getProgramId(),
+  nonce: number = 0,
 ): {
   instruction: TransactionInstruction
   vaultPda: PublicKey
   policyPda: PublicKey
 } {
-  const { address: vaultPda } = deriveVaultPda(vaultOwner, programId)
+  const { address: vaultPda } = deriveVaultPda(vaultOwner, programId, nonce)
   const { address: policyPda } = derivePolicyPda(vaultPda, programId)
 
   const instruction = new TransactionInstruction({
@@ -155,12 +152,11 @@ export function buildSubmitPolicyInstruction(
 export function buildExecuteActionInstruction(
   signer: PublicKey,
   vaultOwner: PublicKey,
-  voltrProgram: PublicKey,
-  voltrVaultAccount: PublicKey,
   args: ExecuteActionArgs,
   programId: PublicKey = getProgramId(),
+  nonce: number = 0,
 ): TransactionInstruction {
-  const { address: vaultPda } = deriveVaultPda(vaultOwner, programId)
+  const { address: vaultPda } = deriveVaultPda(vaultOwner, programId, nonce)
   const { address: policyPda } = derivePolicyPda(vaultPda, programId)
   const { address: permissionPda } = derivePermissionPda(vaultPda, programId)
   const { address: vaultGoalPda } = deriveVaultGoalPda(vaultPda, programId)
@@ -173,8 +169,6 @@ export function buildExecuteActionInstruction(
       { pubkey: vaultPda, isSigner: false, isWritable: true },
       { pubkey: policyPda, isSigner: false, isWritable: false },
       { pubkey: permissionPda, isSigner: false, isWritable: false },
-      { pubkey: voltrProgram, isSigner: false, isWritable: false },
-      { pubkey: voltrVaultAccount, isSigner: false, isWritable: true },
       { pubkey: vaultGoalPda, isSigner: false, isWritable: false },
       { pubkey: executionLogPda, isSigner: false, isWritable: true },
     ],
@@ -187,8 +181,9 @@ export function buildStoreEncryptedStateInstruction(
   vaultOwner: PublicKey,
   args: StoreEncryptedStateArgs,
   programId: PublicKey = getProgramId(),
+  nonce: number = 0,
 ): TransactionInstruction {
-  const { address: vaultPda } = deriveVaultPda(vaultOwner, programId)
+  const { address: vaultPda } = deriveVaultPda(vaultOwner, programId, nonce)
   const { address: encryptedStatePda } = deriveEncryptedStatePda(vaultPda, programId)
 
   return new TransactionInstruction({
@@ -252,7 +247,6 @@ export function serializeInstructionsToBase64(
 
 export function buildCreateVaultTxBundle(
   signer: PublicKey,
-  voltrVault: PublicKey,
   agentSigner: PublicKey,
   guardianMultisig: PublicKey,
   args: CreateVaultArgs,
@@ -260,7 +254,7 @@ export function buildCreateVaultTxBundle(
   programId: PublicKey = getProgramId(),
 ): CreateVaultTxBundle & { vaultGoalPda: string; executionLogPda: string } {
   const { instruction, vaultPda, vaultGoalPda, executionLogPda } = buildCreateVaultInstruction(
-    signer, voltrVault, agentSigner, guardianMultisig, args, programId,
+    signer, agentSigner, guardianMultisig, args, programId,
   )
   const serialized = serializeInstructionsToBase64([instruction], signer, recentBlockhash)
 
@@ -293,7 +287,6 @@ export function buildSubmitPolicyTxBundle(
 
 export function buildVaultCreationTxBundle(
   signer: PublicKey,
-  voltrVault: PublicKey,
   agentSigner: PublicKey,
   guardianMultisig: PublicKey,
   createArgs: CreateVaultArgs,
@@ -303,10 +296,10 @@ export function buildVaultCreationTxBundle(
   programId: PublicKey = getProgramId(),
 ): CreateVaultTxBundle & { policyPda: string; permissionPda: string; vaultGoalPda: string; executionLogPda: string; feeLamports: number } {
   const { instruction: createIx, vaultPda, permissionPda, vaultGoalPda, executionLogPda } = buildCreateVaultInstruction(
-    signer, voltrVault, agentSigner, guardianMultisig, createArgs, programId,
+    signer, agentSigner, guardianMultisig, createArgs, programId,
   )
   const { instruction: submitIx, policyPda } = buildSubmitPolicyInstruction(
-    signer, signer, submitArgs, programId,
+    signer, signer, submitArgs, programId, createArgs.nonce,
   )
 
   const instructions: TransactionInstruction[] = [createIx, submitIx]
@@ -340,8 +333,9 @@ export function buildRotateAgentKeyInstruction(
   vaultOwner: PublicKey,
   newAgentSigner: PublicKey,
   programId: PublicKey = getProgramId(),
+  nonce: number = 0,
 ): TransactionInstruction {
-  const { address: vaultPda } = deriveVaultPda(vaultOwner, programId)
+  const { address: vaultPda } = deriveVaultPda(vaultOwner, programId, nonce)
   const { address: permissionPda } = derivePermissionPda(vaultPda, programId)
 
   return new TransactionInstruction({
@@ -353,5 +347,47 @@ export function buildRotateAgentKeyInstruction(
       { pubkey: newAgentSigner, isSigner: false, isWritable: false },
     ],
     data: IX_DISCRIMINATORS.rotateAgentKey,
+  })
+}
+
+/** Build a confirm action instruction for the two-phase commit. */
+export function buildConfirmActionInstruction(
+  signer: PublicKey,
+  vaultOwner: PublicKey,
+  programId: PublicKey = getProgramId(),
+  nonce: number = 0,
+): TransactionInstruction {
+  const { address: vaultPda } = deriveVaultPda(vaultOwner, programId, nonce)
+  const { address: permissionPda } = derivePermissionPda(vaultPda, programId)
+
+  return new TransactionInstruction({
+    programId,
+    keys: [
+      { pubkey: signer, isSigner: true, isWritable: false },
+      { pubkey: vaultPda, isSigner: false, isWritable: true },
+      { pubkey: permissionPda, isSigner: false, isWritable: false },
+    ],
+    data: IX_DISCRIMINATORS.confirmAction,
+  })
+}
+
+/** Build a reject action instruction for the two-phase commit. */
+export function buildRejectActionInstruction(
+  signer: PublicKey,
+  vaultOwner: PublicKey,
+  programId: PublicKey = getProgramId(),
+  nonce: number = 0,
+): TransactionInstruction {
+  const { address: vaultPda } = deriveVaultPda(vaultOwner, programId, nonce)
+  const { address: permissionPda } = derivePermissionPda(vaultPda, programId)
+
+  return new TransactionInstruction({
+    programId,
+    keys: [
+      { pubkey: signer, isSigner: true, isWritable: false },
+      { pubkey: vaultPda, isSigner: false, isWritable: true },
+      { pubkey: permissionPda, isSigner: false, isWritable: false },
+    ],
+    data: IX_DISCRIMINATORS.rejectAction,
   })
 }

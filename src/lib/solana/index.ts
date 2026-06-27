@@ -1,5 +1,6 @@
 export {
   deriveVaultPda,
+  deriveVaultPdaLegacy,
   derivePolicyPda,
   derivePermissionPda,
   deriveEncryptedStatePda,
@@ -23,6 +24,7 @@ export {
   decodeEncryptedStateAccount,
   fetchVaultAccount,
   fetchVaultByOwner,
+  fetchAllVaults,
   fetchPolicyAccount,
   fetchPolicyByVault,
   fetchPermissionAccount,

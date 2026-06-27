@@ -2,7 +2,12 @@ import { NextResponse } from 'next/server'
 
 import { appendActivityEvent } from '@/lib/services/activity-service'
 import { enqueueCycleJob, VaultCycleMutexError } from '@/lib/services/cycle-service'
-import { registerVault, updateVault, VaultAlreadyRegisteredError } from '@/lib/services/vault-registry-service'
+import {
+  consumePendingVaultKey,
+  registerVault,
+  updateVault,
+  VaultAlreadyRegisteredError,
+} from '@/lib/services/vault-registry-service'
 
 export const runtime = 'nodejs'
 
@@ -19,6 +24,9 @@ export async function POST(request: Request) {
   }
 
   try {
+    // Read the agent secret key from the pending store (server-side only)
+    const agentSecretKey = await consumePendingVaultKey(vaultPubkey)
+
     let vaultEntry
 
     try {
@@ -28,6 +36,7 @@ export async function POST(request: Request) {
         name: name ?? undefined,
         permissionLevel,
         txSignature: txSignature ?? undefined,
+        agentSecretKey: agentSecretKey ?? undefined,
       })
     } catch (error) {
       if (error instanceof VaultAlreadyRegisteredError) {

@@ -2,7 +2,7 @@ import { PublicKey } from '@solana/web3.js'
 
 /** krypton_core program ID (declare_id in lib.rs). */
 export const KRYPTON_CORE_PROGRAM_ID = new PublicKey(
-  'DQVp9hnnU6zbyPCJbcEnS6F1fWZMQ2yCCH9jL6cFVPxF',
+  '7CpwaaPcgxiC2oJv8ZdVX6m7fQZ2qDnQ6hGfUayvq1AS',
 )
 
 export const SYSTEM_PROGRAM_ID = new PublicKey('11111111111111111111111111111111')
@@ -22,6 +22,8 @@ export const IX_DISCRIMINATORS = {
   rotateAgentKey: Buffer.from([0x55, 0x1f, 0x11, 0xd4, 0xa2, 0x35, 0x99, 0x73]),
   updateConstraintState: Buffer.from([0x99, 0x09, 0x21, 0xda, 0x10, 0xc8, 0xdd, 0x2d]),
   discloseEncryptedState: Buffer.from([0xbe, 0xe3, 0xb0, 0x08, 0x1e, 0x8f, 0xfd, 0xca]),
+  confirmAction: Buffer.from([0x30, 0xb9, 0x29, 0x16, 0xaf, 0x95, 0xf1, 0x78]),
+  rejectAction: Buffer.from([0xdc, 0x93, 0xca, 0xc4, 0x36, 0x49, 0x70, 0x5c]),
 } as const
 
 /** Anchor account discriminators — sha256("account:<Name>")[0..8]. */
@@ -55,11 +57,16 @@ export interface OnChainVault {
   address: string
   owner: string
   bump: number
-  voltrVault: string
+  nonce: number
   policyVersion: number
   paused: boolean
   pauseReason: string | null
   constraint: ConstraintState
+  pendingActionId: bigint
+  pendingLeverageBps: bigint
+  pendingConcentrationBps: bigint
+  pendingDrawdownBps: bigint
+  pendingCorrelatedBps: bigint
 }
 
 /** Decoded on-chain `Policy` account. */
@@ -97,7 +104,7 @@ export interface OnChainExecutionLogEntry {
   timestamp: bigint
   decision: number
   actionType: number
-  txSignature: string
+  txSigPrefix: Uint8Array
 }
 
 /** Decoded on-chain `ExecutionLog`. */
@@ -120,6 +127,7 @@ export interface OnChainEncryptedState {
 }
 
 export interface CreateVaultArgs {
+  nonce: number
   maxDrawdownBps: bigint
   maxLeverageBps: bigint
   maxPositionBps: bigint
@@ -154,7 +162,6 @@ export interface ExecuteActionArgs {
   targetProtocolId: number
   isDeRisk: boolean
   requiredLevel: number
-  typedActionData: Uint8Array
 }
 
 export interface StoreEncryptedStateArgs {

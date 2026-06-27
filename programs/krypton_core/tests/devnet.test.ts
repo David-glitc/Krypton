@@ -59,7 +59,7 @@ function wPubkey(buf: Buffer, off: number, pk: PublicKey): number { return wByte
 
 // ── Config ──────────────────────────────────────────────────────
 const RPC = process.env.RPC_URL ?? 'https://api.devnet.solana.com'
-const PROGRAM_ID = new PublicKey('DQVp9hnnU6zbyPCJbcEnS6F1fWZMQ2yCCH9jL6cFVPxF')
+const PROGRAM_ID = new PublicKey('7CpwaaPcgxiC2oJv8ZdVX6m7fQZ2qDnQ6hGfUayvq1AS')
 const OWNER_FUND_AMT = 0.5 * LAMPORTS_PER_SOL
 
 function loadWallet(): Keypair {
@@ -139,7 +139,6 @@ async function main() {
   const [exeLogPda] = pda(Buffer.from('execution_log'), vPda.toBuffer())
   const agent   = Keypair.generate()
   const guardian = Keypair.generate()
-  const mockVoltr = Keypair.generate().publicKey
 
   // ── 1. Create vault ─────────────────────────────────────────
   await run('1. Create vault', async () => {
@@ -163,7 +162,6 @@ async function main() {
         { pubkey: owner.publicKey, isSigner: true, isWritable: true },
         { pubkey: vPda, isSigner: false, isWritable: true },
         { pubkey: pemPda, isSigner: false, isWritable: true },
-        { pubkey: mockVoltr, isSigner: false, isWritable: false },
         { pubkey: agent.publicKey, isSigner: false, isWritable: false },
         { pubkey: guardian.publicKey, isSigner: false, isWritable: false },
         { pubkey: vGoalPda, isSigner: false, isWritable: true },
@@ -298,12 +296,11 @@ async function main() {
 
   // ── 8. execute_action — constraint rejected ─────────────────
   await expectError('8. execute_action — constraint reject', async () => {
-    const buf = Buffer.alloc(52)
+    const buf = Buffer.alloc(48)
     D.execute_action.copy(buf, 0)
     let o = 8
     o = wU8(buf, o, 0); o = wU64(buf, o, 9999n); o = wU64(buf, o, 500n); o = wU64(buf, o, 50n); o = wU64(buf, o, 100n)
     o = wU32(buf, o, 300); o = wU8(buf, o, 0); o = wBool(buf, o, false); o = wU8(buf, o, 3)
-    wU32(buf, o, 0)
 
     await sendAndConfirm(conn, new Transaction().add({
       programId: PROGRAM_ID,
@@ -312,8 +309,6 @@ async function main() {
         { pubkey: vPda, isSigner: false, isWritable: true },
         { pubkey: polPda, isSigner: false, isWritable: false },
         { pubkey: pemPda, isSigner: false, isWritable: false },
-        { pubkey: Keypair.generate().publicKey, isSigner: false, isWritable: false },
-        { pubkey: mockVoltr, isSigner: false, isWritable: true },
         { pubkey: vGoalPda, isSigner: false, isWritable: false },
         { pubkey: exeLogPda, isSigner: false, isWritable: true },
       ],
@@ -331,12 +326,11 @@ async function main() {
     })
     await sendAndConfirm(conn, new Transaction().add(fundWrong), [owner])
 
-    const buf = Buffer.alloc(52)
+    const buf = Buffer.alloc(48)
     D.execute_action.copy(buf, 0)
     let o = 8
     o = wU8(buf, o, 1); o = wU64(buf, o, 500n); o = wU64(buf, o, 500n); o = wU64(buf, o, 50n); o = wU64(buf, o, 100n)
     o = wU32(buf, o, 300); o = wU8(buf, o, 0); o = wBool(buf, o, false); o = wU8(buf, o, 3)
-    wU32(buf, o, 0)
 
     await sendAndConfirm(conn, new Transaction().add({
       programId: PROGRAM_ID,
@@ -345,8 +339,6 @@ async function main() {
         { pubkey: vPda, isSigner: false, isWritable: true },
         { pubkey: polPda, isSigner: false, isWritable: false },
         { pubkey: pemPda, isSigner: false, isWritable: false },
-        { pubkey: Keypair.generate().publicKey, isSigner: false, isWritable: false },
-        { pubkey: mockVoltr, isSigner: false, isWritable: true },
         { pubkey: vGoalPda, isSigner: false, isWritable: false },
         { pubkey: exeLogPda, isSigner: false, isWritable: true },
       ],
@@ -373,8 +365,8 @@ async function main() {
     // Verify paused flag
     const acc = await conn.getAccountInfo(vPda)
     if (!acc) throw new Error('Vault not found')
-    // byte 74 is the paused bool (owner:32 + bump:1 + voltr_vault:32 + policy_version:4 = 69, + paused:1 = offset 74)
-    // Actually let's just check the instruction succeeded
+    // paused is after owner(32) + bump(1) + nonce(1) + policy_version(4) = 38
+    // Let's just check the instruction succeeded
   })
 
   // ── 11. Pause vault — already paused (should fail) ──────────

@@ -26,8 +26,15 @@ CREATE TABLE IF NOT EXISTS vault_registry (
   name TEXT,
   permission_level INTEGER NOT NULL DEFAULT 2,
   tx_signature TEXT,
+  agent_secret_key TEXT,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS pending_vault_keys (
+  vault_pubkey TEXT PRIMARY KEY,
+  agent_secret_key TEXT NOT NULL,
+  created_at INTEGER NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_vault_registry_owner

@@ -210,6 +210,45 @@ describe('parseActionType', () => {
   })
 })
 
+describe('parseTargetProtocol', () => {
+  it('returns 0 for jupiter/jup', async () => {
+    const { parseTargetProtocol } = await import('./worker.js')
+    expect(parseTargetProtocol('swap via jupiter')).toBe(0)
+    expect(parseTargetProtocol('jup')).toBe(0)
+  })
+
+  it('returns 1 for drift', async () => {
+    const { parseTargetProtocol } = await import('./worker.js')
+    expect(parseTargetProtocol('open perp on drift')).toBe(1)
+  })
+
+  it('returns 2 for adrena', async () => {
+    const { parseTargetProtocol } = await import('./worker.js')
+    expect(parseTargetProtocol('trade on adrena')).toBe(2)
+  })
+
+  it('returns 3 for pump.fun', async () => {
+    const { parseTargetProtocol } = await import('./worker.js')
+    expect(parseTargetProtocol('pumpfun')).toBe(3)
+    expect(parseTargetProtocol('pump')).toBe(3)
+  })
+
+  it('returns 4 for raydium', async () => {
+    const { parseTargetProtocol } = await import('./worker.js')
+    expect(parseTargetProtocol('raydium liquidity')).toBe(4)
+  })
+
+  it('returns 5 for kamino', async () => {
+    const { parseTargetProtocol } = await import('./worker.js')
+    expect(parseTargetProtocol('kamino lend')).toBe(5)
+  })
+
+  it('defaults to 0 for unknown', async () => {
+    const { parseTargetProtocol } = await import('./worker.js')
+    expect(parseTargetProtocol('some random action')).toBe(0)
+  })
+})
+
 describe('ExecutionClient', () => {
   const mockConnection = {} as any
   const client = new ExecutionClient({ connection: mockConnection })
@@ -217,7 +256,6 @@ describe('ExecutionClient', () => {
   it('buildExecuteActionInstruction returns a TransactionInstruction', () => {
     const authority = Keypair.generate()
     const ix = client.buildExecuteActionInstruction({
-      vaultPubkey: Keypair.generate().publicKey,
       vaultOwner: Keypair.generate().publicKey,
       actionType: 1,
       postLeverageBps: 1000,
@@ -228,36 +266,54 @@ describe('ExecutionClient', () => {
       targetProtocolId: 0,
       isDeRisk: false,
       requiredLevel: 1,
-      typedActionData: Buffer.from('stake SOL'),
       authority,
     })
 
     expect(ix).toBeInstanceOf(TransactionInstruction)
-    expect(ix.keys.length).toBe(8)
-    expect(ix.data.length).toBeGreaterThan(8)
+    // 6 keys: authority, vault, policy, permission, vault_goal, execution_log
+    expect(ix.keys.length).toBe(6)
+    // 8 discriminator + 1 + 32 + 4 + 4 + 1 + 1 + 1 = 54 bytes
+    expect(ix.data.length).toBe(54)
     // First 8 bytes are the discriminator
     expect(ix.data.subarray(0, 8)).toEqual(Buffer.from([0xf6, 0x89, 0x69, 0x71, 0xf7, 0x06, 0xdf, 0xae]))
     // Byte 8 is actionType
     expect(ix.data[8]).toBe(1)
-    // Last bytes are the typed action data
-    const dataBuf = Buffer.from('stake SOL')
-    expect(ix.data.subarray(ix.data.length - dataBuf.length)).toEqual(dataBuf)
   })
 
   it('includes authority as signer in keys', () => {
     const authority = Keypair.generate()
     const ix = client.buildExecuteActionInstruction({
-      vaultPubkey: Keypair.generate().publicKey,
       vaultOwner: Keypair.generate().publicKey,
       actionType: 0,
       postLeverageBps: 0, postConcentrationBps: 0, postDrawdownBps: 0, postCorrelatedBps: 0,
       compositeScore: 0, targetProtocolId: 0, isDeRisk: false, requiredLevel: 0,
-      typedActionData: Buffer.from('test'),
       authority,
     })
 
     const signerKey = ix.keys.find((k) => k.isSigner)
     expect(signerKey).toBeDefined()
     expect(signerKey!.pubkey.toString()).toBe(authority.publicKey.toString())
+  })
+
+  it('buildConfirmActionInstruction uses correct discriminator and 3 keys', () => {
+    const authority = Keypair.generate().publicKey
+    const vaultOwner = Keypair.generate().publicKey
+    const ix = client.buildConfirmActionInstruction(authority, vaultOwner)
+
+    expect(ix).toBeInstanceOf(TransactionInstruction)
+    expect(ix.keys.length).toBe(3)
+    expect(ix.data).toEqual(Buffer.from([0x30, 0xb9, 0x29, 0x16, 0xaf, 0x95, 0xf1, 0x78]))
+    expect(ix.keys[0].pubkey.toString()).toBe(authority.toString())
+    expect(ix.keys[0].isSigner).toBe(true)
+  })
+
+  it('buildRejectActionInstruction uses correct discriminator and 3 keys', () => {
+    const authority = Keypair.generate().publicKey
+    const vaultOwner = Keypair.generate().publicKey
+    const ix = client.buildRejectActionInstruction(authority, vaultOwner)
+
+    expect(ix).toBeInstanceOf(TransactionInstruction)
+    expect(ix.keys.length).toBe(3)
+    expect(ix.data).toEqual(Buffer.from([0xdc, 0x93, 0xca, 0xc4, 0x36, 0x49, 0x70, 0x5c]))
   })
 })

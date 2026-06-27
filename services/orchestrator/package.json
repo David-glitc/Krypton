@@ -11,10 +11,12 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@libsql/client": "^0.17.4",
     "@krypton/elizaos-plugin": "workspace:*",
+    "@libsql/client": "^0.17.4",
     "@solana/web3.js": "^1.98.4",
     "better-sqlite3": "^11.10.0",
+    "bs58": "^5.0.0",
+    "solana-agent-kit": "^1.0.0",
     "tweetnacl": "^1.0.3",
     "tweetnacl-util": "^0.15.1",
     "uuid": "^14.0.1"

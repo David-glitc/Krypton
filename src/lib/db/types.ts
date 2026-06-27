@@ -32,6 +32,7 @@ export interface VaultRegistryEntry {
   name: string | null
   permission_level: number
   tx_signature: string | null
+  agent_secret_key: string | null
   created_at: number
   updated_at: number
 }
@@ -105,6 +106,7 @@ export interface RegisterVaultInput {
   name?: string
   permissionLevel?: number
   txSignature?: string
+  agentSecretKey?: string
 }
 
 export interface EnqueueCycleJobInput {

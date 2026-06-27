@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { PublicKey } from '@solana/web3.js'
 
-import { fetchPolicyByVault, fetchVaultByOwner, fetchVaultGoalByVault, withRpcFallback } from '@/lib/solana/client'
+import { fetchAllVaults, fetchPolicyByVault, fetchVaultGoalByVault, withRpcFallback } from '@/lib/solana/client'
 import { getVaultCycleStatus } from '@/lib/services/cycle-service'
 import { listVaultsByOwner } from '@/lib/services/vault-registry-service'
 
@@ -20,67 +20,95 @@ export async function GET(request: Request) {
   }
 
   try {
-    const registryEntries = await listVaultsByOwner(ownerWallet)
     const owner = new PublicKey(ownerWallet)
+    const [registryEntries, onChainVaults] = await Promise.all([
+      listVaultsByOwner(ownerWallet).catch(() => [] as Array<{ vault_pubkey: string; name: string | null }>),
+      withRpcFallback((connection) => fetchAllVaults(connection, owner)),
+    ])
+
+    const registryByAddress = new Map(registryEntries.map((e) => [e.vault_pubkey, e]))
 
     const vaults = await withRpcFallback(async (connection) => {
-      const liveVault = await fetchVaultByOwner(connection, owner).catch(() => null)
-
       return Promise.all(
-        registryEntries.map(async (entry) => {
-          const onChainVault =
-            liveVault && liveVault.address === entry.vault_pubkey ? liveVault : null
-          const onChainPolicy = onChainVault
-            ? await fetchPolicyByVault(connection, new PublicKey(onChainVault.address)).catch(() => null)
-            : null
-          const onChainGoal = onChainVault
-            ? await fetchVaultGoalByVault(connection, new PublicKey(onChainVault.address)).catch(() => null)
-            : null
+        onChainVaults.map(async (onChainVault) => {
+          const vaultPubkey = new PublicKey(onChainVault.address)
+          const registry = registryByAddress.get(onChainVault.address) ?? null
+
+          const [onChainPolicy, onChainGoal, cycleStatus] = await Promise.all([
+            fetchPolicyByVault(connection, vaultPubkey).catch(() => null),
+            fetchVaultGoalByVault(connection, vaultPubkey).catch(() => null),
+            getVaultCycleStatus(onChainVault.address).catch(() => null),
+          ])
+
+          const {
+            maxDrawdownBps,
+            maxLeverageBps,
+            maxPositionBps,
+            maxCorrelatedExposureBps,
+            minPoolLiquidityUsd,
+            currentDrawdownBps,
+            currentLeverageBps,
+            currentConcentrationBps,
+            currentCorrelatedExposureBps,
+            lastOracleUpdate,
+            allowedProtocolsBitmap,
+            allowedAssetsHash,
+          } = onChainVault.constraint
 
           return {
-            registry: entry,
-            onChain: onChainVault
-              ? {
-                  address: onChainVault.address,
-                  owner: onChainVault.owner,
-                  bump: onChainVault.bump,
-                  voltrVault: onChainVault.voltrVault,
-                  policyVersion: onChainVault.policyVersion,
-                  paused: onChainVault.paused,
-                  pauseReason: onChainVault.pauseReason,
-                  constraint: {
-                    maxDrawdownBps: serializeBigint(onChainVault.constraint.maxDrawdownBps),
-                    maxLeverageBps: serializeBigint(onChainVault.constraint.maxLeverageBps),
-                    maxPositionBps: serializeBigint(onChainVault.constraint.maxPositionBps),
-                    maxCorrelatedExposureBps: serializeBigint(onChainVault.constraint.maxCorrelatedExposureBps),
-                    minPoolLiquidityUsd: serializeBigint(onChainVault.constraint.minPoolLiquidityUsd),
-                    currentDrawdownBps: serializeBigint(onChainVault.constraint.currentDrawdownBps),
-                    currentLeverageBps: serializeBigint(onChainVault.constraint.currentLeverageBps),
-                    currentConcentrationBps: serializeBigint(onChainVault.constraint.currentConcentrationBps),
-                    currentCorrelatedExposureBps: serializeBigint(onChainVault.constraint.currentCorrelatedExposureBps),
-                    lastOracleUpdate: serializeBigint(onChainVault.constraint.lastOracleUpdate),
-                    allowedProtocolsBitmap: serializeBigint(onChainVault.constraint.allowedProtocolsBitmap),
-                    allowedAssetsHash: Buffer.from(onChainVault.constraint.allowedAssetsHash).toString('hex'),
-                  },
-                }
-              : null,
+            registry,
+            onChain: {
+              address: onChainVault.address,
+              owner: onChainVault.owner,
+              bump: onChainVault.bump,
+              nonce: onChainVault.nonce,
+              pendingActionId: onChainVault.pendingActionId,
+              pendingLeverageBps: onChainVault.pendingLeverageBps,
+              pendingConcentrationBps: onChainVault.pendingConcentrationBps,
+              pendingDrawdownBps: onChainVault.pendingDrawdownBps,
+              pendingCorrelatedBps: onChainVault.pendingCorrelatedBps,
+              policyVersion: onChainVault.policyVersion,
+              paused: onChainVault.paused,
+              pauseReason: onChainVault.pauseReason,
+              constraint: {
+                maxDrawdownBps: serializeBigint(maxDrawdownBps),
+                maxLeverageBps: serializeBigint(maxLeverageBps),
+                maxPositionBps: serializeBigint(maxPositionBps),
+                maxCorrelatedExposureBps: serializeBigint(maxCorrelatedExposureBps),
+                minPoolLiquidityUsd: serializeBigint(minPoolLiquidityUsd),
+                currentDrawdownBps: serializeBigint(currentDrawdownBps),
+                currentLeverageBps: serializeBigint(currentLeverageBps),
+                currentConcentrationBps: serializeBigint(currentConcentrationBps),
+                currentCorrelatedExposureBps: serializeBigint(currentCorrelatedExposureBps),
+                lastOracleUpdate: serializeBigint(lastOracleUpdate),
+                allowedProtocolsBitmap: serializeBigint(allowedProtocolsBitmap),
+                allowedAssetsHash: Buffer.from(allowedAssetsHash).toString('hex'),
+              },
+            },
             policy: onChainPolicy
-              ? {
-                  ...onChainPolicy,
-                  contentHash: Buffer.from(onChainPolicy.contentHash).toString('hex'),
-                }
+              ? { ...onChainPolicy, contentHash: Buffer.from(onChainPolicy.contentHash).toString('hex') }
               : null,
             goal: onChainGoal
-              ? {
-                  ...onChainGoal,
-                  createdFromPromptHash: Buffer.from(onChainGoal.createdFromPromptHash).toString('hex'),
-                }
+              ? { ...onChainGoal, createdFromPromptHash: Buffer.from(onChainGoal.createdFromPromptHash).toString('hex') }
               : null,
-            cycleStatus: await getVaultCycleStatus(entry.vault_pubkey),
+            cycleStatus,
           }
         }),
       )
     })
+
+    // Also include registry-only vaults (created off-chain but not yet on-chain)
+    for (const entry of registryEntries) {
+      if (!onChainVaults.some((v) => v.address === entry.vault_pubkey)) {
+        vaults.push({
+          registry: entry,
+          onChain: null as any,
+          policy: null,
+          goal: null,
+          cycleStatus: await getVaultCycleStatus(entry.vault_pubkey).catch(() => null),
+        })
+      }
+    }
 
     return NextResponse.json({ vaults })
   } catch (error) {

@@ -1,6 +1,6 @@
 import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js'
 
-import { deriveEncryptedStatePda, deriveExecutionLogPda, derivePermissionPda, derivePolicyPda, deriveVaultGoalPda, deriveVaultPda } from './accounts'
+import { deriveEncryptedStatePda, deriveExecutionLogPda, derivePermissionPda, derivePolicyPda, deriveVaultGoalPda, deriveVaultPda, deriveVaultPdaLegacy } from './accounts'
 import {
   assertAccountDiscriminator,
   readBool,
@@ -100,8 +100,8 @@ export function decodeVaultAccount(address: PublicKey, data: Buffer): OnChainVau
   let bump: number
   ;[bump, offset] = readU8(data, offset)
 
-  let voltrVault: PublicKey
-  ;[voltrVault, offset] = readPubkey(data, offset)
+  let nonce: number
+  ;[nonce, offset] = readU8(data, offset)
 
   let policyVersion: number
   ;[policyVersion, offset] = readU32(data, offset)
@@ -115,15 +115,35 @@ export function decodeVaultAccount(address: PublicKey, data: Buffer): OnChainVau
   let constraint: ConstraintState
   ;[constraint, offset] = decodeConstraintState(data, offset)
 
+  let pendingActionId: bigint
+  ;[pendingActionId, offset] = readU64(data, offset)
+
+  let pendingLeverageBps: bigint
+  ;[pendingLeverageBps, offset] = readU64(data, offset)
+
+  let pendingConcentrationBps: bigint
+  ;[pendingConcentrationBps, offset] = readU64(data, offset)
+
+  let pendingDrawdownBps: bigint
+  ;[pendingDrawdownBps, offset] = readU64(data, offset)
+
+  let pendingCorrelatedBps: bigint
+  ;[pendingCorrelatedBps, offset] = readU64(data, offset)
+
   return {
     address: address.toBase58(),
     owner: owner.toBase58(),
     bump,
-    voltrVault: voltrVault.toBase58(),
+    nonce,
     policyVersion,
     paused,
     pauseReason,
     constraint,
+    pendingActionId,
+    pendingLeverageBps,
+    pendingConcentrationBps,
+    pendingDrawdownBps,
+    pendingCorrelatedBps,
   }
 }
 
@@ -261,11 +281,10 @@ export function decodeExecutionLogAccount(address: PublicKey, data: Buffer): OnC
     let actionType: number
     ;[actionType, offset] = readU8(data, offset)
 
-    const txSigBytes = Buffer.from(data.subarray(offset, offset + 64))
-    offset += 64
-    const txSignature = txSigBytes.toString('hex')
+    const txSigPrefix = new Uint8Array(data.subarray(offset, offset + 8))
+    offset += 8
 
-    entries.push({ cycleId, timestamp, decision, actionType, txSignature })
+    entries.push({ cycleId, timestamp, decision, actionType, txSigPrefix })
   }
 
   return {
@@ -319,13 +338,60 @@ export async function fetchVaultAccount(
   return decodeVaultAccount(vaultAddress, Buffer.from(info.data))
 }
 
+export async function fetchAllVaults(
+  connection: Connection,
+  owner: PublicKey,
+  programId: PublicKey = getProgramId(),
+): Promise<OnChainVault[]> {
+  const all: OnChainVault[] = []
+
+  // 1) getProgramAccounts with memcmp on vault.owner at offset 8.
+  //    This catches all vaults using the new nonce-based seed in 1 RPC call.
+  try {
+    const accounts = await connection.getProgramAccounts(programId, {
+      filters: [
+        { memcmp: { offset: 8, bytes: owner.toBase58() } },
+      ],
+    })
+    for (const { pubkey, account } of accounts) {
+      try {
+        const vault = decodeVaultAccount(pubkey, Buffer.from(account.data))
+        all.push(vault)
+      } catch {
+        // skip non-Vault accounts that happen to match the owner bytes
+      }
+    }
+  } catch {
+    // fallback if getProgramAccounts isn't supported (light RPCs)
+    for (let nonce = 0; nonce < 256; nonce++) {
+      const { address } = deriveVaultPda(owner, programId, nonce)
+      const info = await connection.getAccountInfo(address)
+      if (info?.data) {
+        all.push(decodeVaultAccount(address, Buffer.from(info.data)))
+      }
+    }
+  }
+
+  // 2) Legacy fallback — check the old seed [b"vault", owner] (no nonce)
+  //    for vaults created before the nonce change.
+  const { address: legacyAddress } = deriveVaultPdaLegacy(owner, programId)
+  if (!all.some((v) => v.address === legacyAddress.toBase58())) {
+    const info = await connection.getAccountInfo(legacyAddress)
+    if (info?.data) {
+      all.push(decodeVaultAccount(legacyAddress, Buffer.from(info.data)))
+    }
+  }
+
+  return all
+}
+
 export async function fetchVaultByOwner(
   connection: Connection,
   owner: PublicKey,
   programId: PublicKey = getProgramId(),
 ): Promise<OnChainVault | null> {
-  const { address } = deriveVaultPda(owner, programId)
-  return fetchVaultAccount(connection, address)
+  const all = await fetchAllVaults(connection, owner, programId)
+  return all[0] ?? null
 }
 
 export async function fetchPolicyAccount(

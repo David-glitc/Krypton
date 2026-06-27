@@ -10,12 +10,12 @@ pub const MAX_STALENESS_SECONDS: i64 = 300;
 pub const PROTOCOL_MAX_LEVERAGE_BPS: u64 = 20_000;
 
 /// Maximum ExecutionLog ring buffer entries.
-pub const MAX_LOG_ENTRIES: u32 = 64;
+pub const MAX_LOG_ENTRIES: u32 = 32;
 
-/// Maximum encrypted payload size (8KB for position data).
-pub const MAX_ENCRYPTED_DATA_LEN: usize = 8192;
+/// Maximum encrypted payload size (2KB for position data).
+pub const MAX_ENCRYPTED_DATA_LEN: usize = 2048;
 
-declare_id!("DQVp9hnnU6zbyPCJbcEnS6F1fWZMQ2yCCH9jL6cFVPxF");
+declare_id!("7CpwaaPcgxiC2oJv8ZdVX6m7fQZ2qDnQ6hGfUayvq1AS");
 
 /// ─── Constraint Engine ──────────────────────────────────────────
 /// On-chain deterministic constraint validation. Runs 8 checks that
@@ -86,37 +86,6 @@ pub mod constraint_engine {
     }
 }
 
-/// ─── Voltr Adapter ──────────────────────────────────────────────
-/// CPI bridge to Voltr vault program for actual execution.
-pub mod voltr_adapter {
-    use super::*;
-
-    pub fn cpi_execute<'info>(
-        voltr_program: &AccountInfo<'info>,
-        voltr_vault: &AccountInfo<'info>,
-        signer: &AccountInfo<'info>,
-        typed_action_data: Vec<u8>,
-    ) -> Result<()> {
-        let ix = solana_program::instruction::Instruction {
-            program_id: voltr_program.key(),
-            accounts: vec![
-                AccountMeta::new(voltr_vault.key(), false),
-                AccountMeta::new_readonly(signer.key(), true),
-            ],
-            data: typed_action_data,
-        };
-
-        solana_program::program::invoke(
-            &ix,
-            &[voltr_vault.clone(), signer.clone()],
-        )
-        .map_err(|e| {
-            msg!("Voltr CPI failed: {:?}", e);
-            ErrorCode::VoltrCpiFailed.into()
-        })
-    }
-}
-
 /// ─── ExecutionLog helpers ───────────────────────────────────────
 pub mod execution_log {
     use super::*;
@@ -144,7 +113,12 @@ pub mod krypton_core {
         let vault = &mut ctx.accounts.vault;
         vault.owner = ctx.accounts.signer.key();
         vault.bump = ctx.bumps.vault;
-        vault.voltr_vault = ctx.accounts.voltr_vault.key();
+        vault.nonce = args.nonce;
+        vault.pending_action_id = 0;
+        vault.pending_leverage_bps = 0;
+        vault.pending_concentration_bps = 0;
+        vault.pending_drawdown_bps = 0;
+        vault.pending_correlated_bps = 0;
         vault.policy_version = 0;
         vault.paused = true;
         vault.constraint = ConstraintState {
@@ -180,7 +154,6 @@ pub mod krypton_core {
         emit!(VaultCreated {
             vault: vault.key(),
             owner: ctx.accounts.signer.key(),
-            voltr_vault: ctx.accounts.voltr_vault.key(),
         });
         Ok(())
     }
@@ -248,15 +221,21 @@ pub mod krypton_core {
 
     /// Execute an action through the constraint engine gate.
     ///
+    /// Two-phase commit: this is Phase 1 (approval gate).
+    ///   - Validates permission + constraints
+    ///   - Stores proposed post-state in `pending_*` fields
+    ///   - Emits ActionApproved event
+    ///   - Does NOT update ConstraintState
+    ///   - Off-chain agent executes, then calls confirm_action or reject_action
+    ///
     /// Flow:
     ///   1. Vault must not be paused
     ///   2. Caller must have appropriate permission level
     ///   3. Constraint engine runs all 8 checks
     ///   4. Decision:
-    ///      - Level 2 advisory (low score) → emit advisory_pending, no CPI
-    ///      - Level 3-4 auto → CPI to Voltr for execution
-    ///   5. Update ConstraintState post-execution
-    ///   6. Append to ExecutionLog
+    ///      - Level 2 advisory (low score) → emit advisory_pending, return
+    ///      - Level 3-4 auto → store pending state, emit approval, return
+    ///   5. Append to ExecutionLog
     pub fn execute_action(ctx: Context<ExecuteAction>, args: ExecuteActionArgs) -> Result<()> {
         let vault_key = ctx.accounts.vault.key();
         let permission = &ctx.accounts.permission;
@@ -270,13 +249,11 @@ pub mod krypton_core {
         // Constraint engine gate
         let passed = constraint_engine::validate(&ctx.accounts.vault.constraint, &args)?;
         if !passed {
-            emit!(ActionExecuted {
+            emit!(ActionApproved {
                 vault: vault_key,
                 action_type: args.action_type,
                 decision: 1, // rejected
                 composite_score: args.composite_score,
-                post_drawdown_bps: args.post_drawdown_bps as u32,
-                post_leverage_bps: args.post_leverage_bps as u32,
                 timestamp: Clock::get()?.unix_timestamp,
             });
             let log_count = ctx.accounts.execution_log.count;
@@ -285,20 +262,18 @@ pub mod krypton_core {
                 timestamp: Clock::get()?.unix_timestamp,
                 decision: 1,
                 action_type: args.action_type,
-                tx_signature: [0u8; 64],
+                tx_sig_prefix: [0u8; 8],
             });
             return Err(ErrorCode::ConstraintRejected.into());
         }
 
         // Advisory mode: Level 2 with low composite score
         if caller_level <= 2 && args.composite_score < 500 {
-            emit!(ActionExecuted {
+            emit!(ActionApproved {
                 vault: vault_key,
                 action_type: args.action_type,
                 decision: 2, // advisory_pending
                 composite_score: args.composite_score,
-                post_drawdown_bps: args.post_drawdown_bps as u32,
-                post_leverage_bps: args.post_leverage_bps as u32,
                 timestamp: Clock::get()?.unix_timestamp,
             });
             let log_count = ctx.accounts.execution_log.count;
@@ -307,41 +282,86 @@ pub mod krypton_core {
                 timestamp: Clock::get()?.unix_timestamp,
                 decision: 2,
                 action_type: args.action_type,
-                tx_signature: [0u8; 64],
+                tx_sig_prefix: [0u8; 8],
             });
             return Ok(());
         }
 
-        // Auto-execute: CPI to Voltr
-        if caller_level >= 3 {
-            crate::voltr_adapter::cpi_execute(
-                &ctx.accounts.voltr_program.to_account_info(),
-                &ctx.accounts.voltr_vault_account.to_account_info(),
-                &ctx.accounts.signer.to_account_info(),
-                args.typed_action_data.clone(),
-            )?;
-        }
+        // Auto-execute: store proposed post-state as pending, emit approval
+        // Actual execution happens off-chain via the orchestrator agent.
+        // The agent then calls confirm_action or reject_action.
+        let vault = &mut ctx.accounts.vault;
+        let action_id = Clock::get()?.unix_timestamp as u64;
+        vault.pending_action_id = action_id;
+        vault.pending_leverage_bps = args.post_leverage_bps;
+        vault.pending_concentration_bps = args.post_concentration_bps;
+        vault.pending_drawdown_bps = args.post_drawdown_bps;
+        vault.pending_correlated_bps = args.post_correlated_bps;
 
-        // Update post-execution constraint state
-        constraint_engine::update_post_execution(&mut ctx.accounts.vault.constraint, &args)?;
-
-        emit!(ActionExecuted {
+        emit!(ActionApproved {
             vault: vault_key,
             action_type: args.action_type,
-            decision: 0, // executed
+            decision: 0, // approved, pending execution
             composite_score: args.composite_score,
-            post_drawdown_bps: args.post_drawdown_bps as u32,
-            post_leverage_bps: args.post_leverage_bps as u32,
             timestamp: Clock::get()?.unix_timestamp,
         });
 
         let log_count = ctx.accounts.execution_log.count;
         execution_log::append(&mut ctx.accounts.execution_log, ExecutionLogEntry {
-            cycle_id: log_count as u64,
+            cycle_id: action_id,
             timestamp: Clock::get()?.unix_timestamp,
             decision: 0,
             action_type: args.action_type,
-            tx_signature: [0u8; 64],
+            tx_sig_prefix: [0u8; 8],
+        });
+        Ok(())
+    }
+
+    /// Confirm that an approved action was executed successfully.
+    /// Moves pending_* fields into ConstraintState current_* fields.
+    /// Only callable by the vault's agent_signer.
+    pub fn confirm_action(ctx: Context<ConfirmAction>) -> Result<()> {
+        let vault = &mut ctx.accounts.vault;
+        require!(vault.pending_action_id != 0, ErrorCode::NoPendingAction);
+
+        let c = &mut vault.constraint;
+        c.current_leverage_bps = vault.pending_leverage_bps as i64;
+        c.current_concentration_bps = vault.pending_concentration_bps as i64;
+        c.current_drawdown_bps = vault.pending_drawdown_bps as i64;
+        c.current_correlated_exposure_bps = vault.pending_correlated_bps as i64;
+        c.last_oracle_update = Clock::get()?.unix_timestamp;
+
+        let action_id = vault.pending_action_id;
+        vault.pending_action_id = 0;
+        vault.pending_leverage_bps = 0;
+        vault.pending_concentration_bps = 0;
+        vault.pending_drawdown_bps = 0;
+        vault.pending_correlated_bps = 0;
+
+        emit!(ActionConfirmed {
+            vault: vault.key(),
+            action_id,
+        });
+        Ok(())
+    }
+
+    /// Reject an approved action that failed off-chain execution.
+    /// Discards the pending state without changing ConstraintState.
+    /// Only callable by the vault's agent_signer.
+    pub fn reject_action(ctx: Context<RejectAction>) -> Result<()> {
+        let vault = &mut ctx.accounts.vault;
+        require!(vault.pending_action_id != 0, ErrorCode::NoPendingAction);
+
+        let action_id = vault.pending_action_id;
+        vault.pending_action_id = 0;
+        vault.pending_leverage_bps = 0;
+        vault.pending_concentration_bps = 0;
+        vault.pending_drawdown_bps = 0;
+        vault.pending_correlated_bps = 0;
+
+        emit!(ActionRejected {
+            vault: vault.key(),
+            action_id,
         });
         Ok(())
     }
@@ -401,7 +421,6 @@ pub mod krypton_core {
             target_protocol_id: args.target_protocol_id,
             is_de_risk: false,
             required_level: 3,
-            typed_action_data: vec![],
         };
 
         constraint_engine::validate(c, &exec_args)
@@ -511,12 +530,18 @@ fn resolve_permission_level(signer_pubkey: &Pubkey, permission: &PermissionAccou
 pub struct Vault {
     pub owner: Pubkey,
     pub bump: u8,
-    pub voltr_vault: Pubkey,
+    pub nonce: u8,
     pub policy_version: u32,
     pub paused: bool,
     #[max_len(64)]
     pub pause_reason: Option<String>,
     pub constraint: ConstraintState,
+    // Two-phase commit: proposed post-state for an approved but unconfirmed action
+    pub pending_action_id: u64,
+    pub pending_leverage_bps: u64,
+    pub pending_concentration_bps: u64,
+    pub pending_drawdown_bps: u64,
+    pub pending_correlated_bps: u64,
 }
 
 #[account]
@@ -554,7 +579,7 @@ pub struct ExecutionLog {
     pub vault: Pubkey,
     pub head: u32,
     pub count: u32,
-    #[max_len(64)]
+    #[max_len(32)]
     pub entries: Vec<ExecutionLogEntry>,
 }
 
@@ -564,14 +589,14 @@ pub struct ExecutionLogEntry {
     pub timestamp: i64,
     pub decision: u8,
     pub action_type: u8,
-    pub tx_signature: [u8; 64],
+    pub tx_sig_prefix: [u8; 8],
 }
 
 #[account]
 #[derive(InitSpace)]
 pub struct EncryptedState {
     pub vault: Pubkey,
-    #[max_len(8192)]
+    #[max_len(2048)]
     pub encrypted_data: Vec<u8>,
     pub nonce: [u8; 24],
     pub encryption_key_version: u32,
@@ -607,6 +632,7 @@ pub struct ConstraintState {
 
 #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
 pub struct CreateVaultArgs {
+    pub nonce: u8,
     pub max_drawdown_bps: u64,
     pub max_leverage_bps: u64,
     pub max_position_bps: u64,
@@ -652,7 +678,6 @@ pub struct ExecuteActionArgs {
     pub target_protocol_id: u8,
     pub is_de_risk: bool,
     pub required_level: u8,
-    pub typed_action_data: Vec<u8>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
@@ -697,7 +722,7 @@ pub struct CreateVault<'info> {
         init,
         payer = signer,
         space = 8 + Vault::INIT_SPACE,
-        seeds = [b"vault", signer.key().as_ref()],
+        seeds = [b"vault", signer.key().as_ref(), &[args.nonce]],
         bump,
     )]
     pub vault: Account<'info, Vault>,
@@ -709,10 +734,6 @@ pub struct CreateVault<'info> {
         bump,
     )]
     pub permission: Account<'info, PermissionAccount>,
-    /// The Voltr vault account that this Krypton vault gates.
-    /// Must be initialized before calling create_vault.
-    /// CHECK: validated by vault account logic
-    pub voltr_vault: UncheckedAccount<'info>,
     /// The initial agent session key (orchestrator's public key).
     /// Can be rotated later via rotate_agent_key.
     /// CHECK: validated by permission account logic
@@ -746,7 +767,7 @@ pub struct SubmitPolicy<'info> {
     pub signer: Signer<'info>,
     #[account(
         mut,
-        seeds = [b"vault", vault.owner.as_ref()],
+        seeds = [b"vault", vault.owner.as_ref(), &[vault.nonce]],
         bump = vault.bump,
     )]
     pub vault: Account<'info, Vault>,
@@ -767,7 +788,7 @@ pub struct Deposit<'info> {
     pub signer: Signer<'info>,
     #[account(
         mut,
-        seeds = [b"vault", vault.owner.as_ref()],
+        seeds = [b"vault", vault.owner.as_ref(), &[vault.nonce]],
         bump = vault.bump,
     )]
     pub vault: Account<'info, Vault>,
@@ -779,7 +800,7 @@ pub struct PauseVault<'info> {
     pub signer: Signer<'info>,
     #[account(
         mut,
-        seeds = [b"vault", vault.owner.as_ref()],
+        seeds = [b"vault", vault.owner.as_ref(), &[vault.nonce]],
         bump = vault.bump,
     )]
     pub vault: Account<'info, Vault>,
@@ -791,7 +812,7 @@ pub struct Withdraw<'info> {
     pub signer: Signer<'info>,
     #[account(
         mut,
-        seeds = [b"vault", vault.owner.as_ref()],
+        seeds = [b"vault", vault.owner.as_ref(), &[vault.nonce]],
         bump = vault.bump,
     )]
     pub vault: Account<'info, Vault>,
@@ -803,7 +824,7 @@ pub struct AmendPolicy<'info> {
     pub signer: Signer<'info>,
     #[account(
         mut,
-        seeds = [b"vault", vault.owner.as_ref()],
+        seeds = [b"vault", vault.owner.as_ref(), &[vault.nonce]],
         bump = vault.bump,
     )]
     pub vault: Account<'info, Vault>,
@@ -821,7 +842,7 @@ pub struct ExecuteAction<'info> {
     pub signer: Signer<'info>,
     #[account(
         mut,
-        seeds = [b"vault", vault.owner.as_ref()],
+        seeds = [b"vault", vault.owner.as_ref(), &[vault.nonce]],
         bump = vault.bump,
     )]
     pub vault: Account<'info, Vault>,
@@ -835,13 +856,6 @@ pub struct ExecuteAction<'info> {
         bump,
     )]
     pub permission: Account<'info, PermissionAccount>,
-    /// Voltr vault program for CPI execution.
-    /// CHECK: program ID validated at CPI time in voltr_adapter.
-    pub voltr_program: UncheckedAccount<'info>,
-    /// Voltr vault account for CPI execution.
-    /// CHECK: all constraints verified by the constraint engine gate.
-    #[account(mut)]
-    pub voltr_vault_account: UncheckedAccount<'info>,
     #[account(
         seeds = [b"vault_goal", vault.key().as_ref()],
         bump,
@@ -856,10 +870,42 @@ pub struct ExecuteAction<'info> {
 }
 
 #[derive(Accounts)]
+pub struct ConfirmAction<'info> {
+    pub signer: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [b"vault", vault.owner.as_ref(), &[vault.nonce]],
+        bump = vault.bump,
+    )]
+    pub vault: Account<'info, Vault>,
+    #[account(
+        seeds = [b"permission", vault.key().as_ref()],
+        bump,
+    )]
+    pub permission: Account<'info, PermissionAccount>,
+}
+
+#[derive(Accounts)]
+pub struct RejectAction<'info> {
+    pub signer: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [b"vault", vault.owner.as_ref(), &[vault.nonce]],
+        bump = vault.bump,
+    )]
+    pub vault: Account<'info, Vault>,
+    #[account(
+        seeds = [b"permission", vault.key().as_ref()],
+        bump,
+    )]
+    pub permission: Account<'info, PermissionAccount>,
+}
+
+#[derive(Accounts)]
 pub struct CheckConstraints<'info> {
     pub signer: Signer<'info>,
     #[account(
-        seeds = [b"vault", vault.owner.as_ref()],
+        seeds = [b"vault", vault.owner.as_ref(), &[vault.nonce]],
         bump = vault.bump,
     )]
     pub vault: Account<'info, Vault>,
@@ -871,7 +917,7 @@ pub struct RotateAgentKey<'info> {
     pub signer: Signer<'info>,
     #[account(
         mut,
-        seeds = [b"vault", vault.owner.as_ref()],
+        seeds = [b"vault", vault.owner.as_ref(), &[vault.nonce]],
         bump = vault.bump,
     )]
     pub vault: Account<'info, Vault>,
@@ -890,7 +936,7 @@ pub struct StoreEncryptedState<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
     #[account(
-        seeds = [b"vault", vault.owner.as_ref()],
+        seeds = [b"vault", vault.owner.as_ref(), &[vault.nonce]],
         bump = vault.bump,
     )]
     pub vault: Account<'info, Vault>,
@@ -917,7 +963,7 @@ pub struct UpdateConstraintState<'info> {
     pub signer: Signer<'info>,
     #[account(
         mut,
-        seeds = [b"vault", vault.owner.as_ref()],
+        seeds = [b"vault", vault.owner.as_ref(), &[vault.nonce]],
         bump = vault.bump,
     )]
     pub vault: Account<'info, Vault>,
@@ -945,8 +991,8 @@ pub enum ErrorCode {
     OracleStale,
     #[msg("Ika dWallet CPI not available — Phase 2")]
     IkaCpiUnavailable,
-    #[msg("Voltr CPI call failed")]
-    VoltrCpiFailed,
+    #[msg("No pending action to confirm or reject")]
+    NoPendingAction,
     #[msg("Encrypted data exceeds maximum size")]
     EncryptedDataTooLarge,
     #[msg("Encryption key version mismatch")]
@@ -959,7 +1005,6 @@ pub enum ErrorCode {
 pub struct VaultCreated {
     pub vault: Pubkey,
     pub owner: Pubkey,
-    pub voltr_vault: Pubkey,
 }
 
 #[event]
@@ -997,14 +1042,24 @@ pub struct ConstraintsChecked {
 }
 
 #[event]
-pub struct ActionExecuted {
+pub struct ActionApproved {
     pub vault: Pubkey,
     pub action_type: u8,
     pub decision: u8,
     pub composite_score: u32,
-    pub post_drawdown_bps: u32,
-    pub post_leverage_bps: u32,
     pub timestamp: i64,
+}
+
+#[event]
+pub struct ActionConfirmed {
+    pub vault: Pubkey,
+    pub action_id: u64,
+}
+
+#[event]
+pub struct ActionRejected {
+    pub vault: Pubkey,
+    pub action_id: u64,
 }
 
 #[event]
