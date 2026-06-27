@@ -1,0 +1,38 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: krypton
+      POSTGRES_PASSWORD: krypton
+      POSTGRES_DB: orchestrator
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U krypton"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  orchestrator:
+    build:
+      context: ..
+      dockerfile: services/orchestrator/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      LIBSQL_URL: "postgres://krypton:krypton@postgres:5432/orchestrator"
+      SOLANA_RPC_URL: "${SOLANA_RPC_URL:-https://api.devnet.solana.com}"
+      KRYPTON_PROGRAM_ID: "7CpwaaPcgxiC2oJv8ZdVX6m7fQZ2qDnQ6hGfUayvq1AS"
+      KRYPTON_AUTHORITY_KEYPAIR: "${KRYPTON_AUTHORITY_KEYPAIR}"
+      OPENROUTER_API_KEY: "${OPENROUTER_API_KEY:-}"
+      KRYPTON_STUB_AGENTS: "${KRYPTON_STUB_AGENTS:-true}"
+      SOLANA_PRIVATE_KEY: "${SOLANA_PRIVATE_KEY:-}"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
