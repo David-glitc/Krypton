@@ -3,25 +3,5 @@ packages:
   - 'services/orchestrator'
 
 onlyBuiltDependencies:
-  - '-'
-  - ','
-  - '"'
-  - '['
-  - ']'
-  - '3'
-  - a
-  - b
   - better-sqlite3
-  - c
-  - d
-  - e
-  - h
-  - i
-  - l
-  - p
-  - q
-  - r
-  - s
-  - t
-  - u
-  - y
+  - esbuild
