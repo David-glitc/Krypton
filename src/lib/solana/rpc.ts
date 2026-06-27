@@ -21,37 +21,19 @@ function uniqueUrls(urls: Array<string | undefined>): string[] {
   return out
 }
 
-/** Ordered RPC list: Helius (primary) → Alchemy (fallback) → public cluster URL. */
-export function getRpcEndpoints(cluster: SolanaCluster = 'devnet'): string[] {
-  if (cluster === 'mainnet-beta') {
-    return uniqueUrls([
-      readEnv('SOLANA_RPC_MAINNET_URL', 'NEXT_PUBLIC_SOLANA_RPC_MAINNET_URL'),
-      readEnv('SOLANA_RPC_MAINNET_FALLBACK_URL', 'NEXT_PUBLIC_SOLANA_RPC_MAINNET_FALLBACK_URL'),
-      clusterApiUrl('mainnet-beta'),
-    ])
-  }
+/** Devnet-only RPC list: Helius (primary) → Helius public → public devnet. */
+const DEVNET_RPCS = [
+  process.env.NEXT_PUBLIC_HELIUS_DEVNET_URL,
+  'https://devnet.helius-rpc.com/?api-key=2dccd8c8-3285-4886-9eb3-9c01963e7ea1',
+  'https://api.devnet.solana.com',
+].filter(Boolean) as string[]
 
-  if (cluster === 'testnet') {
-    return uniqueUrls([
-      readEnv('SOLANA_RPC_TESTNET_URL', 'NEXT_PUBLIC_SOLANA_RPC_TESTNET_URL'),
-      readEnv('SOLANA_RPC_TESTNET_FALLBACK_URL', 'NEXT_PUBLIC_SOLANA_RPC_TESTNET_FALLBACK_URL'),
-      clusterApiUrl('testnet'),
-    ])
-  }
-
-  return uniqueUrls([
-    readEnv('SOLANA_RPC_URL', 'NEXT_PUBLIC_SOLANA_RPC_URL'),
-    readEnv('SOLANA_RPC_FALLBACK_URL', 'NEXT_PUBLIC_SOLANA_RPC_FALLBACK_URL'),
-    clusterApiUrl('devnet'),
-  ])
+export function getRpcEndpoints(_cluster?: SolanaCluster): string[] {
+  return DEVNET_RPCS
 }
 
-export function getPrimaryRpcUrl(cluster: SolanaCluster = 'devnet'): string {
-  const endpoints = getRpcEndpoints(cluster)
-  if (endpoints.length === 0) {
-    return clusterApiUrl(cluster === 'mainnet-beta' ? 'mainnet-beta' : 'devnet')
-  }
-  return endpoints[0]!
+export function getPrimaryRpcUrl(_cluster?: SolanaCluster): string {
+  return DEVNET_RPCS[0]!
 }
 
 export function isRetryableRpcError(error: unknown): boolean {

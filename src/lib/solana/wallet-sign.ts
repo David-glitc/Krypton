@@ -33,7 +33,7 @@ export async function signAndSendSolanaTransactionBase64(
   transactionBase64: string,
 ): Promise<string> {
   if (!wallet || !isSolanaWallet(wallet)) {
-    throw new Error('Connect a Solana devnet wallet before creating a vault')
+    throw new Error('Connect a Solana wallet before creating a vault')
   }
 
   const walletAddress = wallet.address?.trim()

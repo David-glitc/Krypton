@@ -188,7 +188,6 @@ export function getProgramId(): PublicKey {
 
 import { getPrimaryRpcUrl } from './rpc'
 
-export function getRpcUrl(fallback = 'https://api.devnet.solana.com'): string {
-  const primary = getPrimaryRpcUrl('devnet')
-  return primary || fallback
+export function getRpcUrl(): string {
+  return getPrimaryRpcUrl()
 }
