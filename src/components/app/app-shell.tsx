@@ -17,10 +17,10 @@ import { WalletButton } from '@/components/wallet-button'
 
 const SIDEBAR_LINKS = [
   { href: '/app', label: 'Assets', icon: LayoutGrid, match: (p: string) => p === '/app' || p.startsWith('/app/vault') },
-  { href: '#', label: 'Performance', icon: LineChart, match: () => false },
+  { href: '/app/performance', label: 'Performance', icon: LineChart, match: (p: string) => p.startsWith('/app/performance') },
   { href: '/app/create', label: 'Strategy', icon: Brain, match: (p: string) => p.startsWith('/app/create') },
-  { href: '#', label: 'Risk', icon: Shield, match: () => false },
-  { href: '#', label: 'Settings', icon: Settings, match: () => false },
+  { href: '/app/risk', label: 'Risk', icon: Shield, match: (p: string) => p.startsWith('/app/risk') },
+  { href: '/app/settings', label: 'Settings', icon: Settings, match: (p: string) => p.startsWith('/app/settings') },
 ]
 
 export function AppShell({ children }: { children: React.ReactNode }) {

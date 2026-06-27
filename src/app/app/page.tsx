@@ -126,6 +126,17 @@ export default function VaultsPage() {
               AI-managed vaults constrained by on-chain policy.
             </p>
           </div>
+          <input
+            type="text"
+            placeholder="Paste vault address…"
+            className="input-field h-12 text-xs font-mono"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                const val = (e.target as HTMLInputElement).value.trim()
+                if (val) window.location.href = `/app/vault/${val}`
+              }
+            }}
+          />
         </div>
         <EmptyState />
         <section className="grid gap-4 lg:grid-cols-2">
@@ -181,7 +192,20 @@ export default function VaultsPage() {
             deploy capital, and let the agent pipeline handle the rest.
           </p>
         </div>
-        <PrimaryCta href="/app/create">New Vault</PrimaryCta>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <input
+            type="text"
+            placeholder="Paste vault address…"
+            className="input-field h-12 text-xs font-mono"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                const val = (e.target as HTMLInputElement).value.trim()
+                if (val) window.location.href = `/app/vault/${val}`
+              }
+            }}
+          />
+          <PrimaryCta href="/app/create">New Vault</PrimaryCta>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
