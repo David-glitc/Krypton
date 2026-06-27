@@ -41,32 +41,32 @@ export async function signAndSendSolanaTransactionBase64(
     throw new Error('Connected wallet address is not a valid Solana base58 public key')
   }
 
-  const transaction = Transaction.from(Buffer.from(transactionBase64, 'base64'))
   const signer = await wallet.getSigner()
   const feePayer = new PublicKey(walletAddress)
 
   return withRpcFallback(async (connection) => {
+    const transaction = Transaction.from(Buffer.from(transactionBase64, 'base64'))
     const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
     transaction.recentBlockhash = blockhash
     transaction.feePayer = feePayer
 
-    type SignableTx = Parameters<typeof signer.signAndSendTransaction>[0]
+    const serialized = transaction.serialize({ verifySignatures: false, requireAllSignatures: false })
 
     let signature: string
 
     try {
-      const result = await signer.signAndSendTransaction(transaction as unknown as SignableTx)
+      const result = await signer.signAndSendTransaction(serialized as unknown as Parameters<typeof signer.signAndSendTransaction>[0])
       signature = extractSignature(result)
     } catch (sendError) {
       if (typeof signer.signTransaction !== 'function') {
         throw sendError
       }
 
-      const signed = await signer.signTransaction(transaction as unknown as SignableTx)
-      signature = await connection.sendRawTransaction(signed.serialize(), {
-        skipPreflight: false,
-        preflightCommitment: 'confirmed',
-      })
+      const signed = await signer.signTransaction(serialized as unknown as Parameters<typeof signer.signTransaction>[0])
+      signature = await connection.sendRawTransaction(
+        signed instanceof Uint8Array ? signed : (signed as { serialize: () => Uint8Array }).serialize(),
+        { skipPreflight: false, preflightCommitment: 'confirmed' },
+      )
     }
 
     await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed')

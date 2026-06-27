@@ -229,7 +229,7 @@ export default function CreateVaultPage() {
           <PipelinePreview data={pipelineData} />
 
           <CreateVaultWizard
-            step={step}
+            step={WIZARD_STEPS.length - 1}
             form={form}
             isAggressive={isAggressive}
             constraintChecks={constraintChecks}
@@ -239,22 +239,18 @@ export default function CreateVaultPage() {
             onToggle={toggleListItem}
           />
 
-          <div className="sticky bottom-0 z-10 -mx-4 border-t border-border bg-bg-base/95 px-4 py-4 backdrop-blur sm:-mx-6 sm:px-6 lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
-            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
+          <div className="sticky bottom-0 z-10 -mx-4 border-t border-border bg-bg-base/95 px-4 py-4 backdrop-blur sm:-mx-6 sm:px-6">
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between sm:items-center">
               <OutlineButton
                 className="w-full sm:w-auto"
-                onClick={() => {
-                  if (step === 0) setWizardOpen(false)
-                  else setStep((s) => s - 1)
-                }}
+                onClick={() => setWizardOpen(false)}
               >
-                {step === 0 ? 'Edit intent' : 'Back'}
+                Edit intent
               </OutlineButton>
-              {step < WIZARD_STEPS.length - 1 ? (
-                <PrimaryCta className="w-full sm:w-auto" onClick={() => setStep((s) => Math.min(WIZARD_STEPS.length - 1, s + 1))}>
-                  Continue
-                </PrimaryCta>
-              ) : (
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <span className="text-xs text-text-muted hidden sm:inline">
+                  ~{formatSolAmount(estimatedFeeSol)} SOL fee
+                </span>
                 <PrimaryCta
                   onClick={() => {
                     if (!submitting && allConstraintsPass) submit()
@@ -263,17 +259,17 @@ export default function CreateVaultPage() {
                 >
                   {submitting
                     ? 'Signing transaction…'
-                    : `Sign & Create — $${creationFeeUsd.toFixed(2)} (~${formatSolAmount(estimatedFeeSol)} SOL)`}
+                    : `Sign & Create — $${creationFeeUsd.toFixed(2)}`}
                 </PrimaryCta>
-              )}
+              </div>
             </div>
-            {step === WIZARD_STEPS.length - 1 && !submitting && (
+            {!submitting && (
               <p className="mt-2 text-xs text-text-muted">
                 Protocol fee in SOL; wallet total also includes small account rent.
               </p>
             )}
             {createError && <p className="mt-3 text-sm text-accent-risk">{createError}</p>}
-            {!dynamicContext?.primaryWallet?.address && step === WIZARD_STEPS.length - 1 && (
+            {!dynamicContext?.primaryWallet?.address && (
               <p className="mt-2 text-xs text-text-muted">Connect a devnet wallet to deploy.</p>
             )}
           </div>
