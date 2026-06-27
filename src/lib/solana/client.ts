@@ -1,4 +1,4 @@
-import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js'
+import { Connection, PublicKey } from '@solana/web3.js'
 
 import { deriveEncryptedStatePda, deriveExecutionLogPda, derivePermissionPda, derivePolicyPda, deriveVaultGoalPda, deriveVaultPda, deriveVaultPdaLegacy } from './accounts'
 import {
@@ -31,7 +31,7 @@ export { getHealthyConnection, withRpcFallback } from './rpc-fallback'
 export { getPrimaryRpcUrl, getRpcEndpoints } from './rpc'
 
 export function createConnection(
-  rpcUrl = getRpcUrl(clusterApiUrl('devnet')),
+  rpcUrl = getRpcUrl(),
   commitment: 'confirmed' | 'finalized' | 'processed' = 'confirmed',
 ): Connection {
   return new Connection(rpcUrl, commitment)

@@ -1,25 +1,4 @@
-import { clusterApiUrl } from '@solana/web3.js'
-
 export type SolanaCluster = 'devnet' | 'mainnet-beta' | 'testnet'
-
-function readEnv(...keys: string[]): string | undefined {
-  for (const key of keys) {
-    const value = process.env[key]?.trim()
-    if (value) return value
-  }
-  return undefined
-}
-
-function uniqueUrls(urls: Array<string | undefined>): string[] {
-  const seen = new Set<string>()
-  const out: string[] = []
-  for (const url of urls) {
-    if (!url || seen.has(url)) continue
-    seen.add(url)
-    out.push(url)
-  }
-  return out
-}
 
 /** Devnet-only RPC list: Helius (primary) → Helius public → public devnet. */
 const DEVNET_RPCS = [

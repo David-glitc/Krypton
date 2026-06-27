@@ -1,9 +1,9 @@
 import { createContext, useContext, type ReactNode } from 'react'
-import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js'
+import { Connection, PublicKey } from '@solana/web3.js'
 
 import { getPrimaryRpcUrl } from '@/lib/solana/rpc'
 
-const RPC_URL = getPrimaryRpcUrl('devnet') || clusterApiUrl('devnet')
+const RPC_URL = getPrimaryRpcUrl()
 const PROGRAM_ID = process.env.NEXT_PUBLIC_KRYPTON_PROGRAM_ID ?? ''
 
 interface SolanaContextValue {
