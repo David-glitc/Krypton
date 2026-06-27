@@ -115,20 +115,21 @@ export function decodeVaultAccount(address: PublicKey, data: Buffer): OnChainVau
   let constraint: ConstraintState
   ;[constraint, offset] = decodeConstraintState(data, offset)
 
-  let pendingActionId: bigint
-  ;[pendingActionId, offset] = readU64(data, offset)
+  // Pending fields added in the two-phase commit upgrade.
+  // Vaults created before the upgrade are too short — default to 0.
+  let pendingActionId = 0n
+  let pendingLeverageBps = 0n
+  let pendingConcentrationBps = 0n
+  let pendingDrawdownBps = 0n
+  let pendingCorrelatedBps = 0n
 
-  let pendingLeverageBps: bigint
-  ;[pendingLeverageBps, offset] = readU64(data, offset)
-
-  let pendingConcentrationBps: bigint
-  ;[pendingConcentrationBps, offset] = readU64(data, offset)
-
-  let pendingDrawdownBps: bigint
-  ;[pendingDrawdownBps, offset] = readU64(data, offset)
-
-  let pendingCorrelatedBps: bigint
-  ;[pendingCorrelatedBps, offset] = readU64(data, offset)
+  if (offset + 40 <= data.length) {
+    ;[pendingActionId, offset] = readU64(data, offset)
+    ;[pendingLeverageBps, offset] = readU64(data, offset)
+    ;[pendingConcentrationBps, offset] = readU64(data, offset)
+    ;[pendingDrawdownBps, offset] = readU64(data, offset)
+    ;[pendingCorrelatedBps, offset] = readU64(data, offset)
+  }
 
   return {
     address: address.toBase58(),
