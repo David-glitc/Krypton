@@ -1,9 +1,8 @@
 export type SolanaCluster = 'devnet' | 'mainnet-beta' | 'testnet'
 
-/** Devnet-only RPC list: Helius (primary) → Helius public → public devnet. */
+/** Devnet-only RPCs — env var override, fallback to public devnet. */
 const DEVNET_RPCS = [
-  process.env.NEXT_PUBLIC_HELIUS_DEVNET_URL,
-  'https://devnet.helius-rpc.com/?api-key=2dccd8c8-3285-4886-9eb3-9c01963e7ea1',
+  process.env.NEXT_PUBLIC_SOLANA_RPC_URL || process.env.NEXT_PUBLIC_HELIUS_DEVNET_URL,
   'https://api.devnet.solana.com',
 ].filter(Boolean) as string[]
 
