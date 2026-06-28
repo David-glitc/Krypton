@@ -10,6 +10,7 @@ import { getVault } from '@/lib/services/vault-registry-service'
 export const runtime = 'nodejs'
 
 function stringifyBigints(value: unknown): unknown {
+  if (value instanceof Uint8Array) return Buffer.from(value).toString('hex')
   if (typeof value === 'bigint') return value.toString()
   if (Array.isArray(value)) return value.map(stringifyBigints)
   if (value && typeof value === 'object') {
