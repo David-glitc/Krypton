@@ -6,7 +6,6 @@ import { DynamicContext } from '@dynamic-labs/sdk-react-core'
 import { Building2, ExternalLink, Plus, Zap } from 'lucide-react'
 import {
   MetricCard,
-  OutlineButton,
   PrimaryCta,
   StatusPill,
 } from '@/components/app/app-shell'
@@ -57,35 +56,29 @@ function EmptyState() {
 
 export default function VaultsPage() {
   const dynamicContext = useContext(DynamicContext)
+  const ownerWallet = dynamicContext?.primaryWallet?.address
+  const hasWallet = Boolean(ownerWallet)
   const [liveVaults, setLiveVaults] = useState<VaultResponse[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const ownerWallet = dynamicContext?.primaryWallet?.address
-    if (!ownerWallet) {
-      setLiveVaults([])
-      setLoading(false)
-      return
-    }
+    if (!hasWallet) return
 
-    setLoading(true)
-    let cancelled = false
-    fetch(`/api/vaults?ownerWallet=${encodeURIComponent(ownerWallet)}`, { cache: 'no-store' })
+    const controller = new AbortController()
+    fetch(`/api/vaults?ownerWallet=${encodeURIComponent(ownerWallet!)}`, { signal: controller.signal, cache: 'no-store' })
       .then(async (res) => {
         const json = (await res.json()) as { vaults?: VaultResponse[] }
-        if (!cancelled) setLiveVaults(json.vaults ?? [])
+        if (!controller.signal.aborted) setLiveVaults(json.vaults ?? [])
       })
       .catch(() => {
-        if (!cancelled) setLiveVaults([])
+        if (!controller.signal.aborted) setLiveVaults([])
       })
       .finally(() => {
-        if (!cancelled) setLoading(false)
+        if (!controller.signal.aborted) setLoading(false)
       })
 
-    return () => {
-      cancelled = true
-    }
-  }, [dynamicContext?.primaryWallet?.address])
+    return () => { controller.abort() }
+  }, [hasWallet, ownerWallet])
 
   const liveMetrics = useMemo(() => {
     if (!liveVaults.length) return null
@@ -222,61 +215,61 @@ export default function VaultsPage() {
           {liveVaults.map((vault) => {
             const id = vaultPubkey(vault)
             return (
-              <article key={id} className="panel p-4 sm:p-6">
-                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between lg:gap-6">
-                  <div className="flex gap-3 sm:gap-4">
-                    <VaultIcon />
-                    <div className="min-w-0">
-                      <h3 className="truncate font-[family-name:var(--font-hanken)] text-base font-medium text-text-primary sm:text-xl">
-                        {vaultName(vault)}
-                      </h3>
-                      <p className="mt-0.5 font-[family-name:var(--font-jetbrains)] text-[12px] tracking-wide text-text-secondary sm:text-[13px]">
-                        Policy ID: PV-{vaultPolicyVersion(vault)}
-                      </p>
+              <article key={id} className="panel relative overflow-hidden p-0 sm:p-0">
+                <Link href={`/app/vault/${id}`} className="block p-4 transition-colors hover:bg-bg-panel/50 sm:p-6">
+                  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between lg:gap-6">
+                    <div className="flex gap-3 sm:gap-4">
+                      <VaultIcon />
+                      <div className="min-w-0">
+                        <h3 className="truncate font-[family-name:var(--font-hanken)] text-base font-medium text-text-primary sm:text-xl">
+                          {vaultName(vault)}
+                        </h3>
+                        <p className="mt-0.5 font-[family-name:var(--font-jetbrains)] text-[12px] tracking-wide text-text-secondary sm:text-[13px]">
+                          {id.slice(0, 8)}…{id.slice(-4)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-8">
+                      {[
+                        { label: 'TVL', value: '—', accent: false },
+                        { label: 'Net APY', value: '—', accent: true },
+                        {
+                          label: 'Risk Level',
+                          value: vaultPaused(vault) ? 'Paused' : 'Live',
+                          accent: false,
+                          risk: vaultPaused(vault),
+                        },
+                        { label: 'Status', value: vaultStatus(vault), accent: true },
+                      ].map((stat) => (
+                        <div key={stat.label}>
+                          <p className="font-[family-name:var(--font-jetbrains)] text-[11px] uppercase tracking-wide text-[#a9e2ef] sm:text-[13px]">
+                            {stat.label}
+                          </p>
+                          <p
+                            className={`mt-0.5 font-[family-name:var(--font-jetbrains)] text-base sm:text-lg ${
+                              stat.risk
+                                ? 'text-accent-risk'
+                                : stat.accent
+                                  ? 'text-accent'
+                                  : 'text-text-primary'
+                            }`}
+                          >
+                            {stat.value}
+                          </p>
+                        </div>
+                      ))}
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-6">
-                    {[
-                      { label: 'TVL', value: '—', accent: false },
-                      { label: 'Net APY', value: '—', accent: true },
-                      {
-                        label: 'Risk Level',
-                        value: vaultPaused(vault) ? 'Paused' : 'Live',
-                        accent: false,
-                        risk: vaultPaused(vault),
-                      },
-                      { label: 'Status', value: vaultStatus(vault), accent: true },
-                    ].map((stat) => (
-                      <div key={stat.label}>
-                        <p className="font-[family-name:var(--font-jetbrains)] text-[11px] uppercase tracking-wide text-[#a9e2ef] sm:text-[13px]">
-                          {stat.label}
-                        </p>
-                        <p
-                          className={`mt-0.5 font-[family-name:var(--font-jetbrains)] text-base sm:text-lg ${
-                            stat.risk
-                              ? 'text-accent-risk'
-                              : stat.accent
-                                ? 'text-accent'
-                                : 'text-text-primary'
-                          }`}
-                        >
-                          {stat.value}
-                        </p>
-                      </div>
-                    ))}
+                  <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/50 pt-4 sm:mt-6 sm:gap-3 sm:pt-6">
+                    <StatusPill label={`Policy v${vaultPolicyVersion(vault)}`} />
+                    {vaultPaused(vault)
+                      ? <StatusPill label="Constraint Pause Active" />
+                      : <StatusPill label="Constraint Engine Ready" />
+                    }
                   </div>
-
-                  <OutlineButton href={`/app/vault/${id}`}>Analyze</OutlineButton>
-                </div>
-
-                <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/50 pt-4 sm:mt-6 sm:gap-3 sm:pt-6">
-                  <StatusPill label={`Policy Version ${vaultPolicyVersion(vault)}`} />
-                  {vaultPaused(vault)
-                    ? <StatusPill label="Constraint Pause Active" />
-                    : <StatusPill label="Constraint Engine Ready" />
-                  }
-                </div>
+                </Link>
               </article>
             )
           })}

@@ -1,0 +1,64 @@
+{
+  "name": "Krypton Docs",
+  "logo": {
+    "dark": "/logo-dark.svg",
+    "light": "/logo-light.svg"
+  },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#66ff8e",
+    "light": "#66ff8e",
+    "dark": "#66ff8e",
+    "anchors": {
+      "from": "#66ff8e",
+      "to": "#a9e2ef"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "App",
+      "url": "https://krypton-vault.vercel.app"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Launch App",
+    "url": "https://krypton-vault.vercel.app"
+  },
+  "navigation": [
+    {
+      "group": "Getting Started",
+      "pages": [
+        "overview",
+        "quickstart"
+      ]
+    },
+    {
+      "group": "Architecture",
+      "pages": [
+        "architecture/system-design",
+        "architecture/smart-contracts",
+        "architecture/orchestrator"
+      ]
+    },
+    {
+      "group": "Guides",
+      "pages": [
+        "guides/creating-a-vault",
+        "guides/funding-and-cycles",
+        "guides/approving-actions",
+        "guides/monitoring"
+      ]
+    },
+    {
+      "group": "Reference",
+      "pages": [
+        "reference/api",
+        "reference/program-accounts",
+        "reference/configuration"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "github": "https://github.com/David-glitc/Krypton"
+  }
+}

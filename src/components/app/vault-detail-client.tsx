@@ -6,6 +6,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { MetricCard, OutlineButton, StatusPill } from '@/components/app/app-shell'
 import { SectionHeading } from '@/components/app/section-heading'
 import { VaultDeposit } from '@/components/app/vault-deposit'
+import { VaultWithdraw } from '@/components/app/vault-withdraw'
+import { withRpcFallback } from '@/lib/solana/rpc-fallback'
+import { PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js'
 
 type ExecutionLogsResponse = {
   onChain: {
@@ -229,16 +232,21 @@ export function VaultDetailClient({ vaultAddress }: { vaultAddress: string }) {
   const [queueing, setQueueing] = useState(false)
   const [execLogs, setExecLogs] = useState<ExecutionLogsResponse | null>(null)
   const [logsLoading, setLogsLoading] = useState(true)
+  const [balanceLamports, setBalanceLamports] = useState<number | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const hasActiveJob = data?.cycleStatus?.activeJob != null
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch(`/api/vaults/${vaultAddress}`, { cache: 'no-store' })
+      const [res, bal] = await Promise.all([
+        fetch(`/api/vaults/${vaultAddress}`, { cache: 'no-store' }),
+        withRpcFallback(c => c.getBalance(new PublicKey(vaultAddress))).catch(() => null),
+      ])
       const json = (await res.json()) as VaultApiResponse & { error?: string }
       if (!res.ok) throw new Error(json.error ?? 'Failed to load vault')
       setData(json)
+      setBalanceLamports(bal)
       setError(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load vault')
@@ -254,6 +262,8 @@ export function VaultDetailClient({ vaultAddress }: { vaultAddress: string }) {
       if (!json.error) setExecLogs(json)
     } catch {
       // silent
+    } finally {
+      setLogsLoading(false)
     }
   }, [vaultAddress])
 
@@ -321,61 +331,59 @@ export function VaultDetailClient({ vaultAddress }: { vaultAddress: string }) {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Vault NAV" value={formatUsd(data?.vault?.navUsd)} accent />
-        <MetricCard label="Policy Version" value={String(data?.vault?.policyVersion ?? 0)} />
+        <MetricCard label="SOL Balance" value={balanceLamports !== null ? (balanceLamports / LAMPORTS_PER_SOL).toFixed(3) + ' SOL' : '—'} accent />
+        <MetricCard label="Vault NAV" value={formatUsd(data?.vault?.navUsd)} />
         <MetricCard label="Pending Actions" value={String(data?.pendingActions.length ?? 0)} accent />
         <MetricCard label="Queued Cycles" value={String(data?.cycleStatus.pendingCount ?? 0)} />
       </div>
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <div className="panel p-4 sm:p-6">
-          <SectionHeading title="Constraint State" />
-          <div className="mt-4 space-y-3 sm:mt-6 sm:space-y-4">
-            {Object.entries(data?.vault?.constraint ?? {}).map(([label, value]) => (
-              <div key={label} className="flex items-center justify-between border-b border-border/50 pb-3 last:border-0 last:pb-0">
-                <span className="text-sm text-text-secondary">{label}</span>
-                <span className="font-[family-name:var(--font-jetbrains)] text-sm text-text-primary">{value}</span>
-              </div>
-            ))}
+      <div className="panel p-4 sm:p-6">
+        <SectionHeading title="Constraint State" />
+        <div className="mt-4 space-y-3 sm:mt-6 sm:space-y-4">
+          {Object.entries(data?.vault?.constraint ?? {}).map(([label, value]) => (
+            <div key={label} className="flex items-center justify-between border-b border-border/50 pb-3 last:border-0 last:pb-0">
+              <span className="text-sm text-text-secondary">{label}</span>
+              <span className="font-[family-name:var(--font-jetbrains)] text-sm text-text-primary">{value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="panel p-4 sm:p-6">
+        <SectionHeading title="Agent Status" />
+        <div className="mt-4 flex flex-wrap gap-6 sm:gap-10">
+          <div>
+            <p className="font-[family-name:var(--font-jetbrains)] text-[10px] uppercase tracking-wider text-text-muted">Active cycle</p>
+            <p className="mt-1 font-[family-name:var(--font-jetbrains)] text-sm text-accent">
+              {data?.cycleStatus.activeJob ? `#${data.cycleStatus.activeJob.cycle_id} · ${data.cycleStatus.activeJob.status}` : 'Idle'}
+            </p>
+          </div>
+          <div>
+            <p className="font-[family-name:var(--font-jetbrains)] text-[10px] uppercase tracking-wider text-text-muted">Last completed</p>
+            <p className="mt-1 font-[family-name:var(--font-jetbrains)] text-sm text-text-primary">
+              {data?.cycleStatus.lastCompleted ? `#${data.cycleStatus.lastCompleted.cycle_id} · ${data.cycleStatus.lastCompleted.status}` : 'None'}
+            </p>
+          </div>
+          <div>
+            <p className="font-[family-name:var(--font-jetbrains)] text-[10px] uppercase tracking-wider text-text-muted">Permission</p>
+            <p className="mt-1 font-[family-name:var(--font-jetbrains)] text-sm text-text-primary">L{data?.registry?.permission_level ?? 2}</p>
+          </div>
+          <div>
+            <p className="font-[family-name:var(--font-jetbrains)] text-[10px] uppercase tracking-wider text-text-muted">Policy hash</p>
+            <p className="mt-1 font-[family-name:var(--font-jetbrains)] text-xs text-text-primary">
+              {data?.policy?.contentHash?.slice(0, 16) ?? '—'}…
+            </p>
           </div>
         </div>
+      </div>
 
-        <div className="panel p-4 sm:p-6">
-          <SectionHeading title="Agent Status" />
-          <div className="mt-4 space-y-3 sm:mt-6 sm:space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-text-secondary">Active cycle</span>
-              <span className="font-[family-name:var(--font-jetbrains)] text-sm text-accent">
-                {data?.cycleStatus.activeJob ? `#${data.cycleStatus.activeJob.cycle_id} · ${data.cycleStatus.activeJob.status}` : 'Idle'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-text-secondary">Last completed</span>
-              <span className="font-[family-name:var(--font-jetbrains)] text-sm text-text-primary">
-                {data?.cycleStatus.lastCompleted ? `#${data.cycleStatus.lastCompleted.cycle_id} · ${data.cycleStatus.lastCompleted.status}` : 'None'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-text-secondary">Permission level</span>
-              <span className="font-[family-name:var(--font-jetbrains)] text-sm text-text-primary">
-                L{data?.registry?.permission_level ?? 2}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-text-secondary">Policy hash</span>
-              <span className="font-[family-name:var(--font-jetbrains)] text-xs text-text-primary">
-                {data?.policy?.contentHash?.slice(0, 16) ?? '—'}…
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <VaultDeposit vaultAddress={vaultAddress} />
+        <VaultWithdraw vaultAddress={vaultAddress} onWithdrawn={load} />
+      </div>
 
-      <VaultDeposit vaultAddress={vaultAddress} />
-
-      <section className="grid gap-4 lg:grid-cols-2">
-        <div className="panel p-4 sm:p-6">
-          <SectionHeading title="Pending Actions" />
+      <div className="panel p-4 sm:p-6">
+        <SectionHeading title="Pending Actions" />
           <div className="mt-4 space-y-3 sm:mt-6 sm:space-y-4">
               {data?.pendingActions.length ? (
               data.pendingActions.map((action) => (
@@ -420,7 +428,6 @@ export function VaultDetailClient({ vaultAddress }: { vaultAddress: string }) {
             Open full activity log →
           </Link>
         </div>
-      </section>
 
       <section className="panel p-4 sm:p-6">
         <SectionHeading title="Agent Logs & Reasoning" />

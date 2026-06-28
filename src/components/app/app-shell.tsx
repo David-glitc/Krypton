@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import {
   LayoutGrid,
   LineChart,
@@ -12,7 +12,11 @@ import {
   ArrowRight,
   Menu,
   X,
+  Zap,
+  PanelRightOpen,
+  PanelRightClose,
 } from 'lucide-react'
+import { DynamicContext } from '@dynamic-labs/sdk-react-core'
 import { WalletButton } from '@/components/wallet-button'
 
 const SIDEBAR_LINKS = [
@@ -23,59 +27,167 @@ const SIDEBAR_LINKS = [
   { href: '/app/settings', label: 'Settings', icon: Settings, match: (p: string) => p.startsWith('/app/settings') },
 ]
 
+type SidebarVault = {
+  address: string
+  name: string | null
+}
+
+type RawVaultResponse = {
+  registry?: { vault_pubkey: string; name: string | null }
+  onChain?: { address: string } | null
+}
+
+
+
+
+function SidebarNav({
+  vaults,
+  currentVaultAddress,
+  pathname,
+  collapsed,
+  mobile,
+  onClose,
+}: {
+  vaults: SidebarVault[]
+  currentVaultAddress: string | undefined
+  pathname: string
+  collapsed: boolean
+  mobile?: boolean
+  onClose?: () => void
+}) {
+  return (
+    <>
+      <nav className={`flex flex-col gap-1 ${collapsed ? 'px-2 items-center' : 'px-3'}`}>
+        {SIDEBAR_LINKS.map((link) => {
+          const active = link.match(pathname)
+          const Icon = link.icon
+          return (
+            <Link
+              key={link.label}
+              href={link.href}
+              onClick={() => mobile && onClose?.()}
+              className={`flex items-center gap-3 rounded transition-colors ${
+                collapsed ? 'justify-center p-3 w-10 h-10' : 'px-4 py-3'
+              } ${
+                active
+                  ? 'bg-accent text-bg-base'
+                  : 'text-text-secondary hover:bg-bg-panel hover:text-text-primary'
+              }`}
+              title={collapsed ? link.label : undefined}
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              {!collapsed && (
+                <span className="font-[family-name:var(--font-jetbrains)] text-xs uppercase tracking-wide">{link.label}</span>
+              )}
+            </Link>
+          )
+        })}
+      </nav>
+
+      {!collapsed && vaults.length > 0 && (
+        <div className="mt-8 px-3">
+          <p className="mb-2 px-4 font-[family-name:var(--font-jetbrains)] text-[10px] uppercase tracking-wider text-text-muted">
+            Your Vaults
+          </p>
+          <div className="flex flex-col gap-0.5">
+            {vaults.map((v) => {
+              const active = currentVaultAddress === v.address
+              return (
+                <Link
+                  key={v.address}
+                  href={`/app/vault/${v.address}`}
+                  onClick={() => mobile && onClose?.()}
+                  className={`flex items-center gap-2 rounded px-4 py-2 text-xs transition-colors ${
+                    active
+                      ? 'bg-accent/10 text-accent'
+                      : 'text-text-secondary hover:bg-bg-panel hover:text-text-primary'
+                  }`}
+                >
+                  <Zap className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{v.name || v.address.slice(0, 8) + '…'}</span>
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const onCreate = pathname.startsWith('/app/create')
+  const dynamicContext = useContext(DynamicContext)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [vaults, setVaults] = useState<SidebarVault[]>([])
+  const currentVaultAddress = pathname.match(/^\/app\/vault\/(.+)$/)?.[1]
+
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try { return localStorage.getItem('krypton_sidebar_collapsed') === 'true' } catch {}
+    }
+    return false
+  })
+
+  useEffect(() => {
+    localStorage.setItem('krypton_sidebar_collapsed', String(collapsed))
+  }, [collapsed])
+
+  useEffect(() => {
+    const addr = dynamicContext?.primaryWallet?.address
+    if (!addr) { setVaults([]); return } // eslint-disable-line react-hooks/set-state-in-effect
+    fetch(`/api/vaults?ownerWallet=${encodeURIComponent(addr)}`, { cache: 'no-store' })
+      .then(r => r.json())
+      .then(j => {
+        const raw = j as { vaults?: RawVaultResponse[] }
+        const mapped: SidebarVault[] = (raw.vaults ?? []).map(v => ({
+          address: v.onChain?.address ?? v.registry?.vault_pubkey ?? '',
+          name: v.registry?.name ?? null,
+        }))
+        setVaults(mapped)
+      })
+      .catch(() => setVaults([]))
+  }, [dynamicContext?.primaryWallet?.address])
 
   return (
     <div className="flex min-h-screen bg-bg-base">
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-border bg-bg-deep md:flex">
-        <div className="px-6 pt-16 pb-8">
-          <h2 className="font-[family-name:var(--font-hanken)] text-4xl font-bold leading-tight tracking-tight text-text-primary">
-            Krypton Vault
-          </h2>
-          <p className="mt-2 font-[family-name:var(--font-jetbrains)] text-[13px] uppercase tracking-wide text-text-secondary">
-            AI-Managed Yield
-          </p>
+      <aside
+        className={`fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-border bg-bg-deep transition-all duration-200 md:flex ${collapsed ? 'w-16' : 'w-64'}`}
+      >
+        <div className={`flex flex-col items-start px-6 pt-16 pb-8 ${collapsed ? 'px-0 items-center' : ''}`}>
+          {collapsed ? (
+            <Zap className="h-6 w-6 text-accent" />
+          ) : (
+            <>
+              <h2 className="font-[family-name:var(--font-hanken)] text-4xl font-bold leading-tight tracking-tight text-text-primary">
+                Krypton Vault
+              </h2>
+              <p className="mt-2 font-[family-name:var(--font-jetbrains)] text-[13px] uppercase tracking-wide text-text-secondary">
+                AI-Managed Yield
+              </p>
+            </>
+          )}
         </div>
 
-        <nav className="flex flex-col gap-1 px-3">
-          {SIDEBAR_LINKS.map((link) => {
-            const active = link.match(pathname)
-            const Icon = link.icon
-            return (
-              <Link
-                key={link.label}
-                href={link.href}
-                className={`flex items-center gap-3 rounded px-4 py-3 font-[family-name:var(--font-jetbrains)] text-xs uppercase tracking-wide transition-colors ${
-                  active
-                    ? 'bg-accent text-bg-base'
-                    : 'text-text-secondary hover:bg-bg-panel hover:text-text-primary'
-                }`}
-              >
-                <Icon className="h-4 w-4 shrink-0" />
-                {link.label}
-              </Link>
-            )
-          })}
-        </nav>
+        <div className="flex-1 overflow-y-auto">
+          <SidebarNav
+            vaults={vaults}
+            currentVaultAddress={currentVaultAddress}
+            pathname={pathname}
+            collapsed={collapsed}
+          />
+        </div>
 
-        {onCreate && (
-          <div className="mt-auto border-t border-border p-6">
-            <div className="flex items-center justify-between font-[family-name:var(--font-jetbrains)] text-[10px] uppercase tracking-wide text-text-muted">
-              <span>System Load</span>
-              <span className="text-accent">34%</span>
-            </div>
-            <div className="mt-2 h-1.5 w-full bg-bg-panel">
-              <div className="h-full w-[34%] bg-accent" />
-            </div>
-          </div>
-        )}
-
-        <div className="mt-auto border-t border-border p-4">
-          <WalletButton />
+        <div className={`border-t border-border ${collapsed ? 'p-2 flex flex-col items-center gap-2' : 'p-4'}`}>
+          {!collapsed && <WalletButton />}
+          <button
+            onClick={() => setCollapsed(c => !c)}
+            className="text-text-secondary hover:text-text-primary transition-colors"
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {collapsed ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+          </button>
         </div>
       </aside>
 
@@ -102,34 +214,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </button>
         </div>
 
-        <nav className="flex flex-col gap-1 px-3">
-          {SIDEBAR_LINKS.map((link) => {
-            const active = link.match(pathname)
-            const Icon = link.icon
-            return (
-              <Link
-                key={link.label}
-                href={link.href}
-                onClick={() => setDrawerOpen(false)}
-                className={`flex items-center gap-3 rounded px-4 py-3 font-[family-name:var(--font-jetbrains)] text-xs uppercase tracking-wide transition-colors ${
-                  active
-                    ? 'bg-accent text-bg-base'
-                    : 'text-text-secondary hover:bg-bg-panel hover:text-text-primary'
-                }`}
-              >
-                <Icon className="h-4 w-4 shrink-0" />
-                {link.label}
-              </Link>
-            )
-          })}
-        </nav>
+        <div className="flex-1 overflow-y-auto">
+          <SidebarNav
+            vaults={vaults}
+            currentVaultAddress={currentVaultAddress}
+            pathname={pathname}
+            collapsed={false}
+            mobile
+            onClose={() => setDrawerOpen(false)}
+          />
+        </div>
 
-        <div className="mt-auto border-t border-border p-4">
+        <div className="border-t border-border p-4">
           <WalletButton />
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col md:ml-64">
+      <div className={`flex min-w-0 flex-1 flex-col transition-all duration-200 ${collapsed ? 'md:ml-16' : 'md:ml-64'}`}>
         <header className="glass sticky top-0 z-30 border-b border-border">
           <div className="flex h-14 items-center justify-between px-4 md:h-[72px] md:px-6">
             <div className="flex items-center gap-3 md:gap-8">
@@ -152,9 +253,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Link href="/#simulation" className="text-base text-text-secondary hover:text-text-primary md:text-lg">
                   Research
                 </Link>
-                <a href="https://github.com/David-glitc/Krypton" className="text-base text-text-secondary hover:text-text-primary md:text-lg">
+                <Link href="/app/docs" className="text-base text-text-secondary hover:text-text-primary md:text-lg">
                   Docs
-                </a>
+                </Link>
               </nav>
             </div>
             <WalletButton />

@@ -150,10 +150,11 @@ export default function CreateVaultPage() {
       const txBundle = prepared.transactionBundle
       if (!txBundle) throw new Error('No transaction bundle returned')
 
-      setSubmitStatus('Sign transaction in your wallet…')
+      setSubmitStatus('Signing transaction…')
       const createSignature = await signAndSendSolanaTransactionBase64(
         dynamicContext?.primaryWallet,
         txBundle.transactionBase64,
+        setSubmitStatus,
       )
 
       setSubmitStatus('Finalizing vault registration…')
@@ -169,10 +170,16 @@ export default function CreateVaultPage() {
         }),
       })
 
-      const finalized = (await finalizeRes.json()) as { error?: string }
       if (!finalizeRes.ok) {
-        throw new Error(finalized.error ?? 'Failed to finalize vault registry entry')
+        throw new Error((await finalizeRes.json()).error ?? 'Failed to finalize vault registry entry')
       }
+
+      // Auto-queue first cycle so agent proposes a strategy direction
+      fetch(`/api/vaults/${prepared.vaultPda}/cycles`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ permissionLevel: form.permissionLevel ?? 2, priority: 5 }),
+      }).catch(() => {})
 
       router.push(`/app/vault/${prepared.vaultPda}`)
     } catch (error) {

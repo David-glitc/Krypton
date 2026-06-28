@@ -16,12 +16,12 @@ import { CYCLE_STAGES } from './types.js'
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
 const STAGE_MODELS: Record<string, string> = {
-  RESEARCHING: 'google/gemini-2.0-flash-exp:free',
-  STRATEGIZING: 'google/gemini-2.0-flash-exp:free',
-  RISK_REVIEW: 'google/gemini-2.0-flash-exp:free',
-  SIMULATING: 'google/gemini-2.0-flash-exp:free',
-  PERMISSION_GATE: 'google/gemini-2.0-flash-exp:free',
-  MONITORING: 'google/gemini-2.0-flash-exp:free',
+  RESEARCHING: 'google/gemma-4-26b-a4b-it:free',
+  STRATEGIZING: 'google/gemma-4-26b-a4b-it:free',
+  RISK_REVIEW: 'google/gemma-4-26b-a4b-it:free',
+  SIMULATING: 'google/gemma-4-26b-a4b-it:free',
+  PERMISSION_GATE: 'google/gemma-4-26b-a4b-it:free',
+  MONITORING: 'google/gemma-4-26b-a4b-it:free',
 }
 
 const STAGE_SYSTEM_PROMPTS: Record<string, string> = {
@@ -74,7 +74,7 @@ export type LlmCallFn = (
  */
 export function createOpenRouterLlmCall(apiKey: string): LlmCallFn {
   return async (stage: string, vaultContext: string) => {
-    const model = STAGE_MODELS[stage] ?? 'google/gemini-2.0-flash-exp:free'
+    const model = STAGE_MODELS[stage] ?? 'google/gemma-4-26b-a4b-it:free'
     const systemPrompt = STAGE_SYSTEM_PROMPTS[stage] ?? 'Output valid JSON.'
 
     const start = Date.now()

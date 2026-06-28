@@ -39,6 +39,7 @@ function prepTx(txBase64: string, blockhash: string, feePayer: PublicKey): Trans
 export async function signAndSendSolanaTransactionBase64(
   wallet: Wallet | null | undefined,
   transactionBase64: string,
+  onStatus?: (status: string) => void,
 ): Promise<string> {
   if (!wallet || !isSolanaWallet(wallet)) throw new Error('Connect a Solana wallet')
   const addr = wallet.address?.trim()
@@ -52,6 +53,7 @@ export async function signAndSendSolanaTransactionBase64(
     }
 
     for (let attempt = 0; attempt < 3; attempt++) {
+      onStatus?.(`Signing (attempt ${attempt + 1})…`)
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
       let lastErr: unknown
 
@@ -59,16 +61,20 @@ export async function signAndSendSolanaTransactionBase64(
       try {
         const r = await s.signAndSendTransaction(prepTx(transactionBase64, blockhash, feePayer))
         const sig = extractSignature(r)
+        onStatus?.('Confirming…')
         await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')
         return sig
       } catch (e) { lastErr = e }
 
       // Fallback: signTransaction + sendRawTransaction
+      onStatus?.(`Signing offline (attempt ${attempt + 1})…`)
       try {
         const signed = await s.signTransaction(prepTx(transactionBase64, blockhash, feePayer))
+        onStatus?.('Sending…')
         const sig = await connection.sendRawTransaction(toBytes(signed), {
           skipPreflight: false, preflightCommitment: 'confirmed',
         })
+        onStatus?.('Confirming…')
         await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')
         return sig
       } catch { /* both failed */ }
