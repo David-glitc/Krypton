@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { MetricCard, OutlineButton, StatusPill } from '@/components/app/app-shell'
 import { SectionHeading } from '@/components/app/section-heading'
+import { VaultDeposit } from '@/components/app/vault-deposit'
 
 type ExecutionLogsResponse = {
   onChain: {
@@ -369,6 +370,8 @@ export function VaultDetailClient({ vaultAddress }: { vaultAddress: string }) {
           </div>
         </div>
       </section>
+
+      <VaultDeposit vaultAddress={vaultAddress} />
 
       <section className="grid gap-4 lg:grid-cols-2">
         <div className="panel p-4 sm:p-6">

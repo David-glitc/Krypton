@@ -24,6 +24,18 @@ function extractSignature(r: unknown): string {
   throw new Error('signAndSendTransaction returned unexpected format')
 }
 
+function isBlockhashExpired(err: unknown): boolean {
+  const m = String(err)
+  return m.includes('block height exceeded') || m.includes('BlockhashNotFound') || m.includes('expired')
+}
+
+function prepTx(txBase64: string, blockhash: string, feePayer: PublicKey): Transaction {
+  const tx = Transaction.from(Buffer.from(txBase64, 'base64'))
+  tx.recentBlockhash = blockhash
+  tx.feePayer = feePayer
+  return tx
+}
+
 export async function signAndSendSolanaTransactionBase64(
   wallet: Wallet | null | undefined,
   transactionBase64: string,
@@ -31,32 +43,40 @@ export async function signAndSendSolanaTransactionBase64(
   if (!wallet || !isSolanaWallet(wallet)) throw new Error('Connect a Solana wallet')
   const addr = wallet.address?.trim()
   if (!addr || !isValidAddress(addr)) throw new Error('Invalid Solana address')
+  const feePayer = new PublicKey(addr)
 
   return withRpcFallback(async (connection) => {
-    const tx = Transaction.from(Buffer.from(transactionBase64, 'base64'))
-    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
-    tx.recentBlockhash = blockhash
-    tx.feePayer = new PublicKey(addr)
-
-    // Dynamic SDK returns ISolana which expects Transaction|VersionedTransaction
-    // Cast via any to handle @solana/web3.js version mismatch between our dep and Dynamic's
-    const signer = (await wallet!.getSigner()) as {
+    const s = (await wallet!.getSigner()) as {
       signAndSendTransaction: (t: Transaction) => Promise<unknown>
       signTransaction: (t: Transaction) => Promise<unknown>
     }
 
-    let signature: string
-    try {
-      const r = await signer.signAndSendTransaction(tx)
-      signature = extractSignature(r)
-    } catch {
-      const signed = await signer.signTransaction(tx)
-      signature = await connection.sendRawTransaction(toBytes(signed), {
-        skipPreflight: false, preflightCommitment: 'confirmed',
-      })
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
+      let lastErr: unknown
+
+      // Try signAndSendTransaction
+      try {
+        const r = await s.signAndSendTransaction(prepTx(transactionBase64, blockhash, feePayer))
+        const sig = extractSignature(r)
+        await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')
+        return sig
+      } catch (e) { lastErr = e }
+
+      // Fallback: signTransaction + sendRawTransaction
+      try {
+        const signed = await s.signTransaction(prepTx(transactionBase64, blockhash, feePayer))
+        const sig = await connection.sendRawTransaction(toBytes(signed), {
+          skipPreflight: false, preflightCommitment: 'confirmed',
+        })
+        await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')
+        return sig
+      } catch { /* both failed */ }
+
+      if (isBlockhashExpired(lastErr) && attempt < 2) continue
+      throw lastErr
     }
 
-    await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed')
-    return signature
+    throw new Error('Failed to send transaction after 3 attempts')
   })
 }
