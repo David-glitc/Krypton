@@ -33,6 +33,7 @@ export default function CreateVaultPage() {
   const [step, setStep] = useState(0)
   const [form, setForm] = useState<FormState>({ ...DEFAULT_FORM })
   const [submitting, setSubmitting] = useState(false)
+  const [submitStatus, setSubmitStatus] = useState('')
   const [aiPolicy, setAiPolicy] = useState<GeneratedPolicy | null>(null)
   const [wizardOpen, setWizardOpen] = useState(false)
   const [sessionId, setSessionId] = useState<string | null>(null)
@@ -113,6 +114,7 @@ export default function CreateVaultPage() {
         throw new Error('Connect a wallet before creating a vault')
       }
 
+      setSubmitStatus('Preparing vault on-chain…')
       const prepareRes = await fetch('/api/vaults/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -148,11 +150,13 @@ export default function CreateVaultPage() {
       const txBundle = prepared.transactionBundle
       if (!txBundle) throw new Error('No transaction bundle returned')
 
+      setSubmitStatus('Sign transaction in your wallet…')
       const createSignature = await signAndSendSolanaTransactionBase64(
         dynamicContext?.primaryWallet,
         txBundle.transactionBase64,
       )
 
+      setSubmitStatus('Finalizing vault registration…')
       const finalizeRes = await fetch('/api/vaults/finalize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -175,6 +179,7 @@ export default function CreateVaultPage() {
       setCreateError(error instanceof Error ? error.message : 'Failed to create vault')
     } finally {
       setSubmitting(false)
+      setSubmitStatus('')
     }
   }
 
@@ -266,7 +271,7 @@ export default function CreateVaultPage() {
                   className={`w-full sm:w-auto ${submitting || !allConstraintsPass ? 'pointer-events-none opacity-50' : ''}`}
                 >
                   {submitting
-                    ? 'Signing transaction…'
+                    ? submitStatus || 'Signing transaction…'
                     : `Sign & Create — $${creationFeeUsd.toFixed(2)} (~${formatSolAmount(estimatedFeeSol)} SOL)`}
                 </PrimaryCta>
               </div>

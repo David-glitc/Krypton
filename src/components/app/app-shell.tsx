@@ -16,7 +16,7 @@ import {
 import { WalletButton } from '@/components/wallet-button'
 
 const SIDEBAR_LINKS = [
-  { href: '/app', label: 'Assets', icon: LayoutGrid, match: (p: string) => p === '/app' || p.startsWith('/app/vault') },
+  { href: '/app', label: 'Vaults', icon: LayoutGrid, match: (p: string) => p === '/app' || p.startsWith('/app/vault') },
   { href: '/app/performance', label: 'Performance', icon: LineChart, match: (p: string) => p.startsWith('/app/performance') },
   { href: '/app/create', label: 'Strategy', icon: Brain, match: (p: string) => p.startsWith('/app/create') },
   { href: '/app/risk', label: 'Risk', icon: Shield, match: (p: string) => p.startsWith('/app/risk') },
