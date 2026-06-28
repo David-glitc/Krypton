@@ -1,65 +1,56 @@
 import { isSolanaWallet } from '@dynamic-labs/solana'
 import type { Wallet } from '@dynamic-labs/sdk-react-core'
-import { PublicKey, Transaction, VersionedTransaction } from '@solana/web3.js'
+import { PublicKey, Transaction } from '@solana/web3.js'
 
 import { withRpcFallback } from '@/lib/solana/rpc-fallback'
 
-function toBytes(tx: unknown): Uint8Array {
-  if (tx instanceof Uint8Array) return tx
-  if (tx instanceof Transaction) return tx.serialize({ verifySignatures: false })
-  if (tx instanceof VersionedTransaction) return tx.serialize()
-  if (tx && typeof tx === 'object' && 'serialize' in tx && typeof (tx as { serialize: () => unknown }).serialize === 'function') {
-    const result = (tx as { serialize: () => unknown }).serialize()
-    if (result instanceof Uint8Array) return result
-  }
-  throw new Error('Wallet returned an unrecognised signed transaction format')
+function isValidAddress(a: string): boolean {
+  try { return new PublicKey(a).toBase58() === a } catch { return false }
 }
 
-function extractSignature(result: unknown): string {
-  if (typeof result === 'string') return result
-  if (result && typeof result === 'object' && 'signature' in result) {
-    const sig = (result as { signature?: unknown }).signature
-    if (typeof sig === 'string') return sig
+function toBytes(signed: unknown): Uint8Array {
+  if (signed instanceof Uint8Array) return signed
+  const o = signed as Record<string, unknown>
+  if (typeof o?.serialize === 'function') {
+    const r = o.serialize()
+    if (r instanceof Uint8Array) return r
   }
-  throw new Error('Wallet did not return a valid transaction signature')
+  throw new Error('signTransaction returned an unexpected format')
 }
 
-function isValidSolanaAddress(address: string): boolean {
-  try { return new PublicKey(address).toBase58() === address } catch { return false }
+function extractSignature(r: unknown): string {
+  if (typeof r === 'string') return r
+  if (r && typeof r === 'object' && 'signature' in r) return String((r as { signature: unknown }).signature)
+  throw new Error('signAndSendTransaction returned unexpected format')
 }
 
 export async function signAndSendSolanaTransactionBase64(
   wallet: Wallet | null | undefined,
   transactionBase64: string,
 ): Promise<string> {
-  if (!wallet || !isSolanaWallet(wallet)) {
-    throw new Error('Connect a Solana wallet before creating a vault')
-  }
-  const walletAddress = wallet.address?.trim()
-  if (!walletAddress || !isValidSolanaAddress(walletAddress)) {
-    throw new Error('Connected wallet address is not a valid Solana base58 public key')
-  }
-
-  const signer = await wallet.getSigner()
-  const feePayer = new PublicKey(walletAddress)
+  if (!wallet || !isSolanaWallet(wallet)) throw new Error('Connect a Solana wallet')
+  const addr = wallet.address?.trim()
+  if (!addr || !isValidAddress(addr)) throw new Error('Invalid Solana address')
 
   return withRpcFallback(async (connection) => {
     const tx = Transaction.from(Buffer.from(transactionBase64, 'base64'))
     const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
     tx.recentBlockhash = blockhash
-    tx.feePayer = feePayer
+    tx.feePayer = new PublicKey(addr)
 
-    const rawTx = tx.serialize({ verifySignatures: false, requireAllSignatures: false })
+    // Dynamic SDK returns ISolana which expects Transaction|VersionedTransaction
+    // Cast via any to handle @solana/web3.js version mismatch between our dep and Dynamic's
+    const signer = (await wallet!.getSigner()) as {
+      signAndSendTransaction: (t: Transaction) => Promise<unknown>
+      signTransaction: (t: Transaction) => Promise<unknown>
+    }
 
     let signature: string
-
     try {
-      const result = await signer.signAndSendTransaction(rawTx as unknown as Parameters<typeof signer.signAndSendTransaction>[0])
-      signature = extractSignature(result)
-    } catch (sendError) {
-      if (typeof signer.signTransaction !== 'function') throw sendError
-
-      const signed = await signer.signTransaction(rawTx as unknown as Parameters<typeof signer.signTransaction>[0])
+      const r = await signer.signAndSendTransaction(tx)
+      signature = extractSignature(r)
+    } catch {
+      const signed = await signer.signTransaction(tx)
       signature = await connection.sendRawTransaction(toBytes(signed), {
         skipPreflight: false, preflightCommitment: 'confirmed',
       })
