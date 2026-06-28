@@ -26,7 +26,7 @@ sync_var() {
 
 sync_var LIBSQL_URL 'https://krypton-db.chessonchain.online'
 sync_var NEXT_PUBLIC_DYNAMIC_ENV_ID '7a529f4c-9cc3-4e88-9911-1a10672cc36c'
-sync_var NEXT_PUBLIC_KRYPTON_PROGRAM_ID '7CpwaaPcgxiC2oJv8ZdVX6m7fQZ2qDnQ6hGfUayvq1AS'
+sync_var NEXT_PUBLIC_KRYPTON_PROGRAM_ID 'DQVp9hnnU6zbyPCJbcEnS6F1fWZMQ2yCCH9jL6cFVPxF'
 HELIUS_DEVNET='https://devnet.helius-rpc.com/?api-key=057b3e58-abee-40df-9898-95d0b8bca95f'
 HELIUS_MAINNET='https://mainnet.helius-rpc.com/?api-key=057b3e58-abee-40df-9898-95d0b8bca95f'
 ALCHEMY_DEVNET='https://solana-devnet.g.alchemy.com/v2/H10XsCFWojDIXpUWdB-bZ'

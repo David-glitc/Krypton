@@ -2,7 +2,7 @@ import { PublicKey } from '@solana/web3.js'
 
 /** krypton_core program ID (declare_id in lib.rs). */
 export const KRYPTON_CORE_PROGRAM_ID = new PublicKey(
-  '7CpwaaPcgxiC2oJv8ZdVX6m7fQZ2qDnQ6hGfUayvq1AS',
+  'DQVp9hnnU6zbyPCJbcEnS6F1fWZMQ2yCCH9jL6cFVPxF',
 )
 
 export const SYSTEM_PROGRAM_ID = new PublicKey('11111111111111111111111111111111')

@@ -7,7 +7,7 @@ import {
   type TransactionSignature,
 } from '@solana/web3.js'
 
-const DEFAULT_PROGRAM_ID = new PublicKey('7CpwaaPcgxiC2oJv8ZdVX6m7fQZ2qDnQ6hGfUayvq1AS')
+const DEFAULT_PROGRAM_ID = new PublicKey('DQVp9hnnU6zbyPCJbcEnS6F1fWZMQ2yCCH9jL6cFVPxF')
 
 const EXECUTE_ACTION_DISCRIMINATOR = Buffer.from([0xf6, 0x89, 0x69, 0x71, 0xf7, 0x06, 0xdf, 0xae])
 const CONFIRM_ACTION_DISCRIMINATOR = Buffer.from([0x30, 0xb9, 0x29, 0x16, 0xaf, 0x95, 0xf1, 0x78])

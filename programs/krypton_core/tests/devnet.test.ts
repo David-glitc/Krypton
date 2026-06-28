@@ -59,7 +59,7 @@ function wPubkey(buf: Buffer, off: number, pk: PublicKey): number { return wByte
 
 // ── Config ──────────────────────────────────────────────────────
 const RPC = process.env.RPC_URL ?? 'https://api.devnet.solana.com'
-const PROGRAM_ID = new PublicKey('7CpwaaPcgxiC2oJv8ZdVX6m7fQZ2qDnQ6hGfUayvq1AS')
+const PROGRAM_ID = new PublicKey('DQVp9hnnU6zbyPCJbcEnS6F1fWZMQ2yCCH9jL6cFVPxF')
 const OWNER_FUND_AMT = 0.5 * LAMPORTS_PER_SOL
 
 function loadWallet(): Keypair {

@@ -5,10 +5,10 @@ skip-lint = false
 [toolchain]
 anchor_version = "0.32.1"
 [programs.localnet]
-krypton_core = "7CpwaaPcgxiC2oJv8ZdVX6m7fQZ2qDnQ6hGfUayvq1AS"
+krypton_core = "DQVp9hnnU6zbyPCJbcEnS6F1fWZMQ2yCCH9jL6cFVPxF"
 
 [programs.devnet]
-krypton_core = "7CpwaaPcgxiC2oJv8ZdVX6m7fQZ2qDnQ6hGfUayvq1AS"
+krypton_core = "DQVp9hnnU6zbyPCJbcEnS6F1fWZMQ2yCCH9jL6cFVPxF"
 
 [registry]
 url = "https://api.apr.dev"

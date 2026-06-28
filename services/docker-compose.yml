@@ -27,7 +27,7 @@ services:
     environment:
       LIBSQL_URL: "postgres://krypton:krypton@postgres:5432/orchestrator"
       SOLANA_RPC_URL: "${SOLANA_RPC_URL:-https://api.devnet.solana.com}"
-      KRYPTON_PROGRAM_ID: "7CpwaaPcgxiC2oJv8ZdVX6m7fQZ2qDnQ6hGfUayvq1AS"
+      KRYPTON_PROGRAM_ID: "DQVp9hnnU6zbyPCJbcEnS6F1fWZMQ2yCCH9jL6cFVPxF"
       KRYPTON_AUTHORITY_KEYPAIR: "${KRYPTON_AUTHORITY_KEYPAIR}"
       OPENROUTER_API_KEY: "${OPENROUTER_API_KEY:-}"
       KRYPTON_STUB_AGENTS: "${KRYPTON_STUB_AGENTS:-true}"

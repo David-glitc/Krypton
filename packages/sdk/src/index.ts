@@ -96,7 +96,7 @@ export const RPC_URL =
 
 export const KRYPTON_PROGRAM_ID =
   (import.meta as { env?: Record<string, string> }).env?.VITE_KRYPTON_PROGRAM_ID ??
-  '7CpwaaPcgxiC2oJv8ZdVX6m7fQZ2qDnQ6hGfUayvq1AS'
+  'DQVp9hnnU6zbyPCJbcEnS6F1fWZMQ2yCCH9jL6cFVPxF'
 
 export const PROTOCOL_MAX_LEVERAGE_BPS = 20_000
 export const AGGRESSIVE_THRESHOLD_BPS = 2500

@@ -165,7 +165,7 @@ async function runCycle(job: CycleJobRow): Promise<CycleFsmResult> {
 
             const [vaultOwner] = PublicKey.findProgramAddressSync(
               [Buffer.from('vault')],
-              new PublicKey(process.env.KRYPTON_PROGRAM_ID ?? '7CpwaaPcgxiC2oJv8ZdVX6m7fQZ2qDnQ6hGfUayvq1AS'),
+              new PublicKey(process.env.KRYPTON_PROGRAM_ID ?? 'DQVp9hnnU6zbyPCJbcEnS6F1fWZMQ2yCCH9jL6cFVPxF'),
             )
 
             // Phase 1: approve action on-chain

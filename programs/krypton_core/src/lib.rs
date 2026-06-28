@@ -15,7 +15,7 @@ pub const MAX_LOG_ENTRIES: u32 = 32;
 /// Maximum encrypted payload size (2KB for position data).
 pub const MAX_ENCRYPTED_DATA_LEN: usize = 2048;
 
-declare_id!("7CpwaaPcgxiC2oJv8ZdVX6m7fQZ2qDnQ6hGfUayvq1AS");
+declare_id!("DQVp9hnnU6zbyPCJbcEnS6F1fWZMQ2yCCH9jL6cFVPxF");
 
 /// ─── Constraint Engine ──────────────────────────────────────────
 /// On-chain deterministic constraint validation. Runs 8 checks that
@@ -324,14 +324,19 @@ pub mod krypton_core {
         let vault = &mut ctx.accounts.vault;
         require!(vault.pending_action_id != 0, ErrorCode::NoPendingAction);
 
+        let pending_leverage_bps = vault.pending_leverage_bps;
+        let pending_concentration_bps = vault.pending_concentration_bps;
+        let pending_drawdown_bps = vault.pending_drawdown_bps;
+        let pending_correlated_bps = vault.pending_correlated_bps;
+        let action_id = vault.pending_action_id;
+
         let c = &mut vault.constraint;
-        c.current_leverage_bps = vault.pending_leverage_bps as i64;
-        c.current_concentration_bps = vault.pending_concentration_bps as i64;
-        c.current_drawdown_bps = vault.pending_drawdown_bps as i64;
-        c.current_correlated_exposure_bps = vault.pending_correlated_bps as i64;
+        c.current_leverage_bps = pending_leverage_bps as i64;
+        c.current_concentration_bps = pending_concentration_bps as i64;
+        c.current_drawdown_bps = pending_drawdown_bps as i64;
+        c.current_correlated_exposure_bps = pending_correlated_bps as i64;
         c.last_oracle_update = Clock::get()?.unix_timestamp;
 
-        let action_id = vault.pending_action_id;
         vault.pending_action_id = 0;
         vault.pending_leverage_bps = 0;
         vault.pending_concentration_bps = 0;

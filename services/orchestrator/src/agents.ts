@@ -19,7 +19,7 @@ const STUB_MODE = process.env.KRYPTON_STUB_AGENTS === 'true'
 const RPC_URL =
   process.env.SOLANA_RPC_URL ?? 'https://api.devnet.solana.com'
 const PROGRAM_ID =
-  process.env.KRYPTON_PROGRAM_ID ?? '7CpwaaPcgxiC2oJv8ZdVX6m7fQZ2qDnQ6hGfUayvq1AS'
+  process.env.KRYPTON_PROGRAM_ID ?? 'DQVp9hnnU6zbyPCJbcEnS6F1fWZMQ2yCCH9jL6cFVPxF'
 
 function loadAuthorityKeypair(): Keypair | undefined {
   const b64 = process.env.KRYPTON_AUTHORITY_KEYPAIR
