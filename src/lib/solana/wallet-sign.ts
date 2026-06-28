@@ -49,15 +49,17 @@ export async function signAndSendSolanaTransactionBase64(
     tx.recentBlockhash = blockhash
     tx.feePayer = feePayer
 
+    const rawTx = tx.serialize({ verifySignatures: false, requireAllSignatures: false })
+
     let signature: string
 
     try {
-      const result = await signer.signAndSendTransaction(tx as unknown as Parameters<typeof signer.signAndSendTransaction>[0])
+      const result = await signer.signAndSendTransaction(rawTx as unknown as Parameters<typeof signer.signAndSendTransaction>[0])
       signature = extractSignature(result)
     } catch (sendError) {
       if (typeof signer.signTransaction !== 'function') throw sendError
 
-      const signed = await signer.signTransaction(tx as unknown as Parameters<typeof signer.signTransaction>[0])
+      const signed = await signer.signTransaction(rawTx as unknown as Parameters<typeof signer.signTransaction>[0])
       signature = await connection.sendRawTransaction(toBytes(signed), {
         skipPreflight: false, preflightCommitment: 'confirmed',
       })
