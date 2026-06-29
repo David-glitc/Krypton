@@ -58,10 +58,10 @@ export function VaultActivityClient({ vaultAddress }: { vaultAddress: string }) 
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6 lg:p-8">
       <div>
-        <p className="font-[family-name:var(--font-jetbrains)] text-[10px] uppercase tracking-wider text-text-muted">
+        <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
           Vault activity
         </p>
-        <h1 className="mt-3 break-all font-[family-name:var(--font-hanken)] text-4xl font-bold text-text-primary">
+        <h1 className="mt-3 break-all font-display text-4xl font-bold text-text-primary">
           {vaultAddress}
         </h1>
       </div>
@@ -72,12 +72,12 @@ export function VaultActivityClient({ vaultAddress }: { vaultAddress: string }) 
             events.map((event) => (
               <div key={event.id} className="border-b border-border/50 pb-6 last:border-0 last:pb-0">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <span className="font-[family-name:var(--font-jetbrains)] text-xs uppercase tracking-wide text-accent">
+                  <span className="font-mono text-xs uppercase tracking-wide text-accent">
                     {event.event_type.replaceAll('_', ' ')}
                   </span>
                   <span className="text-xs text-text-muted">{new Date(event.created_at).toLocaleString()}</span>
                 </div>
-                <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-words font-[family-name:var(--font-jetbrains)] text-[11px] text-text-secondary">
+                <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-words font-mono text-[11px] text-text-secondary">
                   {JSON.stringify(event.payload_json, null, 2)}
                 </pre>
               </div>

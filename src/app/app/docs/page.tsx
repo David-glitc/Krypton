@@ -14,7 +14,7 @@ export default function DocsPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-10 p-4 sm:p-6 lg:p-8">
       <div>
-        <h1 className="font-[family-name:var(--font-hanken)] text-4xl font-bold tracking-tight text-text-primary sm:text-6xl">
+        <h1 className="font-display text-4xl font-bold tracking-tight text-text-primary sm:text-6xl">
           Krypton Docs
         </h1>
         <p className="mt-3 text-lg text-text-secondary">
@@ -28,7 +28,7 @@ export default function DocsPage() {
           const inner = (
             <div className="panel p-5 h-full flex flex-col gap-3 transition-colors hover:bg-bg-panel/50">
               <Icon className="h-5 w-5 text-accent" />
-              <h3 className="font-[family-name:var(--font-hanken)] text-lg font-medium text-text-primary">{s.title}</h3>
+              <h3 className="font-display text-lg font-medium text-text-primary">{s.title}</h3>
               <p className="text-sm text-text-secondary leading-relaxed">{s.desc}</p>
             </div>
           )
@@ -39,26 +39,26 @@ export default function DocsPage() {
       </div>
 
       <div className="panel p-6 space-y-6">
-        <h2 className="font-[family-name:var(--font-hanken)] text-2xl font-bold text-text-primary">Quick Start</h2>
+        <h2 className="font-display text-2xl font-bold text-text-primary">Quick Start</h2>
 
         <div className="space-y-4">
           <div>
-            <h3 className="font-[family-name:var(--font-jetbrains)] text-xs uppercase tracking-wider text-accent mb-1">1. Connect Wallet</h3>
+            <h3 className="font-mono text-xs uppercase tracking-wider text-accent mb-1">1. Connect Wallet</h3>
             <p className="text-sm text-text-secondary">Connect a Solana wallet (Backpack, Phantom) via the Dynamic widget in the header. Devnet only.</p>
           </div>
           <div>
-            <h3 className="font-[family-name:var(--font-jetbrains)] text-xs uppercase tracking-wider text-accent mb-1">2. Create a Vault</h3>
+            <h3 className="font-mono text-xs uppercase tracking-wider text-accent mb-1">2. Create a Vault</h3>
             <p className="text-sm text-text-secondary">Set risk parameters, select assets, and deploy. A PDA vault is created on-chain with your policy committed immutably.</p>
           </div>
           <div>
-            <h3 className="font-[family-name:var(--font-jetbrains)] text-xs uppercase tracking-wider text-accent mb-1">3. Fund & Run</h3>
+            <h3 className="font-mono text-xs uppercase tracking-wider text-accent mb-1">3. Fund & Run</h3>
             <p className="text-sm text-text-secondary">Deposit SOL into your vault, then queue a cycle. The agent pipeline researches, strategizes, and produces advisory actions for you to approve or reject.</p>
           </div>
         </div>
       </div>
 
       <div className="panel p-6 space-y-4">
-        <h2 className="font-[family-name:var(--font-hanken)] text-2xl font-bold text-text-primary">Architecture</h2>
+        <h2 className="font-display text-2xl font-bold text-text-primary">Architecture</h2>
         <div className="space-y-3 text-sm text-text-secondary leading-relaxed">
           <p><strong className="text-text-primary">On-chain:</strong> Solana Anchor program at <code className="rounded bg-bg-deep px-1.5 py-0.5 font-mono text-xs text-accent">DQVp9hnnU6zbyPCJbcEnS6F1fWZMQ2yCCH9jL6cFVPxF</code> on devnet. Manages vault PDAs, policy accounts, permission gates, and execution logs.</p>
           <p><strong className="text-text-primary">Orchestrator:</strong> systemd service on a VPS running solana-agent-kit. Polls for pending cycles, runs AI research/strategy, writes advisory actions to the registry DB.</p>

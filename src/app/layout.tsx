@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`dark ${hanken.variable} ${jetbrains.variable}`}>
-      <body className="bg-bg-base text-text-primary antialiased font-[family-name:var(--font-hanken)]">
+      <body className="bg-bg-base text-text-primary antialiased font-display">
         <DynamicProvider>{children}</DynamicProvider>
       </body>
     </html>

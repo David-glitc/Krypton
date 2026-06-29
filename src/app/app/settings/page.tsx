@@ -61,7 +61,7 @@ export default function SettingsPage() {
       )}
 
       <section className="space-y-4">
-        <h2 className="font-[family-name:var(--font-hanken)] text-xl font-medium text-text-primary">Vault names</h2>
+        <h2 className="font-display text-xl font-medium text-text-primary">Vault names</h2>
         {vaults.length === 0 ? (
           <div className="panel p-5">
             <p className="text-sm text-text-muted">
@@ -135,7 +135,7 @@ export default function SettingsPage() {
       </section>
 
       <section className="panel space-y-3 p-5">
-        <h2 className="font-[family-name:var(--font-hanken)] text-lg font-medium text-text-primary">Account</h2>
+        <h2 className="font-display text-lg font-medium text-text-primary">Account</h2>
         <p className="text-sm text-text-secondary">
           Wallet, balances, and sign-out on your{' '}
           <Link href="/app/profile" className="text-accent hover:underline">

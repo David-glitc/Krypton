@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { cva, type VariantProps } from 'class-variance-authority'
 import {
   LayoutGrid,
   LineChart,
@@ -17,6 +18,7 @@ import {
   PanelRightOpen,
   PanelRightClose,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { WalletButton } from '@/components/wallet-button'
 import { vaultDisplayName } from '@/lib/format-money'
 import { useVaultRegistry } from '@/contexts/vault-registry-context'
@@ -52,7 +54,7 @@ function SidebarNav({
 }) {
   return (
     <>
-      <nav className={`flex flex-col gap-1 ${collapsed ? 'px-2 items-center' : 'px-3'}`}>
+      <nav className={cn('flex flex-col gap-1', collapsed ? 'px-2 items-center' : 'px-3')}>
         {SIDEBAR_LINKS.map((link) => {
           const active = link.match(pathname)
           const Icon = link.icon
@@ -61,13 +63,13 @@ function SidebarNav({
               key={link.label}
               href={link.href}
               onClick={() => mobile && onClose?.()}
-              className={`flex items-center gap-3 rounded transition-colors ${
-                collapsed ? 'justify-center p-3 w-10 h-10' : 'px-4 py-3'
-              } ${
+              className={cn(
+                'flex items-center gap-3 rounded transition-colors',
+                collapsed ? 'justify-center p-3 w-10 h-10' : 'px-4 py-3',
                 active
                   ? 'bg-accent text-bg-base'
-                  : 'text-text-secondary hover:bg-bg-panel hover:text-text-primary'
-              }`}
+                  : 'text-text-secondary hover:bg-bg-panel hover:text-text-primary',
+              )}
               title={collapsed ? link.label : undefined}
             >
               <Icon className="h-4 w-4 shrink-0" />
@@ -92,11 +94,12 @@ function SidebarNav({
                   key={v.address}
                   href={`/app/vault/${v.address}`}
                   onClick={() => mobile && onClose?.()}
-                  className={`flex items-center gap-2 rounded px-4 py-2.5 text-sm transition-colors ${
+                  className={cn(
+                    'flex items-center gap-2 rounded px-4 py-2.5 text-sm transition-colors',
                     active
                       ? 'bg-accent/10 text-accent'
-                      : 'text-text-secondary hover:bg-bg-panel hover:text-text-primary'
-                  }`}
+                      : 'text-text-secondary hover:bg-bg-panel hover:text-text-primary',
+                  )}
                 >
                   <Zap className="h-3 w-3 shrink-0" />
                   <span className="truncate">{vaultDisplayName(v.name, v.address)}</span>
@@ -136,9 +139,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen bg-bg-base">
       {/* Desktop sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-border bg-bg-deep transition-all duration-200 md:flex ${collapsed ? 'w-16' : 'w-64'}`}
+        className={cn(
+          'fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-border bg-bg-deep transition-all duration-200 md:flex',
+          collapsed ? 'w-16' : 'w-64',
+        )}
       >
-        <div className={`flex flex-col items-start px-5 pt-8 pb-6 ${collapsed ? 'px-0 items-center' : ''}`}>
+        <div className={cn('flex flex-col items-start px-5 pt-8 pb-6', collapsed && 'px-0 items-center')}>
           {collapsed ? (
             <Zap className="h-6 w-6 text-accent" />
           ) : (
@@ -162,7 +168,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           />
         </div>
 
-        <div className={`border-t border-border ${collapsed ? 'p-2 flex flex-col items-center gap-2' : 'p-4'}`}>
+        <div className={cn('border-t border-border', collapsed ? 'flex flex-col items-center gap-2 p-2' : 'p-4')}>
           {!collapsed && <WalletButton />}
           <button
             onClick={() => setCollapsed(c => !c)}
@@ -184,9 +190,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile drawer */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-border bg-bg-deep transition-transform duration-200 md:hidden ${
-          drawerOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={cn(
+          'fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-border bg-bg-deep transition-transform duration-200 md:hidden',
+          drawerOpen ? 'translate-x-0' : '-translate-x-full',
+        )}
       >
         <div className="flex items-center justify-between px-6 pt-6 pb-8">
           <h2 className="text-2xl font-bold leading-tight tracking-tight text-text-primary">
@@ -213,7 +220,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <div className={`flex min-w-0 flex-1 flex-col transition-all duration-200 ${collapsed ? 'md:ml-16' : 'md:ml-64'}`}>
+      <div className={cn('flex min-w-0 flex-1 flex-col transition-all duration-200', collapsed ? 'md:ml-16' : 'md:ml-64')}>
         <header className="glass sticky top-0 z-30 border-b border-border">
           <div className="flex h-16 items-center justify-between px-4 md:px-8">
             <div className="flex items-center gap-3 md:gap-6">
@@ -229,7 +236,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <nav className="hidden items-center gap-5 sm:flex">
                 <Link
                   href="/app"
-                  className={`text-sm md:text-base ${pathname.startsWith('/app') ? 'border-b-2 border-accent text-accent pb-0.5' : 'text-text-secondary hover:text-text-primary'}`}
+                  className={cn(
+                    'text-sm md:text-base',
+                    pathname.startsWith('/app')
+                      ? 'border-b-2 border-accent text-accent pb-0.5'
+                      : 'text-text-secondary hover:text-text-primary',
+                  )}
                 >
                   Dashboard
                 </Link>
@@ -248,11 +260,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   )
 }
 
+const primaryCtaVariants = cva(
+  'inline-flex items-center gap-2.5 bg-[#66ff8e] px-6 py-3.5 font-mono text-[13px] font-medium uppercase tracking-wider text-[#003915] transition-[filter] hover:brightness-110 sm:px-8 sm:py-4 sm:text-sm',
+)
+
 export function PrimaryCta({
   children,
   href,
   onClick,
-  className = '',
+  className,
 }: {
   children: React.ReactNode
   href?: string
@@ -265,7 +281,7 @@ export function PrimaryCta({
       <ArrowRight className="h-3 w-3" />
     </>
   )
-  const classes = `inline-flex items-center gap-2.5 bg-[#66ff8e] px-6 py-3.5 font-mono text-[13px] font-medium uppercase tracking-wider text-[#003915] transition-[filter] hover:brightness-110 sm:px-8 sm:py-4 sm:text-sm ${className}`
+  const classes = cn(primaryCtaVariants(), className)
 
   if (href) {
     return (
@@ -282,11 +298,15 @@ export function PrimaryCta({
   )
 }
 
+const outlineButtonVariants = cva(
+  'inline-flex items-center justify-center border border-border px-5 py-2.5 font-mono text-sm uppercase tracking-wide text-text-primary transition-colors hover:border-accent focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+)
+
 export function OutlineButton({
   children,
   onClick,
   href,
-  className = '',
+  className,
   disabled = false,
 }: {
   children: React.ReactNode
@@ -295,8 +315,7 @@ export function OutlineButton({
   className?: string
   disabled?: boolean
 }) {
-  const classes =
-    `inline-flex items-center justify-center border border-border px-5 py-2.5 font-mono text-sm uppercase tracking-wide text-text-primary transition-colors hover:border-accent focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`
+  const classes = cn(outlineButtonVariants(), className)
 
   if (href) {
     return (
@@ -313,6 +332,18 @@ export function OutlineButton({
   )
 }
 
+const metricCardValueVariants = cva('', {
+  variants: {
+    size: {
+      default: 'metric-value',
+      lg: 'metric-value-lg',
+    },
+  },
+  defaultVariants: {
+    size: 'default',
+  },
+})
+
 export function MetricCard({
   label,
   value,
@@ -324,16 +355,28 @@ export function MetricCard({
   accent?: boolean
   size?: 'default' | 'lg'
 }) {
-  const valueClass = size === 'lg' ? 'metric-value-lg' : 'metric-value'
   return (
     <div className="panel metric-card">
       <p className="label-caps">{label}</p>
-      <p className={`${valueClass} ${accent ? 'text-accent' : 'text-text-primary'}`}>
+      <p className={cn(metricCardValueVariants({ size }), accent && 'text-accent')}>
         {value}
       </p>
     </div>
   )
 }
+
+const statusPillVariants = cva('h-1.5 w-1.5 rounded-full', {
+  variants: {
+    variant: {
+      ok: 'bg-accent',
+      warn: 'bg-accent-warn',
+      risk: 'bg-accent-risk',
+    },
+  },
+  defaultVariants: {
+    variant: 'ok',
+  },
+})
 
 export function StatusPill({
   label,
@@ -342,16 +385,9 @@ export function StatusPill({
   label: string
   variant?: 'ok' | 'warn' | 'risk'
 }) {
-  const dot =
-    variant === 'risk'
-      ? 'bg-accent-risk'
-      : variant === 'warn'
-        ? 'bg-accent-warn'
-        : 'bg-accent'
-
   return (
     <span className="inline-flex items-center gap-2 rounded-full border border-border bg-bg-base px-3.5 py-2 font-mono text-xs text-text-primary sm:text-[13px]">
-      <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+      <span className={cn(statusPillVariants({ variant }))} />
       {label}
     </span>
   )

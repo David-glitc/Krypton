@@ -80,7 +80,7 @@ function ConstraintRow({
     <div>
       <div className="flex items-center justify-between text-xs">
         <span className="text-text-secondary">{label}</span>
-        <span className="font-[family-name:var(--font-jetbrains)] text-text-primary">
+        <span className="font-mono text-text-primary">
           {bps(current).toFixed(1)}% / {bps(max).toFixed(1)}%
         </span>
       </div>
@@ -165,7 +165,7 @@ export default function RiskPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="font-[family-name:var(--font-hanken)] text-3xl font-bold tracking-tight text-text-primary sm:text-5xl">
+          <h1 className="font-display text-3xl font-bold tracking-tight text-text-primary sm:text-5xl">
             Risk
           </h1>
           <p className="mt-2 text-base text-text-secondary">
@@ -193,7 +193,7 @@ export default function RiskPage() {
           <section className="panel p-4 sm:p-6">
             <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
               <div>
-                <h2 className="font-[family-name:var(--font-hanken)] text-lg font-medium text-text-primary">
+                <h2 className="font-display text-lg font-medium text-text-primary">
                   Capital portfolio
                 </h2>
                 <p className="mt-1 text-sm text-text-secondary">
@@ -206,7 +206,7 @@ export default function RiskPage() {
                     key={mode}
                     type="button"
                     onClick={() => setChartMode(mode)}
-                    className={`rounded border px-3 py-1 font-[family-name:var(--font-jetbrains)] text-[10px] uppercase tracking-wide ${
+                    className={`rounded border px-3 py-1 font-mono text-[10px] uppercase tracking-wide ${
                       chartMode === mode
                         ? 'border-accent bg-accent-muted text-accent'
                         : 'border-border text-text-secondary hover:border-border-hover'
@@ -232,7 +232,7 @@ export default function RiskPage() {
               <XAxis />
               <ChartTooltip />
             </LineChart>
-            <div className="mt-3 flex flex-wrap gap-4 font-[family-name:var(--font-jetbrains)] text-[10px] uppercase tracking-wider text-text-muted">
+            <div className="mt-3 flex flex-wrap gap-4 font-mono text-[10px] uppercase tracking-wider text-text-muted">
               <span className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-accent" />
                 {chartMode === 'usd' ? 'Total USD' : 'Total SOL'}
@@ -241,7 +241,7 @@ export default function RiskPage() {
           </section>
 
           <section className="space-y-4">
-            <h2 className="font-[family-name:var(--font-hanken)] text-lg font-medium text-text-primary">
+            <h2 className="font-display text-lg font-medium text-text-primary">
               Per-vault risk
             </h2>
             {vaults.map((v) => {
@@ -255,11 +255,11 @@ export default function RiskPage() {
                       <div className="min-w-0">
                         <Link
                           href={`/app/vault/${v.address}`}
-                          className="truncate font-[family-name:var(--font-hanken)] text-base font-medium text-text-primary hover:text-accent"
+                          className="truncate font-display text-base font-medium text-text-primary hover:text-accent"
                         >
                           {vaultDisplayName(v.name, v.address)}
                         </Link>
-                        <p className="mt-0.5 font-[family-name:var(--font-jetbrains)] text-xs text-text-muted">
+                        <p className="mt-0.5 font-mono text-xs text-text-muted">
                           {formatUsd(usd)} · {formatSol(v.balanceSol)}
                         </p>
                       </div>

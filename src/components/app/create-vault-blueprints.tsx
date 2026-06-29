@@ -34,9 +34,9 @@ export function CreateVaultBlueprints({
             >
               <div className="flex items-start justify-between gap-3">
                 <Icon className="h-5 w-5 shrink-0 text-accent sm:h-6 sm:w-6" />
-                <span className="font-[family-name:var(--font-jetbrains)] text-sm text-accent sm:text-lg">{bp.apy}</span>
+                <span className="font-mono text-sm text-accent sm:text-lg">{bp.apy}</span>
               </div>
-              <h3 className="mt-3 font-[family-name:var(--font-hanken)] text-base font-medium text-text-primary sm:text-lg">
+              <h3 className="mt-3 font-display text-base font-medium text-text-primary sm:text-lg">
                 {bp.title}
               </h3>
               <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-text-secondary sm:mt-2 sm:text-sm">

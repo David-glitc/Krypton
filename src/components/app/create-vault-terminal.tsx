@@ -69,12 +69,12 @@ export function CreateVaultTerminal({
   return (
     <section className="panel overflow-hidden">
       <div className="border-b border-border bg-bg-deep px-4 py-3">
-        <p className="font-[family-name:var(--font-jetbrains)] text-[10px] uppercase tracking-wider text-text-muted">
+        <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
           Step 2 — Describe intent
         </p>
       </div>
       <div className="p-4 sm:p-6">
-        <p className="font-[family-name:var(--font-jetbrains)] text-xs text-accent sm:text-sm">
+        <p className="font-mono text-xs text-accent sm:text-sm">
           <span className="text-text-muted">{'>'}</span> Natural language → constraint-bound policy
         </p>
         <div className="mt-4 flex flex-col gap-3 sm:gap-4">
@@ -90,7 +90,7 @@ export function CreateVaultTerminal({
             placeholder="e.g. Deploy USDC into tier-1 lending, max 4% drawdown, no leverage..."
             rows={4}
             disabled={loading}
-            className="input-field min-h-[112px] w-full resize-none font-[family-name:var(--font-jetbrains)] text-sm"
+            className="input-field min-h-[112px] w-full resize-none font-mono text-sm"
           />
           <PrimaryCta
             onClick={() => analyze(input)}
@@ -110,7 +110,7 @@ export function CreateVaultTerminal({
           </div>
         )}
         {error && (
-          <p className="mt-3 font-[family-name:var(--font-jetbrains)] text-xs text-accent-risk">{error}</p>
+          <p className="mt-3 font-mono text-xs text-accent-risk">{error}</p>
         )}
       </div>
     </section>

@@ -26,14 +26,14 @@ export function SimulationChart() {
       <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="label mb-2">simulation_output</p>
-          <h3 className="font-[family-name:var(--font-hanken)] text-xl font-semibold text-text-primary">
+          <h3 className="font-display text-xl font-semibold text-text-primary">
             Backtest vs benchmark
           </h3>
           <p className="mt-1 text-sm text-text-secondary">
             Monte Carlo survivors scored against policy constraints before execution.
           </p>
         </div>
-        <div className="flex gap-4 font-[family-name:var(--font-jetbrains)] text-[10px] uppercase tracking-wider text-text-secondary">
+        <div className="flex gap-4 font-mono text-[10px] uppercase tracking-wider text-text-secondary">
           <span className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-accent" />
             Policy NAV

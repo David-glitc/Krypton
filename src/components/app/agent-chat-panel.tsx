@@ -203,7 +203,7 @@ export function AgentChatPanel({
       <div className="flex items-center justify-between gap-4 border-b border-border px-4 py-3 sm:px-6">
         <div className="flex items-center gap-2 min-w-0">
           <MessageSquare className="h-4 w-4 shrink-0 text-accent" />
-          <h2 className="truncate font-[family-name:var(--font-hanken)] text-base font-semibold text-text-primary">
+          <h2 className="truncate font-display text-base font-semibold text-text-primary">
             Talk to your agent
           </h2>
         </div>
@@ -295,7 +295,7 @@ export function AgentChatPanel({
                 }`}
               >
                 {m.role === 'assistant' && (
-                  <p className="mb-1.5 font-[family-name:var(--font-jetbrains)] text-[10px] uppercase tracking-wider text-accent">
+                  <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-accent">
                     Agent
                   </p>
                 )}

@@ -186,7 +186,7 @@ function PendingActionCard({
         {actionData.idleReason ?? actionData.rationale ?? 'No rationale'}
       </p>
       {actionData.txSignature && (
-        <p className="mt-1 font-[family-name:var(--font-jetbrains)] text-[11px] text-text-muted">
+        <p className="mt-1 font-mono text-[11px] text-text-muted">
           Tx: {actionData.txSignature.slice(0, 16)}…
         </p>
       )}
@@ -212,7 +212,7 @@ function PendingActionCard({
       {confirming && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
           <div className="panel mx-4 max-w-md p-6">
-            <h3 className="font-[family-name:var(--font-hanken)] text-lg font-semibold text-text-primary">
+            <h3 className="font-display text-lg font-semibold text-text-primary">
               Confirm approval
             </h3>
             <p className="mt-2 text-sm text-text-secondary">
@@ -501,12 +501,12 @@ export function VaultDetailClient({ vaultAddress }: { vaultAddress: string }) {
               data.recentActivity.map((event) => (
                 <div key={event.id} className="border-b border-border/50 pb-4 last:border-0 last:pb-0">
                   <div className="flex items-center justify-between gap-4">
-                    <span className="font-[family-name:var(--font-jetbrains)] text-xs uppercase text-accent">
+                    <span className="font-mono text-xs uppercase text-accent">
                       {event.event_type.replaceAll('_', ' ')}
                     </span>
                     <span className="text-xs text-text-muted">{new Date(event.created_at).toLocaleString()}</span>
                   </div>
-                  <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words font-[family-name:var(--font-jetbrains)] text-[11px] text-text-secondary">
+                  <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words font-mono text-[11px] text-text-secondary">
                     {JSON.stringify(event.payload_json, null, 2)}
                   </pre>
                 </div>
@@ -517,7 +517,7 @@ export function VaultDetailClient({ vaultAddress }: { vaultAddress: string }) {
           </div>
           <Link
             href={`/app/vault/${vaultAddress}/activity`}
-            className="mt-6 inline-flex font-[family-name:var(--font-jetbrains)] text-xs uppercase tracking-wide text-accent"
+            className="mt-6 inline-flex font-mono text-xs uppercase tracking-wide text-accent"
           >
             Open full activity log →
           </Link>

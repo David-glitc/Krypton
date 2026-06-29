@@ -180,7 +180,7 @@ export default function PerformancePage() {
                           >
                             {name}
                           </Link>
-                          <p className="mt-0.5 font-[family-name:var(--font-jetbrains)] text-xs text-text-muted">
+                          <p className="mt-0.5 font-mono text-xs text-text-muted">
                             {row.vaultPubkey.slice(0, 6)}…{row.vaultPubkey.slice(-4)}
                           </p>
                         </td>
@@ -199,7 +199,7 @@ export default function PerformancePage() {
                             <span className="text-text-muted">—</span>
                           )}
                         </td>
-                        <td className="font-[family-name:var(--font-jetbrains)] text-text-secondary">
+                        <td className="font-mono text-text-secondary">
                           {formatDuration(row.avgCycleDurationMs)}
                         </td>
                         <td>

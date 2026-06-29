@@ -227,7 +227,7 @@ function StageRunCard({
 
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <p className="font-[family-name:var(--font-jetbrains)] text-xs font-medium uppercase tracking-wide text-text-primary">
+          <p className="font-mono text-xs font-medium uppercase tracking-wide text-text-primary">
             {meta.label}
           </p>
           <p className="mt-0.5 text-[11px] text-text-muted">
@@ -246,7 +246,7 @@ function StageRunCard({
             <span className="rounded border border-border px-2 py-0.5 text-[10px] uppercase text-text-muted">Stub</span>
           )}
           {invocation?.latency_ms != null && (
-            <span className="rounded border border-border px-2 py-0.5 font-[family-name:var(--font-jetbrains)] text-[10px] text-text-muted">
+            <span className="rounded border border-border px-2 py-0.5 font-mono text-[10px] text-text-muted">
               {formatDuration(invocation.latency_ms)}
             </span>
           )}
@@ -265,7 +265,7 @@ function StageRunCard({
         <div className="mt-3">
           <div className="mb-1 flex items-center justify-between text-[11px] text-text-muted">
             <span>Risk score</span>
-            <span className="font-[family-name:var(--font-jetbrains)]">{(d.riskScore * 100).toFixed(0)}%</span>
+            <span className="font-mono">{(d.riskScore * 100).toFixed(0)}%</span>
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-bg-deep">
             <div
@@ -277,7 +277,7 @@ function StageRunCard({
       )}
 
       {(d?.projectedReturnBps != null || d?.projectedMaxDrawdownBps != null) && (
-        <div className="mt-3 flex flex-wrap gap-3 text-[11px] font-[family-name:var(--font-jetbrains)] text-text-muted">
+        <div className="mt-3 flex flex-wrap gap-3 text-[11px] font-mono text-text-muted">
           {d.projectedReturnBps != null && <span>Return: {d.projectedReturnBps} bps</span>}
           {d.projectedMaxDrawdownBps != null && <span>Max DD: {d.projectedMaxDrawdownBps} bps</span>}
         </div>
@@ -367,7 +367,7 @@ function CycleCard({
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-[family-name:var(--font-jetbrains)] text-sm font-medium text-text-primary">
+            <span className="font-mono text-sm font-medium text-text-primary">
               Agent run
             </span>
             <StatusPill label={statusLabel} variant={statusVariant} />
@@ -422,7 +422,7 @@ export function AgentLogsPanel({
     <section className="panel p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-[family-name:var(--font-hanken)] text-lg font-semibold text-text-primary sm:text-xl">
+          <h2 className="font-display text-lg font-semibold text-text-primary sm:text-xl">
             Agent activity
           </h2>
           <p className="mt-1 text-sm text-text-secondary">
@@ -434,7 +434,7 @@ export function AgentLogsPanel({
             type="button"
             onClick={onRefresh}
             disabled={loading}
-            className="inline-flex items-center gap-2 rounded border border-border px-3 py-1.5 font-[family-name:var(--font-jetbrains)] text-[11px] uppercase tracking-wide text-text-secondary transition-colors hover:border-border-hover hover:text-text-primary disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded border border-border px-3 py-1.5 font-mono text-[11px] uppercase tracking-wide text-text-secondary transition-colors hover:border-border-hover hover:text-text-primary disabled:opacity-50"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
             Refresh
@@ -458,7 +458,7 @@ export function AgentLogsPanel({
       {showPipeline && (
       <div className="mt-6 space-y-8">
         <div>
-          <h3 className="font-[family-name:var(--font-jetbrains)] text-[10px] uppercase tracking-wider text-text-muted">
+          <h3 className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
             On-chain execution log
             {data?.onChain ? ` · ${data.onChain.count} entries` : ''}
           </h3>
@@ -467,7 +467,7 @@ export function AgentLogsPanel({
           ) : data?.onChain && data.onChain.entries.length > 0 ? (
             <div className="mt-3 overflow-hidden rounded-lg border border-border">
               <table className="w-full text-left text-sm">
-                <thead className="border-b border-border bg-bg-panel font-[family-name:var(--font-jetbrains)] text-[10px] uppercase tracking-wider text-text-muted">
+                <thead className="border-b border-border bg-bg-panel font-mono text-[10px] uppercase tracking-wider text-text-muted">
                   <tr>
                     <th className="px-4 py-2">Decision</th>
                     <th className="px-4 py-2">Run</th>
@@ -481,7 +481,7 @@ export function AgentLogsPanel({
                       <td className="px-4 py-3">
                         <StatusPill label={DECISION_LABELS[entry.decision] ?? `#${entry.decision}`} />
                       </td>
-                      <td className="px-4 py-3 font-[family-name:var(--font-jetbrains)] text-text-primary">
+                      <td className="px-4 py-3 font-mono text-text-primary">
                         #{entry.cycleId}
                       </td>
                       <td className="px-4 py-3 text-text-secondary">Type {entry.actionType}</td>
@@ -499,7 +499,7 @@ export function AgentLogsPanel({
         </div>
 
         <div>
-          <h3 className="font-[family-name:var(--font-jetbrains)] text-[10px] uppercase tracking-wider text-text-muted">
+          <h3 className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
             Agent pipeline
             {cycles.length > 0 ? ` · ${cycles.length} run${cycles.length === 1 ? '' : 's'}` : ''}
           </h3>

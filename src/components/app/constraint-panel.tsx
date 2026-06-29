@@ -65,7 +65,7 @@ function ConstraintBar({
           <p className="text-base font-medium text-text-primary">{label}</p>
           {hint && <p className="mt-1 text-sm text-text-muted">{hint}</p>}
         </div>
-        <span className="shrink-0 font-[family-name:var(--font-jetbrains)] text-sm text-text-primary">
+        <span className="shrink-0 font-mono text-sm text-text-primary">
           {bps(current).toFixed(1)}% <span className="text-text-muted">/ {bps(max).toFixed(1)}%</span>
         </span>
       </div>

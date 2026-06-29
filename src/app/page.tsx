@@ -101,7 +101,7 @@ function HeroChat({ onPolicyGenerated }: { onPolicyGenerated: (p: GeneratedPolic
               {msg.policy && (
                 <Link
                   href={`/app/create?policy=${encodeURIComponent(JSON.stringify(msg.policy))}`}
-                  className="mt-3 inline-flex items-center gap-2 font-[family-name:var(--font-jetbrains)] text-xs uppercase tracking-wider text-accent hover:text-accent-hover transition-colors"
+                  className="mt-3 inline-flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-accent hover:text-accent-hover transition-colors"
                 >
                   <span>Review & deploy this policy</span>
                   <ArrowRight className="h-3 w-3" />
@@ -134,7 +134,7 @@ function HeroChat({ onPolicyGenerated }: { onPolicyGenerated: (p: GeneratedPolic
                 type="button"
                 onClick={() => handleSubmit(s)}
                 disabled={loading}
-                className="w-full max-w-xl rounded-xl border border-border bg-bg-base px-4 py-2.5 text-center font-[family-name:var(--font-jetbrains)] text-[13px] uppercase tracking-wide text-text-secondary transition-colors hover:border-accent hover:text-text-primary disabled:opacity-40"
+                className="w-full max-w-xl rounded-xl border border-border bg-bg-base px-4 py-2.5 text-center font-mono text-[13px] uppercase tracking-wide text-text-secondary transition-colors hover:border-accent hover:text-text-primary disabled:opacity-40"
               >
                 {s}
               </button>
@@ -172,7 +172,7 @@ function HeroChat({ onPolicyGenerated }: { onPolicyGenerated: (p: GeneratedPolic
 function KryptonLogo() {
   return (
     <div className="flex h-8 w-8 items-center justify-center border border-border bg-bg-panel">
-      <span className="font-[family-name:var(--font-jetbrains)] text-sm font-bold text-accent">K</span>
+      <span className="font-mono text-sm font-bold text-accent">K</span>
     </div>
   )
 }
@@ -197,7 +197,7 @@ export default function Home() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-2">
             <KryptonLogo />
-            <span className="font-[family-name:var(--font-hanken)] text-xl font-bold tracking-tight text-text-primary">
+            <span className="font-display text-xl font-bold tracking-tight text-text-primary">
               Krypton
             </span>
           </Link>
@@ -222,12 +222,12 @@ export default function Home() {
         <section className="flex flex-col items-center px-6">
           <div className="mb-4 flex items-center gap-2 rounded-xl border border-border bg-bg-panel px-4 py-2">
             <span className="h-2 w-2 rounded-full bg-accent" />
-            <span className="font-[family-name:var(--font-jetbrains)] text-[13px] uppercase tracking-wide text-text-secondary">
+            <span className="font-mono text-[13px] uppercase tracking-wide text-text-secondary">
               AI-Powered · Solana Devnet Beta · On-Chain Agent Logs
             </span>
           </div>
 
-          <h1 className="max-w-4xl text-center font-[family-name:var(--font-hanken)] text-5xl font-bold leading-[1.1] tracking-tight text-text-primary lg:text-7xl">
+          <h1 className="max-w-4xl text-center font-display text-5xl font-bold leading-[1.1] tracking-tight text-text-primary lg:text-7xl">
             DeFi vaults managed by
             <br />
             <span className="text-accent">AI agents, bound by policy.</span>
@@ -252,10 +252,10 @@ export default function Home() {
               { value: '$4-20', label: 'ONE-TIME VAULT FEE' },
             ].map((stat) => (
               <div key={stat.label} className="flex flex-col items-center justify-center bg-bg-base py-12">
-                <p className="font-[family-name:var(--font-hanken)] text-6xl font-bold tracking-tight text-accent lg:text-7xl">
+                <p className="font-display text-6xl font-bold tracking-tight text-accent lg:text-7xl">
                   {stat.value}
                 </p>
-                <p className="mt-4 font-[family-name:var(--font-jetbrains)] text-[13px] uppercase tracking-wide text-text-secondary">
+                <p className="mt-4 font-mono text-[13px] uppercase tracking-wide text-text-secondary">
                   {stat.label}
                 </p>
               </div>
@@ -267,7 +267,7 @@ export default function Home() {
           <div className="mx-auto max-w-6xl">
             <div className="mb-16 text-center">
               <p className="label mb-4">agent_pipeline</p>
-              <h2 className="font-[family-name:var(--font-hanken)] text-3xl font-semibold text-text-primary lg:text-4xl">
+              <h2 className="font-display text-3xl font-semibold text-text-primary lg:text-4xl">
                 Six agents. One enforcement layer.
               </h2>
               <p className="mx-auto mt-4 max-w-2xl text-lg text-text-secondary">
@@ -286,7 +286,7 @@ export default function Home() {
                       <div className={`relative z-10 flex h-12 w-12 items-center justify-center border bg-bg-panel ${i === 0 ? 'border-accent shadow-[0_0_20px_rgba(5,250,83,0.15)]' : 'border-border'}`}>
                         <Icon className={`h-5 w-5 ${i === 0 ? 'text-accent' : 'text-text-secondary'}`} />
                       </div>
-                      <p className="mt-4 font-[family-name:var(--font-jetbrains)] text-[13px] uppercase tracking-wide text-text-primary">
+                      <p className="mt-4 font-mono text-[13px] uppercase tracking-wide text-text-primary">
                         {stage.label}
                       </p>
                       <p className="mt-1 text-sm text-text-muted">{stage.sub}</p>
@@ -312,7 +312,7 @@ export default function Home() {
                 },
               ].map((card) => (
                 <div key={card.tag} className="panel p-6">
-                  <p className="mb-3 font-[family-name:var(--font-jetbrains)] text-[13px] uppercase tracking-wide text-accent">
+                  <p className="mb-3 font-mono text-[13px] uppercase tracking-wide text-accent">
                     {card.tag}
                   </p>
                   <p className="text-sm leading-relaxed text-text-secondary">{card.body}</p>
@@ -331,7 +331,7 @@ export default function Home() {
         <section className="px-6">
           <div className="mx-auto max-w-5xl text-center">
             <p className="label mb-4">constraint_engine</p>
-            <h2 className="font-[family-name:var(--font-hanken)] text-3xl font-semibold text-text-primary lg:text-4xl">
+            <h2 className="font-display text-3xl font-semibold text-text-primary lg:text-4xl">
               8 checks. On-chain. Every action.
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-text-secondary">
@@ -347,7 +347,7 @@ export default function Home() {
                   className="flex items-center gap-3 border border-border bg-bg-panel px-6 py-4 text-left"
                 >
                   <Plus className="h-3 w-3 shrink-0 text-accent" />
-                  <span className="font-[family-name:var(--font-jetbrains)] text-[13px] uppercase tracking-wide text-text-secondary">
+                  <span className="font-mono text-[13px] uppercase tracking-wide text-text-secondary">
                     {check}
                   </span>
                 </div>
@@ -358,7 +358,7 @@ export default function Home() {
 
         <section className="border-t border-border px-6 py-24">
           <div className="mx-auto max-w-3xl text-center">
-            <h2 className="font-[family-name:var(--font-hanken)] text-3xl font-semibold text-text-primary lg:text-5xl">
+            <h2 className="font-display text-3xl font-semibold text-text-primary lg:text-5xl">
               You set the policy.
               <br />
               <span className="text-accent">Agents execute within it.</span>
@@ -378,17 +378,17 @@ export default function Home() {
 
       <footer className="border-t border-border px-6 py-8">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 sm:flex-row">
-          <p className="font-[family-name:var(--font-jetbrains)] text-[13px] uppercase tracking-wide text-text-muted">
+          <p className="font-mono text-[13px] uppercase tracking-wide text-text-muted">
             © 2026 Krypton Systems
           </p>
           <div className="flex items-center gap-6">
-            <a href="https://github.com/David-glitc/Krypton" className="font-[family-name:var(--font-jetbrains)] text-[13px] uppercase tracking-wide text-text-muted transition-colors hover:text-text-secondary">
+            <a href="https://github.com/David-glitc/Krypton" className="font-mono text-[13px] uppercase tracking-wide text-text-muted transition-colors hover:text-text-secondary">
               GitHub
             </a>
-            <span className="font-[family-name:var(--font-jetbrains)] text-[13px] uppercase tracking-wide text-text-muted">
+            <span className="font-mono text-[13px] uppercase tracking-wide text-text-muted">
               Legal
             </span>
-            <span className="font-[family-name:var(--font-jetbrains)] text-[13px] uppercase tracking-wide text-text-muted">
+            <span className="font-mono text-[13px] uppercase tracking-wide text-text-muted">
               Devnet Beta
             </span>
           </div>

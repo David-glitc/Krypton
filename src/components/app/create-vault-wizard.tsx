@@ -45,10 +45,10 @@ export function CreateVaultWizard({
   return (
     <section className="space-y-4 sm:space-y-6">
       <div>
-        <p className="font-[family-name:var(--font-jetbrains)] text-[10px] uppercase tracking-wider text-text-muted">
+        <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
           Step 3 — policy_wizard
         </p>
-        <h2 className="mt-2 font-[family-name:var(--font-hanken)] text-2xl font-medium text-text-primary">
+        <h2 className="mt-2 font-display text-2xl font-medium text-text-primary">
           Configure deployment policy
         </h2>
       </div>
@@ -57,7 +57,7 @@ export function CreateVaultWizard({
         {WIZARD_STEPS.map((label, i) => (
           <span
             key={label}
-            className={`font-[family-name:var(--font-jetbrains)] text-xs uppercase tracking-wider ${
+            className={`font-mono text-xs uppercase tracking-wider ${
               i === step ? 'text-accent' : 'text-text-secondary'
             }`}
           >
@@ -72,7 +72,7 @@ export function CreateVaultWizard({
           <div className="space-y-6">
             {aiReasoning && (
               <div className="rounded border border-accent/20 bg-accent-muted p-4">
-                <p className="font-[family-name:var(--font-jetbrains)] text-[10px] uppercase text-text-muted">
+                <p className="font-mono text-[10px] uppercase text-text-muted">
                   ai_reasoning
                 </p>
                 <p className="mt-2 text-sm text-text-secondary">{aiReasoning}</p>
@@ -80,7 +80,7 @@ export function CreateVaultWizard({
             )}
 
             <label className="block">
-              <span className="font-[family-name:var(--font-jetbrains)] text-xs uppercase text-text-secondary">
+              <span className="font-mono text-xs uppercase text-text-secondary">
                 vault_name
               </span>
               <input
@@ -94,7 +94,7 @@ export function CreateVaultWizard({
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <label className="block">
-                <span className="font-[family-name:var(--font-jetbrains)] text-xs uppercase text-text-secondary">
+                <span className="font-mono text-xs uppercase text-text-secondary">
                   risk_profile
                 </span>
                 <select
@@ -108,7 +108,7 @@ export function CreateVaultWizard({
                 </select>
               </label>
               <label className="block">
-                <span className="font-[family-name:var(--font-jetbrains)] text-xs uppercase text-text-secondary">
+                <span className="font-mono text-xs uppercase text-text-secondary">
                   execution_mode
                 </span>
                 <select
@@ -125,7 +125,7 @@ export function CreateVaultWizard({
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <label className="block">
-                <span className="font-[family-name:var(--font-jetbrains)] text-xs uppercase text-text-secondary">
+                <span className="font-mono text-xs uppercase text-text-secondary">
                   privacy_level
                 </span>
                 <select
@@ -138,7 +138,7 @@ export function CreateVaultWizard({
                 </select>
               </label>
               <label className="block">
-                <span className="font-[family-name:var(--font-jetbrains)] text-xs uppercase text-text-secondary">
+                <span className="font-mono text-xs uppercase text-text-secondary">
                   rebalance_frequency
                 </span>
                 <select
@@ -156,7 +156,7 @@ export function CreateVaultWizard({
 
             {isAggressive && (
               <div className="rounded border border-accent-warn/40 bg-accent-warn-muted p-3">
-                <p className="font-[family-name:var(--font-jetbrains)] text-xs uppercase tracking-wider text-accent-warn">
+                <p className="font-mono text-xs uppercase tracking-wider text-accent-warn">
                   advisory_lock
                 </p>
                 <p className="mt-1 text-xs text-text-secondary">
@@ -170,7 +170,7 @@ export function CreateVaultWizard({
         {step === 1 && (
           <div className="space-y-4">
             <label className="block">
-              <span className="font-[family-name:var(--font-jetbrains)] text-xs uppercase text-text-secondary">
+              <span className="font-mono text-xs uppercase text-text-secondary">
                 max_drawdown_pct
               </span>
               <input
@@ -183,7 +183,7 @@ export function CreateVaultWizard({
               />
             </label>
             <label className="block">
-              <span className="font-[family-name:var(--font-jetbrains)] text-xs uppercase text-text-secondary">
+              <span className="font-mono text-xs uppercase text-text-secondary">
                 max_leverage (protocol cap: 2x)
               </span>
               <input
@@ -197,7 +197,7 @@ export function CreateVaultWizard({
               />
             </label>
             <label className="block">
-              <span className="font-[family-name:var(--font-jetbrains)] text-xs uppercase text-text-secondary">
+              <span className="font-mono text-xs uppercase text-text-secondary">
                 max_position_pct
               </span>
               <input
@@ -210,7 +210,7 @@ export function CreateVaultWizard({
               />
             </label>
             <label className="block">
-              <span className="font-[family-name:var(--font-jetbrains)] text-xs uppercase text-text-secondary">
+              <span className="font-mono text-xs uppercase text-text-secondary">
                 min_pool_liquidity_usd
               </span>
               <input
@@ -221,13 +221,13 @@ export function CreateVaultWizard({
                 value={form.liquidityFloorUsd}
                 onChange={(e) => onUpdate('liquidityFloorUsd', Number(e.target.value))}
               />
-              <span className="mt-1 block font-[family-name:var(--font-jetbrains)] text-[10px] text-text-muted">
+              <span className="mt-1 block font-mono text-[10px] text-text-muted">
                 Current: {formatUsd(form.liquidityFloorUsd)}
               </span>
             </label>
 
             <div>
-              <span className="font-[family-name:var(--font-jetbrains)] text-xs uppercase text-text-secondary">
+              <span className="font-mono text-xs uppercase text-text-secondary">
                 allowed_actions
               </span>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -236,7 +236,7 @@ export function CreateVaultWizard({
                     key={action}
                     type="button"
                     onClick={() => onToggle('allowedActions', action)}
-                    className={`border px-3 py-1 font-[family-name:var(--font-jetbrains)] text-xs ${
+                    className={`border px-3 py-1 font-mono text-xs ${
                       form.allowedActions.includes(action)
                         ? 'border-accent bg-accent-muted text-accent'
                         : 'border-border text-text-secondary'
@@ -249,7 +249,7 @@ export function CreateVaultWizard({
             </div>
 
             <div>
-              <span className="font-[family-name:var(--font-jetbrains)] text-xs uppercase text-text-secondary">
+              <span className="font-mono text-xs uppercase text-text-secondary">
                 forbidden_actions
               </span>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -258,7 +258,7 @@ export function CreateVaultWizard({
                     key={action}
                     type="button"
                     onClick={() => onToggle('forbiddenActions', action)}
-                    className={`border px-3 py-1 font-[family-name:var(--font-jetbrains)] text-xs ${
+                    className={`border px-3 py-1 font-mono text-xs ${
                       form.forbiddenActions.includes(action)
                         ? 'border-accent-risk bg-accent-risk-muted text-accent-risk'
                         : 'border-border text-text-secondary'
@@ -271,12 +271,12 @@ export function CreateVaultWizard({
             </div>
 
             <div className="mt-4 rounded border border-border bg-bg-base p-4">
-              <p className="mb-3 font-[family-name:var(--font-jetbrains)] text-[10px] uppercase tracking-wider text-text-muted">
+              <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-text-muted">
                 constraint_engine validation
               </p>
               <div className="space-y-2">
                 {constraintChecks.map((check, i) => (
-                  <div key={i} className="flex items-start gap-2 text-[10px] font-[family-name:var(--font-jetbrains)]">
+                  <div key={i} className="flex items-start gap-2 text-[10px] font-mono">
                     <span className={check.pass ? 'text-accent-positive' : 'text-accent-risk'}>
                       {check.pass ? '✓' : '✗'}
                     </span>
@@ -296,7 +296,7 @@ export function CreateVaultWizard({
         {step === 2 && (
           <div className="space-y-6">
             <div>
-              <p className="font-[family-name:var(--font-jetbrains)] text-xs uppercase text-text-secondary">
+              <p className="font-mono text-xs uppercase text-text-secondary">
                 universe.assets
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -305,7 +305,7 @@ export function CreateVaultWizard({
                     key={asset}
                     type="button"
                     onClick={() => onToggle('assets', asset)}
-                    className={`border px-3 py-1 font-[family-name:var(--font-jetbrains)] text-xs ${
+                    className={`border px-3 py-1 font-mono text-xs ${
                       form.assets.includes(asset)
                         ? 'border-accent bg-accent-muted text-accent'
                         : 'border-border text-text-secondary'
@@ -317,7 +317,7 @@ export function CreateVaultWizard({
               </div>
             </div>
             <div>
-              <p className="font-[family-name:var(--font-jetbrains)] text-xs uppercase text-text-secondary">
+              <p className="font-mono text-xs uppercase text-text-secondary">
                 protocols_allowed
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -326,7 +326,7 @@ export function CreateVaultWizard({
                     key={p}
                     type="button"
                     onClick={() => onToggle('protocols', p)}
-                    className={`border px-3 py-1 font-[family-name:var(--font-jetbrains)] text-xs ${
+                    className={`border px-3 py-1 font-mono text-xs ${
                       form.protocols.includes(p)
                         ? 'border-accent bg-accent-muted text-accent'
                         : 'border-border text-text-secondary'
@@ -358,7 +358,7 @@ export function CreateVaultWizard({
                 ].map(([label, value]) => (
                   <div key={label} className="flex justify-between gap-4">
                     <span className="text-xs text-text-secondary">{label}</span>
-                    <span className="font-[family-name:var(--font-jetbrains)] text-xs text-text-primary">{value}</span>
+                    <span className="font-mono text-xs text-text-primary">{value}</span>
                   </div>
                 ))}
               </div>
@@ -371,7 +371,7 @@ export function CreateVaultWizard({
               }`}
             >
               <p
-                className={`font-[family-name:var(--font-jetbrains)] text-xs ${
+                className={`font-mono text-xs ${
                   allConstraintsPass ? 'text-accent-positive' : 'text-accent-risk'
                 }`}
               >

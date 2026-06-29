@@ -193,10 +193,10 @@ export default function CreateVaultPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-8 px-4 py-6 sm:space-y-10 sm:px-6 lg:p-8">
       <div className="max-w-2xl">
-        <span className="inline-block border border-border px-3 py-1 font-[family-name:var(--font-jetbrains)] text-[10px] uppercase tracking-wider text-accent">
+        <span className="inline-block border border-border px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-accent">
           Protocol v4.2.0
         </span>
-        <h1 className="mt-3 font-[family-name:var(--font-hanken)] text-3xl font-bold tracking-tight text-text-primary sm:mt-4 sm:text-5xl lg:text-6xl">
+        <h1 className="mt-3 font-display text-3xl font-bold tracking-tight text-text-primary sm:mt-4 sm:text-5xl lg:text-6xl">
           Initiate New Vault
         </h1>
         <p className="mt-3 text-base leading-relaxed text-text-secondary sm:mt-4 sm:text-lg">
@@ -208,7 +208,7 @@ export default function CreateVaultPage() {
         {FLOW_STEPS.map((label, i) => (
           <span
             key={label}
-            className={`rounded border px-3 py-1.5 font-[family-name:var(--font-jetbrains)] text-[10px] uppercase tracking-wider sm:text-xs ${
+            className={`rounded border px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider sm:text-xs ${
               i === activeFlow
                 ? 'border-accent bg-accent-muted text-accent'
                 : i < activeFlow

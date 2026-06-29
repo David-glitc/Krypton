@@ -62,23 +62,23 @@ function StageCard({
 }) {
   return (
     <div className="relative flex-1 panel p-6">
-      <span className="absolute -top-3 left-6 border border-border bg-bg-base px-3 py-1 font-[family-name:var(--font-jetbrains)] text-[10px] uppercase text-[#a9e2ef]">
+      <span className="absolute -top-3 left-6 border border-border bg-bg-base px-3 py-1 font-mono text-[10px] uppercase text-[#a9e2ef]">
         {stage}
       </span>
       <div className="mb-6 flex items-start justify-between">
         <Icon className="h-6 w-6 text-accent" />
         <div className="text-right">
-          <p className="font-[family-name:var(--font-jetbrains)] text-[10px] uppercase text-text-secondary">
+          <p className="font-mono text-[10px] uppercase text-text-secondary">
             {headerRightLabel}
           </p>
-          <p className="font-[family-name:var(--font-jetbrains)] text-lg text-accent">{headerRightValue}</p>
+          <p className="font-mono text-lg text-accent">{headerRightValue}</p>
         </div>
       </div>
       <div className="space-y-2">
         {rows.map((row) => (
           <div key={row.label} className="flex items-center justify-between gap-4 text-xs">
             <span className="text-text-secondary">{row.label}</span>
-            <span className="font-[family-name:var(--font-jetbrains)] text-accent">{row.value}</span>
+            <span className="font-mono text-accent">{row.value}</span>
           </div>
         ))}
       </div>
@@ -93,7 +93,7 @@ export function PipelinePreview({ data }: { data: PipelinePreviewData }) {
         title="Agent Pipeline Preview"
         trailing={
           data.active ? (
-            <span className="border border-accent/30 px-2 py-1 font-[family-name:var(--font-jetbrains)] text-[10px] uppercase text-accent">
+            <span className="border border-accent/30 px-2 py-1 font-mono text-[10px] uppercase text-accent">
               Simulation Active
             </span>
           ) : null

@@ -99,7 +99,7 @@ export default function ProfilePage() {
             <div className="flex flex-wrap gap-3 pt-2">
               <Link
                 href="/app/settings"
-                className="inline-flex items-center gap-2 border border-border px-4 py-2 font-[family-name:var(--font-jetbrains)] text-[11px] uppercase tracking-wide text-text-primary hover:border-accent"
+                className="inline-flex items-center gap-2 border border-border px-4 py-2 font-mono text-[11px] uppercase tracking-wide text-text-primary hover:border-accent"
               >
                 <Settings className="h-3.5 w-3.5" />
                 Vault names
@@ -107,7 +107,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => handleLogOut()}
-                className="inline-flex items-center gap-2 border border-accent-risk/40 bg-accent-risk-muted px-4 py-2 font-[family-name:var(--font-jetbrains)] text-[11px] uppercase tracking-wide text-accent-risk hover:border-accent-risk"
+                className="inline-flex items-center gap-2 border border-accent-risk/40 bg-accent-risk-muted px-4 py-2 font-mono text-[11px] uppercase tracking-wide text-accent-risk hover:border-accent-risk"
               >
                 <LogOut className="h-3.5 w-3.5" />
                 Log out
@@ -117,7 +117,7 @@ export default function ProfilePage() {
 
           {vaults.length > 0 && (
             <section className="space-y-3">
-              <h2 className="font-[family-name:var(--font-hanken)] text-lg font-medium text-text-primary">
+              <h2 className="font-display text-lg font-medium text-text-primary">
                 Your vaults
               </h2>
               {vaults.map((v) => (
@@ -136,7 +136,7 @@ export default function ProfilePage() {
                     </div>
                   </div>
                   <div className="shrink-0 text-right">
-                    <p className="font-[family-name:var(--font-jetbrains)] text-sm text-accent">
+                    <p className="font-mono text-sm text-accent">
                       {formatUsd(solToUsd(v.balanceSol, solPriceUsd))}
                     </p>
                     <p className="text-[11px] text-text-muted">{formatSol(v.balanceSol)}</p>

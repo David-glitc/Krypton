@@ -57,7 +57,7 @@ function WalletButtonInner() {
           className="flex items-center gap-2 rounded border border-border bg-bg-base px-3 py-2 transition-colors hover:border-accent/40"
         >
           <div className="h-2 w-2 rounded-full bg-accent" />
-          <span className="font-[family-name:var(--font-jetbrains)] text-[11px] text-text-primary">{short}</span>
+          <span className="font-mono text-[11px] text-text-primary">{short}</span>
           <ChevronDown className="h-3 w-3 text-text-muted" />
         </button>
 
