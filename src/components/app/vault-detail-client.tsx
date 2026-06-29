@@ -194,14 +194,14 @@ function PendingActionCard({
         <div className="mt-5 flex gap-3">
           <button
             onClick={() => setConfirming(true)}
-            className="rounded bg-green-700 px-4 py-2 text-sm font-medium text-white hover:bg-green-600 disabled:opacity-50"
+            className="btn-primary px-5 py-2 text-xs"
             disabled={submitting}
           >
             {submitting ? '…' : 'Approve'}
           </button>
           <button
             onClick={handleReject}
-            className="rounded bg-red-900/50 px-4 py-2 text-sm font-medium text-red-300 hover:bg-red-800/50 disabled:opacity-50"
+            className="btn-secondary px-5 py-2 text-xs"
             disabled={submitting}
           >
             {submitting ? '…' : 'Reject'}

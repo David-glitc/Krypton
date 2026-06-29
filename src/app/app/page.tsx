@@ -26,11 +26,9 @@ function VaultIcon() {
 
 function EmptyState() {
   return (
-    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-16">
+    <div className="panel flex flex-col items-center px-6 py-16">
       <Building2 className="mb-4 h-12 w-12 text-text-secondary/40" />
-      <h3 className="font-[family-name:var(--font-hanken)] text-lg font-medium text-text-primary">
-        No vaults yet
-      </h3>
+      <h3 className="section-title">No vaults yet</h3>
       <p className="mt-2 max-w-md text-center text-sm text-text-secondary">
         Create your first AI-managed vault — set policy, fund it, and chat with your agent.
       </p>

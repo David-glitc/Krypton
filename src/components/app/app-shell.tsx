@@ -72,7 +72,7 @@ function SidebarNav({
             >
               <Icon className="h-4 w-4 shrink-0" />
               {!collapsed && (
-                <span className="font-[family-name:var(--font-jetbrains)] text-sm uppercase tracking-wide">{link.label}</span>
+                <span className="font-mono text-sm uppercase tracking-wide">{link.label}</span>
               )}
             </Link>
           )
@@ -81,8 +81,8 @@ function SidebarNav({
 
       {!collapsed && vaults.length > 0 && (
         <div className="mt-8 px-3">
-          <p className="mb-2 px-4 font-[family-name:var(--font-jetbrains)] text-[10px] uppercase tracking-wider text-text-muted">
-            Your Vaults
+          <p className="mb-2 px-4 font-mono text-[10px] uppercase tracking-wider text-text-muted">
+            Your vaults
           </p>
           <div className="flex flex-col gap-0.5">
             {vaults.map((v) => {
@@ -143,7 +143,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Zap className="h-6 w-6 text-accent" />
           ) : (
             <>
-              <h2 className="font-[family-name:var(--font-hanken)] text-lg font-bold leading-tight tracking-tight text-text-primary">
+              <h2 className="text-lg font-bold leading-tight tracking-tight text-text-primary">
                 Krypton
               </h2>
               <p className="mt-1 label-caps">
@@ -189,8 +189,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         }`}
       >
         <div className="flex items-center justify-between px-6 pt-6 pb-8">
-          <h2 className="font-[family-name:var(--font-hanken)] text-2xl font-bold leading-tight tracking-tight text-text-primary">
-            Krypton Vault
+          <h2 className="text-2xl font-bold leading-tight tracking-tight text-text-primary">
+            Krypton
           </h2>
           <button onClick={() => setDrawerOpen(false)} className="text-text-secondary hover:text-text-primary">
             <X className="h-5 w-5" />
@@ -223,7 +223,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               >
                 <Menu className="h-5 w-5" />
               </button>
-              <Link href="/" className="font-[family-name:var(--font-hanken)] text-base font-bold text-text-primary md:text-lg">
+              <Link href="/" className="text-base font-bold text-text-primary md:text-lg">
                 Krypton
               </Link>
               <nav className="hidden items-center gap-5 sm:flex">
@@ -265,7 +265,7 @@ export function PrimaryCta({
       <ArrowRight className="h-3 w-3" />
     </>
   )
-  const classes = `inline-flex items-center gap-2.5 bg-[#66ff8e] px-6 py-3.5 font-[family-name:var(--font-jetbrains)] text-[13px] font-medium uppercase tracking-wider text-[#003915] transition-[filter] hover:brightness-110 sm:px-8 sm:py-4 sm:text-sm ${className}`
+  const classes = `inline-flex items-center gap-2.5 bg-[#66ff8e] px-6 py-3.5 font-mono text-[13px] font-medium uppercase tracking-wider text-[#003915] transition-[filter] hover:brightness-110 sm:px-8 sm:py-4 sm:text-sm ${className}`
 
   if (href) {
     return (
@@ -296,7 +296,7 @@ export function OutlineButton({
   disabled?: boolean
 }) {
   const classes =
-    `inline-flex items-center justify-center border border-border px-5 py-2.5 font-[family-name:var(--font-jetbrains)] text-sm uppercase tracking-wide text-text-primary transition-colors hover:border-accent disabled:cursor-not-allowed disabled:opacity-50 ${className}`
+    `inline-flex items-center justify-center border border-border px-5 py-2.5 font-mono text-sm uppercase tracking-wide text-text-primary transition-colors hover:border-accent focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`
 
   if (href) {
     return (
@@ -350,7 +350,7 @@ export function StatusPill({
         : 'bg-accent'
 
   return (
-    <span className="inline-flex items-center gap-2 rounded-xl border border-border bg-bg-base px-3.5 py-2 font-[family-name:var(--font-jetbrains)] text-xs text-text-primary sm:text-[13px]">
+    <span className="inline-flex items-center gap-2 rounded-full border border-border bg-bg-base px-3.5 py-2 font-mono text-xs text-text-primary sm:text-[13px]">
       <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
       {label}
     </span>
