@@ -12,3 +12,14 @@ next-env.d.ts
 .agents/
 apps/web/
 .env*
+
+# Internal docs — not for public repo
+Execution-Architecture-Ika.md
+Landing-Page-Copy.md
+MVP-Integration-Spec.md
+PRD*
+PROTOCOL.md
+skill.md
+skills-lock.json
+session-ses_*
+session-*.md
