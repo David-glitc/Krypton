@@ -12,6 +12,7 @@ import type {
   SimulationResult,
 } from './types.js'
 import { CYCLE_STAGES } from './types.js'
+import { createResearchTools, type ToolDefinition, type ToolHandler } from './tools.js'
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
@@ -83,6 +84,7 @@ export type LlmCallFn = (
 
 /**
  * Create an LLM call function that uses OpenRouter.
+ * Supports tool/function calling for agentic stages like RESEARCHING.
  */
 export function createOpenRouterLlmCall(apiKey: string): LlmCallFn {
   return async (stage: string, vaultContext: string) => {
@@ -128,6 +130,136 @@ export function createOpenRouterLlmCall(apiKey: string): LlmCallFn {
 
     return { content, model, latencyMs, costUsd }
   }
+}
+
+const OR_API_KEY = (): string => process.env.OPENROUTER_API_KEY ?? ''
+
+async function callLlmWithTools(
+  model: string,
+  systemPrompt: string,
+  context: string,
+  tools: ReturnType<typeof createResearchTools>,
+): Promise<{ content: string; model: string; latencyMs: number; costUsd: number }> {
+  const messages: Array<Record<string, unknown>> = [
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: context },
+  ]
+
+  let turnCount = 0
+  const maxTurns = 5
+
+  while (turnCount < maxTurns) {
+    turnCount++
+    const start = Date.now()
+    const body: Record<string, unknown> = {
+      model,
+      messages,
+      tools: tools.definitions.length > 0 ? tools.definitions : undefined,
+      tool_choice: 'auto',
+    }
+    if (tools.definitions.length === 0) {
+      body.response_format = { type: 'json_object' }
+    }
+
+    const response = await fetch(OPENROUTER_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${OR_API_KEY()}`,
+      },
+      body: JSON.stringify(body),
+    })
+    const latencyMs = Date.now() - start
+
+    if (!response.ok) {
+      const errBody = await response.text()
+      throw new Error(`OpenRouter ${response.status}: ${errBody.slice(0, 200)}`)
+    }
+
+    const json = await response.json() as {
+      choices: Array<{
+        message: {
+          content?: string | null
+          tool_calls?: Array<{
+            id: string
+            type: 'function'
+            function: { name: string; arguments: string }
+          }>
+        }
+      }>
+      usage?: { prompt_tokens: number; completion_tokens: number }
+      model?: string
+    }
+
+    const choice = json.choices?.[0]?.message
+    const content = choice?.content ?? ''
+    const toolCalls = choice?.tool_calls
+    const modelUsed = json.model ?? model
+
+    const FREE_MODELS = new Set(['openrouter/owl-alpha'])
+    const isFree = modelUsed.endsWith(':free') || FREE_MODELS.has(modelUsed)
+    const inputTokens = json.usage?.prompt_tokens ?? 0
+    const costUsd = isFree ? 0 : (inputTokens / 1000) * 0.00025
+
+    if (!toolCalls || toolCalls.length === 0) {
+      return { content, model: modelUsed, latencyMs, costUsd }
+    }
+
+    // Execute tool calls and append results
+    messages.push({ role: 'assistant', content: content || null, tool_calls: toolCalls })
+    for (const tc of toolCalls) {
+      const handler = tools.handlers[tc.function.name]
+      let result: string
+      if (handler) {
+        try {
+          const args = JSON.parse(tc.function.arguments)
+          result = await handler(args)
+        } catch (e) {
+          result = JSON.stringify({ error: String(e) })
+        }
+      } else {
+        result = JSON.stringify({ error: `Unknown tool: ${tc.function.name}` })
+      }
+      messages.push({
+        role: 'tool',
+        tool_call_id: tc.id,
+        content: result,
+      })
+    }
+  }
+
+  const final = messages[messages.length - 1]
+  return {
+    content: (final?.content as string) ?? 'Tool call loop exceeded max turns',
+    model,
+    latencyMs: 0,
+    costUsd: 0,
+  }
+}
+
+async function researchWithTools(
+  context: string,
+  stage: string,
+): Promise<{ content: string; model: string; latencyMs: number; costUsd: number }> {
+  const model = STAGE_MODELS[stage] ?? 'openrouter/owl-alpha'
+  const systemPrompt = `You are a DeFi research analyst for a Solana vault. You have access to tools that fetch real-time data.
+
+Available adapters (only recommend these): Jupiter (swaps), Kamino (lending), Sanctum (liquid staking / jitoSOL), Meteora (liquidity).
+
+Use the tools provided to gather real data before forming your analysis. For example:
+- Call fetch_sol_price() to get current SOL price and trend
+- Call fetch_defi_yields() to find best yields across protocols
+- Call fetch_crypto_news() for recent market news
+- Call search_web() if you need additional context
+
+After gathering data, produce your analysis. Output valid JSON:
+- "rationale": string — concise market + vault read backed by real data (2-4 sentences)
+- "hypotheses": string[] — 2-3 concrete next steps based on actual data
+
+IMPORTANT: Use at least 2 tools before generating your final response.`
+
+  const tools = createResearchTools()
+  return callLlmWithTools(model, systemPrompt, context, tools)
 }
 
 /**
@@ -419,7 +551,24 @@ async function evaluateStageWithLlm(
     context += `=== Simulation Results ===\nComposite score: ${simData?.compositeScore ?? 'N/A'}\nExpected return: ${simData?.expectedReturnBps ?? 'N/A'} bps\nExpected drawdown: ${simData?.expectedDrawdownBps ?? 'N/A'} bps\n`
   }
 
-  const { content, model, latencyMs, costUsd } = await llmCall(stage, context)
+    let content: string
+    let model: string
+    let latencyMs: number
+    let costUsd: number
+
+    if (stage === 'RESEARCHING') {
+      const r = await researchWithTools(context, stage)
+      content = r.content
+      model = r.model
+      latencyMs = r.latencyMs
+      costUsd = r.costUsd
+    } else {
+      const r = await llmCall(stage, context)
+      content = r.content
+      model = r.model
+      latencyMs = r.latencyMs
+      costUsd = r.costUsd
+    }
 
   const parsed = parseLlmJson(content, stage)
 

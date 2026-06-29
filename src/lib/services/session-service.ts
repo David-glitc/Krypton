@@ -1,7 +1,8 @@
-import { randomUUID } from 'node:crypto'
+import crypto from 'node:crypto'
 
 import { dbAll, dbGet, dbRun, ensureDbReady } from '@/lib/db'
 import type { InteractiveSession, MessageRole, SessionMessage, SessionStatus } from '@/lib/db/types'
+import { encryptMessageJson, decryptMessageJson } from '@/lib/crypto/session-encryption'
 
 export const runtime = 'nodejs'
 
@@ -84,10 +85,10 @@ export async function createSession(ownerWallet: string, vaultDraftId?: string):
 
   const ts = now()
   const session: InteractiveSession = {
-    session_id: randomUUID(),
+    session_id: crypto.randomUUID(),
     owner_wallet: ownerWallet,
     vault_draft_id: vaultDraftId ?? null,
-    messages_json: '[]',
+    messages_json: encryptMessageJson('[]'),
     extracted_intent: null,
     compiled_policy_draft: null,
     status: 'active',
@@ -146,7 +147,7 @@ export async function getSession(sessionId: string): Promise<InteractiveSession>
 
 export async function getSessionMessages(sessionId: string): Promise<SessionMessage[]> {
   const session = await getSession(sessionId)
-  return parseMessages(session.messages_json)
+  return parseMessages(decryptMessageJson(session.messages_json))
 }
 
 export async function appendMessage(
@@ -155,18 +156,19 @@ export async function appendMessage(
   content: string,
 ): Promise<InteractiveSession> {
   const session = await getSession(sessionId)
-  const messages = parseMessages(session.messages_json)
+  const messages = parseMessages(decryptMessageJson(session.messages_json))
   messages.push({ role, content, at: now() })
 
   const ts = now()
+  const encrypted = encryptMessageJson(JSON.stringify(messages))
   await dbRun(
     `UPDATE interactive_sessions
      SET messages_json = ?, updated_at = ?
      WHERE session_id = ?`,
-    [JSON.stringify(messages), ts, sessionId],
+    [encrypted, ts, sessionId],
   )
 
-  return { ...session, messages_json: JSON.stringify(messages), updated_at: ts }
+  return { ...session, messages_json: encrypted, updated_at: ts }
 }
 
 export async function updateSessionStatus(
@@ -213,11 +215,12 @@ export async function listActiveSessionsByWallet(ownerWallet: string): Promise<I
 export async function clearSessionMessages(sessionId: string): Promise<InteractiveSession> {
   await getSession(sessionId)
   const ts = now()
+  const empty = encryptMessageJson('[]')
   await dbRun(
     `UPDATE interactive_sessions
-     SET messages_json = '[]', updated_at = ?
+     SET messages_json = ?, updated_at = ?
      WHERE session_id = ?`,
-    [ts, sessionId],
+    [empty, ts, sessionId],
   )
   return getSession(sessionId)
 }

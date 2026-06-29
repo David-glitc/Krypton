@@ -1,4 +1,4 @@
-import crypto from 'node:crypto'
+import crypto, { createHash } from 'node:crypto'
 import { PublicKey, Keypair } from '@solana/web3.js'
 
 import {
@@ -145,6 +145,8 @@ async function runCycle(job: CycleJobRow): Promise<CycleFsmResult> {
       const llmLatency = stageData?.llmLatencyMs as number | undefined
       const llmModel = stageData?.llmModel as string | undefined
 
+      const responseHash = stageDecision ? createHash('sha256').update(stageDecision).digest('hex') : null
+
       const invocation: AgentInvocationInsert = {
         id: generateId(),
         vault_pubkey: job.vault_pubkey,
@@ -153,7 +155,7 @@ async function runCycle(job: CycleJobRow): Promise<CycleFsmResult> {
         agent_role: stage,
         model_id: llmModel ?? (STUB_MODE ? 'stub' : null),
         prompt_hash: null,
-        response_hash: null,
+        response_hash: responseHash,
         cost_usd: llmCost ?? (STUB_MODE ? 0 : null),
         latency_ms: llmLatency ?? invokeEnd - invokeStart,
         status: STUB_MODE ? 'stubbed' : (llmModel ? 'completed' : 'completed'),

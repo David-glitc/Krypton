@@ -3,6 +3,7 @@ export { createVaultStateProvider, formatVaultState } from './vault-provider.js'
 export { createSimulationAction } from './sim-action.js'
 export { createCycleEvaluator, runCycle, createOpenRouterLlmCall } from './cycle-evaluator.js'
 export type { LlmCallFn } from './cycle-evaluator.js'
+export { createResearchTools, type ToolDefinition, type ToolHandler } from './tools.js'
 export type {
   Action,
   ActionResult,
