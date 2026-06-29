@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { randomUUID } from 'node:crypto'
 
 import { createClient, type Client } from '@libsql/client'
 import Database from 'better-sqlite3'
@@ -338,6 +339,73 @@ export async function failCycleJob(jobId: string, message: string, nowMs: number
      SET status = 'failed', error = ?, lease_owner = NULL, lease_expires_at = NULL, updated_at = ?
      WHERE id = ?`
   const args = [message, nowMs, jobId]
+
+  if (usesRemoteDb()) {
+    await remoteExecute(sql, args)
+    return
+  }
+
+  getSqliteDb().prepare(sql).run(...args)
+}
+
+export async function countInfraFailedJobs(vaultPubkey: string): Promise<number> {
+  await ensureDbReady()
+  const sql = `SELECT COUNT(*) AS count
+     FROM cycle_jobs
+     WHERE vault_pubkey = ?
+       AND status = 'failed'
+       AND (
+         error LIKE '%VAULT_STATE_UNAVAILABLE%'
+         OR error LIKE '%vault state unavailable%'
+         OR error LIKE '%On-chain vault account could not be loaded%'
+       )`
+  const args = [vaultPubkey]
+
+  if (usesRemoteDb()) {
+    const result = await getLibsqlClient().execute({ sql, args: args as never[] })
+    return Number((result.rows[0] as unknown as { count: number }).count ?? 0)
+  }
+
+  const row = getSqliteDb().prepare(sql).get(...args) as { count: number } | undefined
+  return row?.count ?? 0
+}
+
+export async function hasActiveCycleJob(vaultPubkey: string): Promise<boolean> {
+  await ensureDbReady()
+  const sql = `SELECT COUNT(*) AS count
+     FROM cycle_jobs
+     WHERE vault_pubkey = ? AND status IN ('pending', 'leased')`
+  const args = [vaultPubkey]
+
+  if (usesRemoteDb()) {
+    const result = await getLibsqlClient().execute({ sql, args: args as never[] })
+    return Number((result.rows[0] as unknown as { count: number }).count ?? 0) > 0
+  }
+
+  const row = getSqliteDb().prepare(sql).get(...args) as { count: number } | undefined
+  return (row?.count ?? 0) > 0
+}
+
+export async function insertInfraRetryJob(job: CycleJobRow, nowMs: number): Promise<void> {
+  await ensureDbReady()
+  const sql = `INSERT INTO cycle_jobs (
+      id, vault_pubkey, cycle_id, permission_level, priority, status,
+      scheduled_at, lease_owner, lease_expires_at, error, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  const args = [
+    randomUUID(),
+    job.vault_pubkey,
+    job.cycle_id,
+    job.permission_level,
+    25,
+    'pending',
+    nowMs + 15_000,
+    null,
+    null,
+    null,
+    nowMs,
+    nowMs,
+  ]
 
   if (usesRemoteDb()) {
     await remoteExecute(sql, args)

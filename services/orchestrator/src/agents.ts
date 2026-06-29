@@ -17,7 +17,9 @@ import type {
 const STUB_MODE = process.env.KRYPTON_STUB_AGENTS === 'true'
 
 const RPC_URL =
-  process.env.SOLANA_RPC_URL ?? 'https://api.devnet.solana.com'
+  process.env.SOLANA_RPC_URL ??
+  process.env.SOLANA_RPC_FALLBACK_URL ??
+  'https://api.devnet.solana.com'
 const PROGRAM_ID =
   process.env.KRYPTON_PROGRAM_ID ?? 'DQVp9hnnU6zbyPCJbcEnS6F1fWZMQ2yCCH9jL6cFVPxF'
 
@@ -77,11 +79,38 @@ export function getAgentRuntime(vaultPubkey: string): AgentRuntime {
 }
 
 function toCycleInput(context: AgentContext, stage: string) {
+  const priorStageOutputs =
+    context.priorOutputs?.map((o) => {
+      const base = { stage: o.stage, rationale: o.rationale }
+      if (o.stage === 'RESEARCHING') {
+        return { ...base, hypotheses: o.hypotheses }
+      }
+      if (o.stage === 'STRATEGIZING') {
+        return {
+          ...base,
+          candidateActions: o.candidateActions,
+          investmentGoal: o.investmentGoal,
+        }
+      }
+      if (o.stage === 'RISK_REVIEW') {
+        return { ...base, riskScore: o.riskScore, flags: o.flags }
+      }
+      return base
+    }) ?? []
+
   return {
     vaultPubkey: context.vaultPubkey,
     cycleId: context.cycleId,
     stage,
-    context: { permissionLevel: context.permissionLevel },
+    context: { permissionLevel: context.permissionLevel, priorStageOutputs },
+  }
+}
+
+function llmMeta(output: CycleOutput) {
+  return {
+    llmCostUsd: output.llmCostUsd,
+    llmLatencyMs: output.llmLatencyMs,
+    llmModel: output.llmModel,
   }
 }
 
@@ -89,19 +118,23 @@ function researchToOutput(output: CycleOutput): ResearchOutput {
   return {
     stage: 'RESEARCHING',
     rationale: output.rationale,
-    hypotheses: output.alerts?.length ? output.alerts : ['Maintain current allocation'],
+    hypotheses: output.alerts?.length ? output.alerts : [],
     stub: STUB_MODE,
     generatedAt: now(),
+    ...llmMeta(output),
   }
 }
 
 function strategyToOutput(output: CycleOutput): StrategyOutput {
+  const investmentGoal = output.alerts?.[0]
   return {
     stage: 'STRATEGIZING',
     rationale: output.rationale,
-    candidateActions: output.actions?.map((a) => a) ?? ['noop'],
+    candidateActions: output.actions?.filter((a) => a && a !== 'noop') ?? [],
+    investmentGoal,
     stub: STUB_MODE,
     generatedAt: now(),
+    ...llmMeta(output),
   }
 }
 
@@ -113,6 +146,7 @@ function riskToOutput(output: CycleOutput): RiskReviewOutput {
     flags: output.alerts ?? [],
     stub: STUB_MODE,
     generatedAt: now(),
+    ...llmMeta(output),
   }
 }
 
@@ -124,17 +158,35 @@ function simToOutput(output: CycleOutput): SimulationOutput {
     projectedMaxDrawdownBps: Math.round((output.riskScore ?? 0.5) * 150),
     stub: STUB_MODE,
     generatedAt: now(),
+    ...llmMeta(output),
   }
 }
 
-function permToOutput(output: CycleOutput): PermissionGateOutput {
+function permToOutput(
+  output: CycleOutput,
+  permissionLevel: number,
+  proposedActions: string[],
+): PermissionGateOutput {
+  const genericRationale = /^LLM response for /i.test(output.rationale)
+  const hasRealActions = proposedActions.some((a) => a && a !== 'noop')
+  const requiresUserApproval =
+    output.decision === 'requires_approval' ||
+    permissionLevel >= 2 ||
+    (hasRealActions && genericRationale)
+
+  const rationale =
+    permissionLevel >= 2 && hasRealActions
+      ? 'Proposed moves need your approval. The agent will stay idle until you approve or reject in the app.'
+      : output.rationale
+
   return {
     stage: 'PERMISSION_GATE',
-    rationale: output.rationale,
-    requiresUserApproval: output.decision === 'requires_approval',
-    permissionLevel: 1,
+    rationale,
+    requiresUserApproval,
+    permissionLevel,
     stub: STUB_MODE,
     generatedAt: now(),
+    ...llmMeta(output),
   }
 }
 
@@ -145,6 +197,7 @@ function monToOutput(output: CycleOutput): MonitoringOutput {
     alerts: output.alerts ?? [],
     stub: STUB_MODE,
     generatedAt: now(),
+    ...llmMeta(output),
   }
 }
 
@@ -228,7 +281,10 @@ export async function runPermissionGateAgent(context: AgentContext): Promise<Per
 
   const runtime = getRuntime(context)
   const out = await runtime.runStage(toCycleInput(context, 'PERMISSION_GATE'))
-  return permToOutput(out)
+  const strategy = context.priorOutputs?.find((o) => o.stage === 'STRATEGIZING')
+  const proposed =
+    strategy && strategy.stage === 'STRATEGIZING' ? strategy.candidateActions : []
+  return permToOutput(out, context.permissionLevel, proposed ?? [])
 }
 
 export async function runMonitoringAgent(context: AgentContext): Promise<MonitoringOutput> {

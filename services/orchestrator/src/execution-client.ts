@@ -15,6 +15,7 @@ const REJECT_ACTION_DISCRIMINATOR = Buffer.from([0xdc, 0x93, 0xca, 0xc4, 0x36, 0
 
 export interface ExecuteActionParams {
   vaultOwner: PublicKey
+  vaultNonce?: number
   actionType: number
   postLeverageBps: number
   postConcentrationBps: number
@@ -84,7 +85,7 @@ export class ExecutionClient {
 
   /** Phase 1: submit action for on-chain approval. Stores pending state. */
   buildExecuteActionInstruction(params: ExecuteActionParams): TransactionInstruction {
-    const vaultPda = this.deriveVaultPda(params.vaultOwner)
+    const vaultPda = this.deriveVaultPda(params.vaultOwner, params.vaultNonce ?? 0)
     const policyPda = this.derivePolicyPda(vaultPda)
     const permissionPda = this.derivePermissionPda(vaultPda)
     const vaultGoalPda = this.deriveVaultGoalPda(vaultPda)
@@ -107,8 +108,8 @@ export class ExecutionClient {
   }
 
   /** Phase 2 success: confirm action, applies pending state to constraint state. */
-  buildConfirmActionInstruction(authority: PublicKey, vaultOwner: PublicKey): TransactionInstruction {
-    const vaultPda = this.deriveVaultPda(vaultOwner)
+  buildConfirmActionInstruction(authority: PublicKey, vaultOwner: PublicKey, vaultNonce = 0): TransactionInstruction {
+    const vaultPda = this.deriveVaultPda(vaultOwner, vaultNonce)
     const permissionPda = this.derivePermissionPda(vaultPda)
 
     return new TransactionInstruction({
@@ -123,8 +124,8 @@ export class ExecutionClient {
   }
 
   /** Phase 2 failure: reject action, discards pending state. */
-  buildRejectActionInstruction(authority: PublicKey, vaultOwner: PublicKey): TransactionInstruction {
-    const vaultPda = this.deriveVaultPda(vaultOwner)
+  buildRejectActionInstruction(authority: PublicKey, vaultOwner: PublicKey, vaultNonce = 0): TransactionInstruction {
+    const vaultPda = this.deriveVaultPda(vaultOwner, vaultNonce)
     const permissionPda = this.derivePermissionPda(vaultPda)
 
     return new TransactionInstruction({
@@ -224,14 +225,14 @@ export class ExecutionClient {
   }
 
   /** Phase 2 confirm: mark action as executed successfully. */
-  async confirmAction(authority: Keypair, vaultOwner: PublicKey): Promise<TransactionSignature> {
-    const ix = this.buildConfirmActionInstruction(authority.publicKey, vaultOwner)
+  async confirmAction(authority: Keypair, vaultOwner: PublicKey, vaultNonce = 0): Promise<TransactionSignature> {
+    const ix = this.buildConfirmActionInstruction(authority.publicKey, vaultOwner, vaultNonce)
     return this.sendAndConfirmIx(ix, authority)
   }
 
   /** Phase 2 reject: mark action as failed, discard pending state. */
-  async rejectAction(authority: Keypair, vaultOwner: PublicKey): Promise<TransactionSignature> {
-    const ix = this.buildRejectActionInstruction(authority.publicKey, vaultOwner)
+  async rejectAction(authority: Keypair, vaultOwner: PublicKey, vaultNonce = 0): Promise<TransactionSignature> {
+    const ix = this.buildRejectActionInstruction(authority.publicKey, vaultOwner, vaultNonce)
     return this.sendAndConfirmIx(ix, authority)
   }
 

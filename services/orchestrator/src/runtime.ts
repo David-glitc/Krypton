@@ -86,12 +86,12 @@ export class AgentRuntime {
     return this.plugin.approveAction(params)
   }
 
-  async confirmAction(vaultOwner: PublicKey): Promise<string> {
-    return this.plugin.confirmAction(vaultOwner)
+  async confirmAction(vaultOwner: PublicKey, vaultNonce = 0): Promise<string> {
+    return this.plugin.confirmAction(vaultOwner, vaultNonce)
   }
 
-  async rejectAction(vaultOwner: PublicKey): Promise<string> {
-    return this.plugin.rejectAction(vaultOwner)
+  async rejectAction(vaultOwner: PublicKey, vaultNonce = 0): Promise<string> {
+    return this.plugin.rejectAction(vaultOwner, vaultNonce)
   }
 
   /**

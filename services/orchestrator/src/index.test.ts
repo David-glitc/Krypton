@@ -243,6 +243,17 @@ describe('parseTargetProtocol', () => {
     expect(parseTargetProtocol('kamino lend')).toBe(5)
   })
 
+  it('returns 6 for sanctum/lst', async () => {
+    const { parseTargetProtocol } = await import('./worker.js')
+    expect(parseTargetProtocol('stake via sanctum')).toBe(6)
+    expect(parseTargetProtocol('jito sol')).toBe(6)
+  })
+
+  it('returns 7 for meteora', async () => {
+    const { parseTargetProtocol } = await import('./worker.js')
+    expect(parseTargetProtocol('meteora dlmm')).toBe(7)
+  })
+
   it('defaults to 0 for unknown', async () => {
     const { parseTargetProtocol } = await import('./worker.js')
     expect(parseTargetProtocol('some random action')).toBe(0)

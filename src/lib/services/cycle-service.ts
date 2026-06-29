@@ -3,6 +3,8 @@ import { randomUUID } from 'node:crypto'
 import { dbAll, dbGet, dbRun, ensureDbReady, withWriteTransaction } from '@/lib/db'
 import type { CycleJob, CycleJobStatus, EnqueueCycleJobInput } from '@/lib/db/types'
 
+import { getVaultCycleQuota, type VaultCycleQuota } from './cycle-quota'
+
 export const runtime = 'nodejs'
 
 const DEFAULT_LEASE_MS = 5 * 60 * 1000
@@ -262,6 +264,7 @@ export interface VaultCycleStatus {
   activeJob: CycleJob | null
   pendingCount: number
   lastCompleted: CycleJob | null
+  quota: VaultCycleQuota
 }
 
 export async function getVaultCycleStatus(vaultPubkey: string): Promise<VaultCycleStatus> {
@@ -289,13 +292,18 @@ export async function getVaultCycleStatus(vaultPubkey: string): Promise<VaultCyc
     [vaultPubkey],
   )
 
+  const quota = await getVaultCycleQuota(vaultPubkey)
+
   return {
     vaultPubkey,
     activeJob: activeJob ?? null,
     pendingCount: pendingRow?.count ?? 0,
     lastCompleted: lastCompleted ?? null,
+    quota,
   }
 }
+
+export { getVaultCycleQuota, type VaultCycleQuota } from './cycle-quota'
 
 export async function listCycleJobsByVault(vaultPubkey: string, limit = 20): Promise<CycleJob[]> {
   return dbAll<CycleJob>(
@@ -305,4 +313,22 @@ export async function listCycleJobsByVault(vaultPubkey: string, limit = 20): Pro
      LIMIT ?`,
     [vaultPubkey, limit],
   )
+}
+
+/** Fail any pending/leased jobs so the user can queue a fresh cycle. */
+export async function releaseStuckCycleJobs(vaultPubkey: string): Promise<number> {
+  await ensureDbReady()
+  await expireStaleLeases(vaultPubkey)
+  const ts = now()
+  const result = await dbRun(
+    `UPDATE cycle_jobs
+     SET status = 'failed',
+         error = 'Released by user — previous cycle was stuck or failed',
+         lease_owner = NULL,
+         lease_expires_at = NULL,
+         updated_at = ?
+     WHERE vault_pubkey = ? AND status IN ('pending', 'leased')`,
+    [ts, vaultPubkey],
+  )
+  return result.changes
 }

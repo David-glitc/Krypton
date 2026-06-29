@@ -209,3 +209,34 @@ export async function listActiveSessionsByWallet(ownerWallet: string): Promise<I
     [ownerWallet, now()],
   )
 }
+
+export async function clearSessionMessages(sessionId: string): Promise<InteractiveSession> {
+  await getSession(sessionId)
+  const ts = now()
+  await dbRun(
+    `UPDATE interactive_sessions
+     SET messages_json = '[]', updated_at = ?
+     WHERE session_id = ?`,
+    [ts, sessionId],
+  )
+  return getSession(sessionId)
+}
+
+/** Persistent chat tied to a live vault (stored in vault_draft_id). */
+export async function getOrCreateVaultSession(
+  ownerWallet: string,
+  vaultPubkey: string,
+): Promise<InteractiveSession> {
+  await ensureDbReady()
+  await expireStaleSessions(ownerWallet)
+
+  const existing = await dbGet<InteractiveSession>(
+    `SELECT * FROM interactive_sessions
+     WHERE owner_wallet = ? AND vault_draft_id = ? AND status = 'active' AND expires_at > ?
+     ORDER BY updated_at DESC LIMIT 1`,
+    [ownerWallet, vaultPubkey, now()],
+  )
+  if (existing) return existing
+
+  return createSession(ownerWallet, vaultPubkey)
+}

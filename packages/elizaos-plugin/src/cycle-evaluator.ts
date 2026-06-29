@@ -16,44 +16,56 @@ import { CYCLE_STAGES } from './types.js'
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
 const STAGE_MODELS: Record<string, string> = {
-  RESEARCHING: 'google/gemma-4-26b-a4b-it:free',
-  STRATEGIZING: 'google/gemma-4-26b-a4b-it:free',
-  RISK_REVIEW: 'google/gemma-4-26b-a4b-it:free',
-  SIMULATING: 'google/gemma-4-26b-a4b-it:free',
-  PERMISSION_GATE: 'google/gemma-4-26b-a4b-it:free',
-  MONITORING: 'google/gemma-4-26b-a4b-it:free',
+  RESEARCHING: 'openrouter/owl-alpha',
+  STRATEGIZING: 'openrouter/owl-alpha',
+  RISK_REVIEW: 'openrouter/owl-alpha',
+  SIMULATING: 'openrouter/owl-alpha',
+  PERMISSION_GATE: 'openrouter/owl-alpha',
+  MONITORING: 'openrouter/owl-alpha',
 }
 
 const STAGE_SYSTEM_PROMPTS: Record<string, string> = {
-  RESEARCHING: `You are a DeFi research analyst. Analyze the vault's current state, constraints, and market positioning.
-Output valid JSON with these fields:
-- "rationale": string — your reasoning about the vault's current state
-- "hypotheses": string[] — 2-3 actionable hypotheses for portfolio adjustment`,
+  RESEARCHING: `You are a DeFi research analyst for a Solana vault. Use live vault constraints and balances in the user message.
+Available DeFi adapters (only recommend these): Jupiter (swaps), Kamino (lending), Sanctum (liquid staking / jitoSOL), Meteora (liquidity).
+If capital is idle (zero leverage/concentration), aggressively scan for yield opportunities within policy limits — do not say "unavailable" unless vault state explicitly failed.
+Output valid JSON:
+- "rationale": string — concise market + vault read (2-4 sentences)
+- "hypotheses": string[] — 2-3 concrete next steps (not generic "maintain allocation")`,
 
-  STRATEGIZING: `You are a DeFi portfolio strategist. Based on the vault's state and policy, propose concrete actions.
-Output valid JSON with these fields:
-- "rationale": string — your strategic reasoning
-- "actions": string[] — 1-3 specific action descriptions (e.g. "swap 5% USDC to SOL on Jupiter", "rebalance to 60/40 split")`,
+  STRATEGIZING: `You are an aggressive DeFi portfolio strategist. Idle capital should be deployed when within constraints.
+Use adapters: Jupiter swaps, Kamino lend, Sanctum stake (jitoSOL etc), Meteora LP — match allowed protocols in vault context.
+Propose REAL moves with sizes (e.g. "swap 40% idle SOL to USDC on Jupiter", "stake 30% SOL via Sanctum to jitoSOL").
+Output valid JSON:
+- "investmentGoal": string — one-sentence investment thesis for this vault (e.g. "Compound SOL yield via LST + Kamino lend while staying under 1.5x leverage")
+- "rationale": string — why these moves now
+- "actions": string[] — 1-3 specific executable actions`,
 
-  RISK_REVIEW: `You are a risk manager. Review proposed actions against vault constraints.
-Output valid JSON with these fields:
-- "rationale": string — your risk analysis
-- "riskScore": number — 0.0 to 1.0 (0 = no risk, 1 = extreme risk)
-- "alerts": string[] — any risk flags (empty if none)`,
+  RISK_REVIEW: `You are a risk manager. Review the PROPOSED ACTIONS from strategizing (in prior context if present) against vault constraints.
+If strategy proposed actions, evaluate those — do not say "no action proposed" when actions exist in context.
+Output valid JSON:
+- "rationale": string — risk analysis
+- "riskScore": number — 0.0 to 1.0
+- "alerts": string[] — risk flags (empty if none)`,
 
-  PERMISSION_GATE: `You are a permission gate. Decide if the proposed action needs user approval.
-Output valid JSON with these fields:
-- "rationale": string — your reasoning
+  SIMULATING: `You are a portfolio simulation analyst. Project outcomes for the proposed strategy.
+Output valid JSON:
+- "rationale": string — simulation summary with expected outcome
+- "riskScore": number — 0.0 to 1.0 projected risk`,
+
+  PERMISSION_GATE: `You are a permission gate. If concrete swap/stake/lend actions were proposed, set requires_approval based on permission level in context (L2+ needs approval).
+Output valid JSON:
+- "rationale": string — brief decision reason
 - "decision": "auto_execute" | "requires_approval"`,
 
-  MONITORING: `You are a monitoring agent. Evaluate the completed cycle for issues.
-Output valid JSON with these fields:
-- "rationale": string — your evaluation
-- "alerts": string[] — any issues detected (empty if none)`,
+  MONITORING: `You are a monitoring agent. Summarize whether the agent run achieved its goal or what blocked execution.
+Output valid JSON:
+- "rationale": string — plain-English summary for the vault owner
+- "alerts": string[] — issues only (empty if none)`,
 }
 
 interface LlmResponse {
   rationale: string
+  investmentGoal?: string
   hypotheses?: string[]
   actions?: string[]
   riskScore?: number
@@ -74,7 +86,7 @@ export type LlmCallFn = (
  */
 export function createOpenRouterLlmCall(apiKey: string): LlmCallFn {
   return async (stage: string, vaultContext: string) => {
-    const model = STAGE_MODELS[stage] ?? 'google/gemma-4-26b-a4b-it:free'
+    const model = STAGE_MODELS[stage] ?? 'openrouter/owl-alpha'
     const systemPrompt = STAGE_SYSTEM_PROMPTS[stage] ?? 'Output valid JSON.'
 
     const start = Date.now()
@@ -109,7 +121,8 @@ export function createOpenRouterLlmCall(apiKey: string): LlmCallFn {
     const content = json.choices?.[0]?.message?.content ?? '{}'
 
     // Estimate cost: free-tier models cost $0
-    const isFree = model.endsWith(':free')
+    const FREE_MODELS = new Set(['openrouter/owl-alpha'])
+    const isFree = model.endsWith(':free') || FREE_MODELS.has(model)
     const inputTokens = json.usage?.prompt_tokens ?? 0
     const costUsd = isFree ? 0 : (inputTokens / 1000) * 0.00025
 
@@ -154,7 +167,13 @@ export function createCycleEvaluator(
 
         // Single stage mode
         const output = await evaluateStage(
-          { vaultPubkey, cycleId, stage, permissionLevel },
+          {
+            vaultPubkey,
+            cycleId,
+            stage,
+            permissionLevel,
+            context: params.context as Record<string, unknown> | undefined,
+          },
           deps,
           llmCall,
         )
@@ -198,6 +217,14 @@ export async function runCycle(
       cycleId,
       stage,
       permissionLevel,
+      context: {
+        priorStageOutputs: outputs.map((o) => ({
+          stage: o.stage,
+          rationale: o.rationale,
+          candidateActions: o.actions,
+          hypotheses: o.alerts,
+        })),
+      },
     }
 
     const output = await evaluateStage(input, deps)
@@ -215,6 +242,21 @@ export async function runCycle(
   return {
     finalStage: outputs.length > 0 ? outputs[outputs.length - 1]!.stage : 'MONITORING',
     outputs,
+  }
+}
+
+function parseLlmJson(content: string, stage: string): LlmResponse {
+  const trimmed = content.trim()
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)```$/i)
+  const candidate = (fenced?.[1] ?? trimmed).trim()
+  try {
+    return JSON.parse(candidate) as LlmResponse
+  } catch {
+    const objectMatch = candidate.match(/\{[\s\S]*\}/)
+    if (objectMatch) {
+      return JSON.parse(objectMatch[0]) as LlmResponse
+    }
+    return { rationale: `LLM returned unparseable JSON for ${stage}: ${candidate.slice(0, 120)}` }
   }
 }
 
@@ -244,13 +286,11 @@ async function evaluateStage(
   },
   llmCall?: LlmCallFn,
 ): Promise<CycleOutput> {
-  const { vaultPubkey, stage, cycleId, permissionLevel } = input
+  const { vaultPubkey, stage, cycleId, permissionLevel, context } = input
 
   if (llmCall) {
     return evaluateStageWithLlm(input, deps, llmCall)
   }
-
-  // Fallback: return stub responses when no LLM is configured
   switch (stage) {
     case 'RESEARCHING': {
       return {
@@ -317,13 +357,60 @@ async function evaluateStageWithLlm(
 
   // Fetch vault state for context
   const stateResult = await deps.vaultStateProvider.get(null, { vaultPubkey })
-  const vaultState = stateResult.success
-    ? formatVaultContext(stateResult.data as unknown as VaultState)
-    : 'Vault state unavailable'
+  const stateData = stateResult.data as unknown as (VaultState & { formatted?: string }) | undefined
+
+  if (!stateResult.success || !stateData) {
+    const errorDetail = (stateResult.data as { error?: string } | undefined)?.error
+    return {
+      stage,
+      decision: 'abort',
+      rationale:
+        errorDetail ??
+        `VAULT_STATE_UNAVAILABLE: Could not load on-chain vault ${vaultPubkey}. Check RPC connectivity and vault address.`,
+    }
+  }
+
+  const vaultState = stateData.formatted ?? formatVaultContext(stateData)
 
   // Build context string with stage-specific info
   let context = vaultState
-  context += `\n\nCycle: #${cycleId}\nPermission level: L${permLevel}\n\n`
+  context += `\n\nAgent run: #${cycleId}\nPermission level: L${permLevel}\n`
+  context += `DeFi adapters available: Jupiter (swap), Kamino (lend), Sanctum (LST stake), Meteora (LP).\n\n`
+
+  const prior = input.context?.priorStageOutputs as
+    | Array<{
+        stage: string
+        rationale?: string
+        hypotheses?: string[]
+        candidateActions?: string[]
+        investmentGoal?: string
+        riskScore?: number
+      }>
+    | undefined
+
+  if (prior?.length) {
+    context += '=== Prior stages this agent run ===\n'
+    for (const p of prior) {
+      context += `[${p.stage}] ${p.rationale ?? ''}\n`
+      if (p.investmentGoal) context += `Investment goal: ${p.investmentGoal}\n`
+      if (p.hypotheses?.length) context += `Hypotheses: ${p.hypotheses.join(' | ')}\n`
+      if (p.candidateActions?.length) context += `Proposed actions: ${p.candidateActions.join(' | ')}\n`
+      if (typeof p.riskScore === 'number') context += `Risk score: ${p.riskScore}\n`
+    }
+    context += '\n'
+  }
+
+  const strategyPrior = prior?.find((p) => p.stage === 'STRATEGIZING')
+  if (
+    strategyPrior?.candidateActions?.length &&
+    (stage === 'RISK_REVIEW' || stage === 'SIMULATING' || stage === 'PERMISSION_GATE')
+  ) {
+    context += '=== MANDATORY: evaluate these proposed actions ===\n'
+    for (const action of strategyPrior.candidateActions) {
+      context += `- ${action}\n`
+    }
+    context += '\n'
+  }
 
   // For SIMULATING, run the simulation first and include results
   if (stage === 'SIMULATING') {
@@ -334,16 +421,18 @@ async function evaluateStageWithLlm(
 
   const { content, model, latencyMs, costUsd } = await llmCall(stage, context)
 
-  let parsed: LlmResponse
-  try {
-    parsed = JSON.parse(content) as LlmResponse
-  } catch {
-    parsed = { rationale: `LLM returned unparseable JSON for ${stage}: ${content.slice(0, 100)}` }
-  }
+  const parsed = parseLlmJson(content, stage)
+
+  const rationale =
+    parsed.rationale && !/^LLM response for /i.test(parsed.rationale)
+      ? parsed.investmentGoal && stage === 'STRATEGIZING'
+        ? `${parsed.investmentGoal}\n\n${parsed.rationale}`.trim()
+        : parsed.rationale
+      : parsed.investmentGoal ?? `Completed ${stage.replace(/_/g, ' ').toLowerCase()} assessment.`
 
   const base = {
     stage,
-    rationale: parsed.rationale ?? `LLM response for ${stage}`,
+    rationale,
     llmCostUsd: costUsd,
     llmLatencyMs: latencyMs,
     llmModel: model,
@@ -353,7 +442,7 @@ async function evaluateStageWithLlm(
     case 'RESEARCHING':
       return { ...base, decision: 'researched', alerts: parsed.hypotheses }
     case 'STRATEGIZING':
-      return { ...base, decision: 'proposed_actions', actions: parsed.actions ?? [] }
+      return { ...base, decision: 'proposed_actions', actions: parsed.actions ?? [], alerts: parsed.investmentGoal ? [parsed.investmentGoal] : undefined }
     case 'RISK_REVIEW':
       return { ...base, decision: 'approved', riskScore: parsed.riskScore ?? 0.25, alerts: parsed.alerts ?? [] }
     case 'SIMULATING':

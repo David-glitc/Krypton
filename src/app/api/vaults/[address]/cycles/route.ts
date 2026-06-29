@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server'
 
 import { dbAll, dbGet, dbRun } from '@/lib/db'
 import { appendActivityEvent } from '@/lib/services/activity-service'
-import { enqueueCycleJob, getVaultCycleStatus, VaultCycleMutexError } from '@/lib/services/cycle-service'
+import { enqueueCycleJob, getVaultCycleStatus, releaseStuckCycleJobs, VaultCycleMutexError } from '@/lib/services/cycle-service'
 
 export const runtime = 'nodejs'
 
@@ -57,12 +57,47 @@ export async function POST(request: Request, { params }: { params: Promise<{ add
       payload: { cycleId, permissionLevel, priority },
     })
 
-    return NextResponse.json({ job, status: await getVaultCycleStatus(address) })
+    const status = await getVaultCycleStatus(address)
+
+    return NextResponse.json({
+      job,
+      status,
+      quota: status.quota,
+    })
   } catch (error) {
     if (error instanceof VaultCycleMutexError) {
-      return NextResponse.json({ error: error.message }, { status: 409 })
+      return NextResponse.json(
+        {
+          error: error.message,
+          hint: 'Wait for the active cycle to finish, or use "Release stuck cycle" on the vault page.',
+        },
+        { status: 409 },
+      )
     }
 
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to enqueue cycle' }, { status: 500 })
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to enqueue cycle' },
+      { status: 500 },
+    )
+  }
+}
+
+/** Release stuck pending/leased cycle jobs for this vault. */
+export async function DELETE(_: Request, { params }: { params: Promise<{ address: string }> }) {
+  const { address } = await params
+  try {
+    const released = await releaseStuckCycleJobs(address)
+    await appendActivityEvent({
+      vaultPubkey: address,
+      eventType: 'cycle_released',
+      payload: { released },
+    })
+    const status = await getVaultCycleStatus(address)
+    return NextResponse.json({ released, status, quota: status.quota })
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to release cycle' },
+      { status: 500 },
+    )
   }
 }

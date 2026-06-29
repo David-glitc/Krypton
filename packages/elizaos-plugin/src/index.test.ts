@@ -376,7 +376,7 @@ describe('createOpenRouterLlmCall', () => {
     const llmCall = createOpenRouterLlmCall('sk-test-key')
     const result = await llmCall('RESEARCHING', 'context')
     expect(result.content).toBe('{"rationale":"good","riskScore":0.5}')
-    expect(result.model).toBe('google/gemma-4-26b-a4b-it:free')
+    expect(result.model).toBe('openrouter/owl-alpha')
     expect(result.costUsd).toBe(0)
     expect(result.latencyMs).toBeGreaterThanOrEqual(0)
   })
@@ -394,7 +394,7 @@ describe('createOpenRouterLlmCall', () => {
     const llmCall = createOpenRouterLlmCall('sk-key')
     for (const stage of ['RESEARCHING', 'STRATEGIZING', 'RISK_REVIEW', 'SIMULATING', 'PERMISSION_GATE', 'MONITORING']) {
       const result = await llmCall(stage, 'ctx')
-      expect(result.model).toBe('google/gemma-4-26b-a4b-it:free')
+      expect(result.model).toBe('openrouter/owl-alpha')
     }
   })
 
@@ -478,6 +478,6 @@ describe('runCycle', () => {
     const output = (result.data!.result as CycleEvaluatorResult).outputs[0]!
     expect(output.llmCostUsd).toBe(0)
     expect(output.llmLatencyMs).toBeGreaterThanOrEqual(0)
-    expect(output.llmModel).toBe('google/gemma-4-26b-a4b-it:free')
+    expect(output.llmModel).toBe('openrouter/owl-alpha')
   })
 })

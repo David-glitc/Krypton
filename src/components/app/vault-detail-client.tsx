@@ -4,52 +4,18 @@ import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { MetricCard, OutlineButton, StatusPill } from '@/components/app/app-shell'
+import { AgentChatPanel } from '@/components/app/agent-chat-panel'
+import { AgentLogsPanel, type AgentLogsData } from '@/components/app/agent-logs-panel'
+import { ConstraintPanel } from '@/components/app/constraint-panel'
 import { SectionHeading } from '@/components/app/section-heading'
 import { VaultDeposit } from '@/components/app/vault-deposit'
 import { VaultWithdraw } from '@/components/app/vault-withdraw'
+import { useVaultRegistry } from '@/contexts/vault-registry-context'
+import { useSolPrice } from '@/hooks/use-sol-price'
+import { formatSol, formatUsd, solToUsd, vaultDisplayName } from '@/lib/format-money'
 import { withRpcFallback } from '@/lib/solana/rpc-fallback'
+import { useDynamicContext } from '@dynamic-labs/sdk-react-core'
 import { PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js'
-
-type ExecutionLogsResponse = {
-  onChain: {
-    address: string
-    vault: string
-    head: number
-    count: number
-    entries: Array<{
-      cycleId: string
-      timestamp: string
-      decision: number
-      actionType: number
-      txSignature: string
-    }>
-  } | null
-  offChainRuns: Array<{
-    id: string
-    vault_pubkey: string
-    cycle_id: number
-    stage: string
-    decision: Record<string, unknown> | null
-    started_at: number
-    completed_at: number | null
-    error: string | null
-  }>
-}
-
-const DECISION_LABELS: Record<number, string> = {
-  0: 'Executed',
-  1: 'Rejected',
-  2: 'Advisory',
-}
-
-const STAGE_LABELS: Record<string, string> = {
-  RESEARCHING: 'Research',
-  STRATEGIZING: 'Strategy',
-  RISK_REVIEW: 'Risk Review',
-  SIMULATING: 'Simulation',
-  PERMISSION_GATE: 'Permission',
-  MONITORING: 'Monitor',
-}
 
 type VaultApiResponse = {
   vault: {
@@ -73,8 +39,20 @@ type VaultApiResponse = {
   } | null
   cycleStatus: {
     pendingCount: number
-    activeJob: { status: string; cycle_id: number } | null
-    lastCompleted: { status: string; cycle_id: number; updated_at: number } | null
+    activeJob: {
+      status: string
+      cycle_id: number
+      lease_expires_at?: number | null
+      created_at?: number
+      updated_at?: number
+    } | null
+    lastCompleted: { status: string; cycle_id: number; updated_at: number; error?: string | null } | null
+    quota?: {
+      minIncluded: number
+      remainingIncluded: number
+      infraFailures: number
+      usedBillable: number
+    }
   }
   pendingActions: Array<{
     id: string
@@ -90,9 +68,22 @@ type VaultApiResponse = {
   }>
 }
 
-function formatUsd(value: string | undefined) {
-  const num = Number(value ?? '0')
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num)
+function hasRunningAgent(activeJob: VaultApiResponse['cycleStatus']['activeJob']): boolean {
+  if (!activeJob) return false
+  return activeJob.status === 'pending' || activeJob.status === 'leased'
+}
+
+function isStuckAgent(activeJob: VaultApiResponse['cycleStatus']['activeJob']): boolean {
+  if (!activeJob) return false
+  const now = Date.now()
+  if (activeJob.status === 'leased' && activeJob.lease_expires_at != null) {
+    return activeJob.lease_expires_at < now
+  }
+  if (activeJob.status === 'pending') {
+    const started = activeJob.created_at ?? activeJob.updated_at ?? 0
+    return now - started > 3 * 60 * 1000
+  }
+  return false
 }
 
 function PendingActionCard({
@@ -118,7 +109,7 @@ function PendingActionCard({
         body: JSON.stringify({ status: 'approved' }),
       })
       if (!res.ok) throw new Error((await res.json()).error)
-      setToast('Action approved — cycle enqueued')
+      setToast('Action approved — agent will execute')
       onActionUpdated()
     } catch (err) {
       setToast(err instanceof Error ? err.message : 'Failed to approve')
@@ -147,36 +138,70 @@ function PendingActionCard({
     }
   }
 
-  const actionData = action.typed_action_json as { actionType?: string; rationale?: string; txSignature?: string }
+  const actionData = action.typed_action_json as {
+    actionType?: string
+    rationale?: string
+    txSignature?: string
+    candidateActions?: string[]
+    idleReason?: string
+    agentState?: string
+    investmentGoal?: string
+  }
+  const isIdle = actionData.agentState === 'idle_awaiting_approval'
   const isPending = action.status === 'pending'
   const canAct = isPending && !submitting
+  const proposed =
+    actionData.candidateActions?.filter((a) => a && a !== 'noop') ??
+    (actionData.actionType && actionData.actionType !== 'agent_proposed' ? [actionData.actionType] : [])
 
   return (
-    <div className="border border-border bg-bg-base p-4">
+    <div className="panel panel-pad">
       <div className="flex items-center justify-between gap-4">
-        <span className="font-[family-name:var(--font-jetbrains)] text-xs uppercase text-accent">
-          Cycle #{action.cycle_id}
+        <span className="label-caps text-accent">
+          {isIdle ? 'Agent idle' : 'Agent run'}
         </span>
-        <StatusPill label={action.status} />
+        <StatusPill
+          label={isIdle ? 'Awaiting approval' : action.status}
+          variant={isIdle ? 'warn' : action.status === 'approved' ? 'ok' : undefined}
+        />
       </div>
-      <p className="mt-2 text-sm text-text-secondary">{actionData.rationale ?? 'No rationale'}</p>
+
+      {actionData.investmentGoal && (
+        <p className="mt-2 text-xs text-text-muted">
+          Goal: <span className="text-text-secondary">{actionData.investmentGoal}</span>
+        </p>
+      )}
+
+      {proposed.length > 0 && (
+        <ul className="mt-4 space-y-2">
+          {proposed.slice(0, 4).map((move) => (
+            <li key={move} className="text-base text-text-primary">
+              → {move}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <p className="mt-3 text-base leading-relaxed text-text-secondary">
+        {actionData.idleReason ?? actionData.rationale ?? 'No rationale'}
+      </p>
       {actionData.txSignature && (
         <p className="mt-1 font-[family-name:var(--font-jetbrains)] text-[11px] text-text-muted">
           Tx: {actionData.txSignature.slice(0, 16)}…
         </p>
       )}
       {canAct && (
-        <div className="mt-3 flex gap-2">
+        <div className="mt-5 flex gap-3">
           <button
             onClick={() => setConfirming(true)}
-            className="rounded bg-green-700 px-3 py-1 text-xs font-medium text-white hover:bg-green-600 disabled:opacity-50"
+            className="rounded bg-green-700 px-4 py-2 text-sm font-medium text-white hover:bg-green-600 disabled:opacity-50"
             disabled={submitting}
           >
             {submitting ? '…' : 'Approve'}
           </button>
           <button
             onClick={handleReject}
-            className="rounded bg-red-900/50 px-3 py-1 text-xs font-medium text-red-300 hover:bg-red-800/50 disabled:opacity-50"
+            className="rounded bg-red-900/50 px-4 py-2 text-sm font-medium text-red-300 hover:bg-red-800/50 disabled:opacity-50"
             disabled={submitting}
           >
             {submitting ? '…' : 'Reject'}
@@ -226,11 +251,15 @@ function PendingActionCard({
 }
 
 export function VaultDetailClient({ vaultAddress }: { vaultAddress: string }) {
+  const { primaryWallet } = useDynamicContext()
+  const { getVaultName, refetchVaults } = useVaultRegistry()
+  const { solPriceUsd } = useSolPrice()
   const [data, setData] = useState<VaultApiResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [queueing, setQueueing] = useState(false)
-  const [execLogs, setExecLogs] = useState<ExecutionLogsResponse | null>(null)
+  const [releasing, setReleasing] = useState(false)
+  const [execLogs, setExecLogs] = useState<AgentLogsData | null>(null)
   const [logsLoading, setLogsLoading] = useState(true)
   const [balanceLamports, setBalanceLamports] = useState<number | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -248,17 +277,18 @@ export function VaultDetailClient({ vaultAddress }: { vaultAddress: string }) {
       setData(json)
       setBalanceLamports(bal)
       setError(null)
+      refetchVaults()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load vault')
     } finally {
       setLoading(false)
     }
-  }, [vaultAddress])
+  }, [vaultAddress, refetchVaults])
 
   const loadLogs = useCallback(async () => {
     try {
       const res = await fetch(`/api/vaults/${vaultAddress}/execution-logs`, { cache: 'no-store' })
-      const json = (await res.json()) as ExecutionLogsResponse & { error?: string }
+      const json = (await res.json()) as AgentLogsData & { error?: string }
       if (!json.error) setExecLogs(json)
     } catch {
       // silent
@@ -284,16 +314,48 @@ export function VaultDetailClient({ vaultAddress }: { vaultAddress: string }) {
   }, [hasActiveJob, load, loadLogs])
 
   if (loading) {
-    return <div className="mx-auto max-w-6xl p-6 text-sm text-text-secondary lg:p-8">Loading vault telemetry…</div>
+    return <div className="app-page text-sm text-text-secondary">Loading vault…</div>
   }
 
   if (error) {
-    return <div className="mx-auto max-w-6xl p-6 text-sm text-accent-risk lg:p-8">{error}</div>
+    return <div className="app-page text-sm text-accent-risk">{error}</div>
   }
 
-  const vaultName = data?.registry?.name ?? data?.vault?.address ?? vaultAddress
+  const vaultName = vaultDisplayName(
+    getVaultName(vaultAddress) ?? data?.registry?.name,
+    vaultAddress,
+  )
+  const constraint = data?.vault?.constraint as {
+    maxDrawdownBps: string
+    maxLeverageBps: string
+    maxPositionBps: string
+    maxCorrelatedExposureBps: string
+    currentDrawdownBps: string
+    currentLeverageBps: string
+    currentConcentrationBps: string
+    currentCorrelatedExposureBps: string
+  } | undefined
+  const balanceSol = balanceLamports !== null ? balanceLamports / LAMPORTS_PER_SOL : null
+  const vaultUsd = balanceSol != null ? solToUsd(balanceSol, solPriceUsd) : null
+  const agentRunning = hasRunningAgent(data?.cycleStatus?.activeJob ?? null)
+  const stuck = isStuckAgent(data?.cycleStatus?.activeJob ?? null)
 
-  async function queueCycle() {
+  async function stopAgent() {
+    setReleasing(true)
+    try {
+      const res = await fetch(`/api/vaults/${vaultAddress}/cycles`, { method: 'DELETE' })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? 'Failed to stop agent')
+      await load()
+      await loadLogs()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to stop agent')
+    } finally {
+      setReleasing(false)
+    }
+  }
+
+  async function runAgent() {
     setQueueing(true)
     try {
       const res = await fetch(`/api/vaults/${vaultAddress}/cycles`, {
@@ -302,76 +364,108 @@ export function VaultDetailClient({ vaultAddress }: { vaultAddress: string }) {
         body: JSON.stringify({ permissionLevel: data?.registry?.permission_level ?? 2, priority: 5 }),
       })
       const json = await res.json()
-      if (!res.ok) throw new Error(json.error ?? 'Failed to queue cycle')
+      if (!res.ok) throw new Error(json.hint ? `${json.error} ${json.hint}` : (json.error ?? 'Failed to run agent'))
       load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to queue cycle')
+      setError(err instanceof Error ? err.message : 'Failed to run agent')
     } finally {
       setQueueing(false)
     }
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 p-4 sm:p-6 md:space-y-10 lg:p-8">
-      <div className="flex flex-col gap-4 sm:gap-6 lg:flex-row lg:items-end lg:justify-between">
-        <div className="max-w-3xl">
-          <p className="font-[family-name:var(--font-jetbrains)] text-[10px] uppercase tracking-wider text-text-muted sm:text-[11px]">
-            Vault address
-          </p>
-          <h1 className="mt-2 break-all font-[family-name:var(--font-hanken)] text-2xl font-bold tracking-tight text-text-primary sm:text-4xl lg:text-5xl">
-            {vaultName}
-          </h1>
-          <p className="mt-2 font-[family-name:var(--font-jetbrains)] text-[11px] text-text-secondary sm:text-xs">{vaultAddress}</p>
+    <div className="app-page stack-section">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0 max-w-3xl">
+          <p className="label-caps">Vault</p>
+          <h1 className="page-title mt-1 truncate">{vaultName}</h1>
+          <p className="mt-2 font-mono text-sm text-text-muted break-all sm:break-normal sm:truncate">{vaultAddress}</p>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
-          <OutlineButton onClick={queueCycle}>{queueing ? 'Queueing…' : 'Run Cycle'}</OutlineButton>
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <OutlineButton onClick={runAgent} disabled={agentRunning}>
+            {queueing ? 'Starting…' : agentRunning ? 'Agent running…' : 'Run agent'}
+          </OutlineButton>
+          {agentRunning && (
+            <OutlineButton onClick={stopAgent}>
+              {releasing ? 'Stopping…' : 'Stop agent'}
+            </OutlineButton>
+          )}
           <OutlineButton href={`/app/vault/${vaultAddress}/activity`}>View Activity</OutlineButton>
           <OutlineButton href={`https://explorer.solana.com/address/${vaultAddress}?cluster=devnet`}>Explorer</OutlineButton>
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="SOL Balance" value={balanceLamports !== null ? (balanceLamports / LAMPORTS_PER_SOL).toFixed(3) + ' SOL' : '—'} accent />
-        <MetricCard label="Vault NAV" value={formatUsd(data?.vault?.navUsd)} />
-        <MetricCard label="Pending Actions" value={String(data?.pendingActions.length ?? 0)} accent />
-        <MetricCard label="Queued Cycles" value={String(data?.cycleStatus.pendingCount ?? 0)} />
-      </div>
-
-      <div className="panel p-4 sm:p-6">
-        <SectionHeading title="Constraint State" />
-        <div className="mt-4 space-y-3 sm:mt-6 sm:space-y-4">
-          {Object.entries(data?.vault?.constraint ?? {}).map(([label, value]) => (
-            <div key={label} className="flex items-center justify-between border-b border-border/50 pb-3 last:border-0 last:pb-0">
-              <span className="text-sm text-text-secondary">{label}</span>
-              <span className="font-[family-name:var(--font-jetbrains)] text-sm text-text-primary">{value}</span>
-            </div>
-          ))}
+      {stuck && (
+        <div className="rounded-lg border border-accent-warn/40 bg-accent-warn/10 px-4 py-3 text-sm text-text-secondary">
+          The agent looks stuck — it has been {data?.cycleStatus.activeJob?.status} for too long.
+          Tap <strong>Stop agent</strong>, then run it again. Reject any stale pending actions below.
         </div>
+      )}
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Vault balance"
+          value={balanceSol != null ? `${formatUsd(vaultUsd ?? 0)} · ${formatSol(balanceSol)}` : '—'}
+          accent
+          size="lg"
+        />
+        <MetricCard label="On-chain NAV (USD)" value={formatUsd(Number(data?.vault?.navUsd ?? 0))} />
+        <MetricCard label="Pending Actions" value={String(data?.pendingActions.length ?? 0)} accent />
+        <MetricCard label="Agent queue" value={String(data?.cycleStatus.pendingCount ?? 0)} />
       </div>
 
-      <div className="panel p-4 sm:p-6">
-        <SectionHeading title="Agent Status" />
-        <div className="mt-4 flex flex-wrap gap-6 sm:gap-10">
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="panel panel-pad">
+          <ConstraintPanel
+            constraint={constraint ?? null}
+            paused={data?.vault?.paused ?? false}
+            compact
+          />
+        </div>
+        <AgentChatPanel
+          vaultAddress={vaultAddress}
+          ownerWallet={primaryWallet?.address}
+          vaultName={vaultName}
+        />
+      </div>
+
+      <div className="panel panel-pad">
+        <SectionHeading title="Agent" />
+        <div className="mt-5 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <p className="font-[family-name:var(--font-jetbrains)] text-[10px] uppercase tracking-wider text-text-muted">Active cycle</p>
-            <p className="mt-1 font-[family-name:var(--font-jetbrains)] text-sm text-accent">
-              {data?.cycleStatus.activeJob ? `#${data.cycleStatus.activeJob.cycle_id} · ${data.cycleStatus.activeJob.status}` : 'Idle'}
+            <p className="stat-label">Status</p>
+            <p className="stat-value text-accent">
+              {agentRunning
+                ? stuck
+                  ? 'Stuck — stop and retry'
+                  : 'Running'
+                : 'Idle'}
             </p>
           </div>
           <div>
-            <p className="font-[family-name:var(--font-jetbrains)] text-[10px] uppercase tracking-wider text-text-muted">Last completed</p>
-            <p className="mt-1 font-[family-name:var(--font-jetbrains)] text-sm text-text-primary">
-              {data?.cycleStatus.lastCompleted ? `#${data.cycleStatus.lastCompleted.cycle_id} · ${data.cycleStatus.lastCompleted.status}` : 'None'}
+            <p className="stat-label">Last run</p>
+            <p className="stat-value text-text-primary">
+              {data?.cycleStatus.lastCompleted
+                ? data.cycleStatus.lastCompleted.status === 'completed'
+                  ? 'Completed'
+                  : data.cycleStatus.lastCompleted.status
+                : 'None'}
             </p>
           </div>
           <div>
-            <p className="font-[family-name:var(--font-jetbrains)] text-[10px] uppercase tracking-wider text-text-muted">Permission</p>
-            <p className="mt-1 font-[family-name:var(--font-jetbrains)] text-sm text-text-primary">L{data?.registry?.permission_level ?? 2}</p>
+            <p className="stat-label">Included runs</p>
+            <p className="stat-value text-text-primary">
+              {data?.cycleStatus.quota
+                ? `${data.cycleStatus.quota.remainingIncluded} of ${data.cycleStatus.quota.minIncluded} remaining`
+                : '—'}
+            </p>
           </div>
           <div>
-            <p className="font-[family-name:var(--font-jetbrains)] text-[10px] uppercase tracking-wider text-text-muted">Policy hash</p>
-            <p className="mt-1 font-[family-name:var(--font-jetbrains)] text-xs text-text-primary">
-              {data?.policy?.contentHash?.slice(0, 16) ?? '—'}…
+            <p className="stat-label">Approvals</p>
+            <p className="stat-value text-text-primary">
+              {data?.registry?.permission_level != null && data.registry.permission_level >= 2
+                ? 'You approve trades'
+                : 'Auto-execute'}
             </p>
           </div>
         </div>
@@ -382,9 +476,9 @@ export function VaultDetailClient({ vaultAddress }: { vaultAddress: string }) {
         <VaultWithdraw vaultAddress={vaultAddress} onWithdrawn={load} />
       </div>
 
-      <div className="panel p-4 sm:p-6">
+      <div className="panel panel-pad">
         <SectionHeading title="Pending Actions" />
-          <div className="mt-4 space-y-3 sm:mt-6 sm:space-y-4">
+          <div className="mt-5 space-y-4">
               {data?.pendingActions.length ? (
               data.pendingActions.map((action) => (
                 <PendingActionCard
@@ -395,14 +489,14 @@ export function VaultDetailClient({ vaultAddress }: { vaultAddress: string }) {
                 />
               ))
             ) : (
-              <p className="text-sm text-text-secondary">No advisory actions are waiting for approval.</p>
+              <p className="body-sm text-text-secondary">No advisory actions are waiting for approval.</p>
             )}
           </div>
         </div>
 
-        <div className="panel p-4 sm:p-6">
+        <div className="panel panel-pad">
           <SectionHeading title="Recent Activity" />
-          <div className="mt-4 space-y-3 sm:mt-6 sm:space-y-4">
+          <div className="mt-5 space-y-4">
             {data?.recentActivity.length ? (
               data.recentActivity.map((event) => (
                 <div key={event.id} className="border-b border-border/50 pb-4 last:border-0 last:pb-0">
@@ -429,90 +523,7 @@ export function VaultDetailClient({ vaultAddress }: { vaultAddress: string }) {
           </Link>
         </div>
 
-      <section className="panel p-4 sm:p-6">
-        <SectionHeading title="Agent Logs & Reasoning" />
-        <div className="mt-4 space-y-4 sm:mt-6 sm:space-y-6">
-          {/* On-chain execution log */}
-          <div>
-            <h3 className="font-[family-name:var(--font-jetbrains)] text-xs uppercase tracking-wider text-text-muted">
-              On-chain decisions
-              {execLogs?.onChain ? ` · ${execLogs.onChain.count} total` : ''}
-            </h3>
-            {logsLoading ? (
-              <p className="mt-3 text-sm text-text-secondary">Loading logs…</p>
-            ) : execLogs?.onChain && execLogs.onChain.entries.length > 0 ? (
-              <div className="mt-3 space-y-2">
-                {execLogs.onChain.entries.map((entry, i) => (
-                  <div key={i} className="flex flex-col gap-1 border-b border-border/30 pb-2 last:border-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <StatusPill
-                        label={DECISION_LABELS[entry.decision] ?? `#${entry.decision}`}
-                      />
-                      <span className="text-xs text-text-secondary">
-                        Action #{entry.actionType} · Cycle #{entry.cycleId}
-                      </span>
-                    </div>
-                    <span className="text-[11px] text-text-muted sm:text-xs">
-                      {new Date(Number(entry.timestamp) * 1000).toLocaleString()}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-3 text-sm text-text-secondary">No on-chain decisions yet.</p>
-            )}
-          </div>
-
-          {/* Off-chain reasoning */}
-
-          <div>
-            <h3 className="font-[family-name:var(--font-jetbrains)] text-xs uppercase tracking-wider text-text-muted">
-              Agent reasoning
-              {execLogs?.offChainRuns ? ` · ${execLogs.offChainRuns.length} runs` : ''}
-            </h3>
-            {logsLoading ? (
-              <p className="mt-3 text-sm text-text-secondary">Loading reasoning…</p>
-            ) : execLogs?.offChainRuns && execLogs.offChainRuns.length > 0 ? (
-              <div className="mt-3 space-y-3">
-                {execLogs.offChainRuns.map((run) => (
-                  <div key={run.id} className="border border-border bg-bg-base p-3 sm:p-4">
-                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-[family-name:var(--font-jetbrains)] text-[11px] uppercase text-accent sm:text-xs">
-                          Cycle #{run.cycle_id}
-                        </span>
-                        <span className="font-[family-name:var(--font-jetbrains)] text-[10px] uppercase text-text-muted sm:text-[11px]">
-                          {STAGE_LABELS[run.stage] ?? run.stage}
-                        </span>
-                      </div>
-                      <span className="text-[11px] text-text-muted sm:text-xs">
-                        {new Date(run.started_at).toLocaleString()}
-                      </span>
-                    </div>
-                    {run.decision?.rationale ? (
-                      <p className="mt-2 text-sm text-text-secondary">{String(run.decision.rationale)}</p>
-                    ) : null}
-                    {run.decision?.actions && Array.isArray(run.decision.actions) && run.decision.actions.length > 0 ? (
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {run.decision.actions.map((action: string, i: number) => (
-                          <span key={i} className="rounded border border-border px-2 py-0.5 text-[11px] text-text-muted">
-                            {action}
-                          </span>
-                        ))}
-                      </div>
-                    ) : null}
-                    {run.error ? (
-                      <p className="mt-2 text-xs text-accent-risk">{run.error}</p>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-3 text-sm text-text-secondary">No agent reasoning available yet. Run a cycle to see the agent's thought process.</p>
-            )}
-          </div>
-        </div>
-      </section>
+      <AgentLogsPanel data={execLogs} loading={logsLoading} onRefresh={loadLogs} vaultUsd={vaultUsd ?? undefined} />
     </div>
   )
 }

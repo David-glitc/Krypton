@@ -1,119 +1,82 @@
 'use client'
 
-import { useContext, useEffect, useMemo, useState } from 'react'
+import { useContext, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Copy, Check, ExternalLink, Zap, Server, Key, Edit2, Check as CheckIcon, X } from 'lucide-react'
+import { Edit2, Check as CheckIcon, X, Zap, ExternalLink, AlertCircle } from 'lucide-react'
 import { DynamicContext } from '@dynamic-labs/sdk-react-core'
 
-type VaultEntry = {
-  address: string
-  name: string | null
-}
+import { PageHeader } from '@/components/app/page-header'
+import { vaultDisplayName } from '@/lib/format-money'
+import { useVaultRegistry } from '@/contexts/vault-registry-context'
 
 export default function SettingsPage() {
   const dynamicContext = useContext(DynamicContext)
   const wallet = dynamicContext?.primaryWallet
-  const [vaults, setVaults] = useState<VaultEntry[]>([])
+  const { vaults, refetchVaults, updateVaultNameLocal } = useVaultRegistry()
   const [renaming, setRenaming] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
-  const [copiedField, setCopiedField] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    const addr = wallet?.address
-    if (!addr) return
-    fetch(`/api/vaults?ownerWallet=${encodeURIComponent(addr)}`, { cache: 'no-store' })
-      .then(r => r.json())
-      .then(j => {
-        const raw = j as { vaults?: Array<{ registry?: { vault_pubkey: string; name: string | null }; onChain?: { address: string } | null }> }
-        const mapped: VaultEntry[] = (raw.vaults ?? []).map(v => ({
-          address: v.onChain?.address ?? v.registry?.vault_pubkey ?? '',
-          name: v.registry?.name ?? null,
-        }))
-        setVaults(mapped)
-      })
-      .catch(() => {})
-  }, [wallet?.address])
-
-  const copy = async (text: string, field: string) => {
-    await navigator.clipboard.writeText(text)
-    setCopiedField(field)
-    setTimeout(() => setCopiedField(null), 1500)
-  }
-
-  const handleRename = async (address: string) => {
-    if (!renameValue.trim()) return
+  const handleRename = async (vaultAddress: string) => {
+    if (!renameValue.trim() || !wallet?.address) return
+    setSaving(true)
+    setError(null)
     try {
-      await fetch('/api/vaults/rename', {
+      const res = await fetch('/api/vaults/rename', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vaultPubkey: address, name: renameValue.trim() }),
+        body: JSON.stringify({
+          vaultPubkey: vaultAddress,
+          name: renameValue.trim(),
+          ownerWallet: wallet.address,
+        }),
       })
-      setVaults(prev => prev.map(v => v.address === address ? { ...v, name: renameValue.trim() } : v))
-    } catch {}
-    setRenaming(null)
-    setRenameValue('')
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? 'Rename failed')
+      updateVaultNameLocal(vaultAddress, renameValue.trim())
+      await refetchVaults()
+      setRenaming(null)
+      setRenameValue('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Rename failed')
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const env = useMemo(() => ({
-    rpc: process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.devnet.solana.com',
-    programId: 'DQVp9hnnU6zbyPCJbcEnS6F1fWZMQ2yCCH9jL6cFVPxF',
-    network: 'devnet',
-  }), [])
-
   return (
-    <div className="mx-auto max-w-4xl space-y-10 p-4 sm:p-6 lg:p-8">
-      <div className="flex items-center gap-4">
-        <Link href="/app" className="text-text-secondary hover:text-text-primary">
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <div>
-          <h1 className="font-[family-name:var(--font-hanken)] text-3xl font-bold tracking-tight text-text-primary sm:text-5xl">
-            Settings
-          </h1>
-          <p className="mt-2 text-base text-text-secondary">
-            Wallet connection, vault management, and environment config.
-          </p>
-        </div>
-      </div>
+    <div className="app-page stack-section">
+      <PageHeader
+        title="Settings"
+        description="Rename vaults — names update everywhere instantly."
+        backHref="/app/profile"
+      />
 
-      {/* Wallet */}
-      <section className="space-y-4">
-        <h2 className="font-[family-name:var(--font-hanken)] text-xl font-medium text-text-primary">Connected Wallet</h2>
-        <div className="panel p-5 space-y-4">
-          {wallet ? (
-            <>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-text-secondary">Address</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs text-text-primary">{wallet.address}</span>
-                  <button onClick={() => copy(wallet.address, 'wallet')}>
-                    {copiedField === 'wallet' ? <Check className="h-4 w-4 text-accent" /> : <Copy className="h-4 w-4 text-text-secondary hover:text-text-primary" />}
-                  </button>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-text-secondary">Connector</span>
-                <span className="text-xs text-text-primary">{wallet.connector?.name || 'Dynamic'}</span>
-              </div>
-            </>
-          ) : (
-            <p className="text-sm text-text-muted">No wallet connected. Connect via the button in the header.</p>
-          )}
+      {error && (
+        <div className="flex items-start gap-2 rounded-lg border border-accent-risk/40 bg-accent-risk-muted/20 px-4 py-3 text-sm text-accent-risk">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          {error}
         </div>
-      </section>
+      )}
 
-      {/* Vault Management */}
       <section className="space-y-4">
-        <h2 className="font-[family-name:var(--font-hanken)] text-xl font-medium text-text-primary">Your Vaults</h2>
+        <h2 className="font-[family-name:var(--font-hanken)] text-xl font-medium text-text-primary">Vault names</h2>
         {vaults.length === 0 ? (
           <div className="panel p-5">
-            <p className="text-sm text-text-muted">No vaults yet. Create one from the dashboard.</p>
+            <p className="text-sm text-text-muted">
+              No vaults yet.{' '}
+              <Link href="/app/create" className="text-accent hover:underline">
+                Create one
+              </Link>
+              .
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
-            {vaults.map(v => (
-              <div key={v.address} className="panel p-4 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3 min-w-0">
+            {vaults.map((v) => (
+              <div key={v.address} className="panel flex items-center justify-between gap-4 p-4">
+                <div className="flex min-w-0 items-center gap-3">
                   <Zap className="h-4 w-4 shrink-0 text-accent" />
                   <div className="min-w-0">
                     {renaming === v.address ? (
@@ -121,27 +84,42 @@ export default function SettingsPage() {
                         <input
                           type="text"
                           value={renameValue}
-                          onChange={e => setRenameValue(e.target.value)}
+                          onChange={(e) => setRenameValue(e.target.value)}
                           className="input-field h-8 w-48 text-xs"
                           autoFocus
-                          onKeyDown={e => { if (e.key === 'Enter') handleRename(v.address); if (e.key === 'Escape') setRenaming(null) }}
+                          disabled={saving}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleRename(v.address)
+                            if (e.key === 'Escape') setRenaming(null)
+                          }}
                         />
-                        <button onClick={() => handleRename(v.address)} className="text-accent hover:text-accent-hover">
+                        <button
+                          type="button"
+                          onClick={() => handleRename(v.address)}
+                          disabled={saving}
+                          className="text-accent disabled:opacity-50"
+                        >
                           <CheckIcon className="h-4 w-4" />
                         </button>
-                        <button onClick={() => setRenaming(null)} className="text-text-secondary hover:text-text-primary">
+                        <button type="button" onClick={() => setRenaming(null)} className="text-text-secondary">
                           <X className="h-4 w-4" />
                         </button>
                       </div>
                     ) : (
-                      <span className="text-sm font-medium text-text-primary">{v.name || v.address.slice(0, 8) + '…'}</span>
+                      <span className="text-sm font-medium text-text-primary">
+                        {vaultDisplayName(v.name, v.address)}
+                      </span>
                     )}
-                    <p className="font-mono text-[11px] text-text-muted truncate">{v.address}</p>
+                    <p className="truncate font-mono text-[11px] text-text-muted">{v.address}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex shrink-0 items-center gap-2">
                   <button
-                    onClick={() => { setRenaming(v.address); setRenameValue(v.name || '') }}
+                    type="button"
+                    onClick={() => {
+                      setRenaming(v.address)
+                      setRenameValue(v.name || '')
+                    }}
                     className="text-text-secondary hover:text-text-primary"
                   >
                     <Edit2 className="h-4 w-4" />
@@ -156,43 +134,15 @@ export default function SettingsPage() {
         )}
       </section>
 
-      {/* Environment */}
-      <section className="space-y-4">
-        <h2 className="font-[family-name:var(--font-hanken)] text-xl font-medium text-text-primary">Environment</h2>
-        <div className="panel p-5 space-y-4">
-          {[
-            { label: 'Network', value: 'Devnet', icon: Server },
-            { label: 'RPC URL', value: env.rpc, icon: Server },
-            { label: 'Program ID', value: env.programId, icon: Key },
-          ].map(f => {
-            const Icon = f.icon
-            return (
-              <div key={f.label} className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Icon className="h-4 w-4 text-text-secondary" />
-                  <span className="text-sm text-text-secondary">{f.label}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs text-text-primary">{f.value}</span>
-                  <button onClick={() => copy(f.value, f.label)}>
-                    {copiedField === f.label ? <Check className="h-4 w-4 text-accent" /> : <Copy className="h-4 w-4 text-text-secondary hover:text-text-primary" />}
-                  </button>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </section>
-
-      {/* Orchestrator Status */}
-      <section className="space-y-4">
-        <h2 className="font-[family-name:var(--font-hanken)] text-xl font-medium text-text-primary">Orchestrator</h2>
-        <div className="panel p-5">
-          <p className="text-sm text-text-secondary">
-            The agent orchestrator runs as a systemd service on your VPS. Check its status via{' '}
-            <code className="rounded bg-bg-deep px-1.5 py-0.5 font-mono text-xs text-accent">ssh krypton-vps systemctl status krypton-orchestrator</code>
-          </p>
-        </div>
+      <section className="panel space-y-3 p-5">
+        <h2 className="font-[family-name:var(--font-hanken)] text-lg font-medium text-text-primary">Account</h2>
+        <p className="text-sm text-text-secondary">
+          Wallet, balances, and sign-out on your{' '}
+          <Link href="/app/profile" className="text-accent hover:underline">
+            profile
+          </Link>
+          .
+        </p>
       </section>
     </div>
   )

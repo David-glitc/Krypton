@@ -9,6 +9,15 @@
 - 2026-06-25T08:27:00Z — Implemented initial `services/orchestrator` package with cycle worker CLI, FSM stages, stub agents, and SQLite integration for cycle runs, agent invocations, and pending actions.
 - 2026-06-25T07:48:00Z — Cleaned duplicate orchestrator file collisions, normalized ESM imports, and verified root `pnpm orchestrator` starts worker in stub mode.
 
+## 2026-06-25 02:05 UTC
+
+- Smart idle at permission gate: L2+ vaults and unauthorised on-chain signers queue `pending_actions` with `idle_awaiting_approval` instead of failing cycles with `0x1771 NotAuthorised`.
+- Added `cycle-execution.ts` (pre-flight auth check, idle queue, auth-error fallback), Sanctum/Meteora execution adapters, and a live `/app/performance` page backed by `/api/vaults/performance`.
+
+## 2026-06-25 02:30 UTC
+
+- Power UI sizing pass: scaled `page-title` (up to 3.25rem), `metric-value` / `metric-value-lg`, `section-title`, `stat-label/value`, `panel-pad`, `data-table`, wider 80rem canvas, taller header and metric cards across dashboard, vault detail, performance, and profile.
+
 ## 2026-06-24 22:30 UTC
 
 - Added SQLite-backed multi-tenant storage under `src/lib/db` with schema for interactive sessions, cycle jobs, cycle runs, agent invocations, vault registry, activity events, and pending actions.

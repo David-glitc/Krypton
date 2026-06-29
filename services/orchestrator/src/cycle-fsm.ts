@@ -19,12 +19,16 @@ export interface AgentContext {
   vaultPubkey: string
   cycleId: number
   permissionLevel: number
+  priorOutputs?: AgentOutput[]
 }
 
 export interface BaseAgentOutput {
   rationale: string
   stub: boolean
   generatedAt: number
+  llmCostUsd?: number
+  llmLatencyMs?: number
+  llmModel?: string
 }
 
 export interface ResearchOutput extends BaseAgentOutput {
@@ -35,6 +39,7 @@ export interface ResearchOutput extends BaseAgentOutput {
 export interface StrategyOutput extends BaseAgentOutput {
   stage: 'STRATEGIZING'
   candidateActions: string[]
+  investmentGoal?: string
 }
 
 export interface RiskReviewOutput extends BaseAgentOutput {

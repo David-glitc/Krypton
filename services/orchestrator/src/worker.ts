@@ -1,5 +1,5 @@
 import crypto from 'node:crypto'
-import { PublicKey, Connection, Keypair } from '@solana/web3.js'
+import { PublicKey, Keypair } from '@solana/web3.js'
 
 import {
   getAgentRuntime,
@@ -14,10 +14,12 @@ import {
   type AgentInvocationInsert,
   type CycleJobRow,
   completeCycleJob,
+  countInfraFailedJobs,
   failCycleJob,
+  hasActiveCycleJob,
   insertAgentInvocation,
   insertCycleRun,
-  insertPendingAction,
+  insertInfraRetryJob,
   leaseNextCycleJob,
   updateCycleRunCompletion,
 } from './db.js'
@@ -28,33 +30,43 @@ import {
   type CycleFsmResult,
   type CycleStage,
   type PermissionGateOutput,
-  type StrategyOutput,
 } from './cycle-fsm.js'
-import { dispatchExecution } from './execution-dispatcher.js'
+import {
+  extractExecutionPlan,
+  queueIdlePendingApproval,
+  requiresHumanApproval,
+  tryAutoExecuteOnChain,
+} from './cycle-execution.js'
+import { isInfrastructureCycleError, outputsIndicateInfrastructureFailure } from './infra-errors.js'
 
 const POLL_INTERVAL_MS = Number.parseInt(process.env.KRYPTON_ORCHESTRATOR_POLL_MS ?? '2000', 10)
 const STUB_MODE = process.env.KRYPTON_STUB_AGENTS === 'true'
+const MAX_INFRA_AUTO_RETRIES = 3
 
-export function parseActionType(label: string): number {
-  const lower = label.toLowerCase()
-  if (lower.includes('swap')) return 0
-  if (lower.includes('stake') || lower.includes('unstake')) return 1
-  if (lower.includes('lend') || lower.includes('borrow')) return 2
-  if (lower.includes('liquidity') || lower.includes('provide')) return 3
-  if (lower.includes('close_perp') || lower.includes('close')) return 5
-  if (lower.includes('perp') || lower.includes('open_perp')) return 4
-  return 0
+export { parseActionType, parseTargetProtocol } from './action-parse.js'
+
+async function assertVaultStateAvailable(vaultPubkey: string): Promise<void> {
+  const runtime = getAgentRuntime(vaultPubkey)
+  const state = await runtime.getPlugin().getVaultState(vaultPubkey)
+  if (!state) {
+    throw new Error(
+      'VAULT_STATE_UNAVAILABLE: On-chain vault account could not be loaded. Check RPC connectivity and vault address.',
+    )
+  }
 }
 
-export function parseTargetProtocol(label: string): number {
-  const lower = label.toLowerCase()
-  if (lower.includes('jupiter') || lower.includes('jup')) return 0
-  if (lower.includes('drift')) return 1
-  if (lower.includes('adrena')) return 2
-  if (lower.includes('pump') || lower.includes('pumpfun')) return 3
-  if (lower.includes('raydium')) return 4
-  if (lower.includes('kamino')) return 5
-  return 0
+async function maybeScheduleInfraRetry(job: CycleJobRow, message: string): Promise<void> {
+  if (!isInfrastructureCycleError(message)) return
+  if (await hasActiveCycleJob(job.vault_pubkey)) return
+
+  const infraFailures = await countInfraFailedJobs(job.vault_pubkey)
+  if (infraFailures >= MAX_INFRA_AUTO_RETRIES) return
+
+  await insertInfraRetryJob(job, now())
+  // eslint-disable-next-line no-console
+  console.warn(
+    `[worker] scheduled infra retry ${infraFailures + 1}/${MAX_INFRA_AUTO_RETRIES} for vault=${job.vault_pubkey}`,
+  )
 }
 
 const now = (): number => Date.now()
@@ -97,6 +109,10 @@ async function runStage(stage: CycleStage, context: AgentContext): Promise<Agent
 }
 
 async function runCycle(job: CycleJobRow): Promise<CycleFsmResult> {
+  if (!STUB_MODE) {
+    await assertVaultStateAvailable(job.vault_pubkey)
+  }
+
   const context = createAgentContext(job)
   const outputs: AgentOutput[] = []
 
@@ -120,7 +136,7 @@ async function runCycle(job: CycleJobRow): Promise<CycleFsmResult> {
 
     try {
       const invokeStart = now()
-      stageOutput = await runStage(stage, context)
+      stageOutput = await runStage(stage, { ...context, priorOutputs: outputs })
       const invokeEnd = now()
       stageDecision = JSON.stringify(stageOutput)
 
@@ -146,118 +162,57 @@ async function runCycle(job: CycleJobRow): Promise<CycleFsmResult> {
       }
       await insertAgentInvocation(invocation)
 
+      if (
+        outputsIndicateInfrastructureFailure([...outputs, stageOutput], stageError) ||
+        stageOutput.rationale.includes('VAULT_STATE_UNAVAILABLE')
+      ) {
+        stageError = stageOutput.rationale
+        break
+      }
+
       if (stage === 'PERMISSION_GATE') {
-        const permGate = stageOutput as PermissionGateOutput | null
-        const isAutoExecute = permGate !== null && !permGate.requiresUserApproval
+        const permGate = stageOutput as PermissionGateOutput
+        const plan = extractExecutionPlan(outputs, permGate)
 
-        if (isAutoExecute) {
-          try {
-            const runtime = getAgentRuntime(job.vault_pubkey)
-            const connection = new Connection(
-              process.env.SOLANA_RPC_URL ?? 'https://api.devnet.solana.com',
-              'confirmed',
-            )
-
-            const strategyOutput = outputs.find(
-              (o): o is StrategyOutput => o.stage === 'STRATEGIZING',
-            )
-            const actionLabel = strategyOutput?.candidateActions?.[0] ?? 'noop'
-
-            const [vaultOwner] = PublicKey.findProgramAddressSync(
-              [Buffer.from('vault')],
-              new PublicKey(process.env.KRYPTON_PROGRAM_ID ?? 'DQVp9hnnU6zbyPCJbcEnS6F1fWZMQ2yCCH9jL6cFVPxF'),
-            )
-
-            // Phase 1: approve action on-chain
-            const { signature: approveSig, actionId } = await runtime.approveAction({
-              vaultOwner,
-              actionType: parseActionType(actionLabel),
-              postLeverageBps: 1000,
-              postConcentrationBps: 2000,
-              postDrawdownBps: 500,
-              postCorrelatedBps: 1000,
-              compositeScore: 750,
-              targetProtocolId: parseTargetProtocol(actionLabel),
-              isDeRisk: false,
-              requiredLevel: 1,
-            })
-
-            // Phase 2: execute off-chain via solana-agent-kit / ElizaOS / direct SDK
-            const agentKeypair = loadAuthorityKeypair()
-            if (!agentKeypair) {
-              throw new Error('KRYPTON_AUTHORITY_KEYPAIR not configured — cannot execute off-chain')
-            }
-            const offChainResult = await dispatchExecution({
-              targetProtocolId: parseTargetProtocol(actionLabel),
-              actionTypeId: parseActionType(actionLabel),
-              vaultOwner,
-              agentKeypair,
-              connection,
-            })
-
-            let phase2Sig: string | null = null
-            if (offChainResult.success) {
-              phase2Sig = await runtime.confirmAction(vaultOwner)
-            } else {
-              phase2Sig = await runtime.rejectAction(vaultOwner)
-              stageError = `Off-chain execution failed: ${offChainResult.error}`
-            }
-
-            await insertPendingAction({
-              id: generateId(),
-              vault_pubkey: job.vault_pubkey,
-              cycle_id: job.cycle_id,
-              typed_action_json: JSON.stringify({
-                actionId,
-                actionType: actionLabel,
-                approveSignature: approveSig,
-                offChainSignature: offChainResult.success ? offChainResult.txSignature : null,
-                phase2Signature: phase2Sig,
-                offChainSuccess: offChainResult.success,
-                offChainError: offChainResult.success ? null : offChainResult.error,
-                rationale: stageOutput.rationale,
-                permissionLevel: context.permissionLevel,
-                requiresUserApproval: false,
-              }),
-              status: offChainResult.success ? 'approved' : 'rejected',
-              expires_at: now() + 24 * 60 * 60 * 1000,
-              created_at: invokeEnd,
-              updated_at: invokeEnd,
-            })
-          } catch (execError) {
-            stageError = `Two-phase execution failed: ${execError instanceof Error ? execError.message : String(execError)}`
-
-            await insertPendingAction({
-              id: generateId(),
-              vault_pubkey: job.vault_pubkey,
-              cycle_id: job.cycle_id,
-              typed_action_json: JSON.stringify({
-                error: stageError,
-                rationale: stageOutput.rationale,
-                permissionLevel: context.permissionLevel,
-              }),
-              status: 'rejected',
-              expires_at: now() + 24 * 60 * 60 * 1000,
-              created_at: invokeEnd,
-              updated_at: invokeEnd,
-            })
-          }
-        } else {
-          await insertPendingAction({
-            id: generateId(),
-            vault_pubkey: job.vault_pubkey,
-            cycle_id: job.cycle_id,
-            typed_action_json: JSON.stringify({
-              actionType: 'agent_proposed',
-              rationale: stageOutput.rationale,
-              permissionLevel: context.permissionLevel,
-              requiresUserApproval: true,
-            }),
-            status: 'pending',
-            expires_at: now() + 24 * 60 * 60 * 1000,
-            created_at: invokeEnd,
-            updated_at: invokeEnd,
+        if (outputsIndicateInfrastructureFailure(outputs, stageError)) {
+          stageError = stageError ?? 'Skipped pending action: infrastructure failure during cycle'
+        } else if (requiresHumanApproval(context, permGate) || !plan) {
+          await queueIdlePendingApproval({
+            job,
+            context,
+            plan,
+            permGate,
+            reason: !plan
+              ? 'No executable action proposed — agent on standby'
+              : context.permissionLevel >= 2
+                ? 'Your vault requires owner approval — agent idle until you approve'
+                : 'Approval required — agent idle until you act',
+            invokeEnd,
           })
+        } else {
+          const agentKeypair = loadAuthorityKeypair()
+          if (!agentKeypair) {
+            await queueIdlePendingApproval({
+              job,
+              context,
+              plan,
+              permGate,
+              reason: 'Server agent key not configured — approve to execute with your wallet',
+              invokeEnd,
+            })
+          } else {
+            const runtime = getAgentRuntime(job.vault_pubkey)
+            const result = await tryAutoExecuteOnChain({
+              runtime,
+              plugin: runtime.getPlugin(),
+              job,
+              context,
+              plan,
+              agentKeypair,
+              invokeEnd,
+            })
+            if (result.stageError) stageError = result.stageError
+          }
         }
       }
     } catch (error) {
@@ -290,6 +245,7 @@ async function processOne(workerId: string): Promise<boolean> {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     await failCycleJob(job.id, message, now())
+    await maybeScheduleInfraRetry(job, message)
   }
 
   return true
